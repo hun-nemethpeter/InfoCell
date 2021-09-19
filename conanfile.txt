@@ -1,0 +1,6 @@
+[requires]
+nlohmann_json/3.10.2
+utfcpp/3.2.1
+
+[generators]
+cmake

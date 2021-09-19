@@ -1,0 +1,1 @@
+add_executable(arc-solver main.cc)
