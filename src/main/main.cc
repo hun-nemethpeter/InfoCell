@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[])
 {
-    arcsolver::App app;
+    synth::App app;
     app.init(argc, argv);
     app.run();
 

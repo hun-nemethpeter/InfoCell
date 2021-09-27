@@ -1,9 +1,11 @@
 #include <parser/Rule.h>
 #include "Value.h"
 
+namespace synth {
+
 // =====================================================================================================================
 RuleValue::~RuleValue()
-{}
+{ }
 
 // =====================================================================================================================
 std::ostream& operator<<(std::ostream& p_os, const TRuleValue& p_value)
@@ -28,9 +30,8 @@ unsigned char TermValue::getChar() const
 // =====================================================================================================================
 void DecimalLiteralValue::addValue(const TRuleValue& p_value)
 {
-    if (!p_value)
-    {
-//        std::cout << "DDDD TODO CDecimalLiteralValue::AddValue" << std::endl;
+    if (!p_value) {
+        //        std::cout << "DDDD TODO CDecimalLiteralValue::AddValue" << std::endl;
         return;
     }
     const TermValue& termValue = dynamic_cast<const TermValue&>(*p_value.get());
@@ -49,19 +50,18 @@ std::string DecimalLiteralValue::getValueAsString() const
 // =====================================================================================================================
 void BinaryOpValue::addValue(const TRuleValue& p_value)
 {
-    switch (m_count++)
-    {
-        case 0:
-            m_left = p_value;
-            break;
-        case 1:
-            m_op = p_value;
-            break;
-        case 2:
-            m_right = p_value;
-            break;
-        default:
-            throw "error";
+    switch (m_count++) {
+    case 0:
+        m_left = p_value;
+        break;
+    case 1:
+        m_op = p_value;
+        break;
+    case 2:
+        m_right = p_value;
+        break;
+    default:
+        throw "error";
     }
 }
 
@@ -72,3 +72,5 @@ std::string BinaryOpValue::getValueAsString() const
     ret << "(" << m_left << m_op << m_right << ")";
     return ret.str();
 }
+
+} // namespace synth

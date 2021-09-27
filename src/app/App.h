@@ -1,6 +1,6 @@
 #include "ArcDb.h"
 
-namespace arcsolver {
+namespace synth {
 
 class App
 {
@@ -11,4 +11,4 @@ public:
     ArcDb arcDb;
 };
 
-} // namespace arcsolver
+} // namespace synth

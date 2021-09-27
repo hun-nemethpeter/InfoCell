@@ -1,11 +1,13 @@
 #include <parser/Rule.h>
 #include "Grammar.h"
 
+namespace synth {
+
 // =====================================================================================================================
-Grammar::Grammar(const std::string& p_name) : m_name(p_name)
+Grammar::Grammar(const std::string& p_name) :
+    m_name(p_name)
 {
-    for (unsigned char ch = 0; ch < 128; ++ch)
-    {
+    for (unsigned char ch = 0; ch < 128; ++ch) {
         m_terms.push_back(Term(ch));
     }
 }
@@ -43,18 +45,12 @@ TRule Grammar::List(const TRule& p_item, const Rule* p_separator)
     std::string listTailName("ListTailOf");
     listTailName += p_item->getName();
 
-    TRule list = And(listName);
+    TRule list     = And(listName);
     TRule listTail = And(listTailName);
 
-    list
-        & p_item
-        & listTail % Any
-        ;
+    list& p_item& listTail % Any;
 
-    listTail
-        & p_separator
-        & p_item
-        ;
+    listTail& p_separator& p_item;
 
     m_generatedRules.push_back(list);
     m_generatedRules.push_back(listTail);
@@ -84,8 +80,7 @@ TRule Grammar::List(const TRule& p_item, unsigned char p_separator)
 const Rule* Grammar::GetStringRule(const char* p_str)
 {
     const Rule*& strRule = m_strings[p_str];
-    if (!strRule)
-    {
+    if (!strRule) {
         Rule* rule = new AndRule(p_str, *this);
         unsigned i = 0;
         while (p_str[i])
@@ -97,3 +92,5 @@ const Rule* Grammar::GetStringRule(const char* p_str)
 
     return strRule;
 }
+
+} // namespace synth

@@ -3,7 +3,7 @@
 #pragma warning( disable : 4996)
 #include <utf8.h>
 
-namespace arcsolver {
+namespace synth {
 namespace cells {
 
 #define DATA_CELL(_obj_) \
@@ -134,4 +134,4 @@ String& String::addChar(char32_t utf32Char)
 }
 
 } // namespace cells
-} // namespace arcsolver
+} // namespace synth

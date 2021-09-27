@@ -1,6 +1,6 @@
-add_executable(arc-solver main.cc)
+add_executable(synth main.cc)
 
-target_link_libraries(arc-solver
+target_link_libraries(synth
 PRIVATE
     applib
 )

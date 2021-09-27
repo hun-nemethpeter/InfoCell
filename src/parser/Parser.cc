@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "Parser.h"
+namespace synth {
 
 // =====================================================================================================================
 Parser::Parser(const Grammar& p_grammar, const TRule& p_startRule, const std::string& p_text, bool p_debug) :
@@ -18,7 +19,7 @@ Parser::Parser(const Grammar& p_grammar, const TRule& p_startRule, const std::st
         printAsDot();
     parse();
     handleFinish();
-//    PrintResult();
+    //    PrintResult();
 }
 
 // =====================================================================================================================
@@ -31,7 +32,8 @@ void Parser::debugParsingHeader() const
     for (unsigned i = 0; i < m_grammar.GetName().size() + m_startRule->getName().size() + 3; i++)
         std::cout << "=";
     std::cout << std::endl;
-    std::cout << "expr: " << m_text << std::endl << std::endl;
+    std::cout << "expr: " << m_text << std::endl
+              << std::endl;
 }
 
 // =====================================================================================================================
@@ -40,11 +42,10 @@ void Parser::initialize()
     OrRule* result = new OrRule("Result", const_cast<Grammar&>(m_grammar));
     m_resultRule.reset(result);
     m_resultRule | m_startRule;
-//    const CRule* startRule = p_startRule.get();
+    //    const CRule* startRule = p_startRule.get();
 
     // create term states
-    for (Grammar::TTerms::const_iterator it = m_grammar.m_terms.begin(); it != m_grammar.m_terms.end(); ++it)
-    {
+    for (Grammar::TTerms::const_iterator it = m_grammar.m_terms.begin(); it != m_grammar.m_terms.end(); ++it) {
         const TermRule* termRule = dynamic_cast<TermRule*>(it->get());
         m_termStates.push_back(std::shared_ptr<TermRuleState>(new TermRuleState(termRule, *this)));
     }
@@ -60,26 +61,22 @@ void Parser::initialize()
 void Parser::parse()
 {
     // parsing...
-    for (unsigned i = 0; i < m_text.size(); ++i)
-    {
-        if (m_debug)
-        {
-//            std::cout << "Trying char '" << m_text[i] << "'" << std::endl;
-//            std::cout << "========================================" << std::endl;
+    for (unsigned i = 0; i < m_text.size(); ++i) {
+        if (m_debug) {
+            //            std::cout << "Trying char '" << m_text[i] << "'" << std::endl;
+            //            std::cout << "========================================" << std::endl;
         }
         ++m_pos;
         m_rulesToStates.clear();
         handleTermWaitingStates(m_text[i]);
         handleStateChanges();
-//        if (m_debug)
-//            std::cout << "\n";
-        if (m_resultRuleState->getState() == RuleStates::NotMatched)
-        {
+        //        if (m_debug)
+        //            std::cout << "\n";
+        if (m_resultRuleState->getState() == RuleStates::NotMatched) {
             std::cout << "Parse error";
             break;
         }
-        if (m_debug)
-        {
+        if (m_debug) {
             printAsDot();
             printStates();
         }
@@ -94,14 +91,13 @@ void Parser::handleFinish()
 // =====================================================================================================================
 void Parser::handleTermWaitingStates(unsigned char p_char)
 {
-    const Rule* termRule = m_grammar.GetTermFromChar(p_char);
+    const Rule* termRule                 = m_grammar.GetTermFromChar(p_char);
     TermWaitingStates& termWaitingStates = getTermWaitingStates();
     flipTermWaitingStatesIndex();
 
-    for (unsigned i = 0; i < termWaitingStates.size(); ++i)
-    {
+    for (unsigned i = 0; i < termWaitingStates.size(); ++i) {
         TermWaitEvent task = termWaitingStates[i];
-        RuleStates state = RuleStates::NotMatched;
+        RuleStates state   = RuleStates::NotMatched;
 
         if (task.m_termRule == termRule)
             state = RuleStates::Matched;
@@ -117,8 +113,7 @@ void Parser::handleTermWaitingStates(unsigned char p_char)
 void Parser::handleStateChanges()
 {
     unsigned processedStateChanges = 0;
-    while (m_ruleStateNotifications.size() != processedStateChanges)
-    {
+    while (m_ruleStateNotifications.size() != processedStateChanges) {
         m_ruleStateNotifications[processedStateChanges++]();
     }
     m_ruleStateNotifications.clear();
@@ -127,23 +122,19 @@ void Parser::handleStateChanges()
 // =====================================================================================================================
 SharedRuleState Parser::getRuleState(const Rule* p_rule, AndOrCommon* p_parent, unsigned p_slotIndex)
 {
-    if (p_rule->getType() == RuleType::Term)
-    {
+    if (p_rule->getType() == RuleType::Term) {
         return m_termStates[dynamic_cast<const TermRule*>(p_rule)->getTermValue()];
     }
 
     SharedRuleState ruleState;
     const RulesToStatesMap::const_iterator found = m_rulesToStates.find(p_rule);
-    if (found != m_rulesToStates.end())
-    {
+    if (found != m_rulesToStates.end()) {
         ruleState = found->second->getSelfSPtr();
         if (p_parent)
             dynamic_cast<AndOrCommon*>(ruleState.get())->addParentSlot(p_parent, p_slotIndex);
-    }
-    else
-    {
+    } else {
         ruleState = p_rule->createRuleState(*this, m_pos);
-//        std::cout << "DDDD ctor " << ruleState->GetName() << std::endl;
+        //        std::cout << "DDDD ctor " << ruleState->GetName() << std::endl;
         m_rulesToStates[p_rule] = ruleState.get();
         if (p_parent)
             dynamic_cast<AndOrCommon*>(ruleState.get())->addParentSlot(p_parent, p_slotIndex);
@@ -167,14 +158,16 @@ void Parser::printStates() const
 // =====================================================================================================================
 void Parser::printResult() const
 {
-    std::cout << "Expr:\n" << m_text << std::endl << std::endl;
-    if (m_resultRuleState->getState() == RuleStates::NotMatched)
-    {
+    std::cout << "Expr:\n"
+              << m_text << std::endl
+              << std::endl;
+    if (m_resultRuleState->getState() == RuleStates::NotMatched) {
         std::cout << "Parse error." << std::endl;
         return;
     }
 
-    std::cout << "Result:\n" << m_resultRuleState->getValue() << std::endl;
+    std::cout << "Result:\n"
+              << m_resultRuleState->getValue() << std::endl;
 }
 
 // =====================================================================================================================
@@ -189,7 +182,12 @@ std::string Parser::getResult() const
 // =====================================================================================================================
 void Parser::printResultStates() const
 {
-    std::cout << "\nResult:\n" << std::endl;
-    std::cout << "expr: " << m_text << std::endl << std::endl;
-    std::cout << "\n" << std::endl;
+    std::cout << "\nResult:\n"
+              << std::endl;
+    std::cout << "expr: " << m_text << std::endl
+              << std::endl;
+    std::cout << "\n"
+              << std::endl;
 }
+
+} // namespace synth

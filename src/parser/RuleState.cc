@@ -6,6 +6,8 @@
 
 #include "RuleState.h"
 
+namespace synth {
+
 unsigned RuleState::s_id = 0;
 
 // =====================================================================================================================
@@ -14,8 +16,7 @@ unsigned RuleState::s_id = 0;
 std::string RuleState::getName() const
 {
     std::stringstream ret;
-    if (getType() == RuleType::Term)
-    {
+    if (getType() == RuleType::Term) {
         ret << m_rule->getName();
         return ret.str();
     }
@@ -26,7 +27,7 @@ std::string RuleState::getName() const
 
 // =====================================================================================================================
 RuleState::RuleState(const Rule* p_rule, Parser& p_parser, unsigned p_pos) :
-            m_state(RuleStates::Init), m_rule(p_rule), m_parser(p_parser), m_pos(p_pos), m_length(0)
+    m_state(RuleStates::Init), m_rule(p_rule), m_parser(p_parser), m_pos(p_pos), m_length(0)
 {
     m_id = s_id++;
 #if 0
@@ -67,14 +68,13 @@ void SlotState::processTermEvent(RuleStates p_termState, unsigned p_pos)
 void SlotState::processEvent(SharedRuleState p_sender)
 {
     m_ruleState = p_sender;
-    switch (m_slotType)
-    {
-        case SlotType::One:
-            return processEventOne(*p_sender);
-        case SlotType::OneMore:
-            return processEventOneMore(*p_sender);
-        default:
-            break;
+    switch (m_slotType) {
+    case SlotType::One:
+        return processEventOne(*p_sender);
+    case SlotType::OneMore:
+        return processEventOneMore(*p_sender);
+    default:
+        break;
     }
 }
 
@@ -86,7 +86,7 @@ void SlotState::processEventOne(RuleState& p_sender)
     m_state = p_sender.getState();
 
     if (m_state == RuleStates::Init) {
-		throw "error";
+        throw "error";
     }
 }
 
@@ -107,7 +107,7 @@ void SlotState::processEventOneMore(RuleState& p_sender)
 // =====================================================================================================================
 void SlotState::reset()
 {
-    m_state = RuleStates::Init;
+    m_state    = RuleStates::Init;
     m_slotType = SlotType::Empty;
     m_ruleState.reset();
 }
@@ -116,8 +116,8 @@ void SlotState::reset()
 void SlotState::reset(SharedRuleState p_ruleState, SlotType p_slotType)
 {
     m_ruleState = p_ruleState;
-    m_slotType = p_slotType;
-    m_state = RuleStates::Init;
+    m_slotType  = p_slotType;
+    m_state     = RuleStates::Init;
 }
 
 // =====================================================================================================================
@@ -125,7 +125,7 @@ void SlotState::reset(SharedRuleState p_ruleState, SlotType p_slotType)
 // =====================================================================================================================
 void AndOrCommon::init()
 {
-//    std::cout << GetName() << " created" << std::endl;
+    //    std::cout << GetName() << " created" << std::endl;
     if (m_rule->m_slots.empty())
         throw "Empty grammar in rule";
 }
@@ -133,15 +133,13 @@ void AndOrCommon::init()
 // =====================================================================================================================
 std::string AndOrCommon::printResult() const
 {
-//    std::cout << "PrintDebug" << GetName() << std::endl;
+    //    std::cout << "PrintDebug" << GetName() << std::endl;
 
     std::stringstream ret;
     ret << getName() << "(";
 
-    for (unsigned i = 0; i < m_slots.size(); ++i)
-    {
-        if (m_slots[i].getState() != RuleStates::NotMatched)
-        {
+    for (unsigned i = 0; i < m_slots.size(); ++i) {
+        if (m_slots[i].getState() != RuleStates::NotMatched) {
             if (i)
                 ret << ", ";
             ret << m_slots[i].m_ruleState->printValue();
@@ -155,9 +153,8 @@ std::string AndOrCommon::printResult() const
 // =====================================================================================================================
 void AndOrCommon::processTermEvent(unsigned p_slotIndex, RuleStates p_termState, unsigned p_pos)
 {
-    if (p_termState == RuleStates::Matched)
-    {
-//        std::cout << GetName() << ":" << p_slotIndex << " got term match" << std::endl;
+    if (p_termState == RuleStates::Matched) {
+        //        std::cout << GetName() << ":" << p_slotIndex << " got term match" << std::endl;
     }
     SlotState& slot = m_slots[p_slotIndex];
     slot.processTermEvent(p_termState, p_pos);
@@ -167,8 +164,7 @@ void AndOrCommon::processTermEvent(unsigned p_slotIndex, RuleStates p_termState,
 // =====================================================================================================================
 void AndOrCommon::processEvent(unsigned p_slotIndex, SharedRuleState p_sender)
 {
-    if (m_parser.isDebugMode())
-    {
+    if (m_parser.isDebugMode()) {
 #if 0
         std::cout << GetName() << ":" << p_slotIndex << " got " << p_sender->GetState()
             << " from " << p_sender->GetName() << std::endl;
@@ -193,7 +189,7 @@ void AndOrCommon::processEvent(unsigned p_slotIndex, SharedRuleState p_sender)
 void AndOrCommon::createTypedSlot(SlotType p_slotType, unsigned p_slotIndex, SharedRuleState p_ruleState)
 {
     SlotState& slotState = m_slots[p_slotIndex];
-    SlotType slotType = p_slotType;
+    SlotType slotType    = p_slotType;
 
     // in case of optional slot match case handled earlier in the cloned branch
     if (slotType == SlotType::Optional)
@@ -201,26 +197,25 @@ void AndOrCommon::createTypedSlot(SlotType p_slotType, unsigned p_slotIndex, Sha
     else if (slotType == SlotType::Any)
         slotType = SlotType::OneMore;
 
-    switch (slotType)
-    {
-        case SlotType::One:
-            slotState.reset(p_ruleState, SlotType::One);
-            break;
-        case SlotType::OneMore:
-            slotState.reset(p_ruleState, SlotType::OneMore);
-            break;
-        default:
-            abort();
-            break;
+    switch (slotType) {
+    case SlotType::One:
+        slotState.reset(p_ruleState, SlotType::One);
+        break;
+    case SlotType::OneMore:
+        slotState.reset(p_ruleState, SlotType::OneMore);
+        break;
+    default:
+        abort();
+        break;
     }
 }
 
 // =====================================================================================================================
 void AndOrCommon::initSlot(unsigned p_slotIndex)
 {
-//    std::cout << "InitSlot " << GetName() << ":" << p_slotIndex << std::endl;
+    //    std::cout << "InitSlot " << GetName() << ":" << p_slotIndex << std::endl;
 
-    const Rule* slotRule = m_rule->m_slots[p_slotIndex].m_rule;
+    const Rule* slotRule      = m_rule->m_slots[p_slotIndex].m_rule;
     SharedRuleState ruleState = m_parser.getRuleState(slotRule, this, p_slotIndex);
 
     createTypedSlot(m_rule->getSlotType(p_slotIndex), p_slotIndex, ruleState);
@@ -231,11 +226,10 @@ void AndOrCommon::initSlot(unsigned p_slotIndex)
 void AndOrCommon::postInitTermSlot(unsigned p_slotIndex)
 {
     const Rule* rule = m_rule->m_slots[p_slotIndex].m_rule;
-    if (rule->getType() == RuleType::Term)
-    {
+    if (rule->getType() == RuleType::Term) {
         Parser::TermWaitEvent event;
         event.m_ruleState = m_selfRef;
-        event.m_termRule = rule;
+        event.m_termRule  = rule;
         event.m_slotIndex = p_slotIndex;
         m_parser.subscribeTermEvent(event);
     }
@@ -244,24 +238,22 @@ void AndOrCommon::postInitTermSlot(unsigned p_slotIndex)
 // =====================================================================================================================
 void AndOrCommon::notifyAllParentsFromStateChange(SharedRuleState p_ruleState)
 {
-    for (auto it : m_parentSlots)
-    {
-		auto parentNode = it.first;
-		auto slotIndex = it.second;
-		m_parser.addRuleStateNotification([parentNode, slotIndex, p_ruleState]() { parentNode->processEvent(slotIndex, p_ruleState); });
+    for (auto it : m_parentSlots) {
+        auto parentNode = it.first;
+        auto slotIndex  = it.second;
+        m_parser.addRuleStateNotification([parentNode, slotIndex, p_ruleState]() { parentNode->processEvent(slotIndex, p_ruleState); });
     }
 }
 
 // =====================================================================================================================
 void AndOrCommon::notifyAllParentsFromClone(SharedRuleState p_ruleState)
 {
-//    std::cout << "DDDD m_parentSlots.size: " << m_parentSlots.size() << std::endl;
-    for (auto it : m_parentSlots)
-    {
-//        std::cout << "DDDD " << GetName() << " notif " << it->first->GetName() << std::endl;
-		auto parentNode = it.first;
-		m_parser.addRuleStateNotification([parentNode, p_ruleState]() { parentNode->cloneWith(p_ruleState); });
-	}
+    //    std::cout << "DDDD m_parentSlots.size: " << m_parentSlots.size() << std::endl;
+    for (auto it : m_parentSlots) {
+        //        std::cout << "DDDD " << GetName() << " notif " << it->first->GetName() << std::endl;
+        auto parentNode = it.first;
+        m_parser.addRuleStateNotification([parentNode, p_ruleState]() { parentNode->cloneWith(p_ruleState); });
+    }
 }
 
 // =====================================================================================================================
@@ -276,8 +268,7 @@ void AndState::dotWriterVisitor(DotWriter& p_writer) const
 {
     if (!p_writer.Print(this))
         return;
-    if (!m_slots.empty() && !m_slots[m_slotIndex].isEmpty())
-    {
+    if (!m_slots.empty() && !m_slots[m_slotIndex].isEmpty()) {
         m_slots[m_slotIndex].m_ruleState->dotWriterVisitor(p_writer);
     }
 }
@@ -298,15 +289,13 @@ std::string AndState::printAsDot() const
     ret << "        <TD bgcolor=\"wheat\">" << m_pos << "+" << m_length << "=" << getIndex() << "</TD>\n";
     ret << "    </TR>\n";
 
-    for (unsigned i = 0; i < m_slots.size(); i++)
-    {
+    for (unsigned i = 0; i < m_slots.size(); i++) {
         ret << "    <TR>\n";
         ret << "        <TD bgcolor=\"lightgoldenrod2\">" << i << "</TD>\n";
-        ret << "        <TD COLSPAN=\"3\" "; 
+        ret << "        <TD COLSPAN=\"3\" ";
         if (i < m_slotIndex)
             ret << "bgcolor=\"palegreen\"";
-        else if (m_slotIndex == i)
-        {
+        else if (m_slotIndex == i) {
             if (getState() != RuleStates::Matched)
                 ret << "bgcolor=\"orangered\"";
             else
@@ -316,8 +305,7 @@ std::string AndState::printAsDot() const
         ret << ">" << QuoteAsHtml(getRule()->m_slots[i].m_rule->getName()) << "</TD>\n";
         ret << "    </TR>\n";
     }
-    if (getState() == RuleStates::Matched)
-    {
+    if (getState() == RuleStates::Matched) {
         ret << "    <TR>\n";
         ret << "        <TD bgcolor=\"wheat\">Res:</TD>\n";
         ret << "        <TD COLSPAN=\"3\" bgcolor=\"darkolivegreen1\">" << m_value << "</TD>\n";
@@ -326,8 +314,7 @@ std::string AndState::printAsDot() const
     ret << "</TABLE>>];\n";
 
     const Rule* rule = getRule()->m_slots[m_slotIndex].m_rule;
-    if (!m_slots.empty() && !m_slots[m_slotIndex].isEmpty() &&
-            m_state != RuleStates::Matched && rule->getType() != RuleType::Term)
+    if (!m_slots.empty() && !m_slots[m_slotIndex].isEmpty() && m_state != RuleStates::Matched && rule->getType() != RuleType::Term)
         ret << getId() << ":f" << m_slotIndex << " -> " << m_slots[m_slotIndex].m_ruleState->getId() << ";\n";
 
     return ret.str();
@@ -344,8 +331,7 @@ void AndState::init()
 void AndState::initSlot()
 {
     AndOrCommon::initSlot(m_slotIndex);
-    if (IsOptionalType(getRule()->m_slots[m_slotIndex].m_type))
-    {
+    if (IsOptionalType(getRule()->m_slots[m_slotIndex].m_type)) {
         SharedRuleState sharedClone;
         cloneMySelf(sharedClone)->handleEmptyMatchClone();
     }
@@ -369,12 +355,9 @@ void AndState::handleMatchedClone()
 void AndState::handleStepping()
 {
     m_slots[m_slotIndex].reset();
-    if (isLastRule())
-    {
+    if (isLastRule()) {
         m_state = RuleStates::Matched;
-    }
-    else
-    {
+    } else {
         m_slotIndex++;
         m_state = RuleStates::Accepted;
         initSlot();
@@ -385,42 +368,37 @@ void AndState::handleStepping()
 void AndState::slotStateChanged(SlotState& p_slot)
 {
     const Rule* rule = getRule()->m_slots[m_slotIndex].m_rule;
-    m_state = p_slot.getState();
+    m_state          = p_slot.getState();
     notifyAllParentsFromStateChange(getSelfSPtr());
-    switch (m_state)
-    {
-        case RuleStates::Init:
-            throw "Invalid slot state!";
+    switch (m_state) {
+    case RuleStates::Init:
+        throw "Invalid slot state!";
 
-        case RuleStates::NotMatched:
-            m_slots.clear();
-            return;
+    case RuleStates::NotMatched:
+        m_slots.clear();
+        return;
 
-        case RuleStates::Accepted:
-            m_length++;
-            return;
+    case RuleStates::Accepted:
+        m_length++;
+        return;
 
-		case RuleStates::Matching:
-		{
-			m_length++;
-			// std::cout << "DDDD any " << GetName() << " " << rule->GetName() << std::endl;
-			handleValueSaving(p_slot.m_ruleState->getValue());
-			SharedRuleState sharedClone;
-			cloneMySelf(sharedClone)->handleMatchedClone();
-			m_state = RuleStates::Accepted;
-			p_slot.m_ruleState = m_parser.getRuleState(rule, this, m_slotIndex);
-			postInitTermSlot(m_slotIndex);
-		}
-		break;
+    case RuleStates::Matching: {
+        m_length++;
+        // std::cout << "DDDD any " << GetName() << " " << rule->GetName() << std::endl;
+        handleValueSaving(p_slot.m_ruleState->getValue());
+        SharedRuleState sharedClone;
+        cloneMySelf(sharedClone)->handleMatchedClone();
+        m_state            = RuleStates::Accepted;
+        p_slot.m_ruleState = m_parser.getRuleState(rule, this, m_slotIndex);
+        postInitTermSlot(m_slotIndex);
+    } break;
 
-		case RuleStates::Matched:
-		{
-			m_length++;
-			handleValueSaving(p_slot.m_ruleState->getValue());
-			handleStepping();
-		}
-		break;
-	}
+    case RuleStates::Matched: {
+        m_length++;
+        handleValueSaving(p_slot.m_ruleState->getValue());
+        handleStepping();
+    } break;
+    }
 }
 
 // =====================================================================================================================
@@ -428,8 +406,7 @@ void AndState::updateParentSlot(AndOrCommon* p_oldParent, AndOrCommon* p_newPare
 {
     if (p_oldParent == p_newParent)
         m_parentSlots[p_oldParent] = p_slotIndex;
-    else
-    {
+    else {
         m_parentSlots.erase(p_oldParent);
         m_parentSlots[p_newParent] = p_slotIndex;
     }
@@ -444,7 +421,7 @@ AndState* AndState::cloneMySelf(SharedRuleState& p_sharedClone)
     if (m_value)
         clone->m_value = m_value->clone();
     clone->m_id = s_id++;
-//    std::cout << GetName() << " cloned to " << clone->GetName() << std::endl;
+    //    std::cout << GetName() << " cloned to " << clone->GetName() << std::endl;
 
     return clone;
 }
@@ -452,7 +429,7 @@ AndState* AndState::cloneMySelf(SharedRuleState& p_sharedClone)
 // =====================================================================================================================
 void AndState::cloneWith(SharedRuleState p_clonedState)
 {
-//    std::cout << "DDDD GetIndex: " << GetIndex() << " : " << p_clonedState->GetIndex() << std::endl;
+    //    std::cout << "DDDD GetIndex: " << GetIndex() << " : " << p_clonedState->GetIndex() << std::endl;
 
     SharedRuleState sharedClone;
     AndState* clone = cloneMySelf(sharedClone);
@@ -460,16 +437,13 @@ void AndState::cloneWith(SharedRuleState p_clonedState)
     if (p_clonedState->getIndex() > getIndex())
         clone->m_length++;
 
-    if (p_clonedState->getState() == RuleStates::Matched)
-    {
+    if (p_clonedState->getState() == RuleStates::Matched) {
         clone->handleValueSaving(p_clonedState->getValue());
         clone->handleStepping();
-    }
-    else
-    {
+    } else {
         static_cast<AndOrCommon*>(p_clonedState.get())->updateParentSlot(this, clone, m_slotIndex);
         clone->m_slots[m_slotIndex].m_ruleState = p_clonedState;
- //       std::cout << "DDDD " << GetName() << ":" << m_slotIndex << " -> " << p_clonedState->GetName() << std::endl;
+        //       std::cout << "DDDD " << GetName() << ":" << m_slotIndex << " -> " << p_clonedState->GetName() << std::endl;
     }
     clone->notifyAllParentsFromClone(sharedClone);
 }
@@ -489,8 +463,7 @@ void OrState::init()
 {
     AndOrCommon::init();
 
-    for (unsigned i = 0; i < m_slots.size(); ++i)
-    {
+    for (unsigned i = 0; i < m_slots.size(); ++i) {
         initSlot(i);
         m_liveSlotSlotsNum++;
     }
@@ -501,8 +474,7 @@ void OrState::dotWriterVisitor(DotWriter& p_writer) const
 {
     if (!p_writer.Print(this))
         return;
-    for (unsigned i = 0; i < m_slots.size(); i++)
-    {
+    for (unsigned i = 0; i < m_slots.size(); i++) {
         if (!m_slots[i].isEmpty())
             m_slots[i].m_ruleState->dotWriterVisitor(p_writer);
     }
@@ -524,19 +496,14 @@ std::string OrState::printAsDot() const
     ret << "        <TD bgcolor=\"wheat\">" << m_pos << "+" << m_length << "=" << getIndex() << "</TD>\n";
     ret << "    </TR>\n";
     unsigned termCount = 0;
-    for (unsigned i = 0; i < m_slots.size(); i++)
-    {
-        if (!m_slots[i].isEmpty())
-        {
+    for (unsigned i = 0; i < m_slots.size(); i++) {
+        if (!m_slots[i].isEmpty()) {
             bool isTerm = m_slots[i].m_ruleState->getRule()->getType() == RuleType::Term;
             if (termCount == 0)
                 ret << "    <TR>\n";
-            if (isTerm)
-            {
+            if (isTerm) {
                 ret << "        <TD ";
-            }
-            else
-            {
+            } else {
                 ret << "        <TD bgcolor=\"lightgoldenrod2\">" << i << "</TD>\n";
                 ret << "        <TD bgcolor=\"lightgoldenrod2\">Id:" << m_slots[i].m_ruleState->getId() << "</TD>\n";
                 ret << "        <TD COLSPAN=\"2\" ";
@@ -561,8 +528,7 @@ std::string OrState::printAsDot() const
         ret << "    </TR>\n";
     ret << "</TABLE>>];\n";
 
-    for (unsigned i = 0; i < m_slots.size(); i++)
-    {
+    for (unsigned i = 0; i < m_slots.size(); i++) {
         if (!m_slots[i].isEmpty() && m_slots[i].m_ruleState->getType() != RuleType::Term)
             ret << getId() << ":f" << i << " -> " << m_slots[i].m_ruleState->getId() << ";\n";
     }
@@ -583,16 +549,13 @@ TRuleValue OrState::getValue() const
 // =====================================================================================================================
 void OrState::handleRootResult(SharedRuleState p_clone)
 {
-    if (p_clone->getState() == RuleStates::Matched)
-    {
+    if (p_clone->getState() == RuleStates::Matched) {
         if (!m_matchedRule || (m_matchedRule->getIndex() < p_clone->getIndex()))
             m_matchedRule = p_clone;
-        for (unsigned i = 0; i < m_slots.size(); ++i)
-        {
+        for (unsigned i = 0; i < m_slots.size(); ++i) {
             if (m_slots[i].isEmpty())
                 continue;
-            if (m_slots[i].m_ruleState->getState() == RuleStates::Matched)
-            {
+            if (m_slots[i].m_ruleState->getState() == RuleStates::Matched) {
                 createTypedSlot(SlotType::One, i, p_clone);
                 return;
             }
@@ -621,8 +584,7 @@ void OrState::saveToNewSlot(SharedRuleState p_clonedState)
 // =====================================================================================================================
 void OrState::cloneWith(SharedRuleState p_clonedState)
 {
-    if (m_parentSlots.empty())
-    {
+    if (m_parentSlots.empty()) {
         handleRootResult(p_clonedState);
         return;
     }
@@ -636,22 +598,21 @@ void OrState::cloneWith(SharedRuleState p_clonedState)
 // =====================================================================================================================
 void OrState::prepareStateChange(SlotState& p_slot)
 {
-	m_checkedSlotsNum++;
+    m_checkedSlotsNum++;
 
-	switch (p_slot.getState())
-	{
-	case RuleStates::Matching:
-	case RuleStates::Matched:
-		m_matchedSlotsNum++;
-		break;
-	case RuleStates::Accepted:
-		m_acceptedSlotsNum++;
-		break;
-	case RuleStates::Init:
-		throw "Invalid slot state!";
-	case RuleStates::NotMatched:
-		break;
-	}
+    switch (p_slot.getState()) {
+    case RuleStates::Matching:
+    case RuleStates::Matched:
+        m_matchedSlotsNum++;
+        break;
+    case RuleStates::Accepted:
+        m_acceptedSlotsNum++;
+        break;
+    case RuleStates::Init:
+        throw "Invalid slot state!";
+    case RuleStates::NotMatched:
+        break;
+    }
 }
 
 // =====================================================================================================================
@@ -668,56 +629,50 @@ void OrState::handleMatchedSlot(SharedRuleState p_ruleState)
 // =====================================================================================================================
 void OrState::slotStateChanged(SlotState& p_slot)
 {
-	prepareStateChange(p_slot);
-	if (m_liveSlotSlotsNum != m_checkedSlotsNum)
-		return;
-	m_checkedSlotsNum = 0;
-	m_length++;
-	//    std::cout << "    DDDD " << GetName() << " SlotStateChanged, len: " << GetIndex() << "\n";
+    prepareStateChange(p_slot);
+    if (m_liveSlotSlotsNum != m_checkedSlotsNum)
+        return;
+    m_checkedSlotsNum = 0;
+    m_length++;
+    //    std::cout << "    DDDD " << GetName() << " SlotStateChanged, len: " << GetIndex() << "\n";
 
-	bool noMatchAndAccept = (m_matchedSlotsNum == 0 && m_acceptedSlotsNum == 0);
-	for (unsigned i = 0; i < m_slots.size(); ++i)
-	{
-		if (m_slots[i].isEmpty())
-			continue;
-		SharedRuleState ruleState = m_slots[i].m_ruleState;
-		switch (m_slots[i].getState())
-		{
-		case RuleStates::Matching:
-		case RuleStates::Matched:
-			if (m_parentSlots.empty())
-			{
-				if (m_matchedRule && m_matchedRule->getIndex() > ruleState->getIndex())
-					continue;
-				m_matchedRule = ruleState;
-				continue;
-			}
-			handleMatchedSlot(ruleState);
-			m_slots[i].reset();
-			break;
+    bool noMatchAndAccept = (m_matchedSlotsNum == 0 && m_acceptedSlotsNum == 0);
+    for (unsigned i = 0; i < m_slots.size(); ++i) {
+        if (m_slots[i].isEmpty())
+            continue;
+        SharedRuleState ruleState = m_slots[i].m_ruleState;
+        switch (m_slots[i].getState()) {
+        case RuleStates::Matching:
+        case RuleStates::Matched:
+            if (m_parentSlots.empty()) {
+                if (m_matchedRule && m_matchedRule->getIndex() > ruleState->getIndex())
+                    continue;
+                m_matchedRule = ruleState;
+                continue;
+            }
+            handleMatchedSlot(ruleState);
+            m_slots[i].reset();
+            break;
 
-		case RuleStates::NotMatched:
-			m_liveSlotSlotsNum--;
-			m_slots[i].reset();
-			break;
+        case RuleStates::NotMatched:
+            m_liveSlotSlotsNum--;
+            m_slots[i].reset();
+            break;
 
-		case RuleStates::Init:
-		case RuleStates::Accepted:
-			break;
-		}
-	}
-	if (m_acceptedSlotsNum > 0)
-	{
-		m_state = RuleStates::Accepted;
-		notifyAllParentsFromStateChange(getSelfSPtr());
-	}
-	else if (m_liveSlotSlotsNum == 0 && noMatchAndAccept)
-	{
-		m_state = RuleStates::NotMatched;
-		notifyAllParentsFromStateChange(getSelfSPtr());
-	}
-	m_matchedSlotsNum = 0;
-	m_acceptedSlotsNum = 0;
+        case RuleStates::Init:
+        case RuleStates::Accepted:
+            break;
+        }
+    }
+    if (m_acceptedSlotsNum > 0) {
+        m_state = RuleStates::Accepted;
+        notifyAllParentsFromStateChange(getSelfSPtr());
+    } else if (m_liveSlotSlotsNum == 0 && noMatchAndAccept) {
+        m_state = RuleStates::NotMatched;
+        notifyAllParentsFromStateChange(getSelfSPtr());
+    }
+    m_matchedSlotsNum  = 0;
+    m_acceptedSlotsNum = 0;
 }
 
 // =====================================================================================================================
@@ -729,30 +684,31 @@ std::string OrState::printValue() const
 // =====================================================================================================================
 void TermRuleState::dotWriterVisitor(DotWriter& p_writer) const
 {
-//    p_writer.Print(this);
+    //    p_writer.Print(this);
 }
 
 // =====================================================================================================================
-std::ostream& operator<<(std::ostream& p_os, const RuleStates p_state)
+std::ostream& operator<<(std::ostream& p_os, const synth::RuleStates p_state)
 {
-	switch (p_state)
-	{
-	case RuleStates::Matching:
-		p_os << "Matched";
-		break;
-	case RuleStates::Matched:
-		p_os << "Matched";
-		break;
-	case RuleStates::Accepted:
-		p_os << "Accepted";
-		break;
-	case RuleStates::NotMatched:
-		p_os << "NotMatched";
-		break;
-	case RuleStates::Init:
-		p_os << "Init";
-		break;
-	}
+    switch (p_state) {
+    case RuleStates::Matching:
+        p_os << "Matched";
+        break;
+    case RuleStates::Matched:
+        p_os << "Matched";
+        break;
+    case RuleStates::Accepted:
+        p_os << "Accepted";
+        break;
+    case RuleStates::NotMatched:
+        p_os << "NotMatched";
+        break;
+    case RuleStates::Init:
+        p_os << "Init";
+        break;
+    }
 
-	return p_os;
+    return p_os;
 }
+
+} // namespace synth

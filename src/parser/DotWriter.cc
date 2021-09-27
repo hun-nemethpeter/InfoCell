@@ -6,13 +6,15 @@
 
 #include "DotWriter.h"
 
+namespace synth {
+
 // =====================================================================================================================
 DotWriter::DotWriter(const Parser* p_parser)
 {
     m_result << "digraph structs {\n"
-        "    node  [shape=plaintext]\n"
-        "    graph [fontname = \"Helvetica\",\n"
-        "           fontsize = 36,\n";
+                "    node  [shape=plaintext]\n"
+                "    graph [fontname = \"Helvetica\",\n"
+                "           fontsize = 36,\n";
     if (p_parser->getPos() < p_parser->getText().size())
         m_result << "           label = \"Parse char:" << p_parser->getText()[p_parser->getPos()] << "\",\n";
     m_result << "          ];\n\n";
@@ -28,7 +30,7 @@ DotWriter::DotWriter(const Parser* p_parser)
     file.open(fileName.str().c_str());
     file << m_result.str();
 }
-        
+
 // =====================================================================================================================
 bool DotWriter::Print(const RuleState* p_state)
 {
@@ -50,3 +52,5 @@ bool DotWriter::IsPrinted(const RuleState* p_state) const
 
     return false;
 }
+
+} // namespace synth

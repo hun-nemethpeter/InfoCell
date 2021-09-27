@@ -4,7 +4,7 @@
 #include <vector>
 #include <iostream>
 
-namespace arcsolver {
+namespace synth {
 namespace cells {
 
 class Cell
@@ -969,4 +969,4 @@ struct Rule
 *  ruleA.join(Member::Up, ruleB).join(Member::Right, ruleC).join(Member::Down, ruleD)
 */
 } // namespace cells
-} // namespace arcsolver
+} // namespace synth

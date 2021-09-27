@@ -3,10 +3,12 @@
 
 #include "Rule.h"
 
-SlotType One = SlotType::One;
-SlotType OneMore = SlotType::OneMore;
+namespace synth {
+
+SlotType One      = SlotType::One;
+SlotType OneMore  = SlotType::OneMore;
 SlotType Optional = SlotType::Optional;
-SlotType Any = SlotType::Any;
+SlotType Any      = SlotType::Any;
 
 // =====================================================================================================================
 TRule operator<<(TRule p_rule1, const TRule& p_rule2)
@@ -33,9 +35,8 @@ TRule operator<<(TRule p_rule1, unsigned char p_char)
 TRule operator<<(TRule p_rule1, const char* p_str)
 {
     unsigned i = 0;
-    while (p_str[i])
-    {
-        p_rule1 & p_str[i++];
+    while (p_str[i]) {
+        p_rule1& p_str[i++];
     }
     // TODO store this as a string in grammar
 
@@ -190,16 +191,14 @@ TRuleValue OrRule::createRuleValue() const
 // =====================================================================================================================
 static std::string GetTermName(unsigned char p_char)
 {
-    switch (p_char)
-    {
-        case 10:
-            return "\\n";
-        default:
-            {
-                char charStr[2] = {0, 0};
-                charStr[0] = p_char;
-                return std::string(charStr);
-            }
+    switch (p_char) {
+    case 10:
+        return "\\n";
+    default: {
+        char charStr[2] = { 0, 0 };
+        charStr[0]      = p_char;
+        return std::string(charStr);
+    }
     }
 
     throw "Term name";
@@ -214,17 +213,18 @@ TermRule::TermRule(unsigned char p_char, Grammar& p_grammar) :
 // =====================================================================================================================
 std::ostream& operator<<(std::ostream& p_os, const RuleType& p_type)
 {
-    switch (p_type)
-    {
-        case RuleType::And:
-            p_os << "And";
-            break;
-        case RuleType::Or:
-            p_os << "Or";
-            break;
-        case RuleType::Term:
-            p_os << "Term";
-            break;
+    switch (p_type) {
+    case RuleType::And:
+        p_os << "And";
+        break;
+    case RuleType::Or:
+        p_os << "Or";
+        break;
+    case RuleType::Term:
+        p_os << "Term";
+        break;
     }
     return p_os;
 }
+
+} // namespace synth

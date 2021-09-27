@@ -6,7 +6,7 @@
 
 using namespace nlohmann;
 
-namespace arcsolver {
+namespace synth {
 
 void ArcDb::load(const std::string& filename)
 {
@@ -22,4 +22,4 @@ void ArcDb::load(const std::string& filename)
     }
 }
 
-} // namespace arcsolver
+} // namespace synth

@@ -1,6 +1,6 @@
 #include "App.h"
 
-namespace arcsolver {
+namespace synth {
 
 void App::init(int argc, char* argv[])
 {
@@ -15,4 +15,4 @@ void App::run()
 {
 }
 
-} // namespace arcsolver
+} // namespace synth
