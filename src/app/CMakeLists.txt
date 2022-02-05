@@ -14,7 +14,10 @@ target_include_directories(applib
 )
 
 target_link_libraries(applib
-	PRIVATE
+	PUBLIC
 		CONAN_PKG::nlohmann_json
+        ftxui::screen
+        ftxui::component
+	PRIVATE
 		CONAN_PKG::utfcpp
 )
