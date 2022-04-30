@@ -14,18 +14,6 @@ using namespace ftxui;
 
 namespace synth {
 
-LoggerStream Logger::log(LogLevel level)
-{
-    return LoggerStream(*this, level);
-}
-
-LoggerStream::~LoggerStream()
-{
-    const std::string message = stream.str();
-    if (!message.empty())
-        logger.log(level, message);
-}
-
 const std::array<Color, 10> App::arcColors = {
     Color(0x00, 0x00, 0x00), /* black */
     Color(0x00, 0x74, 0xD9), /* blue */

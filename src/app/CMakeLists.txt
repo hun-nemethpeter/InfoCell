@@ -20,4 +20,5 @@ target_link_libraries(applib
 	PRIVATE
 		CONAN_PKG::utfcpp
         cellslib
+        util
 )
