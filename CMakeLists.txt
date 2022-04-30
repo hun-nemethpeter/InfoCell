@@ -6,7 +6,11 @@ set (CMAKE_CXX_STANDARD 20)
 find_package(Boost 1.71)
 find_package(Threads)
 
-include(../conan/conanbuildinfo.cmake)
+if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+include(../conan/release/conanbuildinfo.cmake)
+else()
+include(../conan/debug/conanbuildinfo.cmake)
+endif()
 conan_basic_setup(TARGETS)
 
 enable_testing()

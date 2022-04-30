@@ -14,6 +14,18 @@ using namespace ftxui;
 
 namespace synth {
 
+LoggerStream Logger::log(LogLevel level)
+{
+    return LoggerStream(*this, level);
+}
+
+LoggerStream::~LoggerStream()
+{
+    const std::string message = stream.str();
+    if (!message.empty())
+        logger.log(level, message);
+}
+
 const std::array<Color, 10> App::arcColors = {
     Color(0x00, 0x00, 0x00), /* black */
     Color(0x00, 0x74, 0xD9), /* blue */
@@ -129,14 +141,15 @@ void App::renderArcTestInputGrid()
 
 void App::run()
 {
-    Components menuItems;
-    for (const auto& fileName : arcFileNames) {
-        menuItems.push_back(MenuEntry(fileName));
-    }
-    auto menu = Container::Vertical(menuItems, &selectedArcFileIndex);
-    auto buttons = Container::Horizontal({
-        Button("Solve", [&] { solve(); }),
-        Button("Quit", [&] { exit(0); })
+    int depth        = 0;
+    auto menu        = Menu(&arcFileNames, &selectedArcFileIndex);
+    auto buttonSolve = Button("Solve", [&] { solve(); depth = 1; });
+    auto buttonQuit  = Button("Quit", [&] { exit(0); });
+
+    auto container = Container::Vertical({
+        buttonSolve,
+        buttonQuit,
+        menu
     });
 
     FlexboxConfig flexConfig;
@@ -146,12 +159,7 @@ void App::run()
     flexConfig.align_items     = static_cast<FlexboxConfig::AlignItems>(0);
     flexConfig.align_content   = static_cast<FlexboxConfig::AlignContent>(0);
 
-  auto container = Container::Vertical({
-        buttons,
-        menu
-    });
-
-    auto renderer = Renderer(container, [&] {
+    auto mainScreenRenderer = Renderer(container, [&] {
         if (previusSelectedArcFileIndex != selectedArcFileIndex) {
             loadArcFileByFileIndex();
             previusSelectedArcFileIndex = selectedArcFileIndex;
@@ -159,7 +167,7 @@ void App::run()
 
         auto ret = flexbox({ vbox({ hbox(text("selected = "), text(arcFileNames[selectedArcFileIndex])),
                                     separator(),
-                                    buttons->Render(),
+                                    hbox(buttonSolve->Render(), separator(), buttonQuit->Render()),
                                     separator(),
                                     menu->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25) })
                                  | border,
@@ -167,7 +175,42 @@ void App::run()
                              arcTestInputGrid | border }, flexConfig);
         return ret;
     });
+//
+    auto solveQuitBtn         = Button("Ok", [&] { depth = 0; });
+    auto solverScreenRenderer = Renderer(solveQuitBtn, [&] {
+        Elements logItems;
+        for (const auto& logMessage : solveMessages) {
+            logItems.push_back(text(logMessage));
+        }
+        return vbox({
+                   text("The solver is solving ..."),
+                   separator(),
+                   vbox(logItems),
+                   separator(),
+                   solveQuitBtn->Render()
+               })
+            | border;
+    });
 
+    auto mainContainer = Container::Tab(
+        {
+            mainScreenRenderer,
+            solverScreenRenderer,
+        },
+        &depth);
+
+    auto renderer = Renderer(mainContainer, [&] {
+        Element document = mainScreenRenderer->Render();
+
+        if (depth == 1) {
+            document = dbox({
+                document,
+                solverScreenRenderer->Render() | clear_under | center,
+            });
+        }
+        return document;
+    });
+    //
     auto screen = ScreenInteractive::FitComponent();
     screen.Loop(renderer);
 }
@@ -185,42 +228,74 @@ const std::array<cells::Color, 10> cellColors = {
     cells::Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-static std::shared_ptr<cells::Cell> convertJsonMatrixToCell(const nlohmann::json& jsonDb, const std::string& path)
+class JsonMatrixToCellConverter
 {
-    nlohmann::json::json_pointer jptr(path);
+public:
+    JsonMatrixToCellConverter(const nlohmann::json& jsonDb, const std::string& path) :
+        m_jsonDb(jsonDb), m_path(path), m_jMatrix(jsonDb[nlohmann::json::json_pointer(m_path)])
+    {
+        convert();
+    }
 
-    auto& jMatrix = jsonDb[jptr];
+    void convert()
+    {
+        size_t matrixHeight = m_jMatrix.size();
+        size_t matrixWidth  = m_jMatrix[0].size();
 
-    std::shared_ptr<cells::Cell> picture;
-    cells::Sensor sensor;
-    int matrixHeight = jMatrix.size();
-    int matrixWidth  = jMatrix[0].size();
+        m_sensor.height(matrixHeight).width(matrixWidth);
+        m_sensor.init();
 
-    sensor.height(matrixHeight).width(matrixWidth);
-    sensor.init();
-
-    int y = 0;
-    for (auto inputRowIt = jMatrix.begin(); inputRowIt != jMatrix.end(); ++inputRowIt) {
-        int x = 0;
-        for (const int val : *inputRowIt) {
-            cells::Pixel& pixel = sensor.getPixel(x, y);
-            pixel.color         = cellColors[val];
+        int y = 0;
+        for (auto inputRowIt = m_jMatrix.begin(); inputRowIt != m_jMatrix.end(); ++inputRowIt) {
+            int x = 0;
+            for (const int val : *inputRowIt) {
+                cells::Pixel& pixel = m_sensor.getPixel(x, y);
+                pixel.color         = cellColors[val];
+            }
         }
     }
 
-    std::shared_ptr<cells::Cell> ret;
-    return ret;
-}
+    const cells::Sensor& sensor() const
+    {
+        return m_sensor;
+    }
 
-static void solvePair(const cells::Cell& input, const cells::Cell& output)
+private:
+    cells::Sensor m_sensor;
+    const nlohmann::json& m_jsonDb;
+    const std::string& m_path;
+    const nlohmann::json& m_jMatrix;
+};
+
+class Solver
 {
-}
+public:
+    Solver(Logger& logger, const cells::Sensor& input, const cells::Sensor& output) :
+        logger(logger), m_input(input),
+    m_output(output)
+    {
+        solve();
+    }
+
+    void solve()
+    {
+        logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to output[" << m_output.m_width << ", " << m_output.m_height << "]";
+        logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to output[" << m_output.m_width << ", " << m_output.m_height << "]";
+        logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to output[" << m_output.m_width << ", " << m_output.m_height << "]";
+        logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to output[" << m_output.m_width << ", " << m_output.m_height << "]";
+    }
+
+    Logger& logger;
+    const cells::Sensor& m_input;
+    const cells::Sensor& m_output;
+};
 
 void App::solve()
 {
-    auto input = convertJsonMatrixToCell(arcDb.jf, "/train/0/input");
-    auto output = convertJsonMatrixToCell(arcDb.jf, "/train/0/output");
-    solvePair(*input, *output);
+    solveMessages.clear();
+    JsonMatrixToCellConverter input(arcDb.jf, "/train/0/input");
+    JsonMatrixToCellConverter output(arcDb.jf, "/train/0/output");
+    Solver solver(solverLogger, input.sensor(), output.sensor());
 }
 
 /*
