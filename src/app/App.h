@@ -1,7 +1,9 @@
-#include "ArcDb.h"
+#pragma once
+
 #include "util/Logging.h"
 #include "ftxui/component/component.hpp" // for Slider
 
+#include <nlohmann/json.hpp>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -33,6 +35,7 @@ public:
 
 private:
     std::string getArcFilePathFromIndex(int index);
+    void loadArcFile(const std::string& filename);
     void loadArcFileByFileIndex();
     void renderArcTaskDemonstration();
     void renderArcTestInputGrid();
@@ -42,7 +45,7 @@ private:
     std::vector<std::string> solveMessages;
     Logger solverLogger;
 
-    ArcDb arcDb;
+    nlohmann::json arcDb;
     std::string arcDbPath;
     ftxui::Element arcTaskDemonstration;
     ftxui::Element arcTestInputGrid;
