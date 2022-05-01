@@ -28,7 +28,7 @@ class App
 {
 public:
     App() :
-        solverLogger(solveMessages) { }
+        solverLogger(m_solveMessages) { }
     void init(int argc, char* argv[]);
     void run();
     static const std::array<ftxui::Color, 10> arcColors;
@@ -41,16 +41,16 @@ private:
     void renderArcTestInputGrid();
     void solve();
 
-    std::vector<std::string> arcFileNames;
-    std::vector<std::string> solveMessages;
+    std::vector<std::string> m_arcFileNames;
+    std::vector<std::string> m_solveMessages;
     Logger solverLogger;
 
-    nlohmann::json arcDb;
-    std::string arcDbPath;
-    ftxui::Element arcTaskDemonstration;
-    ftxui::Element arcTestInputGrid;
-    int selectedArcFileIndex        = 0;
-    int previusSelectedArcFileIndex = 0;
+    nlohmann::json m_arcDb;
+    std::string m_arcFilePath;
+    ftxui::Element m_arcTaskDemonstration;
+    ftxui::Element m_arcTestInputGrid;
+    int m_selectedArcFileIndex        = 0;
+    int m_previusSelectedArcFileIndex = 0;
 };
 
 } // namespace synth

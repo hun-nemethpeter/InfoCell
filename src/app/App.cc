@@ -36,15 +36,15 @@ const std::array<Color, 10> App::arcColors = {
 void App::init(int argc, char* argv[])
 {
     if (argc == 1) {
-        arcDbPath = "F:\\Devel\\ARC\\ARC\\data\\training\\";
+        m_arcFilePath = "F:\\Devel\\ARC\\ARC\\data\\training\\";
 //        arcDbPath = "F:\\Devel\\ARC\\ARC\\data\\evaluation\\";
     } else {
-        arcDbPath = argv[1];
+        m_arcFilePath = argv[1];
     }
 
-    arcFileNames.clear();
-    for (const auto& entry : fs::directory_iterator(arcDbPath)) {
-        arcFileNames.push_back(entry.path().filename().string());
+    m_arcFileNames.clear();
+    for (const auto& entry : fs::directory_iterator(m_arcFilePath)) {
+        m_arcFileNames.push_back(entry.path().filename().string());
     }
 
     loadArcFileByFileIndex();
@@ -62,13 +62,13 @@ Element colorTile(ArcColors arcColor)
 
 std::string App::getArcFilePathFromIndex(int index)
 {
-    return arcDbPath + arcFileNames[selectedArcFileIndex];
+    return m_arcFilePath + m_arcFileNames[m_selectedArcFileIndex];
 }
 
 void App::loadArcFile(const std::string& filename)
 {
     std::ifstream ifs(filename);
-    arcDb = json::parse(ifs);
+    m_arcDb = json::parse(ifs);
 #if 0
     //    std::cout << jf.dump(4) << std::endl;
     std::cout << "Input:" << std::endl;
@@ -83,21 +83,21 @@ void App::loadArcFile(const std::string& filename)
 
 void App::loadArcFileByFileIndex()
 {
-    loadArcFile(getArcFilePathFromIndex(selectedArcFileIndex));
+    loadArcFile(getArcFilePathFromIndex(m_selectedArcFileIndex));
     renderArcTaskDemonstration();
     renderArcTestInputGrid();
 }
 
 void App::renderArcTaskDemonstration()
 {
-    auto& jTrain = arcDb.at("train");
+    auto& jTrain = m_arcDb.at("train");
     int i        = 0;
     std::vector<Elements> arcTaskDemonstrationTableData;
     arcTaskDemonstrationTableData.push_back({
         text("Input") | center,
         text("Output") | center,
     });
-    for (const auto& train : arcDb.at("train")) {
+    for (const auto& train : m_arcDb.at("train")) {
         auto& inputRow  = train.at("input");
         auto& outputRow = train.at("output");
         Elements arcSet;
@@ -131,12 +131,12 @@ void App::renderArcTaskDemonstration()
     }
     arcTaskDemonstrationTable.SelectColumn(0).BorderRight(LIGHT);
 
-    arcTaskDemonstration = arcTaskDemonstrationTable.Render();
+    m_arcTaskDemonstration = arcTaskDemonstrationTable.Render();
 }
 
 void App::renderArcTestInputGrid()
 {
-    auto& inputRow = arcDb["/test/0/input"_json_pointer];
+    auto& inputRow = m_arcDb["/test/0/input"_json_pointer];
 
     Elements arcSetInputLines;
     for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
@@ -146,15 +146,15 @@ void App::renderArcTestInputGrid()
         }
         arcSetInputLines.push_back(hbox(arcSetInputLine));
     }
-    arcTestInputGrid = vbox({ text("Test") | center, separator(), vbox(arcSetInputLines) });
+    m_arcTestInputGrid = vbox({ text("Test") | center, separator(), vbox(arcSetInputLines) });
 }
 
 void App::run()
 {
     int depth        = 0;
-    auto menu        = Menu(&arcFileNames, &selectedArcFileIndex);
+    auto menu        = Menu(&m_arcFileNames, &m_selectedArcFileIndex);
     auto buttonSolve = Button("Solve", [&] {
-        solveMessages.clear();
+        m_solveMessages.clear();
         solve();
         depth = 1;
     });
@@ -182,26 +182,26 @@ void App::run()
 
 
     auto mainScreenRenderer = Renderer(container, [&] {
-        if (previusSelectedArcFileIndex != selectedArcFileIndex) {
+        if (m_previusSelectedArcFileIndex != m_selectedArcFileIndex) {
             loadArcFileByFileIndex();
-            previusSelectedArcFileIndex = selectedArcFileIndex;
+            m_previusSelectedArcFileIndex = m_selectedArcFileIndex;
         }
 
-        auto ret = flexbox({ vbox({ hbox(text("selected = "), text(arcFileNames[selectedArcFileIndex])),
+        auto ret = flexbox({ vbox({ hbox(text("selected = "), text(m_arcFileNames[m_selectedArcFileIndex])),
                                     separator(),
                                     flexbox({ buttonSolve->Render() | xflex_grow, separator() | yflex_grow, buttonQuit->Render() | xflex_grow }, flexButtonsConfig),
                                     separator(),
                                     menu->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25) })
                                  | border,
-                             arcTaskDemonstration | border,
-                             arcTestInputGrid | border }, flexConfig);
+                             m_arcTaskDemonstration | border,
+                             m_arcTestInputGrid | border }, flexConfig);
         return ret;
     });
-//
+
     auto solveQuitBtn         = Button("Ok", [&] { depth = 0; });
     auto solverScreenRenderer = Renderer(solveQuitBtn, [&] {
         Elements logItems;
-        for (const auto& logMessage : solveMessages) {
+        for (const auto& logMessage : m_solveMessages) {
             logItems.push_back(text(logMessage));
         }
         return vbox({
@@ -232,15 +232,15 @@ void App::run()
         }
         return document;
     });
-    //
+
     auto screen = ScreenInteractive::FitComponent();
     screen.Loop(renderer);
 }
 
 void App::solve()
 {
-    JsonMatrixToCellConverter input(arcDb, "/train/0/input");
-    JsonMatrixToCellConverter output(arcDb, "/train/0/output");
+    JsonMatrixToCellConverter input(m_arcDb, "/train/0/input");
+    JsonMatrixToCellConverter output(m_arcDb, "/train/0/output");
     Solver solver(solverLogger, input.sensor(), output.sensor());
 }
 
