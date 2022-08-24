@@ -12,6 +12,7 @@ namespace cells {
 namespace types {
 DATA_CELL(Empty);
 DATA_CELL(Color);
+DATA_CELL(Vector);
 DATA_CELL(Pixel);
 } // namespace types
 
@@ -29,6 +30,11 @@ DATA_CELL(down);
 DATA_CELL(left);
 DATA_CELL(right);
 } // namespace directions
+namespace axis {
+DATA_CELL(x);
+DATA_CELL(y);
+DATA_CELL(z);
+} // namespace axis
 DATA_CELL(color);
 DATA_CELL(next);
 DATA_CELL(prev);
@@ -49,6 +55,7 @@ Cell& Cell::member(Cell& member)
 
 std::vector<Cell*> Cell::membersData;
 std::vector<Cell*> Color::membersData      = { &members::colors::red, &members::colors::green, &members::colors::blue };
+std::vector<Cell*> Vector::membersData     = { &members::axis::x, &members::axis::y };
 std::vector<Cell*> Pixel::membersData      = { &members::type, &members::directions::up, &members::directions::down, &members::directions::left, &members::directions::right, &members::color };
 std::vector<Cell*> IntValue::membersData   = { &members::value };
 std::vector<Cell*> StringChar::membersData = { &members::next, &members::prev, &members::value };

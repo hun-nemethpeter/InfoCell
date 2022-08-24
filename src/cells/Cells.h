@@ -9,6 +9,19 @@
 namespace synth {
 namespace cells {
 
+class Cell; // forward decl
+
+class MemberToValue
+{
+public:
+    MemberToValue() = default;
+    MemberToValue(Cell* member, Cell* value) :
+        member(member), value(value) { }
+
+    Cell* member = nullptr;
+    Cell* value  = nullptr;
+};
+
 class Cell
 {
 public:
@@ -109,6 +122,7 @@ public:
 namespace types {
 DATA_CELL(Empty);
 DATA_CELL(Color);
+DATA_CELL(Vector);
 DATA_CELL(Pixel);
 } // namespace types
 
@@ -126,6 +140,11 @@ DATA_CELL(down);
 DATA_CELL(left);
 DATA_CELL(right);
 } // namespace directions
+namespace axis {
+DATA_CELL(x);
+DATA_CELL(y);
+DATA_CELL(z);
+} // namespace axis
 DATA_CELL(color);
 DATA_CELL(next);
 DATA_CELL(prev);
@@ -217,6 +236,7 @@ public:
     {
         return membersData;
     }
+
     Cell* membervalues(unsigned index) override
     {
         switch (index) {
@@ -226,6 +246,17 @@ public:
             abort();
         }
     }
+
+    bool operator==(const IntValue& rhs) const
+    {
+        return rhs.value == value;
+    }
+
+    bool operator<(const IntValue& rhs) const
+    {
+        return rhs.value < value;
+    }
+
     std::string string() const;
 
     int64_t value;
@@ -266,6 +297,16 @@ public:
         }
     }
 
+    bool operator==(const Color& rhs) const
+    {
+        return rhs.red == red && rhs.green == green && rhs.blue == blue;
+    }
+
+    bool operator<(const Color& rhs) const
+    {
+        return std::tie(red, green, blue) < std::tie(rhs.red, rhs.green, rhs.blue);
+    }
+
     int64_t redD   = 0;
     int64_t greenD = 0;
     int64_t blueD  = 0;
@@ -273,6 +314,46 @@ public:
     IntValue green;
     IntValue blue;
 };
+
+class Vector : public DataCell
+{
+public:
+    Vector() :
+        x(xD), y(yD) { }
+
+    Vector(int64_t _x, int64_t _y) :
+        x(_x), y(_y) { }
+
+    const std::string nameAsString() const override
+    {
+        static std::string s_name = "Vector";
+        return s_name;
+    }
+
+    static std::vector<Cell*> membersData;
+    std::vector<Cell*>& members() override
+    {
+        return membersData;
+    }
+
+    Cell* membervalues(unsigned index) override
+    {
+        switch (index) {
+        case 0:
+            return &x;
+        case 1:
+            return &y;
+        default:
+            abort();
+        }
+    }
+
+    int64_t xD = 0;
+    int64_t yD = 0;
+    IntValue x;
+    IntValue y;
+};
+
 
 class Pixel : public DataCell
 {
@@ -780,10 +861,20 @@ struct Sensor
     {
     }
 
+    int width() const
+    {
+        return m_width;
+    }
+
     Sensor& width(int value)
     {
         m_width = value;
         return *this;
+    }
+
+    int height() const
+    {
+        return m_height;
     }
 
     Sensor& height(int value)
@@ -830,12 +921,17 @@ struct Sensor
         return pixels[currentIndex(x, y)];
     }
 
-    int currentIndex(int x, int y)
+    const Pixel& getPixel(int x, int y) const
+    {
+        return pixels[currentIndex(x, y)];
+    }
+
+    int currentIndex(int x, int y) const
     {
         return y * m_width + x;
     }
 
-    bool isInRange(int x, int y)
+    bool isInRange(int x, int y) const
     {
         if (y < 0 || x < 0 || x > m_width - 1 || y > m_height - 1) {
             return false;
@@ -947,36 +1043,108 @@ struct Rule
 };
 
 /*
-*  ruleA = a
-*  ruleA = b
-*  ruleA = c
-*  ruleA = d
-*
-*  to match a | b | c
-*  version 1:
-*  a | b | c => rulaA.or(ruleB).or(ruleC);
-*  version 2:
-*  a | b | c => rulaA.joinOr(ruleB).joinOr(ruleC);
-*
-*  to match abc
-*  version 1:
-*  a b c => rulaA.joinAfter(Member::Next, ruleB).joinAfter(Member::Next, ruleC);
-*  version 2:
-*  a b c => rulaA.joinAnd(Member::Next, ruleB).joinAnd(Member::Next, ruleC);
-*
-*  to match in 2D
-*  +-+-+-+-+
-*  |b| | | |
-*  +-+-+-+-+
-*  |a|c| | |
-*  +-+-+-+-+
-*  |d| | | |
-*  +-+-+-+-+
-*
-*  version 1:
-*  ruleA.joinBefore(Member::Up, ruleB).joinBefore(Member::Right, ruleC).joinBefore(Member::Down, ruleD)
-*  version 2:
-*  ruleA.join(Member::Up, ruleB).join(Member::Right, ruleC).join(Member::Down, ruleD)
+  ruleA = a
+  ruleA = b
+  ruleA = c
+  ruleA = d
+
+  to match a | b | c
+  version 1:
+    a | b | c => rulaA.or(ruleB).or(ruleC);
+  version 2:
+    a | b | c => rulaA.joinOr(ruleB).joinOr(ruleC);
+
+  to match abc
+  version 1:
+    a b c => rulaA.joinAfter(Member::Next, ruleB).
+                   joinAfter(Member::Next, ruleC);
+  version 2:
+    a b c => rulaA.joinAnd(Member::Next, ruleB).
+                   joinAnd(Member::Next, ruleC);
+  version 3:
+    join(ruleA, Member::Right, ruleB)
+    join(ruleB, Member::Right, ruleC)
+
+  to match in 2D
+  +-+-+-+-+
+  |b| | | |
+  +-+-+-+-+
+  |a|c| | |
+  +-+-+-+-+
+  |d| | | |
+  +-+-+-+-+
+
+  version 1:
+    ruleA.joinBefore(Member::Up,    ruleB).
+          joinBefore(Member::Right, ruleC).
+          joinBefore(Member::Down,  ruleD)
+  version 2:
+    ruleA.join(Member::Up,    ruleB).
+          join(Member::Right, ruleC).
+          join(Member::Down,  ruleD)
+  version 3:
+    join(ruleA, Member::Up,    ruleB)
+    join(ruleA, Member::Right, ruleC)
+    join(ruleA, Member::Down,  ruleD)
+
+  +-+-+-+-+
+  |b| | | |
+  +-+-+-+-+
+  |a|c|d| |
+  +-+-+-+-+
+
+  So 'a' node hase two join: (Up)b and (Right)c
+  But 'd' node is joined to 'c' node and not to 'a'
+  version 1:
+    ruleA.joinBefore(Member::Up,    ruleB)
+         .joinBefore(Member::Right, ruleC).joinAfter(Member::Right, ruleD)
+  version 2:
+    ruleA.join(Member::Up, ruleB)
+         .join(Member::Right, ruleC).joinAnd(Member::Right, ruleD)
+  version 3:
+    join(ruleA, Member::Up,    ruleB)
+    join(ruleA, Member::Right, ruleC)
+    join(ruleC, Member::Right, ruleD)
+
+We need rules that can describe 'growing'
+
+Example: line
+line can be: pixel pixel+ (in any direction)
+Direction: Left, Right, Up, Down
+           TODO: 45 degrees, maybe LeftUp, LeftDown, RightUp, RightDown, so the problem is, no direct connection in this case
+
+   0 1 2 
+  +-+-+-+
+ 0|a|b|c|
+  +-+-+-+
+  a is (0,0)
+  b is (1,0)
+  c is (2,0)
+
+  join(a, Right, b)
+  join(b, Right, c)
+
+  AndRule(<Pixel> p)
+    p
+    Right, p
+    Right, p
+
+
+so 
+  rule1.canStart(pixel: p) {
+   this.actualPixel = p
+   this.shapeColor = p.color
+  }
+
+  rule1.accept(pixel: p) {
+     if (p.color == this.shapeColor && this.actualPixel.Right == p) {
+              this.actualPixel = p;
+              return true;
+     }
+     return false;
+  }
+
+Line: Pixel, Pixel+
 */
 } // namespace cells
 } // namespace synth

@@ -21,7 +21,7 @@ enum class RuleStates
 {
     Init,      // initial state
     Matched,   // state fully matched
-    Matching,  // state fully matched
+    Growing,   // one slot fully matched but it can grow
     Accepted,  // state partially matched
     NotMatched // state not matched
 };

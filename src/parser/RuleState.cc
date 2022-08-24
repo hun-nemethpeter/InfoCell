@@ -97,7 +97,7 @@ void SlotState::processEventOneMore(RuleState& p_sender)
         throw "error";
     m_state = p_sender.getState();
     if (m_state == RuleStates::Matched) {
-        m_state = RuleStates::Matching;
+        m_state = RuleStates::Growing;
     }
     if (m_state == RuleStates::Init) {
         throw "error";
@@ -382,7 +382,7 @@ void AndState::slotStateChanged(SlotState& p_slot)
         m_length++;
         return;
 
-    case RuleStates::Matching: {
+    case RuleStates::Growing: {
         m_length++;
         // std::cout << "DDDD any " << GetName() << " " << rule->GetName() << std::endl;
         handleValueSaving(p_slot.m_ruleState->getValue());
@@ -601,7 +601,7 @@ void OrState::prepareStateChange(SlotState& p_slot)
     m_checkedSlotsNum++;
 
     switch (p_slot.getState()) {
-    case RuleStates::Matching:
+    case RuleStates::Growing:
     case RuleStates::Matched:
         m_matchedSlotsNum++;
         break;
@@ -642,7 +642,7 @@ void OrState::slotStateChanged(SlotState& p_slot)
             continue;
         SharedRuleState ruleState = slotState.m_ruleState;
         switch (slotState.getState()) {
-        case RuleStates::Matching:
+        case RuleStates::Growing:
         case RuleStates::Matched:
             if (m_parentSlots.empty()) {
                 if (m_matchedRule && m_matchedRule->getIndex() > ruleState->getIndex())
@@ -691,7 +691,7 @@ void TermRuleState::dotWriterVisitor(DotWriter& p_writer) const
 std::ostream& operator<<(std::ostream& p_os, const synth::RuleStates p_state)
 {
     switch (p_state) {
-    case RuleStates::Matching:
+    case RuleStates::Growing:
         p_os << "Matched";
         break;
     case RuleStates::Matched:

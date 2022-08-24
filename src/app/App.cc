@@ -37,7 +37,9 @@ void App::init(int argc, char* argv[])
 {
     if (argc == 1) {
         m_arcFilePath = "F:\\Devel\\ARC\\ARC\\data\\training\\";
-//        arcDbPath = "F:\\Devel\\ARC\\ARC\\data\\evaluation\\";
+        // m_arcFilePath = "F:\\Devel\\ARC\\ARC\\data\\evaluation\\";
+        // m_arcFilePath = "F:\\Devel\\ARC\\pqa-dataset\\closure-filling\\";
+        // m_arcFilePath = "F:\\Devel\\ARC\\pqa-dataset\\proximity-identification\\";
     } else {
         m_arcFilePath = argv[1];
     }
