@@ -52,9 +52,10 @@ static cells::Sensor convertArcMatrixToSensor(const nlohmann::json& arcMatrix)
     for (auto inputRowIt = arcMatrix.begin(); inputRowIt != arcMatrix.end(); ++inputRowIt) {
         int x = 0;
         for (const int val : *inputRowIt) {
-            cells::Pixel& pixel = sensor.getPixel(x, y);
+            cells::Pixel& pixel = sensor.getPixel(x++, y);
             pixel.color         = cellColors[val];
         }
+        ++y;
     }
 
     return sensor;

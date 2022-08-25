@@ -47,7 +47,8 @@ public:
     Logger(std::vector<std::string>& messages) :
         m_messages(messages) { }
     LoggerStream log(LogLevel level);
-    void log(LogLevel level, const std::string& message) { m_messages.push_back(message); }
+    void log(LogLevel level, const std::string& message);
+    void clearLogFile();
 
     std::vector<std::string>& m_messages;
 };

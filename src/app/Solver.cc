@@ -4,6 +4,8 @@
 
 namespace synth {
 
+Logger* loggerPtr = nullptr;
+
 const std::array<cells::Color, 10> cellColors = {
     cells::Color(0x00, 0x00, 0x00), /* black */
     cells::Color(0x00, 0x74, 0xD9), /* blue */
@@ -15,6 +17,12 @@ const std::array<cells::Color, 10> cellColors = {
     cells::Color(0xFF, 0x85, 0x1B), /* orange */
     cells::Color(0x7F, 0xDB, 0xFF), /* teal */
     cells::Color(0x87, 0x0C, 0x25)  /* brown */
+};
+
+enum class Direction
+{
+    LeftToRight,
+    RightToLeft
 };
 
 Solver::Solver(Logger& logger, const ArcTask& arcTask) :
@@ -41,7 +49,7 @@ public:
         return m_color;
     }
 
-    void addPixelCoordinate(int x, int y)
+    void addPixelCoordinate(int x, int y, Direction scanDir)
     {
         if (vectors.empty()) {
             m_startX  = x;
@@ -63,7 +71,11 @@ public:
         m_lastX = x;
         m_lastY = y;
 
-        m_subscribeCb(shared_from_this(), x + 1, y);
+        if (scanDir == Direction::LeftToRight)
+          m_subscribeCb(shared_from_this(), x + 1, y);
+        else
+          m_subscribeCb(shared_from_this(), x - 1, y);
+
         m_subscribeCb(shared_from_this(), x + 1, y + 1);
         m_subscribeCb(shared_from_this(), x, y + 1);
         m_subscribeCb(shared_from_this(), x - 1, y + 1);
@@ -107,32 +119,42 @@ struct PatchSlot
 {
     void registerCandidate(std::shared_ptr<Patch> patch)
     {
-        m_candidates.insert({ patch->color(), patch });
+        std::set<std::shared_ptr<Patch>>& patches = m_candidates[patch->color()];
+        patches.insert(patch);
     }
 
     std::shared_ptr<Patch> getCandidate(const cells::Color& color)
     {
-        auto range = m_candidates.equal_range(color);
+        auto findIt = m_candidates.find(color);
 
         // no patch
-        if (range.first == range.second) {
+        if (findIt == m_candidates.end()) {
             return std::shared_ptr<Patch>();
         }
 
+        std::set<std::shared_ptr<Patch>>& patches = m_candidates[color];
+
         // one patch
-        auto firstPair = range.first;
-        auto nextPair  = ++firstPair;
-        if (nextPair == range.second) {
-            return range.first->second;
-        }
+        auto firstPatchIt = patches.begin();
+        if (patches.size() == 1)
+            return *firstPatchIt;
+
+        std::shared_ptr<Patch> returnPatch = *firstPatchIt;
 
         // multiple patch
-        for (auto i = nextPair; i != range.second; ++i) {
-            range.first->second->merge(*(i->second));
-            m_deletePatchCb(i->second);
+        for (auto i = ++firstPatchIt; i != patches.end(); ++i) {
+            std::shared_ptr<Patch> candidatePatch = *i;
+            if (candidatePatch->m_startY < returnPatch->m_startY || (candidatePatch->m_startY == returnPatch->m_startY && candidatePatch->m_startX < returnPatch->m_startX)) {
+                auto tmp       = returnPatch;
+                returnPatch    = candidatePatch;
+                candidatePatch = tmp;
+            }
+//            loggerPtr->log(DEBUG) << " - patch (" << candidatePatch.get() << ") merged to " << returnPatch.get();
+            returnPatch->merge(*candidatePatch);
+            m_deletePatchCb(candidatePatch);
         }
 
-        return std::shared_ptr<Patch>();
+        return returnPatch;
     }
 
     void setDeletePatchCb(std::function<void(std::shared_ptr<Patch>)> deletePatchCb)
@@ -142,8 +164,14 @@ struct PatchSlot
 
     std::function<void(std::shared_ptr<Patch>)> m_deletePatchCb;
 
-    std::multimap<cells::Color, std::shared_ptr<Patch>> m_candidates;
+    std::map<cells::Color, std::set<std::shared_ptr<Patch>>> m_candidates;
 };
+
+std::ostream& operator<<(std::ostream& os, const cells::Color& color)
+{
+    os << "[" << color.red.value << "," << color.green.value << "," << color.blue.value << "]";
+    return os;
+}
 
 class PatchBoard
 {
@@ -167,18 +195,26 @@ public:
         return m_height;
     }
 
-    void processPixel(int x, int y, const cells::Color& color)
+    void processPixel(int x, int y, const cells::Color& color, Direction scanDir)
     {
-        PatchSlot& patchSlot = getPatchSlot(x, y);
+        PatchSlot& patchSlot             = getPatchSlot(x, y);
         std::shared_ptr<Patch> candidate = patchSlot.getCandidate(color);
-        if (!candidate) {
+
+        if (candidate) {
+//            loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch found " << "(" << candidate.get() << ")";
+        } else {
             candidate = std::make_shared<Patch>(color);
+//            loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch created " << "(" << candidate.get() << ")";
             candidate->setSubriberCb([this](std::shared_ptr<Patch> patch, int x, int y) { subscribePatchForPixel(patch, x, y); });
             m_patches.insert(candidate);
         }
-        candidate->addPixelCoordinate(x, y);
+        candidate->addPixelCoordinate(x, y, scanDir);
     }
 
+    int patchesCount() const
+    {
+        return m_patches.size();
+    }
 
 protected:
     void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y)
@@ -216,14 +252,20 @@ protected:
 
 void Solver::solve()
 {
+    loggerPtr = &logger;
+    logger.clearLogFile();
     logger.log(INFO) << "There are " << m_arcTask.m_demonstrations.size() << " demo tasks";
     unsigned int i = 1;
     for (const auto& arcDemo : m_arcTask.m_demonstrations) {
         const cells::Sensor& m_input  = arcDemo.m_input;
         const cells::Sensor& m_output = arcDemo.m_output;
+//        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
         solveOne(m_input);
-        logger.log(INFO) << " (" << i++ << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
+        solveOne(m_output);
+        i++;
     }
+//    solveOne(m_arcTask.m_testInput);
+
     const cells::Sensor& m_input = m_arcTask.m_testInput;
     logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to ... ?";
 }
@@ -231,30 +273,27 @@ void Solver::solve()
 void Solver::solveOne(const cells::Sensor& sensor)
 {
     PatchBoard patchBoard(sensor.width(), sensor.height());
-    enum Direction
-    {
-        LeftToRight,
-        RightToLeft
-    };
-
-    Direction scanDir = LeftToRight;
+    Direction scanDir = Direction::LeftToRight;
     for (int y = 0; y < sensor.height(); ++y) {
         switch (scanDir) {
-        case LeftToRight:
+        case Direction::LeftToRight:
             for (int x = 0; x < sensor.width(); ++x) {
                 const cells::Pixel& pixel = sensor.getPixel(x, y);
-                patchBoard.processPixel(x, y, pixel.color);
+//                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
+                patchBoard.processPixel(x, y, pixel.color, scanDir);
             }
             break;
-        case RightToLeft:
+        case Direction::RightToLeft:
             for (int x = sensor.width() - 1; x >= 0; --x) {
                 const cells::Pixel& pixel = sensor.getPixel(x, y);
-                patchBoard.processPixel(x, y, pixel.color);
+//                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
+                patchBoard.processPixel(x, y, pixel.color, scanDir);
             }
             break;
         }
-        scanDir = scanDir == LeftToRight ? RightToLeft : LeftToRight;
+        scanDir = scanDir == Direction::LeftToRight ? Direction::RightToLeft : Direction::LeftToRight;
     }
+    logger.log(DEBUG) << "Number of patches found: " << patchBoard.patchesCount();
 }
 
 /*
