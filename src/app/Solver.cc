@@ -38,6 +38,17 @@ Solver::Solver(Logger& logger, const ArcTask& arcTask) :
     solve();
 }
 
+enum class RotationDir
+{
+    // original    🡩
+    Degree_45,  // 🡭
+    Degree_90,  // 🡪
+    Degree_135, // 🡮
+    Degree_180, // 🡫
+    Degree_225, // 🡯
+    Degree_270, // 🡨
+    Degree_315  // 🡬
+};
 
 class Pixel
 {
@@ -49,6 +60,94 @@ public:
 
     int x;
     int y;
+};
+
+class Vector
+{
+public:
+    bool operator<(const Vector& rhs) const
+    {
+        return std::tie(x, y) < std::tie(rhs.x, rhs.y);
+    }
+
+    void rotate(RotationDir rotationDir)
+    {
+        int origX = x;
+        int origY = y;
+        switch (rotationDir) {
+
+        // 🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭🡭
+        case RotationDir::Degree_45:
+            x = origX - origY;
+            y = origY + origX;
+            break;
+
+        // 🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪🡪
+        case RotationDir::Degree_90:
+            x = -origY;
+            y = origX;
+            break;
+
+        // 🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮🡮
+        case RotationDir::Degree_135:
+            x = -origX - origY;
+            y = origX - origY;
+            break;
+
+        // 🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫🡫
+        case RotationDir::Degree_180:
+            x = -origX;
+            y = -origY;
+            break;
+
+        // 🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯
+        case RotationDir::Degree_225:
+            x = -origX + origY;
+            y = -origX - origY;
+            break;
+
+        // 🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨🡨
+        case RotationDir::Degree_270:
+            x = origY;
+            y = -origX;
+            break;
+
+        // 🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬🡬
+        case RotationDir::Degree_315:
+            x = origX + origY;
+            y = -origX + origY;
+            break;
+        }
+    }
+
+    int x;
+    int y;
+};
+
+class VectorShape
+{
+public:
+    VectorShape(const std::vector<Vector>& vectors, const cells::Color& color) :
+        m_vectors(vectors), m_color(color)
+    {
+    }
+    VectorShape(std::vector<Vector>&& vectors, const cells::Color& color) :
+        m_vectors(std::move(vectors)), m_color(color)
+    {
+    }
+
+    void rotate(RotationDir rotationDir)
+    {
+        for (Vector& vector : m_vectors) {
+            Vector oldVector = vector;
+            vector.rotate(rotationDir);
+            loggerPtr->log(DEBUG) << " rotate vector [" << oldVector.x << ", " << oldVector.y << "] => [" << vector.x << ", " << vector.y << "]";
+
+        }
+    }
+
+    cells::Color m_color;
+    std::vector<Vector> m_vectors;
 };
 
 class Patch;
@@ -66,11 +165,16 @@ class Patch : public std::enable_shared_from_this<Patch>
 {
 public:
     Patch(cells::Color color, PatchBoardI* patchBoardI) :
-        m_color(color), m_patchBoardI(patchBoardI), m_boardWidth(patchBoardI->width()), m_boardHeight(patchBoardI->height()) { }
+        m_color(color), m_patchBoardI(patchBoardI), m_width(patchBoardI->width()), m_height(patchBoardI->height()) { }
 
     const cells::Color& color() const
     {
         return m_color;
+    }
+
+    size_t size() const
+    {
+        return m_pixels.size();
     }
 
     void addPixelCoordinate(int x, int y)
@@ -82,7 +186,7 @@ public:
 
     void registerSubscribedPixel(int x, int y)
     {
-        m_subscribedPixels.insert({x, y});
+        m_subscribedPixels.insert({ x, y });
     }
 
     void merge(std::shared_ptr<Patch> other)
@@ -102,9 +206,9 @@ public:
         });
     }
 
-    void vectorize()
+    VectorShape vectorize() const
     {
-        vectors.clear();
+        std::vector<Vector> vectors;
 
         const Pixel* prevPixel = &m_pixels.front();
         bool firstPixel        = true;
@@ -118,6 +222,9 @@ public:
             vectors.push_back({ currPixel->x - prevPixel->x, currPixel->y - prevPixel->y });
             prevPixel = currPixel;
         }
+        VectorShape vectorShape(std::move(vectors), color());
+
+        return vectorShape;
     }
 
     void refreshBoundaries(int x, int y)
@@ -149,13 +256,13 @@ public:
 
     int pixelIndex(const Pixel& pixel) const
     {
-        return pixel.y * m_boardWidth + pixel.x;
+        return pixel.y * m_width + pixel.x;
     }
 
     int firstPixelIndex() const
     {
         const Pixel& pixel = firstPixel();
-        return pixel.y * m_boardWidth + pixel.x;
+        return pixel.y * m_width + pixel.x;
     }
 
     bool operator<(const Patch& rhs) const
@@ -176,14 +283,14 @@ public:
     std::string toString() const
     {
         char boardColor = '0' + cellColorsToColorId.at(color());
-        std::string board(m_boardWidth * m_boardHeight, '.');
+        std::string board(m_width * m_height, '.');
         for (const Pixel& pixel : m_pixels) {
-            board[pixel.y * m_boardWidth + pixel.x] = boardColor;
+            board[pixel.y * m_width + pixel.x] = boardColor;
         }
         std::string ret;
-        ret += std::to_string(m_boardWidth);
+        ret += std::to_string(m_width);
         ret += ' ';
-        ret += std::to_string(m_boardHeight);
+        ret += std::to_string(m_height);
         ret += ' ';
         ret += board;
 
@@ -205,9 +312,9 @@ private:
 
     cells::Color m_color;
     PatchBoardI* m_patchBoardI = nullptr;
-    const int m_boardWidth;
-    const int m_boardHeight;
-    std::vector<cells::Vector> vectors;
+    const int m_width;
+    const int m_height;
+    ;
     std::vector<Pixel> m_pixels;
     std::set<Pixel> m_subscribedPixels;
 };
@@ -248,7 +355,7 @@ struct PatchSlot
         std::shared_ptr<Patch> returnPatch = *firstPatchIt;
 
         // multiple patch
-        for (auto i = ++firstPatchIt; i != patches.end(); ) {
+        for (auto i = ++firstPatchIt; i != patches.end();) {
             std::set<std::shared_ptr<Patch>>::iterator current = i++;
 
             std::shared_ptr<Patch> candidatePatch = *current;
@@ -257,15 +364,15 @@ struct PatchSlot
                 returnPatch    = candidatePatch;
                 candidatePatch = tmp;
             }
-            //loggerPtr->log(DEBUG) << " - patch (" << candidatePatch.get() << ") merged to " << returnPatch.get();
-            //loggerPtr->log(DEBUG) << " - returnPatch (" << returnPatch.get() << ")";
-            //loggerPtr->logBoard(DEBUG) << returnPatch->toString() << "\n";
-            //loggerPtr->log(DEBUG) << " - candidatePatch (" << candidatePatch.get() << ")";
-            //loggerPtr->logBoard(DEBUG) << candidatePatch->toString() << "\n";
+            // loggerPtr->log(DEBUG) << " - patch (" << candidatePatch.get() << ") merged to " << returnPatch.get();
+            // loggerPtr->log(DEBUG) << " - returnPatch (" << returnPatch.get() << ")";
+            // loggerPtr->logBoard(DEBUG) << returnPatch->toString() << "\n";
+            // loggerPtr->log(DEBUG) << " - candidatePatch (" << candidatePatch.get() << ")";
+            // loggerPtr->logBoard(DEBUG) << candidatePatch->toString() << "\n";
             returnPatch->merge(candidatePatch);
 
-            //loggerPtr->log(DEBUG) << " - returnPatch (" << returnPatch.get() << ")";
-            //loggerPtr->logBoard(DEBUG) << returnPatch->toString() << "\n";
+            // loggerPtr->log(DEBUG) << " - returnPatch (" << returnPatch.get() << ")";
+            // loggerPtr->logBoard(DEBUG) << returnPatch->toString() << "\n";
         }
 
         return returnPatch;
@@ -281,6 +388,72 @@ std::ostream& operator<<(std::ostream& os, const cells::Color& color)
     os << "[" << color.red.value << "," << color.green.value << "," << color.blue.value << "]";
     return os;
 }
+
+class DrawingBoard
+{
+public:
+    DrawingBoard(int width, int height) :
+        m_width(width), m_height(height), m_colors(width * height, cellColors[0])
+    {
+    }
+
+    void setColor(int x, int y, cells::Color color)
+    {
+        if (!isInRange(x, y))
+            return;
+        m_colors[currentIndex(x, y)] = color;
+    }
+
+    void renderVectorShape(int x, int y, const VectorShape& vectorShape)
+    {
+        setColor(x, y, cellColors[2]);
+        loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
+        for (const Vector& vector : vectorShape.m_vectors) {
+            x += vector.x;
+            y += vector.y;
+            setColor(x, y, vectorShape.m_color);
+            loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
+        }
+    }
+
+    std::string toString() const
+    {
+        std::string board(m_width * m_height, '.');
+        for (int y = 0; y < m_height; ++y) {
+            for (int x = 0; x < m_width; ++x) {
+                char boardColor        = '0' + cellColorsToColorId.at(m_colors[currentIndex(x, y)]);
+                board[y * m_width + x] = boardColor;
+            }
+        }
+        std::string ret;
+        ret += std::to_string(m_width);
+        ret += ' ';
+        ret += std::to_string(m_height);
+        ret += ' ';
+        ret += board;
+
+        return ret;
+    }
+
+private:
+    int currentIndex(int x, int y) const
+    {
+        return y * m_width + x;
+    }
+
+    bool isInRange(int x, int y) const
+    {
+        if (y < 0 || x < 0 || x > m_width - 1 || y > m_height - 1) {
+            return false;
+        }
+
+        return true;
+    }
+
+    const int m_width;
+    const int m_height;
+    std::vector<cells::Color> m_colors;
+};
 
 class PatchBoard : public PatchBoardI
 {
@@ -329,18 +502,18 @@ public:
         std::shared_ptr<Patch> candidate = patchSlot.getCandidate(color);
 
         if (candidate) {
-            //loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch found " << "(" << candidate.get() << ")";
+            // loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch found " << "(" << candidate.get() << ")";
         } else {
             candidate = std::make_shared<Patch>(color, this);
-            //loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch created " << "(" << candidate.get() << ")";
+            // loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch created " << "(" << candidate.get() << ")";
             m_patches.insert(candidate);
         }
         candidate->addPixelCoordinate(x, y);
     }
 
-    int patchesCount() const
+    const std::set<std::shared_ptr<Patch>>& patches() const
     {
-        return m_patches.size();
+        return m_patches;
     }
 
     void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y) override
@@ -360,7 +533,7 @@ public:
             patchSlot.registerCandidate(winner);
         }
         m_patches.erase(looser);
-        //loggerPtr->log(DEBUG) << " - patch deleted (" << looser.get() << ")";
+        // loggerPtr->log(DEBUG) << " - patch deleted (" << looser.get() << ")";
     }
 
 protected:
@@ -408,12 +581,13 @@ void Solver::solve()
     for (const auto& arcDemo : m_arcTask.m_demonstrations) {
         const cells::Sensor& m_input  = arcDemo.m_input;
         const cells::Sensor& m_output = arcDemo.m_output;
-//        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
+        //        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
         solveOne(m_input);
+        break;
         solveOne(m_output);
         i++;
     }
-//    solveOne(m_arcTask.m_testInput);
+    //    solveOne(m_arcTask.m_testInput);
 
     const cells::Sensor& m_input = m_arcTask.m_testInput;
     logger.log(INFO) << "Mapping input[" << m_input.m_width << ", " << m_input.m_height << "] to ... ?";
@@ -423,7 +597,23 @@ void Solver::solveOne(const cells::Sensor& sensor)
 {
     PatchBoard patchBoard(sensor);
     patchBoard.process();
-    logger.log(DEBUG) << "Number of patches found: " << patchBoard.patchesCount();
+    std::shared_ptr<Patch> patch;
+    for (std::shared_ptr<Patch> i : patchBoard.patches()) {
+        if (i->size() == 7)
+            patch = i;
+    }
+    logger.log(DEBUG) << "Patch:";
+    loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
+    for (int i = 0; i < 7; ++i) {
+        DrawingBoard drawingBoard(10, 10);
+        VectorShape vectorShape = patch->vectorize();
+        vectorShape.rotate((RotationDir)i);
+        drawingBoard.renderVectorShape(3, 3, vectorShape);
+        logger.log(DEBUG) << "DrawingBoard:";
+        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+    }
+
+    logger.log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
 }
 
 /*
