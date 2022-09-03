@@ -188,11 +188,48 @@ public:
             rotatedVectors.push_back(newVector);
 //            loggerPtr->log(DEBUG) << " rotate vector [" << vector.x << ", " << vector.y << "] => [" << newVector.x << ", " << newVector.y << "]";
         }
-        ;
 
         return VectorShape(std::move(rotatedVectors), m_color, m_firstPixel);
     }
 
+    VectorShape stretch(int horizontal, int vertical) const
+    {
+        if ((horizontal < 1 || vertical < 1) || (horizontal == 1 && vertical == 1)) {
+            // Do nothing
+            return VectorShape(*this);
+        }
+        std::vector<Vector> stretchVectors;
+        stretchPixel(stretchVectors, horizontal, vertical);
+
+        for (const Vector& vector : m_vectors) {
+            stretchVectors.push_back({ -(horizontal - 1) + (vector.x * horizontal), -(vertical - 1) - vector.y * vertical });
+            //loggerPtr->log(DEBUG) << " stretchVector [" << vector.x << ", " << vector.y << "] -> [" << stretchVectors.back().x << ", " << stretchVectors.back().y << "]";
+            stretchPixel(stretchVectors, horizontal, vertical);
+        }
+
+        return VectorShape(std::move(stretchVectors), color(), firstPixel());
+    }
+
+private:
+    static void stretchPixel(std::vector<Vector>& stretchVectors, int horizontal, int vertical)
+    {
+        bool onlyHorizontal = (vertical == 1);
+        for (int i = 0; i < vertical || onlyHorizontal; ++i) {
+            onlyHorizontal = false;
+            for (int j = 1; j < horizontal; ++j) {
+                stretchVectors.push_back({ 1, 0 });
+            }
+            if (i == vertical - 1)
+                break;
+            if (horizontal > 1) {
+                stretchVectors.push_back({ -(horizontal - 1), 1 });
+            } else {
+                stretchVectors.push_back({ 0, 1 });
+            }
+        }
+    }
+
+public:
     VectorShape mirror(const Vector firsPixelDistance, RotationDir axisDir) const
     {
         std::vector<Vector> mirrorShape;
@@ -253,11 +290,22 @@ public:
         return m_color;
     }
 
+    const std::vector<Vector>& vectors() const
+    {
+        return m_vectors;
+    }
+
     const Pixel& firstPixel() const
     {
         return m_firstPixel;
     }
 
+    void firstPixel(const Pixel& pixel)
+    {
+        m_firstPixel = pixel;
+    }
+
+private:
     cells::Color m_color;
     std::vector<Vector> m_vectors;
     Pixel m_firstPixel;
@@ -640,12 +688,12 @@ public:
     void renderVectorShape(int x, int y, const VectorShape& vectorShape)
     {
         setColor(x, y, cellColors[2]);
-//        loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
-        for (const Vector& vector : vectorShape.m_vectors) {
+        //loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
+        for (const Vector& vector : vectorShape.vectors()) {
             x += vector.x;
             y += vector.y;
-            setColor(x, y, vectorShape.m_color);
-//            loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
+            setColor(x, y, vectorShape.color());
+            //loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
         }
     }
 
@@ -864,12 +912,18 @@ void Solver::solveOne(const cells::Sensor& sensor)
     }
     logger.log(DEBUG) << "Patch:";
     loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
-    DrawingBoard drawingBoard(15, 15);
+    DrawingBoard drawingBoard(25, 25);
     VectorShape vectorShape = patch->vectorize();
-    vectorShape.m_firstPixel.x = 3;
-    vectorShape.m_firstPixel.y = 3;
+    vectorShape.firstPixel({ 3, 2 });
+
     for (int i = 0; i < 8; ++i) {
         drawingBoard.clear();
+        drawingBoard.renderVectorShape(2, 1, vectorShape.stretch(1, 1));
+        drawingBoard.renderVectorShape(2, 10, vectorShape.stretch(1, 2));
+        drawingBoard.renderVectorShape(10, 3, vectorShape.stretch(2, 1));
+        drawingBoard.renderVectorShape(10, 9, vectorShape.stretch(2, 2));
+        drawingBoard.renderVectorShape(10, 18, vectorShape.stretch(3, 3));
+#if 0
         VectorShape rotatedShape = vectorShape.rotate((RotationDir)i);
         drawingBoard.renderVectorShape(rotatedShape);
         drawingBoard.renderVectorShape(rotatedShape.mirror({ 3, 0 }, RotationDir::Degree_0));
@@ -878,8 +932,10 @@ void Solver::solveOne(const cells::Sensor& sensor)
         drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_45);
         drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_90);
         drawingBoard.renderLine(6, 6, color(arc::Colors::grey), RotationDir::Degree_135);
+#endif
         logger.log(DEBUG) << "DrawingBoard:";
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        break;
     }
 
     logger.log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
