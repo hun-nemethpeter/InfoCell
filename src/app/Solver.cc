@@ -43,18 +43,46 @@ Solver::Solver(Logger& logger, const ArcTask& arcTask) :
     solve();
 }
 
+Pixel Pixel::operator+(const Vector& rhs) const
+{
+    return Pixel(x + rhs.x, y + rhs.y);
+}
+
+Pixel& Pixel::operator+=(const Vector& rhs)
+{
+    x += rhs.x;
+    y += rhs.y;
+
+    return *this;
+}
+
+Pixel& Pixel::operator-=(const Vector& rhs)
+{
+    x -= rhs.x;
+    y -= rhs.y;
+
+    return *this;
+}
+
+std::ostream& operator<<(std::ostream& os, const Pixel& pixel)
+{
+    os << "P[" << pixel.x << "," << pixel.y << "]";
+    return os;
+}
+
+
 Vector& Vector::operator+=(const Vector& rhs)
 {
-    this->x += rhs.x;
-    this->y += rhs.y;
+    x += rhs.x;
+    y += rhs.y;
 
     return *this;
 }
 
 Vector& Vector::operator-=(const Vector& rhs)
 {
-    this->x -= rhs.x;
-    this->y -= rhs.y;
+    x -= rhs.x;
+    y -= rhs.y;
 
     return *this;
 }
@@ -115,6 +143,12 @@ Vector Vector::rotate(RotationDir rotationDir) const
     return ret;
 }
 
+std::ostream& operator<<(std::ostream& os, const Vector& vector)
+{
+    os << "V[" << vector.x << "," << vector.y << "]";
+    return os;
+}
+
 void BoundingBox::fromPixels(const std::vector<Pixel>& pixels)
 {
     leftX = pixels.front().x;
@@ -138,10 +172,11 @@ void BoundingBox::fromVectors(const Pixel& firstPixel, const std::vector<Vector>
 
     leftX = firstPixel.x;
     topY  = firstPixel.y;
+    update(actualPixel);
+
     for (const Vector& vector : vectors) {
+        actualPixel += vector;
         update(actualPixel);
-        actualPixel.x = vector.x;
-        actualPixel.y = vector.y;
     }
     firstPixelVector(firstPixel);
     lastPixelVector(actualPixel);
@@ -238,8 +273,34 @@ void VectorShape::stretchPixel(std::vector<Vector>& stretchVectors, int horizont
     }
 }
 
+Pixel VectorShape::calculatePixel(DistanceType distanceType, const Vector distance) const
+{
+    if (distanceType == DistanceType::FromFirstPixel) {
+        return m_firstPixel + distance;
+    } else {
+        BoundingBox boundingBox(*this);
+        switch (distanceType) {
+        case DistanceType::FromTopLeft:
+            return boundingBox.topLeftPixel() + distance;
+        case DistanceType::FromTopRight:
+            return boundingBox.topRightPixel() + distance;
+        case DistanceType::FromBottomLeft:
+            return boundingBox.bottomLeftPixel() + distance;
+        case DistanceType::FromBottomRight:
+            return boundingBox.bottomRightPixel() + distance;
+        case DistanceType::FromLastPixel:
+            return m_firstPixel + boundingBox.toLastPixel() + distance;
+        case DistanceType::FromFirstPixel:
+            break;
+        }
+    }
+
+    return m_firstPixel;
+}
+
 VectorShape VectorShape::mirror(DistanceType distanceType, const Vector distance, RotationDir axisDir) const
 {
+    Pixel mirrorPixel = calculatePixel(distanceType, distance);
     std::vector<Vector> mirrorShape;
 
     switch (axisDir) {
@@ -247,9 +308,10 @@ VectorShape VectorShape::mirror(DistanceType distanceType, const Vector distance
     case RotationDir::Degree_180:
         // y coordinate will be the same
         {
-            Pixel firstPixel(m_firstPixel.x + distance.x * 2, m_firstPixel.y);
+            const Vector vectorToMirrorPoint(mirrorPixel.x - m_firstPixel.x, 0);
+            Pixel firstPixel = m_firstPixel + vectorToMirrorPoint + vectorToMirrorPoint;
             for (const Vector& vector : m_vectors) {
-                mirrorShape.push_back({ -vector.x, vector.y });
+                mirrorShape.push_back(vector.mirrorY());
             }
 
             return VectorShape(std::move(mirrorShape), color(), firstPixel);
@@ -257,18 +319,36 @@ VectorShape VectorShape::mirror(DistanceType distanceType, const Vector distance
         break;
 
     case RotationDir::Degree_45:
-    case RotationDir::Degree_135:
-    case RotationDir::Degree_225:
-    case RotationDir::Degree_315: {
-        Vector distanceVector = distance;
-        if (axisDir == RotationDir::Degree_45 || axisDir == RotationDir::Degree_225) {
-            distanceVector -= distance.rotate(RotationDir::Degree_90);
-        } else {
-            distanceVector += distance.rotate(RotationDir::Degree_90);
-        }
-        Pixel firstPixel(m_firstPixel.x + distanceVector.x, m_firstPixel.y + distanceVector.y);
+    case RotationDir::Degree_225: {
+        // the mirror pixel for the first pixel
+        mirrorPixel = Pixel(mirrorPixel.x + (mirrorPixel.y - m_firstPixel.y), m_firstPixel.y);
+
+        // vector to the mirror point
+        const Vector vectorToMirrorPoint(mirrorPixel.x - m_firstPixel.x, 0);
+        const RotationDir rotationDir = RotationDir::Degree_90;
+
+        Pixel firstPixel = m_firstPixel + vectorToMirrorPoint + vectorToMirrorPoint.rotate(rotationDir);
+
         for (const Vector& vector : m_vectors) {
-            mirrorShape.push_back({ -vector.x, -vector.y });
+            mirrorShape.push_back(vector.mirrorY().rotate(rotationDir));
+        }
+
+        return VectorShape(std::move(mirrorShape), color(), firstPixel);
+    } break;
+
+    case RotationDir::Degree_135:
+    case RotationDir::Degree_315: {
+        // the mirror pixel for the first pixel
+        mirrorPixel = Pixel(mirrorPixel.x - (mirrorPixel.y - m_firstPixel.y), m_firstPixel.y);
+
+        // vector to the mirror point
+        const Vector vectorToMirrorPoint(mirrorPixel.x - m_firstPixel.x, 0);
+        const RotationDir rotationDir = RotationDir::Degree_270;
+
+        Pixel firstPixel = m_firstPixel + vectorToMirrorPoint + vectorToMirrorPoint.rotate(rotationDir);
+
+        for (const Vector& vector : m_vectors) {
+            mirrorShape.push_back(vector.mirrorY().rotate(rotationDir));
         }
 
         return VectorShape(std::move(mirrorShape), color(), firstPixel);
@@ -278,9 +358,10 @@ VectorShape VectorShape::mirror(DistanceType distanceType, const Vector distance
     case RotationDir::Degree_270:
         // x coordinate will be the same
         {
-            Pixel firstPixel(m_firstPixel.x, m_firstPixel.y + distance.y * 2);
+            const Vector vectorToMirrorPoint(0, mirrorPixel.y - m_firstPixel.y);
+            Pixel firstPixel = m_firstPixel + vectorToMirrorPoint + vectorToMirrorPoint;
             for (const Vector& vector : m_vectors) {
-                mirrorShape.push_back({ vector.x, -vector.y });
+                mirrorShape.push_back(vector.mirrorX());
             }
 
             return VectorShape(std::move(mirrorShape), color(), firstPixel);
@@ -471,53 +552,24 @@ void DrawingBoard::renderLine(int x, int y, const cells::Color& color, RotationD
     // 🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯🡯
     case RotationDir::Degree_45:
     case RotationDir::Degree_225: {
-        int newX      = 0;
-        int newY      = 0;
-        int iterCount = 0;
-
-        // line equation is y = x + diffXY
-        // line equation is x = y - diffXY
-        int diffXY = x - y;
-
-        x = -diffXY; // solved X coordinate when y = 0
-        y = diffXY;  // solved y coordinate when x = 0
-
-        // one of the coordinate will be negative, we check here which coordinate is positive
-        if (x > y) {
-            // x must be a positive integer so y is a negative integer
-            newX = x - y;
-            newY = 0;
-
-            // solving y for last x coordinate of the board
-            int lastY      = lastXIndex() + diffXY;
-            int iterCountY = lastY - newY;
-
-            // solving x for lastY
-            int lastX      = lastY - diffXY;
-            int iterCountX = lastX - newX;
-
-            iterCount = iterCountX < iterCountY ? iterCountX : iterCountY;
-        } else if (y > x) {
-            // y must be a positive integer so x is a negative integer
-            newX = 0;
-            newY = y - x;
-
-            // solving x for last y coordinate of the board
-            int lastX      = lastYIndex() - diffXY;
-            int iterCountX = lastX - newX;
-
-            // solving y for lastX
-            int lastY      = lastX + diffXY;
-            int iterCountY = lastY - newY;
-
-            iterCount = iterCountX < iterCountY ? iterCountX : iterCountY;
-        } else if (x == y) {
-            iterCount = lastXIndex();
-        }
-
-        for (int i = 0; i <= iterCount; ++i) {
+        int newX = x;
+        int newY = y;
+        for (int i = x; i < m_width; ++i) {
+            if (!isInRange(newX, newY)) {
+                continue;
+            }
             m_colors[currentIndex(newX, newY)] = color;
             newX += 1;
+            newY -= 1;
+        }
+        newX = x - 1;
+        newY = y + 1;
+        for (int i = x - 1; i >= 0; --i) {
+            if (!isInRange(newX, newY)) {
+                continue;
+            }
+            m_colors[currentIndex(newX, newY)] = color;
+            newX -= 1;
             newY += 1;
         }
     } break;
@@ -543,17 +595,17 @@ void DrawingBoard::renderLine(int x, int y, const cells::Color& color, RotationD
             }
             m_colors[currentIndex(newX, newY)] = color;
             newX += 1;
-            newY -= 1;
+            newY += 1;
         }
         newX = x - 1;
-        newY = y + 1;
+        newY = y - 1;
         for (int i = x - 1; i >= 0; --i) {
             if (!isInRange(newX, newY)) {
                 continue;
             }
             m_colors[currentIndex(newX, newY)] = color;
             newX -= 1;
-            newY += 1;
+            newY -= 1;
         }
     } break;
     }

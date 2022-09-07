@@ -24,6 +24,8 @@ extern const std::array<cells::Color, 10> cellColors;
 extern const std::map<const cells::Color, int> cellColorsToColorId;
 const cells::Color& color(arc::Colors c);
 
+class Vector;
+
 // ============================================================================
 class Pixel
 {
@@ -37,6 +39,10 @@ public:
     {
     }
 
+    Pixel operator+(const Vector& rhs) const;
+    Pixel& operator+=(const Vector& rhs);
+    Pixel& operator-=(const Vector& rhs);
+
     bool operator<(const Pixel& rhs) const
     {
         return std::tie(x, y) < std::tie(rhs.x, rhs.y);
@@ -45,6 +51,8 @@ public:
     int x;
     int y;
 };
+
+std::ostream& operator<<(std::ostream& os, const Pixel& pixel);
 
 // ============================================================================
 class Vector
@@ -60,6 +68,11 @@ public:
         return Vector({ x + rhs.x, y + rhs.y });
     }
 
+    Vector operator-() const
+    {
+        return { -x, -y };
+    }
+
     Vector operator-(const Vector& rhs) const
     {
         return Vector({ x - rhs.x, y - rhs.y });
@@ -70,9 +83,21 @@ public:
 
     Vector rotate(RotationDir rotationDir) const;
 
+    Vector mirrorY() const
+    {
+        return { -x, y };
+    }
+
+    Vector mirrorX() const
+    {
+        return { x, -y };
+    }
+
     int x = 0;
     int y = 0;
 };
+
+std::ostream& operator<<(std::ostream& os, const Vector& vector);
 
 // ============================================================================
 class Box
@@ -115,6 +140,7 @@ public:
 };
 
 class VectorShape;
+// ============================================================================
 class BoundingBox : public Box
 {
 public:
@@ -203,6 +229,8 @@ public:
     {
         m_firstPixel = pixel;
     }
+
+    Pixel calculatePixel(DistanceType distanceType, const Vector distance) const;
 
 private:
     static void stretchPixel(std::vector<Vector>& stretchVectors, int horizontal, int vertical);
