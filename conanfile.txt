@@ -2,6 +2,7 @@
 nlohmann_json/3.10.2
 utfcpp/3.2.1
 ftxui/3.0.0
+boost/1.80.0
 
 [generators]
 cmake

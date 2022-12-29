@@ -4,7 +4,6 @@
       "name": "x64-Debug (default)",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "cmakeExecutable": "c:\\Program Files\\CMake\\bin\\cmake.exe",
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\build\\${name}",
       "installRoot": "${projectDir}\\install\\${name}",

@@ -680,7 +680,7 @@ std::string DrawingBoard::toString() const
 // - creating a patch candidate list for every pixel
 // - on every pixel try to grow the patch, by adding the patch pointer to the candidate list
 // - if a pixel has no candidate patch then create one
-// - if a pixel has a candidate then grow that grouo
+// - if a pixel has a candidate then grow that group
 // - if a pixel has multiple candidates then merge the patches and the winner is who started earlier (has lovest pixel index)
 // - this is too complite but works
 //
@@ -911,7 +911,7 @@ Az alakzat
  A transzformáció bármilyen egy vagy többlépéses művelet lehet.
  A transzformációt műveletek írják le.
 
- A gondolkodási keret az, hogy van a forrás káp és a cél kép.
+ A gondolkodási keret az, hogy van a forrás kép és a cél kép.
  A képen vannak alakzatok, amik megváltoznak valamilyen módon a cél képen.
  Az alakzatok valamilyen háttér előtt vannak.
  Az alakzatok kitakarják a hátteret.
@@ -975,6 +975,35 @@ g. 4 tengelyen tükrözött minta hiányzó részeinek megtalálása
    cbb..bbc    cbbbbbbc
    bb....ab    bbadddab
    abcddcba    abcddcba
+
+Nagyjából a következő feldolgozási sorhoz állt össze a fejemben:
+
+Van egy bemenő és kimenő pixelhalmazunk, ahol a pixelek mátrix szerűen kapcsolódnak egymáshoz. A mátrix szerű kapcsolódás azt jelenti, hogy minden pixelnek van le/fel/jobbra/balra tulajdonsága.
+A feladatunk az, hogy megtaláljuk azt a transzformációs sort, ami eljuttat a bementből a kimenetbe.
+
+Az első transzformációs lépés, hogy a bemenő pixeleket szín alapján csoportosítsuk. Egy ilyen színcsoport neve folt / alakzat (patch) lesz.
+Ez azért jó, mert egy ilyen alakzat már lehet transtformálni, pl. forgatni, mozgatni, nagyítani, kicsinyíteni, átszinezni.
+Ez már le is van kódolva,
+
+    const cells::Sensor& sensor = input;
+    PatchBoard patchBoard(sensor);
+    patchBoard.process();
+    for (auto patch : patchBoard.patches()) ...
+
+Felmerül a kérdés, hogy ezt az algoritmust biztos nekünk kell leprogramozni? Mi lenne, ha ezt az algoritmust egy általánosabb algoritmus készítené, hisz valamelyik fázisában a programnak, valahol kell ilyet csinálnia.
+
+Szóval a feldolgozási sor a következő: Sensor (ami pixelek halmaza) amiből készítünk PatchBoard-ot (ami Patch-ek halmaza)
+
+Valahogy az algoritmusnak rá kellene jönnie, hogy azonos színű összekapcsolódott pixelhalmazokat hozunk létre.
+
+   ..aaa.a.    ..     .   aaa           a
+   ..a...a.    ..     .   a             a
+   ..bbbbb. => ..     . +     + bbbbb +
+   ........    ........
+   ........    ........
+
+
+
 */
 
 } // namespace synth
