@@ -9,6 +9,12 @@ namespace synth {
 namespace newcell {
 
 // ============================================================================
+
+SlotRef::SlotRef(const std::string& name, Type& type, CellI& role) :
+    m_name(name), m_type(type), m_role(role)
+{
+}
+
 std::unique_ptr<Type> Slot::s_type;
 Slot* Slot::s_slotSlotType = nullptr;
 Slot* Slot::s_slotSlotName = nullptr;
@@ -19,12 +25,21 @@ Slot::Slot(const std::string& name, Type& type, CellI& role) :
 {
 }
 
-bool Slot::hasRole(CellI& role)
+bool Slot::has(CellI& role)
 {
-    if (&role == &cells::type || &role == &cells::slotType || &role == &cells::slotName) {
+    if (&role == &cells::type || &role == &cells::slotType || &role == &cells::slotName || &role == &cells::slotRole) {
         return true;
     }
     return false;
+}
+
+void Slot::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+void Slot::operator()()
+{
+    // Do nothing, this is a data cell
 }
 
 CellI& Slot::operator[](CellI& role)
@@ -114,19 +129,35 @@ std::unique_ptr<Type> Type::s_anyType;
 Type::Type(const std::string& name) :
     m_name(name)
 {
-    if (!s_slotType) {
-        return;
-    }
-    referenceSlot("type", *s_slotType);
+    registerTypeSlot();
 }
 
-bool Type::hasRole(CellI& role)
+Type::Type(const std::string& name, std::initializer_list<SlotRef> slots) :
+    m_name(name)
+{
+    registerTypeSlot();
+    for (const SlotRef& slotRef : slots) {
+        createSlot(slotRef.m_name, slotRef.m_type, slotRef.m_role);
+    }
+}
+
+bool Type::has(CellI& role)
 {
     if (&role == &cells::type || &role == &cells::slots) {
         return true;
     }
 
     return false;
+}
+
+void Type::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void Type::operator()()
+{
+    // Do nothing, this is a data cell
 }
 
 CellI& Type::operator[](CellI& role)
@@ -209,7 +240,17 @@ void Type::referenceSlot(const std::string& name, Slot& slot)
     m_roles[&slot.slotRole()] = &slot;
 }
 
-bool Type::hasRole(const std::string& name) const
+bool Type::has(const std::string& name) const
+{
+    return m_slotRefs.find(name) != m_slotRefs.end();
+}
+
+bool Type::hasSlot(CellI& role)
+{
+    return m_roles.find(&role) != m_roles.end();
+}
+
+bool Type::hasSlot(const std::string& name)
 {
     return m_slotRefs.find(name) != m_slotRefs.end();
 }
@@ -257,6 +298,14 @@ Type& Type::anyType()
     return *s_anyType;
 }
 
+void Type::registerTypeSlot()
+{
+    if (!s_slotType) {
+        return;
+    }
+    referenceSlot("type", *s_slotType);
+}
+
 // ============================================================================
 std::unique_ptr<Object> Object::s_emptyObject;
 
@@ -271,12 +320,31 @@ Object::Object(const std::string& name, Type& type) :
     m_roles[&cells::type] = &type;
 }
 
-bool Object::hasRole(CellI& role)
+bool Object::has(CellI& role)
 {
     if (&role == &cells::type)
         return true;
 
     return m_roles.find(&role) != m_roles.end();
+}
+
+void Object::set(CellI& role, CellI& value)
+{
+    if (&role == &cells::type)
+    {
+        throw "Type change not allowed.";
+    }
+
+    if (type().hasSlot(role)) {
+        m_roles[&role] = &value;
+    } else {
+        throw "The type doesn't contains this role.";
+    }
+}
+
+void Object::operator()()
+{
+    // Do nothing, this is a data cell
 }
 
 CellI& Object::operator[](CellI& role)
@@ -308,11 +376,6 @@ std::map<CellI*, CellI*>& Object::roles()
     return m_roles;
 }
 
-void Object::set(CellI& role, CellI& value)
-{
-    m_roles[&role] = &value;
-}
-
 void Object::staticInit()
 {
     static Type emptyClass("Empty");
@@ -333,13 +396,23 @@ ListItem::ListItem(Type& t) :
     m_slotValue = &t.getSlot("value");
 }
 
-bool ListItem::hasRole(CellI& role)
+bool ListItem::has(CellI& role)
 {
     if (&role == &cells::type || &role == &cells::previous || &role == &cells::next || &role == &cells::value) {
         return true;
     }
 
     return false;
+}
+
+void ListItem::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void ListItem::operator()()
+{
+    // Do nothing, this is a data cell
 }
 
 CellI& ListItem::operator[](CellI& role)
@@ -494,12 +567,22 @@ List::List(std::map<std::string, T>& values) :
     }
 }
 
-bool List::hasRole(CellI& role)
+bool List::has(CellI& role)
 {
     if (&role == &cells::type || &role == &cells::first || &role == &cells::last || &role == &cells::size) {
         return true;
     }
     return false;
+}
+
+void List::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void List::operator()()
+{
+    // Do nothing, this is a data cell
 }
 
 CellI& List::operator[](CellI& role)
@@ -588,12 +671,22 @@ Number::Number(int value) :
 {
 }
 
-bool Number::hasRole(CellI& role)
+bool Number::has(CellI& role)
 {
     if (&role == &cells::type || &role == &cells::value || &role == &cells::sign) {
         return true;
     }
     return false;
+}
+
+void Number::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void Number::operator()()
+{
+    // Do nothing, this is a data cell
 }
 
 CellI& Number::operator[](CellI& role)
@@ -696,9 +789,10 @@ std::map<char32_t, Object> Chars::s_characters;
 void Chars::staticInit()
 {
     s_type.reset(new Type("UnicodeCharacter"));
-    createUnicodeCells(0x020, 0x07e);
-    createUnicodeCells(0x080, 0x0ff);
-    createUnicodeCells(0x100, 0x17f);
+    // These are enough for me currently
+    registerUnicodeBlock(0x020, 0x07e); // Basic Latin - without the DEL (0x7f) control character
+    registerUnicodeBlock(0x080, 0x0ff); // Latin-1 Supplement
+    registerUnicodeBlock(0x100, 0x17f); // Latin Extended-A
 }
 
 Object& Chars::get(char32_t utf32Char)
@@ -716,7 +810,7 @@ Type& Chars::type()
     return *s_type;
 }
 
-void Chars::createUnicodeCells(char32_t from, char32_t to)
+void Chars::registerUnicodeBlock(char32_t from, char32_t to)
 {
     for (char32_t unicodeValue = from; unicodeValue <= to; ++unicodeValue) {
         std::string characterName = std::format("Unicode_{:#04x}", (int)unicodeValue);
@@ -735,12 +829,22 @@ String::String(const std::string& str) :
 {
 }
 
-bool String::hasRole(CellI& role)
+bool String::has(CellI& role)
 {
     if (&role == &cells::type || &role == &cells::value) {
         return true;
     }
     return false;
+}
+
+void String::set(CellI& role, CellI& value)
+{
+    throw "Not supported";
+}
+
+void String::operator()()
+{
+    // Do nothing, this is a data cell
 }
 
 CellI& String::operator[](CellI& role)
@@ -877,7 +981,7 @@ std::string CellValuePrinter::print(Object& dataCell)
         } else {
             ss << ", ";
         }
-        ss << "." << slotI.first << ": " << slotI.second->printAs(*this);
+        ss << "." << slotI.second->printAs(*this);
     }
     ss << " }";
 
@@ -993,7 +1097,7 @@ std::string CellStructPrinter::printImpl(CellI& cell)
         const std::string& slotSlotName = slotI.first;
         Slot& slot                      = *slotI.second;
 
-        if (!cell.hasRole(slot.slotRole())) {
+        if (!cell.has(slot.slotRole())) {
             continue;
         }
         CellValuePrinter valuePrinter;

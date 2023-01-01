@@ -10,13 +10,14 @@ int main(int argc, char* argv[])
     CellValuePrinter valuePrinter;
     CellStructPrinter structPrinter;
 
-    Type colorClass("Color");
-    Object colorRed(colorClass);
-    Object colorGreen(colorClass);
-    Object colorBlue(colorClass);
-    colorClass.createSlot("red", Number::t(), colorRed);
-    colorClass.createSlot("green", Number::t(), colorGreen);
-    colorClass.createSlot("blue", Number::t(), colorBlue);
+    Object colorRed(Type::anyType());
+    Object colorGreen(Type::anyType());
+    Object colorBlue(Type::anyType());
+
+    Type colorClass("Color",
+                    { { "red", Number::t(), colorRed },
+                      { "green", Number::t(), colorGreen },
+                      { "blue", Number::t(), colorBlue } });
 
     Object redColor("redColor", colorClass);
     redColor.set(colorRed, Numbers::get(255));

@@ -15,7 +15,9 @@ class Printer;
 class CellI
 {
 public:
-    virtual bool hasRole(CellI& role)             = 0;
+    virtual bool has(CellI& role)                 = 0;
+    virtual void set(CellI& role, CellI& value)   = 0;
+    virtual void operator()()                     = 0;
     virtual CellI& operator[](CellI& role)        = 0;
     virtual Type& type()                          = 0;
     virtual std::string printAs(Printer& printer) = 0;
@@ -23,12 +25,24 @@ public:
 };
 
 class String;
+class SlotRef
+{
+public:
+    SlotRef(const std::string& name, Type& type, CellI& role);
+
+    const std::string& m_name;
+    Type& m_type;
+    CellI& m_role;
+};
+
 class Slot : public CellI
 {
 public:
     Slot(const std::string& name, Type& type, CellI& role);
 
-    bool hasRole(CellI& role) override;
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
@@ -60,8 +74,11 @@ class Type : public CellI
 {
 public:
     explicit Type(const std::string& name);
+    Type(const std::string& name, std::initializer_list<SlotRef> slots);
 
-    bool hasRole(CellI& role) override;
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
@@ -72,8 +89,10 @@ public:
     Slot& createSlot(const std::string& name, Type& classCell, CellI& role);
     void referenceSlot(const std::string& name, Slot& slotCell);
 
-    bool hasRole(const std::string& name) const;
+    bool has(const std::string& name) const;
 
+    bool hasSlot(CellI& role);
+    bool hasSlot(const std::string& name);
     Slot& getSlot(CellI& role);
     Slot& getSlot(const std::string& name);
 
@@ -84,6 +103,8 @@ public:
     static Type& anyType();
 
 protected:
+    void registerTypeSlot();
+
     static std::unique_ptr<Type> s_type;
     static Slot* s_slotType;
     static Slot* s_slotSlots;
@@ -101,14 +122,15 @@ public:
     Object(Type& classCell);
     Object(const std::string& name, Type& classCell);
 
-    bool hasRole(CellI& role) override;
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
     std::string name() const override;
 
     std::map<CellI*, CellI*>& roles();
-    void set(CellI& role, CellI& value);
 
     static void staticInit();
     static Object& emptyObject();
@@ -125,7 +147,9 @@ class ListItem : public CellI
 public:
     ListItem(Type& type);
 
-    bool hasRole(CellI& role) override;
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
@@ -164,7 +188,9 @@ public:
     template <typename T>
     List(std::map<std::string, T>& values);
 
-    bool hasRole(CellI& role) override;
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
@@ -198,7 +224,9 @@ class Number : public CellI
 public:
     Number(int value);
 
-    bool hasRole(CellI& role) override;
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
@@ -240,7 +268,7 @@ public:
     static Type& type();
 
 protected:
-    static void createUnicodeCells(char32_t from, char32_t to);
+    static void registerUnicodeBlock(char32_t from, char32_t to);
     static std::unique_ptr<Type> s_type;
     static std::map<char32_t, Object> s_characters;
 };
@@ -250,7 +278,9 @@ class String : public CellI
 public:
     String(const std::string& str);
 
-    bool hasRole(CellI& role) override;
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
     std::string printAs(Printer& printer) override;
