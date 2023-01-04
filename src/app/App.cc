@@ -12,7 +12,6 @@
 
 #include "Solver.h"
 #include "tests/UnitTester.h"
-#include "util/Converter.h"
 
 namespace fs = std::filesystem;
 using namespace nlohmann;
@@ -310,7 +309,7 @@ void App::run()
 
 void App::solve()
 {
-    ArcTask arcTask = ConvertJsonToCell(m_arcJsonTask);
+    ArcTask arcTask(m_arcJsonTask);
     Solver solver(solverLogger, arcTask);
 }
 

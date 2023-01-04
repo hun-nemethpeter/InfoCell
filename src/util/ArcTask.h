@@ -20,8 +20,7 @@ public:
 class ArcTask
 {
 public:
-    ArcTask(const std::string& input, const std::string& output);
-    void addDemonstration(const std::string& input, const std::string& output);
+    ArcTask(const nlohmann::json& jsonArcFile);
 
     std::vector<ArcDemonstration> m_demonstrations;
     input::Screen m_inputScreen;
