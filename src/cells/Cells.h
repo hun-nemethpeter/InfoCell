@@ -331,7 +331,6 @@ public:
     std::string printAs(Printer& printer) override;
     std::string name() const override;
 
-    static void staticInit();
     static Type& t();
 
     const input::Color& color() const;
@@ -354,7 +353,6 @@ public:
     std::string printAs(Printer& printer) override;
     std::string name() const override;
 
-    static void staticInit();
     static Type& t();
 
     const input::Color& color() const;
@@ -367,9 +365,7 @@ public:
     Number& m_y;
 
 private:
-    static std::unique_ptr<Type> s_type;
     Color m_color;
-
     const input::Color& m_inputColor;
 };
 
@@ -387,7 +383,6 @@ public:
     std::string printAs(Printer& printer) override;
     std::string name() const override;
 
-    static void staticInit();
     static Type& t();
 
     Pixel& getPixel(int x, int y);
@@ -403,8 +398,6 @@ public:
     int height() const;
 
 protected:
-    static std::unique_ptr<Type> s_type;
-
     std::string m_name;
     int m_width;
     int m_height;
@@ -420,6 +413,7 @@ protected:
 namespace type
 {
 extern Type Color;
+extern Type Pixel;
 extern Type Sensor;
 };
 

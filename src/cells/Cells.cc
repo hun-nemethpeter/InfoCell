@@ -992,8 +992,6 @@ const input::Color& Color::color() const
 }
 
 // ============================================================================
-std::unique_ptr<Type> Pixel::s_type;
-
 Pixel::Pixel(int x, int y, const input::Color& inputColor) :
     m_x(Numbers::get(x)),
     m_y(Numbers::get(y)),
@@ -1042,7 +1040,7 @@ void Pixel::operator()()
 CellI& Pixel::operator[](CellI& role)
 {
     if (&role == &data::type) {
-        return *s_type;
+        return t();
     }
     if (&role == &data::directions::up && m_up) {
         return *m_up;
@@ -1071,7 +1069,7 @@ CellI& Pixel::operator[](CellI& role)
 
 Type& Pixel::type()
 {
-    return *s_type;
+    return t();
 }
 
 std::string Pixel::printAs(Printer& printer)
@@ -1086,20 +1084,9 @@ std::string Pixel::name() const
     return ss.str();
 }
 
-void Pixel::staticInit()
-{
-    s_type = std::unique_ptr<Type>(new Type("Pixel"));
-    &s_type->createSlot("up", *s_type, data::directions::up);
-    s_type->createSlot("down", *s_type, data::directions::down);
-    s_type->createSlot("left", *s_type, data::directions::left);
-    s_type->createSlot("right", *s_type, data::directions::right);
-    s_type->createSlot("x", Number::t(), data::coordinates::x);
-    s_type->createSlot("y", Number::t(), data::coordinates::y);
-}
-
 Type& Pixel::t()
 {
-    return *s_type;
+    return type::Pixel;
 }
 
 const input::Color& Pixel::color() const
@@ -1108,9 +1095,6 @@ const input::Color& Pixel::color() const
 }
 
 // ============================================================================
-
-std::unique_ptr<Type> Sensor::s_type;
-
 Sensor::Sensor(input::Picture& picture) :
     m_name(picture.name()), m_width(picture.width()), m_height(picture.height()), m_widthCell(Numbers::get(m_width)), m_heightCell(Numbers::get(m_height))
 {
@@ -1162,7 +1146,7 @@ void Sensor::operator()()
 CellI& Sensor::operator[](CellI& role)
 {
     if (&role == &data::type) {
-        return *s_type;
+        return t();
     }
     if (&role == &data::width) {
         return m_widthCell;
@@ -1182,7 +1166,7 @@ CellI& Sensor::operator[](CellI& role)
 
 Type& Sensor::type()
 {
-    return *s_type;
+    return t();
 }
 
 std::string Sensor::printAs(Printer& printer)
@@ -1195,18 +1179,9 @@ std::string Sensor::name() const
     return m_name;
 }
 
-void Sensor::staticInit()
-{
-    s_type = std::unique_ptr<Type>(new Type("Sensor",
-                                            { { "width", Number::t(), data::width },
-                                              { "height", Number::t(), data::height },
-                                              { "firstPixel", Pixel::t(), data::first },
-                                              { "lastPixel", Pixel::t(), data::last } }));
-}
-
 Type& Sensor::t()
 {
-    return *s_type;
+    return type::Sensor;
 }
 
 Pixel& Sensor::getPixel(int x, int y)
@@ -1301,6 +1276,7 @@ int Sensor::height() const
 
 namespace type {
 Type Color("Color");
+Type Pixel("Pixel");
 Type Sensor("Sensor");
 } // namespace type
 
@@ -1310,6 +1286,15 @@ static void staticInitClasses()
         { { "red", Number::t(), data::colors::red },
           { "green", Number::t(), data::colors::green },
           { "blue", Number::t(), data::colors::blue } });
+
+    type::Pixel.addSlots(
+        { { "up", hybrid::Pixel::t(), data::directions::up },
+          { "down", hybrid::Pixel::t(), data::directions::down },
+          { "left", hybrid::Pixel::t(), data::directions::left },
+          { "right", hybrid::Pixel::t(), data::directions::right },
+          { "x", Number::t(), data::coordinates::x },
+          { "y", Number::t(), data::coordinates::y } });
+
     type::Sensor.addSlots(
         { { "width", Number::t(), data::width },
           { "height", Number::t(), data::height },
@@ -1370,7 +1355,6 @@ void StaticInitializations()
     Slot::staticInitMembers();
 
     staticInitClasses();
-    hybrid::Pixel::staticInit();
 }
 
 // ============================================================================
