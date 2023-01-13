@@ -9,6 +9,7 @@
 #include "flexbox_config.h"
 #include "node.h"
 #include "screen.h"
+#include "text.h"
 
 namespace fsvgui {
 class Node;
@@ -35,7 +36,7 @@ Elements operator|(Elements, Decorator);
 Decorator operator|(Decorator, Decorator);
 
 // --- Widget ---
-Element text(std::string text);
+std::shared_ptr<Text> text(std::string text);
 
 Element border(Element);
 Element borderLight(Element);

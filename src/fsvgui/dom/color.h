@@ -10,7 +10,7 @@ namespace fsvgui {
 class Color
 {
 public:
-    Color(); // Transparent.
+    Color() = default;
     Color(uint8_t red, uint8_t green, uint8_t blue);
     static Color RGB(uint8_t red, uint8_t green, uint8_t blue);
     static Color HSV(uint8_t hue, uint8_t saturation, uint8_t value);
@@ -22,7 +22,6 @@ public:
 
     std::string Print(bool is_background_color) const;
 
-private:
     uint8_t red_   = 0;
     uint8_t green_ = 0;
     uint8_t blue_  = 0;

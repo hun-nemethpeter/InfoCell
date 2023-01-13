@@ -4,7 +4,9 @@
 #include <utility>   // for move
 #include <vector>    // for vector
 
+#include "text.h"
 #include "box.h"         // for Box
+#include "color.h"
 #include "elements.h"    // for Element, text, vtext
 #include "node.h"        // for Node
 #include "requirement.h" // for Requirement
@@ -16,13 +18,6 @@
 
 namespace fsvgui {
 
-class BoxSize
-{
-public:
-    int m_width;
-    int m_height;
-    int m_bearing;
-};
 
 BoxSize stringBB(const std::string& str, int fontSize, const std::string& fontName, const std::string& fontPath)
 {
@@ -97,40 +92,45 @@ void test()
 }
 #endif
 
-using fsvgui::Screen;
-
-class Text : public Node
+    Text::Text(std::string text) :
+    m_text(std::move(text))
 {
-public:
-    explicit Text(std::string text) :
-        m_text(std::move(text))
-    {
-        m_fontSize = 25;
-        m_fontName = "Times New Roman";
-    }
+    m_fontSize = 25;
+    m_fontName = "Times New Roman";
+}
 
-    void ComputeRequirement() override
-    {
-        m_stringBoxSize    = stringBB(m_text, m_fontSize, m_fontName, m_fontPaths[m_fontName]);
-        requirement_.min_x = m_stringBoxSize.m_width;
-        requirement_.min_y = m_stringBoxSize.m_height;
-    }
+void Text::ComputeRequirement()
+{
+    m_stringBoxSize    = stringBB(m_text, m_fontSize, m_fontName, m_fontPaths[m_fontName]);
+    requirement_.min_x = m_stringBoxSize.m_width;
+    requirement_.min_y = m_stringBoxSize.m_height;
+}
 
-    void Render(Screen& screen) override
-    {
-        const int x = box_.x_min;
-        const int y = box_.y_max - m_stringBoxSize.m_bearing;
-        screen.addSvg(x, y, std::format("<text x=\"{}\" y=\"{}\" font-size=\"{}\">{}</text>", x, y, m_fontSize, m_text));
-    }
+void Text::Render(Screen& screen)
+{
+    const int x = box_.x_min;
+    const int y = box_.y_max - m_stringBoxSize.m_bearing;
+    screen.addSvg(x, y, std::format("<text x=\"{}\" y=\"{}\" font-size=\"{}\" fill=\"rgb({}, {}, {})\">{}</text>", x, y, m_fontSize, m_fontColor.red_, m_fontColor.green_, m_fontColor.blue_, m_text));
+}
 
-    static std::map<std::string, const std::string> m_fontPaths;
+std::shared_ptr<Text> Text::fontSize(int size)
+{
+    m_fontSize = size;
+    return std::static_pointer_cast<Text>(shared_from_this());
+}
 
-private:
-    std::string m_text;
-    int m_fontSize;
-    std::string m_fontName;
-    BoxSize m_stringBoxSize;
-};
+std::shared_ptr<Text> Text::fontName(const std::string& name)
+{
+    m_fontName = name;
+    return std::static_pointer_cast<Text>(shared_from_this());
+}
+
+std::shared_ptr<Text> Text::fontColor(Color color)
+{
+    m_fontColor = color;
+    return std::static_pointer_cast<Text>(shared_from_this());
+}
+
 
 std::map<std::string, const std::string> Text::m_fontPaths = {
     { "Arial", "C:\\Windows\\Fonts\\arial.ttf" },
@@ -180,7 +180,7 @@ private:
 /// ```bash
 /// Hello world!
 /// ```
-Element text(std::string text)
+std::shared_ptr<Text> text(std::string text)
 {
     return std::make_shared<Text>(std::move(text));
 }

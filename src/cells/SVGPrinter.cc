@@ -50,7 +50,7 @@ std::string Printer::print(List& list)
     Elements listItems;
     int i = 0;
     for (const ListItem& item : list.items()) {
-        listItems.push_back(text(item.name()) | center | borderWidth(10));
+        listItems.push_back(text(item.name())->fontSize(22)->fontColor({ 255, 20, 30 }) | center | borderWidth(10));
     }
     FlexboxConfig flexConfig;
     flexConfig.direction       = FlexboxConfig::Direction::Row;

@@ -14,7 +14,7 @@ class Screen;
 using Element  = std::shared_ptr<Node>;
 using Elements = std::vector<Element>;
 
-class Node
+class Node : public std::enable_shared_from_this<Node>
 {
 public:
     Node();

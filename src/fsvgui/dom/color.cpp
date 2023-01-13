@@ -8,6 +8,21 @@
 
 namespace fsvgui {
 
+Color::Color(uint8_t red, uint8_t green, uint8_t blue) :
+    red_(red), green_(green), blue_(blue), alpha_(0)
+{
+}
+
+bool Color::operator==(const Color& rhs) const
+{
+    return red_ == rhs.red_ && green_ == rhs.green_ && blue_ == rhs.blue_ && alpha_ == rhs.alpha_;
+}
+
+bool Color::operator!=(const Color& rhs) const
+{
+    return !operator==(rhs);
+}
+
 class BgColor : public NodeDecorator
 {
 public:
