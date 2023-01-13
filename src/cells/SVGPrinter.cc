@@ -14,7 +14,7 @@ namespace svg {
 Printer::Printer(int width, int height) :
     m_screen(width, height)
 {
-    m_fontSize = 16;
+    m_fontSize = 14;
     m_fontName = "Times New Roman";
     m_fontPath = "C:\\Windows\\Fonts\\times.ttf";
 }
@@ -50,7 +50,7 @@ std::string Printer::print(List& list)
     Elements listItems;
     int i = 0;
     for (const ListItem& item : list.items()) {
-        listItems.push_back(text(std::to_string(i++)) | center | borderWidth(20));
+        listItems.push_back(text(item.name()) | center | borderWidth(10));
     }
     FlexboxConfig flexConfig;
     flexConfig.direction       = FlexboxConfig::Direction::Row;

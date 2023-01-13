@@ -21,21 +21,21 @@ class BoxSize
 public:
     int m_width;
     int m_height;
+    int m_bearing;
 };
 
-static BoxSize stringBB(const std::string& str, int fontSize, const std::string& fontName, const std::string& fontPath)
+BoxSize stringBB(const std::string& str, int fontSize, const std::string& fontName, const std::string& fontPath)
 {
-    // Freetype default is 72 DPI.
-    const int DISPLAY_DPI = 96;
     FT_Library library;
     FT_Face face;
     FT_Error error = FT_Init_FreeType(&library); /* initialize library */
 
     /* error handling omitted */
     error = FT_New_Face(library, fontPath.c_str(), 0, &face); /* create face object */
+    bool hasKerning = FT_HAS_KERNING(face);
 
     /* use 50pt at 100dpi */
-    error = FT_Set_Char_Size(face, fontSize * 64, fontSize * 64, DISPLAY_DPI, DISPLAY_DPI); /* set character size */
+    error = FT_Set_Char_Size(face, fontSize * 64, fontSize * 64, 0, 0); /* set character size */
 
     FT_Bool use_kerning    = FT_HAS_KERNING(face);
     FT_UInt previous_glyph = 0;
@@ -49,7 +49,10 @@ static BoxSize stringBB(const std::string& str, int fontSize, const std::string&
 
         if (use_kerning && previous_glyph && glyph_index) {
             FT_Vector delta;
-            FT_Get_Kerning(face, previous_glyph, glyph_index, FT_KERNING_DEFAULT, &delta);
+            FT_Error ft_error = FT_Get_Kerning(face, previous_glyph, glyph_index, FT_KERNING_DEFAULT, &delta);
+            if (delta.x != 0 || ft_error != 0) {
+                bool haKerning = true;
+            }
             pen_x += delta.x >> 6;
         }
 
@@ -74,7 +77,7 @@ static BoxSize stringBB(const std::string& str, int fontSize, const std::string&
 
     int maxY = maxUpperSize + maxBelowSize;
 
-    return { pen_x, maxY };
+    return { pen_x, maxY, maxBelowSize - 1 };
 }
 
 #if 0
@@ -102,22 +105,22 @@ public:
     explicit Text(std::string text) :
         m_text(std::move(text))
     {
-        m_fontSize = 16;
+        m_fontSize = 25;
         m_fontName = "Times New Roman";
     }
 
     void ComputeRequirement() override
     {
-        BoxSize boxSize = stringBB(m_text, m_fontSize, m_fontName, m_fontPaths[m_fontName]);
-        requirement_.min_x = boxSize.m_width;
-        requirement_.min_y = boxSize.m_height;
+        m_stringBoxSize    = stringBB(m_text, m_fontSize, m_fontName, m_fontPaths[m_fontName]);
+        requirement_.min_x = m_stringBoxSize.m_width;
+        requirement_.min_y = m_stringBoxSize.m_height;
     }
 
     void Render(Screen& screen) override
     {
         const int x = box_.x_min;
-        const int y = box_.y_max;
-        screen.addSvg(x, y, std::format("<text x=\"{}\" y=\"{}\">{}</text>", x, y, m_text));
+        const int y = box_.y_max - m_stringBoxSize.m_bearing;
+        screen.addSvg(x, y, std::format("<text x=\"{}\" y=\"{}\" font-size=\"{}\">{}</text>", x, y, m_fontSize, m_text));
     }
 
     static std::map<std::string, const std::string> m_fontPaths;
@@ -126,9 +129,13 @@ private:
     std::string m_text;
     int m_fontSize;
     std::string m_fontName;
+    BoxSize m_stringBoxSize;
 };
 
-std::map<std::string, const std::string> Text::m_fontPaths = { { "Times New Roman", "C:\\Windows\\Fonts\\times.ttf" } };
+std::map<std::string, const std::string> Text::m_fontPaths = {
+    { "Arial", "C:\\Windows\\Fonts\\arial.ttf" },
+    { "Times New Roman", "C:\\Windows\\Fonts\\times.ttf" }
+};
 
 class VText : public Node
 {
