@@ -68,9 +68,9 @@ Type& Slot::type()
     return *s_type;
 }
 
-std::string Slot::printAs(Printer& printer)
+void Slot::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string Slot::name() const
@@ -180,9 +180,9 @@ Type& Type::type()
     return *s_type;
 }
 
-std::string Type::printAs(Printer& printer)
+void Type::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string Type::name() const
@@ -367,9 +367,9 @@ Type& Object::type()
     return m_type;
 }
 
-std::string Object::printAs(Printer& printer)
+void Object::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string Object::name() const
@@ -453,9 +453,9 @@ Type& ListItem::type()
     return m_type;
 }
 
-std::string ListItem::printAs(Printer& printer)
+void ListItem::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string ListItem::name() const
@@ -630,9 +630,9 @@ Type& List::type()
     return m_listType;
 }
 
-std::string List::printAs(Printer& printer)
+void List::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string List::name() const
@@ -731,9 +731,9 @@ Type& Number::type()
     return *s_type;
 }
 
-std::string Number::printAs(Printer& printer)
+void Number::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string Number::name() const
@@ -883,9 +883,9 @@ Type& String::type()
     return *s_type;
 }
 
-std::string String::printAs(Printer& printer)
+void String::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string String::name() const
@@ -978,9 +978,9 @@ Type& Color::type()
     return t();
 }
 
-std::string Color::printAs(Printer& printer)
+void Color::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string Color::name() const
@@ -1081,15 +1081,15 @@ Type& Pixel::type()
     return t();
 }
 
-std::string Pixel::printAs(Printer& printer)
+void Pixel::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string Pixel::name() const
 {
     std::stringstream ss;
-    ss << "Pixel[" << m_x.value() << ", " << m_y.value() << "](" << m_inputColor.m_red << ", " << m_inputColor.m_green << ", " << m_inputColor.m_blue << ")";
+    ss << "Pixel[" << m_x.value() << ", " << m_y.value() << "](" << (int)m_inputColor.m_red << ", " << (int)m_inputColor.m_green << ", " << (int)m_inputColor.m_blue << ")";
     return ss.str();
 }
 
@@ -1176,9 +1176,9 @@ Type& Sensor::type()
     return t();
 }
 
-std::string Sensor::printAs(Printer& printer)
+void Sensor::accept(Visitor& visitor)
 {
-    return printer.print(*this);
+    visitor.visit(*this);
 }
 
 std::string Sensor::name() const
@@ -1269,7 +1269,7 @@ Pixel* Sensor::rightPixel(int x, int y)
     }
 }
 
-const std::vector<Pixel>& Sensor::pixels() const
+std::vector<Pixel>& Sensor::pixels()
 {
     return m_pixels;
 }
@@ -1353,9 +1353,9 @@ Type& Same::type()
     return t();
 }
 
-std::string Same::printAs(Printer& printer)
+void Same::accept(Visitor& visitor)
 {
-    return ""; // TODO
+//    visitor.visit(*this);
 }
 
 std::string Same::name() const
@@ -1446,9 +1446,9 @@ Type& Node::type()
     return t();
 }
 
-std::string Node::printAs(Printer& printer)
+void Node::accept(Visitor& visitor)
 {
-    return "Node"; // TODO
+//    visitor.visit(*this);
 }
 
 std::string Node::name() const
@@ -1656,197 +1656,164 @@ void StaticInitializations()
 }
 
 // ============================================================================
-std::string CellValuePrinter::print(Slot& slotCell)
+void CellValuePrinter::visit(Slot& slotCell)
 {
-    std::stringstream ss;
-    ss << slotCell.name() << ": " << slotCell.slotType().name();
-
-    return ss.str();
+    m_ss << slotCell.name() << ": " << slotCell.slotType().name();
 }
 
-std::string CellValuePrinter::print(Type& type)
+void CellValuePrinter::visit(Type& type)
 {
-    std::stringstream ss;
-    ss << "class " << type.name() << " { ";
+    m_ss << "class " << type.name() << " { ";
     bool isFirst = true;
     for (auto& slotI : type.slots()) {
         if (isFirst) {
             isFirst = false;
         } else {
-            ss << ", ";
+            m_ss << ", ";
         }
-        ss << slotI.first << ": " << slotI.second->slotType().name();
+        m_ss << slotI.first << ": " << slotI.second->slotType().name();
     }
-    ss << " }";
-
-    return ss.str();
+    m_ss << " }";
 }
 
-std::string CellValuePrinter::print(Object& dataCell)
+void CellValuePrinter::visit(Object& dataCell)
 {
-    std::stringstream ss;
     if (!dataCell.name().empty()) {
-        ss << dataCell.name() << ": ";
+        m_ss << dataCell.name() << ": ";
     }
-    ss << dataCell.type().name() << " { ";
+    m_ss << dataCell.type().name() << " { ";
     bool isFirst = true;
     for (auto& slotI : dataCell.type().slots()) {
         if (isFirst) {
             isFirst = false;
         } else {
-            ss << ", ";
+            m_ss << ", ";
         }
-        ss << "." << slotI.second->printAs(*this);
+        m_ss << ".";
+        slotI.second->accept(*this);
     }
-    ss << " }";
-
-    return ss.str();
+    m_ss << " }";
 }
 
-std::string CellValuePrinter::print(ListItem& listItemCell)
+void CellValuePrinter::visit(ListItem& listItemCell)
 {
-    std::stringstream ss;
-    ss << "[ ";
+    m_ss << "[ ";
     if (!listItemCell.value().name().empty()) {
-        ss << listItemCell.value().name() << " ";
+        m_ss << listItemCell.value().name() << " ";
     }
-    ss << "]";
+    m_ss << "]";
 
-    return ss.str();
 }
 
-std::string CellValuePrinter::print(List& List)
+void CellValuePrinter::visit(List& List)
 {
-    std::stringstream ss;
-    ss << "[";
+    m_ss << "[";
     bool isFirst = true;
     for (auto& item : List.items()) {
         if (isFirst) {
             isFirst = false;
         } else {
-            ss << ",";
+            m_ss << ",";
         }
-        ss << " " << item.value().name();
+        m_ss << " " << item.value().name();
     }
-    ss << " ]";
-
-    return ss.str();
+    m_ss << " ]";
 }
 
-std::string CellValuePrinter::print(Number& cell)
+void CellValuePrinter::visit(Number& cell)
 {
-    std::stringstream ss;
-    ss << "(Number) " << cell.value();
-
-    return ss.str();
+    m_ss << "(Number) " << cell.value();
 }
 
-std::string CellValuePrinter::print(String& cell)
+void CellValuePrinter::visit(String& cell)
 {
-    std::stringstream ss;
-    ss << "(String) \"" << cell.value() << "\"";
-
-    return ss.str();
+    m_ss << "(String) \"" << cell.value() << "\"";
 }
 
-std::string CellValuePrinter::print(hybrid::Color& cell)
+void CellValuePrinter::visit(hybrid::Color& cell)
 {
-    std::stringstream ss;
-    ss << "(Color) rgb(" << cell.color().m_red << ", " << cell.color().m_green << "" << cell.color().m_blue << ")";
-
-    return ss.str();
+    m_ss << "(Color) rgb(" << (int)cell.color().m_red << ", " << (int)cell.color().m_green << "" << (int)cell.color().m_blue << ")";
 }
 
-std::string CellValuePrinter::print(hybrid::Pixel& cell)
+void CellValuePrinter::visit(hybrid::Pixel& cell)
 {
-    std::stringstream ss;
-    ss << "(Pixel) [" << cell.color().m_red << ", " << cell.color().m_green << "" << cell.color().m_blue << "]";
-
-    return ss.str();
+    m_ss << "(Pixel) [" << (int)cell.color().m_red << ", " << (int)cell.color().m_green << "" << (int)cell.color().m_blue << "]";
 }
 
-std::string CellValuePrinter::print(hybrid::Sensor& cell)
+void CellValuePrinter::visit(hybrid::Sensor& cell)
 {
-    std::stringstream ss;
-    ss << "(Sensor)" << cell.name() << "[" << cell.width() << ", " << cell.height() << "]";
+    m_ss << "(Sensor)" << cell.name() << "[" << cell.width() << ", " << cell.height() << "]";
+}
 
-    return ss.str();
+std::string CellValuePrinter::print() const
+{
+    return m_ss.str();
 }
 
 // ============================================================================
-std::string CellStructPrinter::print(Slot& cell)
+void CellStructPrinter::visit(Slot& cell)
 {
-    std::stringstream ss;
     if (!cell.name().empty()) {
-        ss << cell.name() << ": ";
+        m_ss << cell.name() << ": ";
     }
-    ss << printImpl(cell);
-
-    return ss.str();
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(Type& cell)
+void CellStructPrinter::visit(Type& cell)
 {
-    std::stringstream ss;
     if (!cell.name().empty()) {
-        ss << cell.name() << ": ";
+        m_ss << cell.name() << ": ";
     }
-    ss << printImpl(cell);
-
-    return ss.str();
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(Object& cell)
+void CellStructPrinter::visit(Object& cell)
 {
-    std::stringstream ss;
     if (!cell.name().empty()) {
-        ss << cell.name() << ": ";
+        m_ss << cell.name() << ": ";
     }
-    ss << printImpl(cell);
-
-    return ss.str();
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(ListItem& cell)
+void CellStructPrinter::visit(ListItem& cell)
 {
-    return printImpl(cell);
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(List& cell)
+void CellStructPrinter::visit(List& cell)
 {
-    return printImpl(cell);
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(Number& cell)
+void CellStructPrinter::visit(Number& cell)
 {
-    return printImpl(cell);
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(String& cell)
+void CellStructPrinter::visit(String& cell)
 {
-    return printImpl(cell);
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(hybrid::Color& cell)
+void CellStructPrinter::visit(hybrid::Color& cell)
 {
-    return printImpl(cell);
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(hybrid::Pixel& cell)
+void CellStructPrinter::visit(hybrid::Pixel& cell)
 {
-    return printImpl(cell);
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::print(hybrid::Sensor& cell)
+void CellStructPrinter::visit(hybrid::Sensor& cell)
 {
-    return printImpl(cell);
+    printImpl(cell);
 }
 
-std::string CellStructPrinter::printImpl(CellI& cell)
+void CellStructPrinter::printImpl(CellI& cell)
 {
-    std::stringstream ss;
     Type& type = cell.type();
-    ss << "(" << type.name() << ") ID" << &cell << std::endl;
+    m_ss << "(" << type.name() << ") ID" << &cell << std::endl;
     for (auto& slotI : type.slots()) {
         const std::string& slotSlotName = slotI.first;
         Slot& slot                      = *slotI.second;
@@ -1857,9 +1824,14 @@ std::string CellStructPrinter::printImpl(CellI& cell)
         CellValuePrinter valuePrinter;
         Type& slotType       = static_cast<Type&>(slot[Slot::slotSlotType()]);
         CellI& connectedCell = cell[slot.slotRole()];
-        ss << "    +--(" << slotSlotName << ")--> (" << slotType.name() << ") ID" << &connectedCell << " // " << connectedCell.printAs(valuePrinter) << std::endl;
+        connectedCell.accept(valuePrinter);
+        m_ss << "    +--(" << slotSlotName << ")--> (" << slotType.name() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
     }
-    return ss.str();
+}
+
+std::string CellStructPrinter::print() const
+{
+    return m_ss.str();
 }
 
 } // namespace cells

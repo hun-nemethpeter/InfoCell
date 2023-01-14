@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <stack>
 
 #include "Cells.h"
 #include "fsvgui/dom/elements.h"
@@ -14,32 +15,32 @@ public:
     int y;
 };
 
-class Printer : public cells::Printer
+class Printer : public cells::Visitor
 {
 public:
     Printer(int width, int height);
 
-    void test();
-    std::string print(Slot& cell) override;
-    std::string print(Type& cell) override;
-    std::string print(Object& cell) override;
-    std::string print(ListItem& cell) override;
-    std::string print(List& cell) override;
-    std::string print(Number& cell) override;
-    std::string print(String& cell) override;
-    std::string print(hybrid::Color& cell) override;
-    std::string print(hybrid::Pixel& cell) override;
-    std::string print(hybrid::Sensor& cell) override;
+    void visit(Slot& cell) override;
+    void visit(Type& cell) override;
+    void visit(Object& cell) override;
+    void visit(ListItem& cell) override;
+    void visit(List& cell) override;
+    void visit(Number& cell) override;
+    void visit(String& cell) override;
+    void visit(hybrid::Color& cell) override;
+    void visit(hybrid::Pixel& cell) override;
+    void visit(hybrid::Sensor& cell) override;
 
+    std::string print();
     void writeFile(const std::filesystem::path& path);
 
 protected:
-    std::string printImpl(CellI& cell);
-
+    int m_width;
+    int m_height;
     int m_fontSize;
     std::string m_fontName;
     std::string m_fontPath;
-    fsvgui::Screen m_screen;
+    std::stack<fsvgui::Element> m_stack;
 };
 
 } // namespace svg

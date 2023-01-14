@@ -19,7 +19,7 @@
 namespace fsvgui {
 
 
-BoxSize stringBB(const std::string& str, int fontSize, const std::string& fontName, const std::string& fontPath)
+TextBoxSize stringBB(const std::string& str, int fontSize, const std::string& fontName, const std::string& fontPath)
 {
     FT_Library library;
     FT_Face face;
@@ -149,7 +149,7 @@ public:
 
     void ComputeRequirement() override
     {
-        BoxSize boxSize    = stringBB(m_text, m_fontSize, m_fontName, Text::m_fontPaths[m_fontName]);
+        TextBoxSize boxSize    = stringBB(m_text, m_fontSize, m_fontName, Text::m_fontPaths[m_fontName]);
         requirement_.min_x = boxSize.m_height;
         requirement_.min_y = boxSize.m_width;
     }

@@ -23,6 +23,8 @@ add_library(fsvguilib STATIC
     node_decorator.cpp
     node_decorator.h
     paragraph.cpp
+    rect.cpp
+    rect.h
     reflect.cpp
     requirement.h
     screen.cpp

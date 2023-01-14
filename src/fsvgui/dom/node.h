@@ -1,9 +1,10 @@
 #pragma once
 
+#include <functional>
 #include <memory> // for shared_ptr
 #include <vector> // for vector
 
-#include "box.h" // for Box
+#include "box.h"         // for Box
 #include "requirement.h" // for Requirement
 
 namespace fsvgui {
@@ -11,8 +12,11 @@ namespace fsvgui {
 class Node;
 class Screen;
 
-using Element  = std::shared_ptr<Node>;
-using Elements = std::vector<Element>;
+template <typename T = Node>
+using TNode     = std::shared_ptr<T>;
+using Element   = std::shared_ptr<Node>;
+using Elements  = std::vector<Element>;
+using Decorator = std::function<Element(Element)>;
 
 class Node : public std::enable_shared_from_this<Node>
 {

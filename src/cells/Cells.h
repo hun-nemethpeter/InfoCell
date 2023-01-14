@@ -14,17 +14,17 @@ namespace cells {
 
 // ============================================================================
 class Type;
-class Printer;
+class Visitor;
 class CellI
 {
 public:
-    virtual bool has(CellI& role)                 = 0;
-    virtual void set(CellI& role, CellI& value)   = 0;
-    virtual void operator()()                     = 0;
-    virtual CellI& operator[](CellI& role)        = 0;
-    virtual Type& type()                          = 0;
-    virtual std::string printAs(Printer& printer) = 0;
-    virtual std::string name() const              = 0;
+    virtual bool has(CellI& role)               = 0;
+    virtual void set(CellI& role, CellI& value) = 0;
+    virtual void operator()()                   = 0;
+    virtual CellI& operator[](CellI& role)      = 0;
+    virtual Type& type()                        = 0;
+    virtual void accept(Visitor& visitor)       = 0;
+    virtual std::string name() const            = 0;
 };
 
 // ============================================================================
@@ -49,7 +49,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     static void staticInit();
@@ -86,7 +86,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     static void staticInit();
@@ -134,7 +134,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     std::map<CellI*, CellI*>& roles();
@@ -160,7 +160,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     CellI& prev();
@@ -202,7 +202,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     std::vector<ListItem>& items();
@@ -240,7 +240,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     int value() const;
@@ -297,7 +297,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     const std::string& value() const;
@@ -328,7 +328,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     static Type& t();
@@ -350,7 +350,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     static Type& t();
@@ -380,7 +380,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     static Type& t();
@@ -394,7 +394,7 @@ public:
     Pixel* downPixel(int x, int y);
     Pixel* leftPixel(int x, int y);
     Pixel* rightPixel(int x, int y);
-    const std::vector<Pixel>& pixels() const;
+    std::vector<Pixel>& pixels();
 
     int width() const;
     int height() const;
@@ -422,7 +422,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     static Type& t();
@@ -449,7 +449,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     Type& type() override;
-    std::string printAs(Printer& printer) override;
+    void accept(Visitor& visitor) override;
     std::string name() const override;
 
     static Type& t();
@@ -583,51 +583,61 @@ extern Object slots;
 extern Object sign;
 } // namespace cells
 
-class Printer
+class Visitor
 {
 public:
-    virtual std::string print(Slot& cell)     = 0;
-    virtual std::string print(Type& cell)     = 0;
-    virtual std::string print(Object& cell)   = 0;
-    virtual std::string print(ListItem& cell) = 0;
-    virtual std::string print(List& cell)     = 0;
-    virtual std::string print(Number& cell)   = 0;
-    virtual std::string print(String& cell)   = 0;
-    virtual std::string print(hybrid::Color& cell) = 0;
-    virtual std::string print(hybrid::Pixel& cell) = 0;
-    virtual std::string print(hybrid::Sensor& cell)   = 0;
+    virtual void visit(Slot& cell)           = 0;
+    virtual void visit(Type& cell)           = 0;
+    virtual void visit(Object& cell)         = 0;
+    virtual void visit(ListItem& cell)       = 0;
+    virtual void visit(List& cell)           = 0;
+    virtual void visit(Number& cell)         = 0;
+    virtual void visit(String& cell)         = 0;
+    virtual void visit(hybrid::Color& cell)  = 0;
+    virtual void visit(hybrid::Pixel& cell)  = 0;
+    virtual void visit(hybrid::Sensor& cell) = 0;
 };
 
-class CellValuePrinter : public Printer
+class CellValuePrinter : public Visitor
 {
 public:
-    std::string print(Slot& cell) override;
-    std::string print(Type& cell) override;
-    std::string print(Object& cell) override;
-    std::string print(ListItem& cell) override;
-    std::string print(List& cell) override;
-    std::string print(Number& cell) override;
-    std::string print(String& cell) override;
-    std::string print(hybrid::Color& cell) override;
-    std::string print(hybrid::Pixel& cell) override;
-    std::string print(hybrid::Sensor& cell) override;
+    void visit(Slot& cell) override;
+    void visit(Type& cell) override;
+    void visit(Object& cell) override;
+    void visit(ListItem& cell) override;
+    void visit(List& cell) override;
+    void visit(Number& cell) override;
+    void visit(String& cell) override;
+    void visit(hybrid::Color& cell) override;
+    void visit(hybrid::Pixel& cell) override;
+    void visit(hybrid::Sensor& cell) override;
+
+    std::string print() const;
+
+protected:
+    std::stringstream m_ss;
 };
 
-class CellStructPrinter : public Printer
+class CellStructPrinter : public Visitor
 {
 public:
-    std::string print(Slot& cell) override;
-    std::string print(Type& cell) override;
-    std::string print(Object& cell) override;
-    std::string print(ListItem& cell) override;
-    std::string print(List& cell) override;
-    std::string print(Number& cell) override;
-    std::string print(String& cell) override;
-    std::string print(hybrid::Color& cell) override;
-    std::string print(hybrid::Pixel& cell) override;
-    std::string print(hybrid::Sensor& cell) override;
+    void visit(Slot& cell) override;
+    void visit(Type& cell) override;
+    void visit(Object& cell) override;
+    void visit(ListItem& cell) override;
+    void visit(List& cell) override;
+    void visit(Number& cell) override;
+    void visit(String& cell) override;
+    void visit(hybrid::Color& cell) override;
+    void visit(hybrid::Pixel& cell) override;
+    void visit(hybrid::Sensor& cell) override;
 
-    std::string printImpl(CellI& cell);
+    std::string print() const;
+
+protected:
+    void printImpl(CellI& cell);
+
+    std::stringstream m_ss;
 };
 
 void StaticInitializations();

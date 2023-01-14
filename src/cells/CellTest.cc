@@ -6,13 +6,25 @@ using namespace synth;
 using namespace synth::cells;
 using namespace synth::cells::data;
 
+void printAsValue(CellI& cell)
+{
+    CellValuePrinter valuePrinter;
+    cell.accept(valuePrinter);
+
+    std::cout << valuePrinter.print() << std::endl;
+}
+
+void printAsStruct(CellI& cell)
+{
+    CellStructPrinter structPrinter;
+    cell.accept(structPrinter);
+
+    std::cout << structPrinter.print() << std::endl;
+}
 
 int main(int argc, char* argv[])
 {
     svg::Printer svgPrinter(800, 600);
-    CellValuePrinter valuePrinter;
-    CellStructPrinter structPrinter;
-    //    svgPrinter.test();
 
     StaticInitializations();
 
@@ -20,8 +32,8 @@ int main(int argc, char* argv[])
     inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
     hybrid::Sensor sensor(inputPicture);
 
-//    svgFile << sensor.printAs(svgPrinter) << "\n";
-    sensor[data::listOfPixels].printAs(svgPrinter);
+    sensor.accept(svgPrinter);
+//    sensor[data::listOfPixels].accept(svgPrinter);
     svgPrinter.writeFile("F:\\Devel\\ARC\\synth\\1.svg");
 
 
@@ -33,8 +45,9 @@ int main(int argc, char* argv[])
     control::pipeline::Node pipeNode1;
     control::Same sameOp(sensor, sensor, pipeNode1, data::coding::value);
     pipeNode1();
-    std::cout << "SameOp: " << var1[data::coding::value].printAs(valuePrinter) << std::endl;
-    std::cout << sensor[data::listOfPixels].printAs(valuePrinter) << "\n";
+    std::cout << "SameOp: ";
+    printAsValue(var1[data::coding::value]);
+    printAsValue(sensor[data::listOfPixels]);
 
 
     Object colorRed(Type::anyType());
@@ -54,20 +67,20 @@ int main(int argc, char* argv[])
     Number& number_0   = Numbers::get(0);
     Number& number_255 = Numbers::get(255);
 
-    std::cout << colorClass.printAs(valuePrinter) << std::endl;
-    std::cout << colorClass.getSlot("red").printAs(valuePrinter) << std::endl;
-    std::cout << redColor.printAs(valuePrinter) << std::endl;
-    std::cout << number_255.printAs(valuePrinter) << std::endl;
-    std::cout << number_255[value][first][value].printAs(valuePrinter) << std::endl;
+    printAsValue(colorClass);
+    printAsValue(colorClass.getSlot("red"));
+    printAsValue(redColor);
+    printAsValue(number_255);
+    printAsValue(number_255[value][first][value]);
 
-    std::cout << redColor.printAs(structPrinter) << std::endl;
-    std::cout << colorClass.getSlot("red").printAs(structPrinter) << std::endl;
-    std::cout << colorClass.printAs(structPrinter) << std::endl;
-    std::cout << number_255.printAs(structPrinter) << std::endl;
-    std::cout << number_255[sign].printAs(structPrinter) << std::endl;
-    std::cout << number_255[value].printAs(structPrinter) << std::endl;
-    std::cout << number_255[value][first].printAs(structPrinter) << std::endl;
-    std::cout << number_255[value][first][value].printAs(structPrinter) << std::endl;
-    std::cout << number_255[value][last].printAs(structPrinter) << std::endl;
-    std::cout << number_255[value][size].printAs(structPrinter) << std::endl;
+    printAsStruct(redColor);
+    printAsStruct(colorClass.getSlot("red"));
+    printAsStruct(colorClass);
+    printAsStruct(number_255);
+    printAsStruct(number_255[sign]);
+    printAsStruct(number_255[value]);
+    printAsStruct(number_255[value][first]);
+    printAsStruct(number_255[value][first][value]);
+    printAsStruct(number_255[value][last]);
+    printAsStruct(number_255[value][size]);
 }

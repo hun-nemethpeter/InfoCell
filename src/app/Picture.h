@@ -23,24 +23,30 @@ public:
         return std::tie(m_red, m_green, m_blue) < std::tie(rhs.m_red, rhs.m_green, rhs.m_blue);
     }
 
-    int red() const
+    uint8_t red() const
     {
         return m_red;
     }
 
-    int green() const
+    uint8_t green() const
     {
         return m_green;
     }
 
-    int blue() const
+    uint8_t blue() const
     {
         return m_blue;
     }
 
-    int m_red = 0;
-    int m_green = 0;
-    int m_blue = 0;
+    uint8_t alpha() const
+    {
+        return m_alpha;
+    }
+
+    uint8_t m_red = 0;
+    uint8_t m_green = 0;
+    uint8_t m_blue  = 0;
+    uint8_t m_alpha = 0;
 };
 
 class Picture

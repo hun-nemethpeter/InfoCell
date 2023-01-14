@@ -1,21 +1,17 @@
 #pragma once
 
-#include <functional>
-#include <memory>
 #include <string>
 #include <vector>
 
 #include "color.h"
 #include "flexbox_config.h"
 #include "node.h"
+#include "rect.h"
 #include "screen.h"
 #include "text.h"
 
 namespace fsvgui {
 class Node;
-using Element   = std::shared_ptr<Node>;
-using Elements  = std::vector<Element>;
-using Decorator = std::function<Element(Element)>;
 
 enum BorderStyle
 {
@@ -35,8 +31,17 @@ Element& operator|=(Element&, Decorator);
 Elements operator|(Elements, Decorator);
 Decorator operator|(Decorator, Decorator);
 
-// --- Widget ---
-std::shared_ptr<Text> text(std::string text);
+// --- SVG elements ---
+#if 0
+TNode<Circle> circle(int radius);
+TNode<Ellipse> ellipse(int radiusX, int radiusY);
+TNode<Line> line(int endX, int endY);
+TNode<Path> path(const std::string& commands);
+TNode<Polygon> polygon();
+TNode<Polyline> polyline();
+#endif
+TNode<Rect> rect(int width, int height);
+TNode<Text> text(std::string text);
 
 Element border(Element);
 Element borderLight(Element);
@@ -125,9 +130,9 @@ namespace Dimension {
 Dimensions Fit(Element&);
 } // namespace Dimension
 
-} // namespace synth
+} // namespace fsvgui
 
-  // Make container able to take any number of children as input.
+// Make container able to take any number of children as input.
 #include "take_any_args.h"
 
 // Copyright 2020 Arthur Sonzogni. All rights reserved.
