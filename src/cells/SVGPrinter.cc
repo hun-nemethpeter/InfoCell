@@ -16,34 +16,50 @@ Printer::Printer(int width, int height) :
 {
     m_fontSize = 14;
     m_fontName = "Times New Roman";
-    m_fontPath = "C:\\Windows\\Fonts\\times.ttf";
 }
 
 void Printer::visit(Slot& cell)
 {
+    m_stack.push(text("Slot"));
 }
 
 void Printer::visit(Type& cell)
 {
+    m_stack.push(text("Type"));
 }
 
 void Printer::visit(Object& cell)
 {
+    m_stack.push(text("Object"));
 }
 
 void Printer::visit(ListItem& cell)
 {
+    Element valueAsSvg;
+    if (tryVisit(cell.value())) {
+        valueAsSvg = m_stack.top();
+        m_stack.pop();
+    } else {
+        valueAsSvg = text(cell.value().name())->fontSize(16)->fontColor({ 255, 0, 0 });
+    }
+    m_stack.push(hbox(vbox(text("ListItem") | center | borderWidth(10), filler() | size(HEIGHT, EQUAL, 2), valueAsSvg | center | borderWidth(10)),
+                      filler() | size(WIDTH, EQUAL, 2)));
 }
 
 void Printer::visit(List& list)
 {
     Elements listItems;
-    int i = 0;
+    int i = 1;
     for (ListItem& item : list.items()) {
-        visit(item);
-        auto svgItem = m_stack.top();
-        m_stack.pop();
-        listItems.push_back(text(item.name())->fontSize(22)->fontColor({ 255, 20, 30 }) | center | borderWidth(10));
+        Element valueAsSvg;
+        if (tryVisit(item.value())) {
+            valueAsSvg = m_stack.top();
+            m_stack.pop();
+        } else {
+            valueAsSvg = text(item.value().name())->fontSize(16)->fontColor({ 255, 0, 0 });
+        }
+        listItems.push_back(hbox(vbox(text(std::to_string(i++)) | center | borderWidth(10), filler() | size(HEIGHT, EQUAL, 2), valueAsSvg | center | borderWidth(10)),
+                                   filler() | size(WIDTH, EQUAL, 2)));
     }
     FlexboxConfig flexConfig;
     flexConfig.direction       = FlexboxConfig::Direction::Row;
@@ -57,10 +73,12 @@ void Printer::visit(List& list)
 
 void Printer::visit(Number& cell)
 {
+    m_stack.push(text(std::to_string(cell.value()))->fontColor({ 0, 0, 0 }));
 }
 
 void Printer::visit(String& cell)
 {
+    m_stack.push(text(cell.value())->fontColor({ 163, 21, 21 }));
 }
 
 void Printer::visit(hybrid::Color& cell)
@@ -88,10 +106,16 @@ void Printer::visit(hybrid::Sensor& sensor)
     Elements row;
     for (hybrid::Pixel& pixel : sensor.pixels()) {
         visit(pixel);
+        if (!row.empty()) {
+            row.push_back(filler() | size(WIDTH, EQUAL, 1));
+        }
         row.push_back(m_stack.top());
         m_stack.pop();
         x += 1;
         if (x == width) {
+            if (!columns.empty()) {
+                columns.push_back(filler() | size(HEIGHT, EQUAL, 1));
+            }
             columns.push_back(hbox(row));
             row = Elements();
             x = 0;
@@ -101,18 +125,80 @@ void Printer::visit(hybrid::Sensor& sensor)
     m_stack.push(vbox(columns) | center | borderWidth(20));
 }
 
+void Printer::showcaseLastResult(const std::string& caseName)
+{
+    m_showcaseItems.push_back(
+        vbox(
+            text(caseName) | center | borderWidth(10),
+            filler() | size(HEIGHT, EQUAL, 2),
+            m_stack.top() | center | borderWidth(10))
+        | center | borderWidth(10));
+}
+
 std::string Printer::print()
 {
-    auto screen = Screen::Create(Dimension::Fit(m_stack.top()));
+    Screen screen = processResult();
     Render(screen, m_stack.top());
     return screen.toString();
 }
 
 void Printer::writeFile(const std::filesystem::path& path)
 {
-    auto screen  = Screen::Create(Dimension::Fit(m_stack.top()));
+    if (m_stack.empty()) {
+        return;
+    }
+    Screen screen = processResult();
     Render(screen, m_stack.top());
     screen.writeFile(path);
+}
+
+Screen Printer::processResult()
+{
+    Screen screen({ 1920, 1080 });
+    if (m_showcaseItems.empty()) {
+        screen = Screen::Create(Dimension::Fit(m_stack.top()));
+    }
+
+    if (m_showcaseItems.empty()) {
+        return screen;
+    }
+    FlexboxConfig flexButtonsConfig;
+    flexButtonsConfig.direction       = FlexboxConfig::Direction::Row;
+    flexButtonsConfig.wrap            = FlexboxConfig::Wrap::NoWrap;
+    flexButtonsConfig.justify_content = FlexboxConfig::JustifyContent::SpaceEvenly;
+    flexButtonsConfig.align_items     = FlexboxConfig::AlignItems::FlexStart;
+    flexButtonsConfig.align_content   = FlexboxConfig::AlignContent::SpaceAround;
+
+    auto result = flexbox(m_showcaseItems, flexButtonsConfig);
+    m_stack.push(result);
+
+    return screen;
+}
+
+bool Printer::tryVisit(CellI& cell)
+{
+    if (&cell.type() == &hybrid::Color::t()) {
+        visit(static_cast<hybrid::Color&>(cell));
+        return true;
+    }
+    if (&cell.type() == &Number::t()) {
+        visit(static_cast<Number&>(cell));
+        return true;
+    }
+    if (&cell.type() == &String::t()) {
+        visit(static_cast<String&>(cell));
+        return true;
+    }
+    if (&cell.type() == &Type::t()) {
+        visit(static_cast<Type&>(cell));
+        return true;
+    }
+    if (&cell.type() == &hybrid::Pixel::t()) {
+        visit(static_cast<hybrid::Pixel&>(cell));
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace svg

@@ -6,7 +6,10 @@
 namespace fsvgui {
 
 template <class T>
-void Merge(Elements& /*container*/, T /*element*/) { }
+void Merge(Elements& container, T element)
+{
+    container.push_back(std::move(element));
+}
 
 template <>
 inline void Merge(Elements& container, Element element)

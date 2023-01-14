@@ -92,7 +92,7 @@ void test()
 }
 #endif
 
-    Text::Text(std::string text) :
+Text::Text(std::string text) :
     m_text(std::move(text))
 {
     m_fontSize = 25;
@@ -180,7 +180,7 @@ private:
 /// ```bash
 /// Hello world!
 /// ```
-std::shared_ptr<Text> text(std::string text)
+TNode<Text> text(std::string text)
 {
     return std::make_shared<Text>(std::move(text));
 }

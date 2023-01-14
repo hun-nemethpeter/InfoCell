@@ -14,26 +14,12 @@
 
 namespace fsvgui {
 
-using Charset  = std::array<std::string, 6>; // NOLINT
-using Charsets = std::array<Charset, 5>;     // NOLINT
-// NOLINTNEXTLINE
-static Charsets simple_border_charset = {
-    Charset { "┌", "┐", "└", "┘", "─", "│" },
-    Charset { "┏", "┓", "┗", "┛", "━", "┃" },
-    Charset { "╔", "╗", "╚", "╝", "═", "║" },
-    Charset { "╭", "╮", "╰", "╯", "─", "│" },
-    Charset { " ", " ", " ", " ", " ", " " },
-};
-
 // For reference, here is the charset for normal border:
 class Border : public Node
 {
 public:
     Border(Elements children, BorderStyle style) :
-        Node(std::move(children)),
-        charset_(simple_border_charset[style]) { } // NOLINT
-
-    const Charset& charset_; // NOLINT
+        Node(std::move(children)) { }
 
     void ComputeRequirement() override
     {

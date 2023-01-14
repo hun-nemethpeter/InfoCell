@@ -6,35 +6,56 @@ using namespace synth;
 using namespace synth::cells;
 using namespace synth::cells::data;
 
-void printAsValue(CellI& cell)
+class PrintAs
 {
-    CellValuePrinter valuePrinter;
-    cell.accept(valuePrinter);
+public:
+    PrintAs() :
+        m_svgPrinter(800, 600)
+    {
+    }
 
-    std::cout << valuePrinter.print() << std::endl;
-}
+    ~PrintAs()
+    {
+        m_svgPrinter.writeFile(std::format("F:\\Devel\\ARC\\synth\\{:02d}.svg", 1));
+    }
 
-void printAsStruct(CellI& cell)
-{
-    CellStructPrinter structPrinter;
-    cell.accept(structPrinter);
+    void value(CellI& cell)
+    {
+        CellValuePrinter valuePrinter;
+        cell.accept(valuePrinter);
 
-    std::cout << structPrinter.print() << std::endl;
-}
+        std::cout << valuePrinter.print() << std::endl;
+    }
+
+    void cell(CellI& cell)
+    {
+        CellStructPrinter structPrinter;
+        cell.accept(structPrinter);
+
+        std::cout << structPrinter.print() << std::endl;
+    }
+
+
+    void svg(CellI& cell, const std::string& caseName = "Case")
+    {
+        cell.accept(m_svgPrinter);
+        m_svgPrinter.showcaseLastResult(caseName);
+    }
+
+    svg::Printer m_svgPrinter;
+};
 
 int main(int argc, char* argv[])
 {
-    svg::Printer svgPrinter(800, 600);
-
     StaticInitializations();
+    PrintAs printAs;
 
     input::Picture inputPicture("input");
     inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
     hybrid::Sensor sensor(inputPicture);
 
-    sensor.accept(svgPrinter);
-//    sensor[data::listOfPixels].accept(svgPrinter);
-    svgPrinter.writeFile("F:\\Devel\\ARC\\synth\\1.svg");
+    printAs.svg(sensor);
+    printAs.svg(sensor[data::listOfPixels]);
 
 
     Type Variable("Color",
@@ -46,8 +67,8 @@ int main(int argc, char* argv[])
     control::Same sameOp(sensor, sensor, pipeNode1, data::coding::value);
     pipeNode1();
     std::cout << "SameOp: ";
-    printAsValue(var1[data::coding::value]);
-    printAsValue(sensor[data::listOfPixels]);
+    printAs.value(var1[data::coding::value]);
+    printAs.value(sensor[data::listOfPixels]);
 
 
     Object colorRed(Type::anyType());
@@ -67,20 +88,31 @@ int main(int argc, char* argv[])
     Number& number_0   = Numbers::get(0);
     Number& number_255 = Numbers::get(255);
 
-    printAsValue(colorClass);
-    printAsValue(colorClass.getSlot("red"));
-    printAsValue(redColor);
-    printAsValue(number_255);
-    printAsValue(number_255[value][first][value]);
+    printAs.value(colorClass);
+    printAs.value(colorClass.getSlot("red"));
+    printAs.value(redColor);
+    printAs.value(number_255);
+    printAs.value(number_255[value][first][value]);
 
-    printAsStruct(redColor);
-    printAsStruct(colorClass.getSlot("red"));
-    printAsStruct(colorClass);
-    printAsStruct(number_255);
-    printAsStruct(number_255[sign]);
-    printAsStruct(number_255[value]);
-    printAsStruct(number_255[value][first]);
-    printAsStruct(number_255[value][first][value]);
-    printAsStruct(number_255[value][last]);
-    printAsStruct(number_255[value][size]);
+    printAs.cell(redColor);
+    printAs.cell(colorClass.getSlot("red"));
+    printAs.cell(colorClass);
+    printAs.cell(number_255);
+    printAs.cell(number_255[sign]);
+    printAs.cell(number_255[value]);
+    printAs.cell(number_255[value][first]);
+    printAs.cell(number_255[value][first][value]);
+    printAs.cell(number_255[value][last]);
+    printAs.cell(number_255[value][size]);
+
+    printAs.svg(redColor);
+    printAs.svg(colorClass.getSlot("red"));
+    printAs.svg(colorClass);
+    printAs.svg(number_255);
+    printAs.svg(number_255[sign]);
+    printAs.svg(number_255[value]);
+    printAs.svg(number_255[value][first]);
+    printAs.svg(number_255[value][first][value]);
+    printAs.svg(number_255[value][last]);
+    printAs.svg(number_255[value][size]);
 }

@@ -31,16 +31,20 @@ public:
     void visit(hybrid::Pixel& cell) override;
     void visit(hybrid::Sensor& cell) override;
 
+    void showcaseLastResult(const std::string& caseName);
     std::string print();
     void writeFile(const std::filesystem::path& path);
 
 protected:
+    bool tryVisit(CellI& cell);
+    fsvgui::Screen processResult();
+
     int m_width;
     int m_height;
     int m_fontSize;
     std::string m_fontName;
-    std::string m_fontPath;
     std::stack<fsvgui::Element> m_stack;
+    fsvgui::Elements m_showcaseItems;
 };
 
 } // namespace svg
