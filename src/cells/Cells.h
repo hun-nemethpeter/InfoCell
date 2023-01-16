@@ -1,10 +1,6 @@
 #pragma once
-#include <array>
 #include <iostream>
 #include <map>
-#include <set>
-#include <span>
-#include <sstream>
 #include <vector>
 
 #include "app/Picture.h"
@@ -1103,6 +1099,20 @@ protected:
 } // namespace control
 
 // ============================================================================
+class Visitor
+{
+public:
+    virtual void visit(Slot& cell)           = 0;
+    virtual void visit(Type& cell)           = 0;
+    virtual void visit(Object& cell)         = 0;
+    virtual void visit(ListItem& cell)       = 0;
+    virtual void visit(List& cell)           = 0;
+    virtual void visit(Number& cell)         = 0;
+    virtual void visit(String& cell)         = 0;
+    virtual void visit(hybrid::Color& cell)  = 0;
+    virtual void visit(hybrid::Pixel& cell)  = 0;
+    virtual void visit(hybrid::Sensor& cell) = 0;
+};
 
 namespace type
 {
@@ -1222,63 +1232,6 @@ extern Object type;
 extern Object slots;
 extern Object sign;
 } // namespace cells
-
-class Visitor
-{
-public:
-    virtual void visit(Slot& cell)           = 0;
-    virtual void visit(Type& cell)           = 0;
-    virtual void visit(Object& cell)         = 0;
-    virtual void visit(ListItem& cell)       = 0;
-    virtual void visit(List& cell)           = 0;
-    virtual void visit(Number& cell)         = 0;
-    virtual void visit(String& cell)         = 0;
-    virtual void visit(hybrid::Color& cell)  = 0;
-    virtual void visit(hybrid::Pixel& cell)  = 0;
-    virtual void visit(hybrid::Sensor& cell) = 0;
-};
-
-class CellValuePrinter : public Visitor
-{
-public:
-    void visit(Slot& cell) override;
-    void visit(Type& cell) override;
-    void visit(Object& cell) override;
-    void visit(ListItem& cell) override;
-    void visit(List& cell) override;
-    void visit(Number& cell) override;
-    void visit(String& cell) override;
-    void visit(hybrid::Color& cell) override;
-    void visit(hybrid::Pixel& cell) override;
-    void visit(hybrid::Sensor& cell) override;
-
-    std::string print() const;
-
-protected:
-    std::stringstream m_ss;
-};
-
-class CellStructPrinter : public Visitor
-{
-public:
-    void visit(Slot& cell) override;
-    void visit(Type& cell) override;
-    void visit(Object& cell) override;
-    void visit(ListItem& cell) override;
-    void visit(List& cell) override;
-    void visit(Number& cell) override;
-    void visit(String& cell) override;
-    void visit(hybrid::Color& cell) override;
-    void visit(hybrid::Pixel& cell) override;
-    void visit(hybrid::Sensor& cell) override;
-
-    std::string print() const;
-
-protected:
-    void printImpl(CellI& cell);
-
-    std::stringstream m_ss;
-};
 
 void StaticInitializations();
 

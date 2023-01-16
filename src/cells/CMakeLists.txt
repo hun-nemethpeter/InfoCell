@@ -6,24 +6,29 @@ if(MSVC)
     target_compile_options(cellslib PUBLIC "/Zc:__cplusplus")
 endif()
 target_include_directories(cellslib
-	PUBLIC
-		${PROJECT_SOURCE_DIR}/include
-		${PROJECT_SOURCE_DIR}/src
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/src
 )
 target_link_libraries(cellslib
-	PUBLIC
-		CONAN_PKG::utfcpp
-		CONAN_PKG::boost
-		CONAN_PKG::freetype
+    PUBLIC
+        CONAN_PKG::utfcpp
+        CONAN_PKG::boost
+        CONAN_PKG::freetype
 )
 
 add_executable(celltest
-    SVGPrinter.cc
     CellTest.cc
+    StructPrinter.cc
+    StructPrinter.h
+    SVGPrinter.cc
+    SVGPrinter.h
+    ValuePrinter.cc
+    ValuePrinter.h
 )
 target_link_libraries(celltest
 PRIVATE
     cellslib
     applib
-	fsvguilib
+    fsvguilib
 )

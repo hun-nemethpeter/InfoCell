@@ -1,5 +1,7 @@
 #include "Cells.h"
+#include "StructPrinter.h"
 #include "SVGPrinter.h"
+#include "ValuePrinter.h"
 #include <fstream>
 
 using namespace synth;
