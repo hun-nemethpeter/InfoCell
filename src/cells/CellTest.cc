@@ -47,6 +47,9 @@ public:
     svg::Printer m_svgPrinter;
 };
 
+using namespace control::pipeline;
+using namespace control::op;
+
 int main(int argc, char* argv[])
 {
     StaticInitializations();
@@ -65,14 +68,21 @@ int main(int argc, char* argv[])
                     { "value", Number::t(), data::coding::value } });
     Object var1("var1", Variable);
 
-    control::pipeline::StartNode mainStartNode(sensor);
-    control::pipeline::RefNode paramInputNode1(mainStartNode);
-    control::pipeline::RefNode paramInputNode2(mainStartNode);
-    control::pipeline::Node node1(mainStartNode, control::op::Same::t(), paramInputNode1, paramInputNode2);
+    Start mainStartNode(sensor);
+    Node node1(mainStartNode, Same::t(), mainStartNode, mainStartNode);
     mainStartNode();
-
     std::cout << "SameOp: ";
     printAs.value(node1[data::coding::value]);
+
+    Start start(Numbers::get(42));
+    Fork fork1(start);
+    Start value10(Numbers::get(10));
+    fork1.addBranch(value10);
+    Node add10(fork1, math::Add::t(), fork1, value10);
+    start();
+    std::cout << "42 + 10 = ";
+    printAs.value(add10[data::coding::value]);
+
     printAs.value(var1[data::coding::value]);
     printAs.value(sensor[data::listOfPixels]);
 

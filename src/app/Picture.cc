@@ -34,8 +34,8 @@ Picture& Picture::loadFromJsonArray(const std::string& jsonStr)
     size_t matrixHeight = arcMatrix.size();
     size_t matrixWidth  = arcMatrix[0].size();
 
-    m_width  = matrixWidth;
-    m_height = matrixHeight;
+    m_width  = (int)matrixWidth;
+    m_height = (int)matrixHeight;
 
     int y = 0;
     for (auto inputRowIt = arcMatrix.begin(); inputRowIt != arcMatrix.end(); ++inputRowIt) {

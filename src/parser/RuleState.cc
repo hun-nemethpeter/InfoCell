@@ -570,8 +570,8 @@ void OrState::saveToNewSlot(SharedRuleState p_clonedState)
 {
     size_t size = m_slots.size();
     m_slots.resize(size + 1);
-    static_cast<AndOrCommon*>(p_clonedState.get())->updateParentSlot(this, this, size);
-    createTypedSlot(SlotType::One, size, p_clonedState);
+    static_cast<AndOrCommon*>(p_clonedState.get())->updateParentSlot(this, this, (int)size);
+    createTypedSlot(SlotType::One, (int)size, p_clonedState);
 
     if (p_clonedState->getState() == RuleStates::Matched)
         return;

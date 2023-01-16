@@ -1148,11 +1148,11 @@ Sensor::Sensor(input::Picture& picture) :
 
     for (y = 0; y < m_height; ++y) {
         for (x = 0; x < m_width; ++x) {
-            Pixel& pixel    = m_pixels[currentIndex(x, y)];
-            pixel.m_up      = upPixel(x, y);
-            pixel.m_down    = downPixel(x, y);
-            pixel.m_left    = leftPixel(x, y);
-            pixel.m_right   = rightPixel(x, y);
+            Pixel& pixel  = m_pixels[currentIndex(x, y)];
+            pixel.m_up    = upPixel(x, y);
+            pixel.m_down  = downPixel(x, y);
+            pixel.m_left  = leftPixel(x, y);
+            pixel.m_right = rightPixel(x, y);
         }
     }
     m_pixelsList.reset(new List(m_pixels));
@@ -1308,12 +1308,11 @@ int Sensor::height() const
 }
 
 } // namespace hybrid
-
 namespace control {
 namespace op {
 
 // ============================================================================
-Same::Same(pipeline::BaseNode& output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs) :
+Same::Same(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1343,11 +1342,7 @@ void Same::set(CellI& role, CellI& value)
 
 void Same::operator()()
 {
-    m_lhs();
-    m_rhs();
-    CellI& lhsValue = m_lhs[data::coding::value];
-    CellI& rhsValue = m_rhs[data::coding::value];
-    if (&lhsValue == &rhsValue) {
+    if (&m_lhs[data::coding::value] == &m_rhs[data::coding::value]) {
         m_output.set(data::coding::value, cells::data::boolean::true_);
     } else {
         m_output.set(data::coding::value, cells::data::boolean::false_);
@@ -1379,12 +1374,12 @@ Type& Same::type()
 
 void Same::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 std::string Same::name() const
 {
-    return "Same"; // TODO
+    return "Same";
 }
 
 Type& Same::t()
@@ -1393,7 +1388,7 @@ Type& Same::t()
 }
 
 // ============================================================================
-NotSame::NotSame(pipeline::BaseNode& output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs) :
+NotSame::NotSame(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1423,11 +1418,7 @@ void NotSame::set(CellI& role, CellI& value)
 
 void NotSame::operator()()
 {
-    m_lhs();
-    m_rhs();
-    CellI& lhsValue = m_lhs[data::coding::value];
-    CellI& rhsValue = m_rhs[data::coding::value];
-    if (&lhsValue != &rhsValue) {
+    if (&m_lhs[data::coding::value] != &m_rhs[data::coding::value]) {
         m_output.set(data::coding::value, cells::data::boolean::true_);
     } else {
         m_output.set(data::coding::value, cells::data::boolean::false_);
@@ -1459,12 +1450,12 @@ Type& NotSame::type()
 
 void NotSame::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 std::string NotSame::name() const
 {
-    return "NotSame"; // TODO
+    return "NotSame";
 }
 
 Type& NotSame::t()
@@ -1473,7 +1464,7 @@ Type& NotSame::t()
 }
 
 // ============================================================================
-Equal::Equal(pipeline::BaseNode& output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs) :
+Equal::Equal(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1503,9 +1494,6 @@ void Equal::set(CellI& role, CellI& value)
 
 void Equal::operator()()
 {
-    m_lhs();
-    m_rhs();
-
     if (m_lhs[data::coding::value] == m_rhs[data::coding::value]) {
         m_output.set(data::coding::value, cells::data::boolean::true_);
     } else {
@@ -1538,12 +1526,12 @@ Type& Equal::type()
 
 void Equal::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 std::string Equal::name() const
 {
-    return "Equal"; // TODO
+    return "Equal";
 }
 
 Type& Equal::t()
@@ -1552,7 +1540,7 @@ Type& Equal::t()
 }
 
 // ============================================================================
-NotEqual::NotEqual(pipeline::BaseNode& output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs) :
+NotEqual::NotEqual(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
     m_output(output), m_lhs(lhs), m_rhs(rhs)
 {
 }
@@ -1582,8 +1570,6 @@ void NotEqual::set(CellI& role, CellI& value)
 
 void NotEqual::operator()()
 {
-    m_lhs();
-    m_rhs();
     if (m_lhs[data::coding::value] != m_rhs[data::coding::value]) {
         m_output.set(data::coding::value, cells::data::boolean::true_);
     } else {
@@ -1616,12 +1602,12 @@ Type& NotEqual::type()
 
 void NotEqual::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 std::string NotEqual::name() const
 {
-    return "NotEqual"; // TODO
+    return "NotEqual";
 }
 
 Type& NotEqual::t()
@@ -1629,22 +1615,919 @@ Type& NotEqual::t()
     return type::op::NotEqual;
 }
 
-} // namespace op
+// ============================================================================
+Has::Has(pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role) :
+    m_output(output), m_cell(cell), m_role(role)
+{
+}
 
+bool Has::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::coding::cell) {
+        return true;
+    }
+    if (&role == &data::coding::role) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Has::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Has::operator()()
+{
+    m_output.set(data::coding::value, m_cell.has(m_role) ? cells::data::boolean::true_ : cells::data::boolean::false_);
+}
+
+CellI& Has::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::cell) {
+        return m_cell;
+    }
+    if (&role == &data::coding::role) {
+        return m_role;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Has::type()
+{
+    return t();
+}
+
+void Has::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Has::name() const
+{
+    return "Has";
+}
+
+Type& Has::t()
+{
+    return type::op::Has;
+}
+
+// ============================================================================
+Get::Get(pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role) :
+    m_output(output), m_cell(cell), m_role(role)
+{
+}
+
+bool Get::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::coding::cell) {
+        return true;
+    }
+    if (&role == &data::coding::role) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Get::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Get::operator()()
+{
+    m_output.set(data::coding::value, m_cell[m_role]);
+}
+
+CellI& Get::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::cell) {
+        return m_cell;
+    }
+    if (&role == &data::coding::role) {
+        return m_role;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Get::type()
+{
+    return t();
+}
+
+void Get::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Get::name() const
+{
+    return "Get";
+}
+
+Type& Get::t()
+{
+    return type::op::Get;
+}
+
+// ============================================================================
+Set::Set(pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role, pipeline::Base& value) :
+    m_output(output), m_cell(cell), m_role(role), m_value(value)
+{
+}
+
+bool Set::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::coding::cell) {
+        return true;
+    }
+    if (&role == &data::coding::role) {
+        return true;
+    }
+    if (&role == &data::coding::value) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Set::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Set::operator()()
+{
+    m_cell.set(m_role, m_value);
+}
+
+CellI& Set::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::cell) {
+        return m_cell;
+    }
+    if (&role == &data::coding::role) {
+        return m_role;
+    }
+    if (&role == &data::coding::value) {
+        return m_value;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Set::type()
+{
+    return t();
+}
+
+void Set::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Set::name() const
+{
+    return "Set";
+}
+
+Type& Set::t()
+{
+    return type::op::Set;
+}
+namespace logic {
+
+// ============================================================================
+And::And(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+bool And::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void And::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void And::operator()()
+{
+    bool lhs = m_lhs[data::coding::value] == cells::data::boolean::true_;
+    bool rhs = m_rhs[data::coding::value] == cells::data::boolean::true_;
+    if (lhs && rhs) {
+        m_output.set(data::coding::value, cells::data::boolean::true_);
+    } else {
+        m_output.set(data::coding::value, cells::data::boolean::false_);
+    }
+}
+
+CellI& And::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& And::type()
+{
+    return t();
+}
+
+void And::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string And::name() const
+{
+    return "And";
+}
+
+Type& And::t()
+{
+    return type::op::logic::And;
+}
+
+// ============================================================================
+Or::Or(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+bool Or::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Or::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Or::operator()()
+{
+    bool lhs = m_lhs[data::coding::value] == cells::data::boolean::true_;
+    bool rhs = m_rhs[data::coding::value] == cells::data::boolean::true_;
+    if (lhs || rhs) {
+        m_output.set(data::coding::value, cells::data::boolean::true_);
+    } else {
+        m_output.set(data::coding::value, cells::data::boolean::false_);
+    }
+}
+
+CellI& Or::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Or::type()
+{
+    return t();
+}
+
+void Or::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Or::name() const
+{
+    return "Or";
+}
+
+Type& Or::t()
+{
+    return type::op::logic::Or;
+}
+
+// ============================================================================
+Not::Not(pipeline::Base& output, pipeline::Base& input) :
+    m_output(output), m_input(input)
+{
+}
+
+bool Not::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::coding::input) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Not::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Not::operator()()
+{
+    bool input = m_input[data::coding::value] == cells::data::boolean::true_;
+    if (!input) {
+        m_output.set(data::coding::value, cells::data::boolean::true_);
+    } else {
+        m_output.set(data::coding::value, cells::data::boolean::false_);
+    }
+}
+
+CellI& Not::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::coding::input) {
+        return m_input;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Not::type()
+{
+    return t();
+}
+
+void Not::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Not::name() const
+{
+    return "Not";
+}
+
+Type& Not::t()
+{
+    return type::op::logic::Not;
+}
+
+} // namespace logic
+namespace math {
+
+// ============================================================================
+Add::Add(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+bool Add::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Add::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Add::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[data::coding::value]).value();
+    int rhs = static_cast<Number&>(m_rhs[data::coding::value]).value();
+    m_output.set(data::coding::value, Numbers::get(lhs + rhs));
+}
+
+CellI& Add::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Add::type()
+{
+    return t();
+}
+
+void Add::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Add::name() const
+{
+    return "Add";
+}
+
+Type& Add::t()
+{
+    return type::op::math::Add;
+}
+
+// ============================================================================
+Subtract::Subtract(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+bool Subtract::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Subtract::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Subtract::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[data::coding::value]).value();
+    int rhs = static_cast<Number&>(m_rhs[data::coding::value]).value();
+    m_output.set(data::coding::value, Numbers::get(lhs - rhs));
+}
+
+CellI& Subtract::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Subtract::type()
+{
+    return t();
+}
+
+void Subtract::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Subtract::name() const
+{
+    return "Subtract";
+}
+
+Type& Subtract::t()
+{
+    return type::op::math::Subtract;
+}
+
+// ============================================================================
+Multiply::Multiply(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+bool Multiply::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Multiply::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Multiply::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[data::coding::value]).value();
+    int rhs = static_cast<Number&>(m_rhs[data::coding::value]).value();
+    m_output.set(data::coding::value, Numbers::get(lhs * rhs));
+}
+
+CellI& Multiply::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Multiply::type()
+{
+    return t();
+}
+
+void Multiply::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Multiply::name() const
+{
+    return "Multiply";
+}
+
+Type& Multiply::t()
+{
+    return type::op::math::Multiply;
+}
+
+// ============================================================================
+Divide::Divide(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+bool Divide::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void Divide::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void Divide::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[data::coding::value]).value();
+    int rhs = static_cast<Number&>(m_rhs[data::coding::value]).value();
+    m_output.set(data::coding::value, Numbers::get(lhs / rhs));
+}
+
+CellI& Divide::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Divide::type()
+{
+    return t();
+}
+
+void Divide::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Divide::name() const
+{
+    return "Divide";
+}
+
+Type& Divide::t()
+{
+    return type::op::math::Divide;
+}
+
+// ============================================================================
+LessThan::LessThan(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+bool LessThan::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void LessThan::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void LessThan::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[data::coding::value]).value();
+    int rhs = static_cast<Number&>(m_rhs[data::coding::value]).value();
+    m_output.set(data::coding::value, lhs < rhs ? data::boolean::true_ : data::boolean::false_);
+}
+
+CellI& LessThan::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& LessThan::type()
+{
+    return t();
+}
+
+void LessThan::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string LessThan::name() const
+{
+    return "LessThan";
+}
+
+Type& LessThan::t()
+{
+    return type::op::math::LessThan;
+}
+
+// ============================================================================
+GreaterThan::GreaterThan(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs) :
+    m_output(output), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+bool GreaterThan::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::equation::lhs) {
+        return true;
+    }
+    if (&role == &data::equation::rhs) {
+        return true;
+    }
+    if (&role == &data::coding::output) {
+        return true;
+    }
+
+    return false;
+}
+
+void GreaterThan::set(CellI& role, CellI& value)
+{
+    // Editing a control node is not possible
+}
+
+void GreaterThan::operator()()
+{
+    int lhs = static_cast<Number&>(m_lhs[data::coding::value]).value();
+    int rhs = static_cast<Number&>(m_rhs[data::coding::value]).value();
+    m_output.set(data::coding::value, lhs > rhs ? data::boolean::true_ : data::boolean::false_);
+}
+
+CellI& GreaterThan::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::equation::lhs) {
+        return m_lhs;
+    }
+    if (&role == &data::equation::rhs) {
+        return m_rhs;
+    }
+    if (&role == &data::coding::output) {
+        return m_output;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& GreaterThan::type()
+{
+    return t();
+}
+
+void GreaterThan::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string GreaterThan::name() const
+{
+    return "GreaterThan";
+}
+
+Type& GreaterThan::t()
+{
+    return type::op::math::GreaterThan;
+}
+
+} // namespace math
+} // namespace op
 namespace pipeline {
 // ============================================================================
-void BaseNode::addNext(BaseNode& cell)
+void Base::addNext(Base& cell)
 {
     m_next = &cell;
 }
 
 // ============================================================================
-StartNode::StartNode(CellI& input, const std::string& name) :
+Start::Start(CellI& input, const std::string& name) :
     m_name(name), m_value(input)
 {
 }
 
-bool StartNode::has(CellI& role)
+bool Start::has(CellI& role)
 {
     if (&role == &data::type) {
         return true;
@@ -1659,18 +2542,18 @@ bool StartNode::has(CellI& role)
     return false;
 }
 
-void StartNode::set(CellI& role, CellI& value)
+void Start::set(CellI& role, CellI& value)
 {
 }
 
-void StartNode::operator()()
+void Start::operator()()
 {
     if (m_next) {
         (*m_next)();
     }
 }
 
-CellI& StartNode::operator[](CellI& role)
+CellI& Start::operator[](CellI& role)
 {
     if (&role == &data::type) {
         return t();
@@ -1685,33 +2568,34 @@ CellI& StartNode::operator[](CellI& role)
     return Object::emptyObject();
 }
 
-Type& StartNode::type()
+Type& Start::type()
 {
     return t();
 }
 
-void StartNode::accept(Visitor& visitor)
+void Start::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
-std::string StartNode::name() const
+std::string Start::name() const
 {
     return m_name;
 }
 
-Type& StartNode::t()
+Type& Start::t()
 {
-    return type::op::pipeline::StartNode;
+    return type::op::pipeline::Start;
 }
 
 // ============================================================================
-RefNode::RefNode(BaseNode& input, const std::string& name) :
+Fork::Fork(Base& input, const std::string& name) :
     m_input(input), m_name(name)
 {
+    input.addNext(*this);
 }
 
-bool RefNode::has(CellI& role)
+bool Fork::has(CellI& role)
 {
     if (&role == &data::type) {
         return true;
@@ -1722,23 +2606,29 @@ bool RefNode::has(CellI& role)
     if (&role == &data::coding::value && m_value) {
         return true;
     }
+    if (&role == &data::coding::branch && m_branch) {
+        return true;
+    }
 
     return false;
 }
 
-void RefNode::set(CellI& role, CellI& value)
+void Fork::set(CellI& role, CellI& value)
 {
 }
 
-void RefNode::operator()()
+void Fork::operator()()
 {
     m_value = &m_input[data::coding::value];
+    if (m_branch) {
+        (*m_branch)();
+    }
     if (m_next) {
         (*m_next)();
     }
 }
 
-CellI& RefNode::operator[](CellI& role)
+CellI& Fork::operator[](CellI& role)
 {
     if (&role == &data::type) {
         return t();
@@ -1749,37 +2639,45 @@ CellI& RefNode::operator[](CellI& role)
     if (&role == &data::coding::value && m_value) {
         return *m_value;
     }
+    if (&role == &data::coding::branch && m_branch) {
+        return *m_branch;
+    }
 
     return Object::emptyObject();
 }
 
-Type& RefNode::type()
+Type& Fork::type()
 {
     return t();
 }
 
-void RefNode::accept(Visitor& visitor)
+void Fork::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
-std::string RefNode::name() const
+std::string Fork::name() const
 {
     return m_name;
 }
 
-Type& RefNode::t()
+Type& Fork::t()
 {
-    return type::op::pipeline::RefNode;
+    return type::op::pipeline::Fork;
+}
+
+void Fork::addBranch(Base& cell)
+{
+    m_branch = &cell;
 }
 
 // ============================================================================
-EmptyNode::EmptyNode(const std::string& name) :
+Empty::Empty(const std::string& name) :
     m_name(name)
 {
 }
 
-bool EmptyNode::has(CellI& role)
+bool Empty::has(CellI& role)
 {
     if (&role == &data::type) {
         return true;
@@ -1791,18 +2689,18 @@ bool EmptyNode::has(CellI& role)
     return false;
 }
 
-void EmptyNode::set(CellI& role, CellI& value)
+void Empty::set(CellI& role, CellI& value)
 {
 }
 
-void EmptyNode::operator()()
+void Empty::operator()()
 {
     if (m_next) {
         (*m_next)();
     }
 }
 
-CellI& EmptyNode::operator[](CellI& role)
+CellI& Empty::operator[](CellI& role)
 {
     if (&role == &data::type) {
         return t();
@@ -1814,24 +2712,24 @@ CellI& EmptyNode::operator[](CellI& role)
     return Object::emptyObject();
 }
 
-Type& EmptyNode::type()
+Type& Empty::type()
 {
     return t();
 }
 
-void EmptyNode::accept(Visitor& visitor)
+void Empty::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
-std::string EmptyNode::name() const
+std::string Empty::name() const
 {
     return m_name;
 }
 
-Type& EmptyNode::t()
+Type& Empty::t()
 {
-    return type::op::pipeline::EmptyNode;
+    return type::op::pipeline::Empty;
 }
 
 // ============================================================================
@@ -1865,7 +2763,7 @@ void Node::set(CellI& role, CellI& value)
 
 void Node::operator()()
 {
-    m_value = &m_input[data::coding::value];
+    m_value = &(*m_input)[data::coding::value];
     (*m_op)();
     if (m_next) {
         (*m_next)();
@@ -1877,8 +2775,8 @@ CellI& Node::operator[](CellI& role)
     if (&role == &data::type) {
         return t();
     }
-    if (&role == &data::coding::input) {
-        return m_input;
+    if (&role == &data::coding::input && m_input) {
+        return *m_input;
     }
     if (&role == &data::coding::op) {
         return *m_op;
@@ -1900,7 +2798,7 @@ Type& Node::type()
 
 void Node::accept(Visitor& visitor)
 {
-//    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 std::string Node::name() const
@@ -1914,7 +2812,7 @@ Type& Node::t()
 }
 
 // ============================================================================
-IfThen::IfThen(BaseNode& inputNode, const std::string& name) :
+IfThen::IfThen(Base& inputNode, const std::string& name) :
     m_name(name), m_input(inputNode)
 {
 }
@@ -1927,8 +2825,8 @@ bool IfThen::has(CellI& role)
     if (&role == &data::next) {
         return m_next;
     }
-    if (&role == &data::coding::condition) {
-        return m_condition;
+    if (&role == &data::coding::value) {
+        return m_value;
     }
     if (&role == &data::coding::then) {
         return m_thenBranch;
@@ -1949,7 +2847,7 @@ void IfThen::set(CellI& role, CellI& value)
 
 void IfThen::operator()()
 {
-    (*m_condition)();
+    m_value = &m_input[data::coding::value];
     if (m_value == &data::boolean::true_) {
         (*m_thenBranch)();
     } else {
@@ -1966,9 +2864,6 @@ CellI& IfThen::operator[](CellI& role)
 {
     if (&role == &data::type) {
         return t();
-    }
-    if (&role == &data::coding::condition && m_condition) {
-        return *m_condition;
     }
     if (&role == &data::coding::then && m_thenBranch) {
         return *m_thenBranch;
@@ -1993,7 +2888,7 @@ Type& IfThen::type()
 
 void IfThen::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 std::string IfThen::name() const
@@ -2006,23 +2901,18 @@ Type& IfThen::t()
     return type::op::pipeline::IfThen;
 }
 
-void IfThen::addCondition(BaseNode& cell)
-{
-    m_condition = &cell;
-}
-
-void IfThen::addThenBranch(BaseNode& cell)
+void IfThen::addThenBranch(Base& cell)
 {
     m_thenBranch = &cell;
 }
 
-void IfThen::addElseBranch(BaseNode& cell)
+void IfThen::addElseBranch(Base& cell)
 {
     m_elseBranch = &cell;
 }
 
 // ============================================================================
-DoWhile::DoWhile(BaseNode& inputNode, const std::string& name) :
+DoWhile::DoWhile(Base& inputNode, const std::string& name) :
     m_name(name), m_input(inputNode)
 {
 }
@@ -2092,7 +2982,7 @@ Type& DoWhile::type()
 
 void DoWhile::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 std::string DoWhile::name() const
@@ -2106,7 +2996,7 @@ Type& DoWhile::t()
 }
 
 // ============================================================================
-While::While(BaseNode& inputNode, const std::string& name) :
+While::While(Base& inputNode, const std::string& name) :
     m_name(name), m_input(inputNode)
 {
 }
@@ -2139,8 +3029,7 @@ void While::set(CellI& role, CellI& value)
 void While::operator()()
 {
     (*m_condition)();
-    while (m_value == &data::boolean::true_)
-    {
+    while (m_value == &data::boolean::true_) {
         (*m_statement)();
         (*m_condition)();
     };
@@ -2178,7 +3067,7 @@ Type& While::type()
 
 void While::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 std::string While::name() const
@@ -2234,16 +3123,18 @@ Type GreaterThan("GreaterThan");
 } // namespace math
 
 namespace pipeline {
-Type StartNode("StartNode");
-Type RefNode("RefNode");
-Type EmptyNode("EmptyNode");
+Type Start("Start");
+Type Fork("Fork");
+Type Empty("Empty");
+Type New("New");
+Type Delete("Delete");
 Type Node("Node");
 Type IfThen("IfThen");
 Type DoWhile("DoWhile");
 Type While("While");
 } // namespace pipeline
 
-} // namespace control
+} // namespace op
 
 static void staticInit()
 {
@@ -2269,49 +3160,6 @@ static void staticInit()
                         { "rhs", Type::anyType(), data::equation::rhs },
                         { "output", Type::anyType(), data::coding::output } });
 
-    // Example add
-    //  Expr:
-    //   1 + 2 + 3
-    //
-    //  Solution1:
-    //   ps = pipeline::start(input = 1);
-    //   pn1 = pipeline::node(input = ps);
-    //   pe = pipeline::end(input = pn1);
-    //
-    //   ps.op = control::math::Add(ps, 2, pn1);
-    //   pn1.op = control::math::Add(pn1, 3, pe);
-    //
-    //  Solution2:
-    //   pipline.add({ 1, Add(_, 2), Add(_, 3) }); ?
-    //   pipeline.result
-    //
-    // Example fn
-    //  Expr:
-    //   ps1: fn testFn(input = 2) {
-    //   pn1:    if (input > 3) {
-    //   ps1:        input += 4;
-    //           } else {
-    //   pe2:        input += 5; } }
-    //
-    //  Solution1:
-    //   ps = pipeline::start("testFn", input = 2);
-    //   pn1 = pipeline::node(input = ps);
-    //   pn2 = pipeline::if(input = ps);
-    //   pe1 = pipeline::end(input = pn2.true);
-    //   pe2 = pipeline::end(input = pn2.false);
-    //
-    //   ps.op = control::math::Add(ps, 2, pn1);
-    //   pn1.op = control::math::Add(pn1, 3, pe);
-    /*
-    * input = 1
-    * while (input < 5) {
-    *   input += 1;
-    * }
-    *
-    * pinput = pipeline::start(input = 1);
-    * pn1 = pipeline::while(pinput, LessThen(pinput, 5), Add(pinput, 1));
-    *
-    */
     op::pipeline::Node.addSlots({ { "input", Type::anyType(), data::coding::input },
                                   { "next", Type::anyType(), data::next },
                                   { "op", Type::anyType(), data::coding::op },
@@ -2319,7 +3167,6 @@ static void staticInit()
 }
 
 } // namespace type
-
 namespace data {
 Object slotType(Type::anyType());
 Object slotName(Type::anyType());
@@ -2333,18 +3180,21 @@ Object next(Type::anyType());
 Object listOfPixels(Type::anyType());
 
 namespace coding {
-Object name(Type::anyType());
-Object value(Type::anyType());
+Object argument(Type::anyType());
+Object branch(Type::anyType());
 Object cell(Type::anyType());
+Object condition(Type::anyType());
+Object else_(Type::anyType());
 Object input(Type::anyType());
+Object name(Type::anyType());
+Object objectType(Type::anyType());
+Object op(Type::anyType());
 Object output(Type::anyType());
 Object result(Type::anyType());
-Object argument(Type::anyType());
-Object op(Type::anyType());
-Object condition(Type::anyType());
+Object role(Type::anyType());
 Object statement(Type::anyType());
 Object then(Type::anyType());
-Object else_(Type::anyType());
+Object value(Type::anyType());
 } // namespace coding
 
 namespace equation {
@@ -2384,7 +3234,7 @@ Object value(Type::anyType());
 Object type(Type::anyType());
 Object slots(Type::anyType());
 Object sign(Type::anyType());
-} // namespace cells
+} // namespace data
 
 // ============================================================================
 void StaticInitializations()

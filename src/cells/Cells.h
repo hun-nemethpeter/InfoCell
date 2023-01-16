@@ -410,7 +410,7 @@ protected:
 
 namespace control {
 namespace pipeline {
-class BaseNode;
+class Base;
 }
 namespace op {
 
@@ -418,7 +418,7 @@ namespace op {
 class Same : public CellI
 {
 public:
-    Same(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    Same(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -431,16 +431,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class NotSame : public CellI
 {
 public:
-    NotSame(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    NotSame(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -453,16 +453,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class Equal : public CellI
 {
 public:
-    Equal(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    Equal(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -475,16 +475,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class NotEqual : public CellI
 {
 public:
-    NotEqual(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    NotEqual(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -497,58 +497,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
-};
-
-// ============================================================================
-class New : public CellI
-{
-public:
-    New(pipeline::BaseNode& m_output, pipeline::BaseNode& type);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    Type& type() override;
-    void accept(Visitor& visitor) override;
-    std::string name() const override;
-
-    static Type& t();
-
-protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_type;
-};
-
-// ============================================================================
-class Delete : public CellI
-{
-public:
-    Delete(pipeline::BaseNode& m_output, pipeline::BaseNode& m_input);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    Type& type() override;
-    void accept(Visitor& visitor) override;
-    std::string name() const override;
-
-    static Type& t();
-
-protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_input;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class Has : public CellI
 {
 public:
-    Has(pipeline::BaseNode& m_output, pipeline::BaseNode& m_cell, pipeline::BaseNode& m_role);
+    Has(pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -561,16 +519,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_cell;
-    pipeline::BaseNode& m_role;
+    pipeline::Base& m_output;
+    pipeline::Base& m_cell;
+    pipeline::Base& m_role;
 };
 
 // ============================================================================
 class Get : public CellI
 {
 public:
-    Get(pipeline::BaseNode& m_output, pipeline::BaseNode& m_cell, pipeline::BaseNode& m_role);
+    Get(pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -583,16 +541,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_cell;
-    pipeline::BaseNode& m_role;
+    pipeline::Base& m_output;
+    pipeline::Base& m_cell;
+    pipeline::Base& m_role;
 };
 
 // ============================================================================
 class Set : public CellI
 {
 public:
-    Set(pipeline::BaseNode& m_output, pipeline::BaseNode& m_cell, pipeline::BaseNode& m_role, pipeline::BaseNode& m_value);
+    Set(pipeline::Base& output, pipeline::Base& cell, pipeline::Base& role, pipeline::Base& value);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -605,10 +563,10 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_cell;
-    pipeline::BaseNode& m_role;
-    pipeline::BaseNode& m_value;
+    pipeline::Base& m_output;
+    pipeline::Base& m_cell;
+    pipeline::Base& m_role;
+    pipeline::Base& m_value;
 };
 
 namespace logic {
@@ -616,7 +574,7 @@ namespace logic {
 class And : public CellI
 {
 public:
-    And(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    And(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -629,16 +587,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class Or : public CellI
 {
 public:
-    Or(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    Or(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -651,16 +609,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class Not : public CellI
 {
 public:
-    Not(pipeline::BaseNode& m_output, pipeline::BaseNode& m_input);
+    Not(pipeline::Base& output, pipeline::Base& input);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -673,8 +631,8 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_input;
+    pipeline::Base& m_output;
+    pipeline::Base& m_input;
 };
 
 } // namespace logic
@@ -685,7 +643,7 @@ namespace math {
 class Add : public CellI
 {
 public:
-    Add(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    Add(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -698,16 +656,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class Subtract : public CellI
 {
 public:
-    Subtract(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    Subtract(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -720,16 +678,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class Multiply : public CellI
 {
 public:
-    Multiply(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    Multiply(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -742,16 +700,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class Divide : public CellI
 {
 public:
-    Divide(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    Divide(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -764,16 +722,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class LessThan : public CellI
 {
 public:
-    LessThan(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    LessThan(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -786,16 +744,16 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 // ============================================================================
 class GreaterThan : public CellI
 {
 public:
-    GreaterThan(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+    GreaterThan(pipeline::Base& output, pipeline::Base& lhs, pipeline::Base& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -808,9 +766,9 @@ public:
     static Type& t();
 
 protected:
-    pipeline::BaseNode& m_output;
-    pipeline::BaseNode& m_lhs;
-    pipeline::BaseNode& m_rhs;
+    pipeline::Base& m_output;
+    pipeline::Base& m_lhs;
+    pipeline::Base& m_rhs;
 };
 
 } // namespace math
@@ -819,28 +777,28 @@ protected:
 namespace pipeline {
 
 // ============================================================================
-class BaseNode : public CellI
+class Base : public CellI
 {
 public:
-    bool has(CellI& role) override = 0;
+    bool has(CellI& role) override               = 0;
     void set(CellI& role, CellI& value) override = 0;
-    void operator()() override = 0;
-    CellI& operator[](CellI& role) override = 0;
-    Type& type() override = 0;
-    void accept(Visitor& visitor) override = 0;
-    std::string name() const override = 0;
+    void operator()() override                   = 0;
+    CellI& operator[](CellI& role) override      = 0;
+    Type& type() override                        = 0;
+    void accept(Visitor& visitor) override       = 0;
+    std::string name() const override            = 0;
 
-    void addNext(BaseNode& cell);
+    void addNext(Base& cell);
 
 protected:
-    BaseNode* m_next = nullptr;
+    Base* m_next = nullptr;
 };
 
 // ============================================================================
-class StartNode : public BaseNode
+class Start : public Base
 {
 public:
-    StartNode(CellI& input, const std::string& name = "RefNode");
+    Start(CellI& input, const std::string& name = "Start");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -858,10 +816,10 @@ protected:
 };
 
 // ============================================================================
-class RefNode : public BaseNode
+class Fork : public Base
 {
 public:
-    RefNode(BaseNode& input, const std::string& name = "RefNode");
+    Fork(Base& input, const std::string& name = "Fork");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -872,18 +830,20 @@ public:
     std::string name() const override;
 
     static Type& t();
+    void addBranch(Base& cell);
 
 protected:
-    BaseNode& m_input;
+    Base& m_input;
     CellI* m_value = nullptr;
+    Base* m_branch = nullptr;
     std::string m_name;
 };
 
 // ============================================================================
-class EmptyNode : public BaseNode
+class Empty : public Base
 {
 public:
-    EmptyNode(const std::string& name = "EmptyNode");
+    Empty(const std::string& name = "Empty");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -900,23 +860,66 @@ protected:
 };
 
 // ============================================================================
-class Node : public BaseNode
+class New : public Base
+{
+public:
+    New(Type& type, const std::string& name = "New");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    std::string m_name;
+    Type& m_type;
+    CellI* m_value = nullptr;
+};
+
+// ============================================================================
+class Delete : public Base
+{
+public:
+    Delete(Base& input, const std::string& name = "Delete");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    std::string m_name;
+    CellI* m_value = nullptr;
+};
+
+// ============================================================================
+class Node : public Base
 {
 public:
     template <typename... T>
-    Node(BaseNode& inputNode, CellI& op, T&... args) :
-        m_input(inputNode)
+    Node(Base& input, CellI& op, T&... args) :
+        m_input(&input)
     {
         initOp(op, args...);
-        m_input.addNext(*this);
+        input.addNext(*this);
     }
 
     template <typename... T>
-    Node(BaseNode& inputNode, const std::string& name, CellI& op, T&... args) :
-        m_name(name), m_input(inputNode)
+    Node(Base& input, const std::string& name, CellI& op, T&... args) :
+        m_name(name), m_input(&input)
     {
         initOp(op, args...);
-        m_input.addNext(*this);
+        input.addNext(*this);
     }
 
     bool has(CellI& role) override;
@@ -933,17 +936,9 @@ protected:
     template <typename T1>
     void initOp(CellI& op, T1& arg1)
     {
-#if 0 // TODO
-        if (&op == &control::op::New::t()) {
-            m_op = std::make_unique<op::New>(*this, arg1);
-        }
-        if (&op == &control::op::Delete::t()) {
-            m_op = std::make_unique<op::Delete>(*this, arg1);
-        }
         if (&op == &control::op::logic::Not::t()) {
             m_op = std::make_unique<op::logic::Not>(*this, arg1);
         }
-#endif
     }
 
     template <typename T1, typename T2>
@@ -961,7 +956,12 @@ protected:
         if (&op == &control::op::NotEqual::t()) {
             m_op = std::make_unique<op::NotEqual>(*this, arg1, arg2);
         }
-#if 0 // TODO
+        if (&op == &control::op::Has::t()) {
+            m_op = std::make_unique<op::Has>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::Get::t()) {
+            m_op = std::make_unique<op::Get>(*this, arg1, arg2);
+        }
         if (&op == &control::op::logic::And::t()) {
             m_op = std::make_unique<op::logic::And>(*this, arg1, arg2);
         }
@@ -986,37 +986,27 @@ protected:
         if (&op == &control::op::math::GreaterThan::t()) {
             m_op = std::make_unique<op::math::GreaterThan>(*this, arg1, arg2);
         }
-#endif
     }
 
     template <typename T1, typename T2, typename T3>
     void initOp(CellI& op, T1& arg1, T2& arg2, T3& arg3)
     {
-#if 0 // TODO
-
-        if (&op == &control::op::Has::t()) {
-            m_op = std::make_unique<op::Has>(*this, arg1, arg2, arg3);
-        }
-        if (&op == &control::op::Get::t()) {
-            m_op = std::make_unique<op::Get>(*this, arg1, arg2, arg3);
-        }
         if (&op == &control::op::Set::t()) {
             m_op = std::make_unique<op::Set>(*this, arg1, arg2, arg3);
         }
-#endif
     }
 
     std::string m_name;
-    BaseNode& m_input;
+    Base* m_input = nullptr;
     std::unique_ptr<CellI> m_op;
     CellI* m_value = nullptr;
 };
 
 // ============================================================================
-class IfThen : public BaseNode
+class IfThen : public Base
 {
 public:
-    IfThen(BaseNode& inputNode, const std::string& name = "IfThen");
+    IfThen(Base& input, const std::string& name = "IfThen");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1028,24 +1018,22 @@ public:
 
     static Type& t();
 
-    void addCondition(BaseNode& cell);
-    void addThenBranch(BaseNode& cell);
-    void addElseBranch(BaseNode& cell);
+    void addThenBranch(Base& cell);
+    void addElseBranch(Base& cell);
 
 protected:
     std::string m_name;
     CellI& m_input;
-    BaseNode* m_condition  = nullptr;
-    BaseNode* m_thenBranch = nullptr;
-    BaseNode* m_elseBranch = nullptr;
-    CellI* m_value         = nullptr;
+    Base* m_thenBranch = nullptr;
+    Base* m_elseBranch = nullptr;
+    CellI* m_value     = nullptr;
 };
 
 // ============================================================================
-class DoWhile : public BaseNode
+class DoWhile : public Base
 {
 public:
-    DoWhile(BaseNode& inputNode, const std::string& name = "DoWhile");
+    DoWhile(Base& input, const std::string& name = "DoWhile");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1057,22 +1045,22 @@ public:
 
     static Type& t();
 
-    void addCondition(BaseNode& cell);
-    void addStatement(BaseNode& cell);
+    void addCondition(Base& cell);
+    void addStatement(Base& cell);
 
 protected:
     std::string m_name;
     CellI& m_input;
-    BaseNode* m_condition = nullptr;
-    BaseNode* m_statement = nullptr;
-    CellI* m_value        = nullptr;
+    Base* m_condition = nullptr;
+    Base* m_statement = nullptr;
+    CellI* m_value    = nullptr;
 };
 
 // ============================================================================
-class While : public BaseNode
+class While : public Base
 {
 public:
-    While(BaseNode& inputNode, const std::string& name = "While");
+    While(Base& input, const std::string& name = "While");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1084,15 +1072,15 @@ public:
 
     static Type& t();
 
-    void addCondition(BaseNode& cell);
-    void addStatement(BaseNode& cell);
+    void addCondition(Base& cell);
+    void addStatement(Base& cell);
 
 protected:
     std::string m_name;
     CellI& m_input;
-    BaseNode* m_condition = nullptr;
-    BaseNode* m_statement = nullptr;
-    CellI* m_value        = nullptr;
+    Base* m_condition = nullptr;
+    Base* m_statement = nullptr;
+    CellI* m_value    = nullptr;
 };
 
 } // namespace pipeline
@@ -1102,20 +1090,46 @@ protected:
 class Visitor
 {
 public:
-    virtual void visit(Slot& cell)           = 0;
-    virtual void visit(Type& cell)           = 0;
-    virtual void visit(Object& cell)         = 0;
-    virtual void visit(ListItem& cell)       = 0;
-    virtual void visit(List& cell)           = 0;
-    virtual void visit(Number& cell)         = 0;
-    virtual void visit(String& cell)         = 0;
-    virtual void visit(hybrid::Color& cell)  = 0;
-    virtual void visit(hybrid::Pixel& cell)  = 0;
-    virtual void visit(hybrid::Sensor& cell) = 0;
+    virtual void visit(Slot&)     = 0;
+    virtual void visit(Type&)     = 0;
+    virtual void visit(Object&)   = 0;
+    virtual void visit(ListItem&) = 0;
+    virtual void visit(List&)     = 0;
+    virtual void visit(Number&)   = 0;
+    virtual void visit(String&)   = 0;
+
+    virtual void visit(hybrid::Color&)  = 0;
+    virtual void visit(hybrid::Pixel&)  = 0;
+    virtual void visit(hybrid::Sensor&) = 0;
+
+    virtual void visit(control::op::Same&) { }
+    virtual void visit(control::op::NotSame&) { }
+    virtual void visit(control::op::Equal&) { }
+    virtual void visit(control::op::NotEqual&) { }
+    virtual void visit(control::op::Has&) { }
+    virtual void visit(control::op::Get&) { }
+    virtual void visit(control::op::Set&) { }
+    virtual void visit(control::op::logic::And&) { }
+    virtual void visit(control::op::logic::Or&) { }
+    virtual void visit(control::op::logic::Not&) { }
+    virtual void visit(control::op::math::Add&) { }
+    virtual void visit(control::op::math::Subtract&) { }
+    virtual void visit(control::op::math::Multiply&) { }
+    virtual void visit(control::op::math::Divide&) { }
+    virtual void visit(control::op::math::LessThan&) { }
+    virtual void visit(control::op::math::GreaterThan&) { }
+    virtual void visit(control::pipeline::Start&) { }
+    virtual void visit(control::pipeline::Fork&) { }
+    virtual void visit(control::pipeline::Empty&) { }
+    virtual void visit(control::pipeline::New&) { }
+    virtual void visit(control::pipeline::Delete&) { }
+    virtual void visit(control::pipeline::Node&) { }
+    virtual void visit(control::pipeline::IfThen&) { }
+    virtual void visit(control::pipeline::DoWhile&) { }
+    virtual void visit(control::pipeline::While&) { }
 };
 
-namespace type
-{
+namespace type {
 extern Type Boolean;
 extern Type Digit;
 extern Type Number;
@@ -1130,9 +1144,6 @@ extern Type Same;
 extern Type NotSame;
 extern Type Equal;
 extern Type NotEqual;
-
-extern Type New;
-extern Type Delete;
 
 extern Type Has;
 extern Type Get;
@@ -1154,18 +1165,19 @@ extern Type GreaterThan;
 } // namespace math
 
 namespace pipeline {
-extern Type StartNode;
-extern Type RefNode;
-extern Type EmptyNode;
+extern Type Start;
+extern Type Fork;
+extern Type Empty;
+extern Type New;
+extern Type Delete;
 extern Type Node;
 extern Type IfThen;
 extern Type DoWhile;
 extern Type While;
 } // namespace pipeline
 
-} // namespace control
+} // namespace op
 } // namespace type
-
 
 namespace data {
 extern Object slotType;
@@ -1180,18 +1192,21 @@ extern Object next;
 extern Object listOfPixels;
 
 namespace coding {
-extern Object name;
-extern Object value;
+extern Object argument;
+extern Object branch;
 extern Object cell;
+extern Object condition;
+extern Object else_;
 extern Object input;
+extern Object name;
+extern Object objectType;
+extern Object op;
 extern Object output;
 extern Object result;
-extern Object argument;
-extern Object op;
-extern Object condition;
+extern Object role;
 extern Object statement;
 extern Object then;
-extern Object else_;
+extern Object value;
 } // namespace coding
 
 namespace equation {
@@ -1231,7 +1246,7 @@ extern Object value;
 extern Object type;
 extern Object slots;
 extern Object sign;
-} // namespace cells
+} // namespace data
 
 void StaticInitializations();
 
