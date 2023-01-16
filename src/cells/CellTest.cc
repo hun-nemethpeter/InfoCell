@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
     control::pipeline::StartNode mainStartNode(sensor);
     control::pipeline::RefNode paramInputNode1(mainStartNode);
     control::pipeline::RefNode paramInputNode2(mainStartNode);
-    control::pipeline::Node node1(mainStartNode, control::Same::t(), paramInputNode1, paramInputNode2);
+    control::pipeline::Node node1(mainStartNode, control::op::Same::t(), paramInputNode1, paramInputNode2);
     mainStartNode();
 
     std::cout << "SameOp: ";

@@ -25,6 +25,8 @@ public:
     virtual Type& type()                        = 0;
     virtual void accept(Visitor& visitor)       = 0;
     virtual std::string name() const            = 0;
+    bool operator==(CellI& rhs);
+    bool operator!=(CellI& rhs);
 };
 
 // ============================================================================
@@ -411,11 +413,16 @@ protected:
 } // namespace hybrid
 
 namespace control {
+namespace pipeline {
+class BaseNode;
+}
+namespace op {
+
 // ============================================================================
 class Same : public CellI
 {
 public:
-    Same(CellI& m_output, CellI& lhs, CellI& rhs);
+    Same(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -428,10 +435,390 @@ public:
     static Type& t();
 
 protected:
-    CellI& m_output;
-    CellI& m_lhs;
-    CellI& m_rhs;
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
 };
+
+// ============================================================================
+class NotSame : public CellI
+{
+public:
+    NotSame(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class Equal : public CellI
+{
+public:
+    Equal(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class NotEqual : public CellI
+{
+public:
+    NotEqual(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class New : public CellI
+{
+public:
+    New(pipeline::BaseNode& m_output, pipeline::BaseNode& type);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_type;
+};
+
+// ============================================================================
+class Delete : public CellI
+{
+public:
+    Delete(pipeline::BaseNode& m_output, pipeline::BaseNode& m_input);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_input;
+};
+
+// ============================================================================
+class Has : public CellI
+{
+public:
+    Has(pipeline::BaseNode& m_output, pipeline::BaseNode& m_cell, pipeline::BaseNode& m_role);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_cell;
+    pipeline::BaseNode& m_role;
+};
+
+// ============================================================================
+class Get : public CellI
+{
+public:
+    Get(pipeline::BaseNode& m_output, pipeline::BaseNode& m_cell, pipeline::BaseNode& m_role);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_cell;
+    pipeline::BaseNode& m_role;
+};
+
+// ============================================================================
+class Set : public CellI
+{
+public:
+    Set(pipeline::BaseNode& m_output, pipeline::BaseNode& m_cell, pipeline::BaseNode& m_role, pipeline::BaseNode& m_value);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_cell;
+    pipeline::BaseNode& m_role;
+    pipeline::BaseNode& m_value;
+};
+
+namespace logic {
+// ============================================================================
+class And : public CellI
+{
+public:
+    And(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class Or : public CellI
+{
+public:
+    Or(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class Not : public CellI
+{
+public:
+    Not(pipeline::BaseNode& m_output, pipeline::BaseNode& m_input);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_input;
+};
+
+} // namespace logic
+
+namespace math {
+
+// ============================================================================
+class Add : public CellI
+{
+public:
+    Add(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class Subtract : public CellI
+{
+public:
+    Subtract(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class Multiply : public CellI
+{
+public:
+    Multiply(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class Divide : public CellI
+{
+public:
+    Divide(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class LessThan : public CellI
+{
+public:
+    LessThan(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+// ============================================================================
+class GreaterThan : public CellI
+{
+public:
+    GreaterThan(pipeline::BaseNode& m_output, pipeline::BaseNode& lhs, pipeline::BaseNode& rhs);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    pipeline::BaseNode& m_output;
+    pipeline::BaseNode& m_lhs;
+    pipeline::BaseNode& m_rhs;
+};
+
+} // namespace math
+} // namespace op
 
 namespace pipeline {
 
@@ -524,14 +911,16 @@ public:
     Node(BaseNode& inputNode, CellI& op, T&... args) :
         m_input(inputNode)
     {
-        init(op, args...);
+        initOp(op, args...);
+        m_input.addNext(*this);
     }
 
     template <typename... T>
     Node(BaseNode& inputNode, const std::string& name, CellI& op, T&... args) :
         m_name(name), m_input(inputNode)
     {
-        init(op, args...);
+        initOp(op, args...);
+        m_input.addNext(*this);
     }
 
     bool has(CellI& role) override;
@@ -545,13 +934,80 @@ public:
     static Type& t();
 
 protected:
-    template <typename... T>
-    void init(CellI& op, T&... args)
+    template <typename T1>
+    void initOp(CellI& op, T1& arg1)
     {
-        if (&op == &control::Same::t()) {
-            m_op = std::make_unique<Same>(*this, args...);
+#if 0 // TODO
+        if (&op == &control::op::New::t()) {
+            m_op = std::make_unique<op::New>(*this, arg1);
         }
-        m_input.addNext(*this);
+        if (&op == &control::op::Delete::t()) {
+            m_op = std::make_unique<op::Delete>(*this, arg1);
+        }
+        if (&op == &control::op::logic::Not::t()) {
+            m_op = std::make_unique<op::logic::Not>(*this, arg1);
+        }
+#endif
+    }
+
+    template <typename T1, typename T2>
+    void initOp(CellI& op, T1& arg1, T2& arg2)
+    {
+        if (&op == &control::op::Same::t()) {
+            m_op = std::make_unique<op::Same>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::NotSame::t()) {
+            m_op = std::make_unique<op::NotSame>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::Equal::t()) {
+            m_op = std::make_unique<op::Equal>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::NotEqual::t()) {
+            m_op = std::make_unique<op::NotEqual>(*this, arg1, arg2);
+        }
+#if 0 // TODO
+        if (&op == &control::op::logic::And::t()) {
+            m_op = std::make_unique<op::logic::And>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::logic::Or::t()) {
+            m_op = std::make_unique<op::logic::Or>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::math::Add::t()) {
+            m_op = std::make_unique<op::math::Add>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::math::Subtract::t()) {
+            m_op = std::make_unique<op::math::Subtract>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::math::Multiply::t()) {
+            m_op = std::make_unique<op::math::Multiply>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::math::Divide::t()) {
+            m_op = std::make_unique<op::math::Divide>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::math::LessThan::t()) {
+            m_op = std::make_unique<op::math::LessThan>(*this, arg1, arg2);
+        }
+        if (&op == &control::op::math::GreaterThan::t()) {
+            m_op = std::make_unique<op::math::GreaterThan>(*this, arg1, arg2);
+        }
+#endif
+    }
+
+    template <typename T1, typename T2, typename T3>
+    void initOp(CellI& op, T1& arg1, T2& arg2, T3& arg3)
+    {
+#if 0 // TODO
+
+        if (&op == &control::op::Has::t()) {
+            m_op = std::make_unique<op::Has>(*this, arg1, arg2, arg3);
+        }
+        if (&op == &control::op::Get::t()) {
+            m_op = std::make_unique<op::Get>(*this, arg1, arg2, arg3);
+        }
+        if (&op == &control::op::Set::t()) {
+            m_op = std::make_unique<op::Set>(*this, arg1, arg2, arg3);
+        }
+#endif
     }
 
     std::string m_name;
@@ -753,8 +1209,8 @@ extern Object blue;
 } // namespace colors
 
 namespace boolean {
-extern Object _true;
-extern Object _false;
+extern Object true_;
+extern Object false_;
 } // namespace boolean
 
 extern Object width;
