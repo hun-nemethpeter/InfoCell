@@ -2605,7 +2605,7 @@ std::string Start::name() const
 
 Type& Start::t()
 {
-    return type::op::pipeline::Start;
+    return type::pipeline::Start;
 }
 
 // ============================================================================
@@ -2683,7 +2683,7 @@ std::string Fork::name() const
 
 Type& Fork::t()
 {
-    return type::op::pipeline::Fork;
+    return type::pipeline::Fork;
 }
 
 void Fork::addBranch(Base& cell)
@@ -2749,7 +2749,7 @@ std::string Empty::name() const
 
 Type& Empty::t()
 {
-    return type::op::pipeline::Empty;
+    return type::pipeline::Empty;
 }
 
 // ============================================================================
@@ -2828,7 +2828,7 @@ std::string New::name() const
 
 Type& New::t()
 {
-    return type::op::pipeline::New;
+    return type::pipeline::New;
 }
 
 // ============================================================================
@@ -2891,7 +2891,7 @@ std::string Delete::name() const
 
 Type& Delete::t()
 {
-    return type::op::pipeline::Delete;
+    return type::pipeline::Delete;
 }
 
 // ============================================================================
@@ -2970,7 +2970,7 @@ std::string Node::name() const
 
 Type& Node::t()
 {
-    return type::op::pipeline::Node;
+    return type::pipeline::Node;
 }
 
 // ============================================================================
@@ -3060,7 +3060,7 @@ std::string IfThen::name() const
 
 Type& IfThen::t()
 {
-    return type::op::pipeline::IfThen;
+    return type::pipeline::IfThen;
 }
 
 void IfThen::addThenBranch(Base& cell)
@@ -3154,7 +3154,7 @@ std::string DoWhile::name() const
 
 Type& DoWhile::t()
 {
-    return type::op::pipeline::DoWhile;
+    return type::pipeline::DoWhile;
 }
 
 // ============================================================================
@@ -3239,7 +3239,7 @@ std::string While::name() const
 
 Type& While::t()
 {
-    return type::op::pipeline::While;
+    return type::pipeline::While;
 }
 
 } // namespace pipeline
@@ -3257,6 +3257,7 @@ Type Pixel("Pixel");
 Type Picture("Picture");
 
 namespace op {
+Type Base("Base");
 Type Same("Same");
 Type NotSame("NotSame");
 Type Equal("Equal");
@@ -3283,8 +3284,10 @@ Type Divide("Divide");
 Type LessThan("LessThan");
 Type GreaterThan("GreaterThan");
 } // namespace math
+} // namespace op
 
 namespace pipeline {
+Type Base("Base");
 Type Start("Start");
 Type Fork("Fork");
 Type Empty("Empty");
@@ -3295,8 +3298,6 @@ Type IfThen("IfThen");
 Type DoWhile("DoWhile");
 Type While("While");
 } // namespace pipeline
-
-} // namespace op
 
 static void staticInit()
 {
@@ -3318,26 +3319,26 @@ static void staticInit()
           { "height", Number::t(), data::height },
           { "pixels", hybrid::Picture::pixelsType(), data::pixels } });
 
-    op::Same.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
-                        { "rhs", Type::anyType(), data::equation::rhs },
-                        { "output", Type::anyType(), data::coding::output } });
+    op::Same.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                        { "rhs", type::pipeline::Base, data::equation::rhs },
+                        { "output", type::pipeline::Base, data::coding::output } });
 
-    op::NotSame.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
-                           { "rhs", Type::anyType(), data::equation::rhs },
-                           { "output", Type::anyType(), data::coding::output } });
+    op::NotSame.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                           { "rhs", type::pipeline::Base, data::equation::rhs },
+                           { "output", type::pipeline::Base, data::coding::output } });
 
-    op::Equal.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
-                         { "rhs", Type::anyType(), data::equation::rhs },
-                         { "output", Type::anyType(), data::coding::output } });
+    op::Equal.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                         { "rhs", type::pipeline::Base, data::equation::rhs },
+                         { "output", type::pipeline::Base, data::coding::output } });
 
-    op::NotEqual.addSlots({ { "lhs", Type::anyType(), data::equation::lhs },
-                            { "rhs", Type::anyType(), data::equation::rhs },
-                            { "output", Type::anyType(), data::coding::output } });
+    op::NotEqual.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                            { "rhs", type::pipeline::Base, data::equation::rhs },
+                            { "output", type::pipeline::Base, data::coding::output } });
 
-    op::pipeline::Node.addSlots({ { "input", Type::anyType(), data::coding::input },
-                                  { "next", Type::anyType(), data::next },
-                                  { "op", Type::anyType(), data::coding::op },
-                                  { "value", Type::anyType(), data::coding::value } });
+    pipeline::Node.addSlots({ { "input", type::pipeline::Base, data::coding::input },
+                              { "next", type::pipeline::Base, data::next },
+                              { "op", type::op::Base, data::coding::op },
+                              { "value", type::pipeline::Base, data::coding::value } });
 }
 
 } // namespace type

@@ -1141,6 +1141,7 @@ extern Type Pixel;
 extern Type Picture;
 
 namespace op {
+extern Type Base;
 extern Type Same;
 extern Type NotSame;
 extern Type Equal;
@@ -1164,8 +1165,10 @@ extern Type Divide;
 extern Type LessThan;
 extern Type GreaterThan;
 } // namespace math
+} // namespace op
 
 namespace pipeline {
+extern Type Base;
 extern Type Start;
 extern Type Fork;
 extern Type Empty;
@@ -1177,7 +1180,6 @@ extern Type DoWhile;
 extern Type While;
 } // namespace pipeline
 
-} // namespace op
 } // namespace type
 
 namespace data {
