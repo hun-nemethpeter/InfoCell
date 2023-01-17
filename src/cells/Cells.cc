@@ -9,6 +9,11 @@
 namespace synth {
 namespace cells {
 
+static CellI& toCellBool(bool value)
+{
+    return value ? cells::data::boolean::true_ : cells::data::boolean::false_;
+}
+
 bool CellI::operator==(CellI& rhs)
 {
     if (&type() != &rhs.type()) {
@@ -411,8 +416,7 @@ std::map<CellI*, CellI*>& Object::roles()
 
 void Object::staticInit()
 {
-    static Type emptyClass("Empty");
-    s_emptyObject.reset(new Object(emptyClass));
+    s_emptyObject.reset(new Object(type::Void));
 }
 
 Object& Object::emptyObject()
@@ -1362,11 +1366,9 @@ void Same::set(CellI& role, CellI& value)
 
 void Same::operator()()
 {
-    if (&m_lhs[data::coding::value] == &m_rhs[data::coding::value]) {
-        m_output.set(data::coding::value, cells::data::boolean::true_);
-    } else {
-        m_output.set(data::coding::value, cells::data::boolean::false_);
-    }
+    CellI* lhs = &m_lhs[data::coding::value];
+    CellI* rhs = &m_rhs[data::coding::value];
+    m_output.set(data::coding::value, toCellBool(lhs == rhs));
 }
 
 CellI& Same::operator[](CellI& role)
@@ -1438,11 +1440,9 @@ void NotSame::set(CellI& role, CellI& value)
 
 void NotSame::operator()()
 {
-    if (&m_lhs[data::coding::value] != &m_rhs[data::coding::value]) {
-        m_output.set(data::coding::value, cells::data::boolean::true_);
-    } else {
-        m_output.set(data::coding::value, cells::data::boolean::false_);
-    }
+    CellI* lhs = &m_lhs[data::coding::value];
+    CellI* rhs = &m_rhs[data::coding::value];
+    m_output.set(data::coding::value, toCellBool(lhs != rhs));
 }
 
 CellI& NotSame::operator[](CellI& role)
@@ -1514,11 +1514,9 @@ void Equal::set(CellI& role, CellI& value)
 
 void Equal::operator()()
 {
-    if (m_lhs[data::coding::value] == m_rhs[data::coding::value]) {
-        m_output.set(data::coding::value, cells::data::boolean::true_);
-    } else {
-        m_output.set(data::coding::value, cells::data::boolean::false_);
-    }
+    CellI& lhs = m_lhs[data::coding::value];
+    CellI& rhs = m_rhs[data::coding::value];
+    m_output.set(data::coding::value, toCellBool(lhs == rhs));
 }
 
 CellI& Equal::operator[](CellI& role)
@@ -1590,11 +1588,9 @@ void NotEqual::set(CellI& role, CellI& value)
 
 void NotEqual::operator()()
 {
-    if (m_lhs[data::coding::value] != m_rhs[data::coding::value]) {
-        m_output.set(data::coding::value, cells::data::boolean::true_);
-    } else {
-        m_output.set(data::coding::value, cells::data::boolean::false_);
-    }
+    CellI& lhs = m_lhs[data::coding::value];
+    CellI& rhs = m_rhs[data::coding::value];
+    m_output.set(data::coding::value, toCellBool(lhs != rhs));
 }
 
 CellI& NotEqual::operator[](CellI& role)
@@ -1666,7 +1662,9 @@ void Has::set(CellI& role, CellI& value)
 
 void Has::operator()()
 {
-    m_output.set(data::coding::value, m_cell.has(m_role) ? cells::data::boolean::true_ : cells::data::boolean::false_);
+    CellI& cell = m_cell[data::coding::value];
+    CellI& role = m_role[data::coding::value];
+    m_output.set(data::coding::value, toCellBool(cell.has(role)));
 }
 
 CellI& Has::operator[](CellI& role)
@@ -1738,7 +1736,9 @@ void Get::set(CellI& role, CellI& value)
 
 void Get::operator()()
 {
-    m_output.set(data::coding::value, m_cell[m_role]);
+    CellI& cell = m_cell[data::coding::value];
+    CellI& role = m_role[data::coding::value];
+    m_output.set(data::coding::value, cell[role]);
 }
 
 CellI& Get::operator[](CellI& role)
@@ -1813,7 +1813,11 @@ void Set::set(CellI& role, CellI& value)
 
 void Set::operator()()
 {
-    m_cell.set(m_role, m_value);
+    CellI& cell  = m_cell[data::coding::value];
+    CellI& role  = m_role[data::coding::value];
+    CellI& value = m_value[data::coding::value];
+
+    cell.set(role, value);
 }
 
 CellI& Set::operator[](CellI& role)
@@ -1891,11 +1895,7 @@ void And::operator()()
 {
     bool lhs = m_lhs[data::coding::value] == cells::data::boolean::true_;
     bool rhs = m_rhs[data::coding::value] == cells::data::boolean::true_;
-    if (lhs && rhs) {
-        m_output.set(data::coding::value, cells::data::boolean::true_);
-    } else {
-        m_output.set(data::coding::value, cells::data::boolean::false_);
-    }
+    m_output.set(data::coding::value, toCellBool(lhs && rhs));
 }
 
 CellI& And::operator[](CellI& role)
@@ -1969,11 +1969,7 @@ void Or::operator()()
 {
     bool lhs = m_lhs[data::coding::value] == cells::data::boolean::true_;
     bool rhs = m_rhs[data::coding::value] == cells::data::boolean::true_;
-    if (lhs || rhs) {
-        m_output.set(data::coding::value, cells::data::boolean::true_);
-    } else {
-        m_output.set(data::coding::value, cells::data::boolean::false_);
-    }
+    m_output.set(data::coding::value, toCellBool(lhs || rhs));
 }
 
 CellI& Or::operator[](CellI& role)
@@ -2043,11 +2039,7 @@ void Not::set(CellI& role, CellI& value)
 void Not::operator()()
 {
     bool input = m_input[data::coding::value] == cells::data::boolean::true_;
-    if (!input) {
-        m_output.set(data::coding::value, cells::data::boolean::true_);
-    } else {
-        m_output.set(data::coding::value, cells::data::boolean::false_);
-    }
+    m_output.set(data::coding::value, toCellBool(!input));
 }
 
 CellI& Not::operator[](CellI& role)
@@ -2536,24 +2528,119 @@ Type& GreaterThan::t()
 } // namespace op
 namespace pipeline {
 // ============================================================================
+Base::Base(Base* first) :
+    m_first(first)
+{
+}
+
 void Base::addNext(Base& cell)
 {
     m_next = &cell;
 }
 
+void Base::setCurrent()
+{
+    m_first->set(data::current, *this);
+}
+
 // ============================================================================
-Start::Start(CellI& input, const std::string& name) :
-    m_name(name), m_value(input)
+Void::Void(const std::string& name) :
+    Base(this), m_name(name), m_current(this)
 {
 }
 
-bool Start::has(CellI& role)
+bool Void::has(CellI& role)
 {
     if (&role == &data::type) {
         return true;
     }
+    if (&role == &data::first) {
+        return true;
+    }
     if (&role == &data::next) {
         return m_next;
+    }
+    if (&role == &data::current) {
+        return true;
+    }
+
+    return false;
+}
+
+void Void::set(CellI& role, CellI& value)
+{
+}
+
+void Void::operator()()
+{
+    setCurrent();
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& Void::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::first) {
+        return *m_first;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+    if (&role == &data::current) {
+        return *m_current;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& Void::type()
+{
+    return t();
+}
+
+void Void::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string Void::name() const
+{
+    return m_name;
+}
+
+Type& Void::t()
+{
+    return type::pipeline::Void;
+}
+
+// ============================================================================
+Input::Input(CellI& value, const std::string& name) :
+    Base(this), m_name(name), m_value(&value), m_current(this)
+{
+}
+
+Input::Input(CellI* value, const std::string& name) :
+    Base(this), m_name(name), m_value(value), m_current(this)
+{
+}
+
+bool Input::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::first) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::current) {
+        return true;
     }
     if (&role == &data::coding::value) {
         return true;
@@ -2562,55 +2649,158 @@ bool Start::has(CellI& role)
     return false;
 }
 
-void Start::set(CellI& role, CellI& value)
+void Input::set(CellI& role, CellI& value)
 {
 }
 
-void Start::operator()()
+void Input::operator()()
 {
     if (m_next) {
         (*m_next)();
     }
 }
 
-CellI& Start::operator[](CellI& role)
+CellI& Input::operator[](CellI& role)
 {
     if (&role == &data::type) {
         return t();
     }
+    if (&role == &data::first) {
+        return *m_first;
+    }
     if (&role == &data::next && m_next) {
         return *m_next;
     }
-    if (&role == &data::coding::value) {
-        return m_value;
+    if (&role == &data::current) {
+        return *m_current;
+    }
+    if (&role == &data::coding::value && m_value) {
+        return *m_value;
     }
 
     return Object::emptyObject();
 }
 
-Type& Start::type()
+Type& Input::type()
 {
     return t();
 }
 
-void Start::accept(Visitor& visitor)
+void Input::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
-std::string Start::name() const
+std::string Input::name() const
 {
     return m_name;
 }
 
-Type& Start::t()
+Type& Input::t()
 {
-    return type::pipeline::Start;
+    return type::pipeline::Input;
+}
+
+// ============================================================================
+New::New(Type& objectType, const std::string& name) :
+    Base(this), m_name(name), m_objectType(objectType), m_current(this)
+{
+}
+
+bool New::has(CellI& role)
+{
+    if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::first) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
+    if (&role == &data::current) {
+        return true;
+    }
+    if (&role == &data::coding::value && m_value) {
+        return m_value;
+    }
+    if (&role == &data::coding::objectType) {
+        return true;
+    }
+
+    return false;
+}
+
+void New::set(CellI& role, CellI& value)
+{
+    if (&role == &data::coding::objectType && &value.type() == &Type::t()) {
+        m_value = &value;
+    }
+}
+
+void New::operator()()
+{
+    if (&m_objectType == &Type::t()) {
+        m_value = new Type();
+    }
+    if (&m_objectType == &Number::t()) {
+        m_value = new Number();
+    }
+    if (&m_objectType == &String::t()) {
+        m_value = new String();
+    }
+    if (m_next) {
+        (*m_next)();
+    }
+}
+
+CellI& New::operator[](CellI& role)
+{
+    if (&role == &data::type) {
+        return t();
+    }
+    if (&role == &data::first) {
+        return *m_first;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+    if (&role == &data::current) {
+        return *m_current;
+    }
+    if (&role == &data::coding::value && m_value) {
+        return *m_value;
+    }
+    if (&role == &data::coding::objectType) {
+        return m_objectType;
+    }
+
+    return Object::emptyObject();
+}
+
+Type& New::type()
+{
+    return t();
+}
+
+void New::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+std::string New::name() const
+{
+    return m_name;
+}
+
+Type& New::t()
+{
+    return type::pipeline::New;
 }
 
 // ============================================================================
 Fork::Fork(Base& input, const std::string& name) :
-    m_input(input), m_name(name)
+    Base(input.m_first), m_input(input), m_name(name)
 {
     input.addNext(*this);
 }
@@ -2620,8 +2810,14 @@ bool Fork::has(CellI& role)
     if (&role == &data::type) {
         return true;
     }
+    if (&role == &data::first) {
+        return true;
+    }
     if (&role == &data::next) {
         return m_next;
+    }
+    if (&role == &data::coding::input) {
+        return true;
     }
     if (&role == &data::coding::value && m_value) {
         return true;
@@ -2639,6 +2835,7 @@ void Fork::set(CellI& role, CellI& value)
 
 void Fork::operator()()
 {
+    setCurrent();
     m_value = &m_input[data::coding::value];
     if (m_branch) {
         (*m_branch)();
@@ -2653,8 +2850,14 @@ CellI& Fork::operator[](CellI& role)
     if (&role == &data::type) {
         return t();
     }
+    if (&role == &data::first) {
+        return *m_first;
+    }
     if (&role == &data::next && m_next) {
         return *m_next;
+    }
+    if (&role == &data::coding::input) {
+        return m_input;
     }
     if (&role == &data::coding::value && m_value) {
         return *m_value;
@@ -2692,154 +2895,17 @@ void Fork::addBranch(Base& cell)
 }
 
 // ============================================================================
-Empty::Empty(const std::string& name) :
-    m_name(name)
-{
-}
-
-bool Empty::has(CellI& role)
-{
-    if (&role == &data::type) {
-        return true;
-    }
-    if (&role == &data::next) {
-        return m_next;
-    }
-
-    return false;
-}
-
-void Empty::set(CellI& role, CellI& value)
-{
-}
-
-void Empty::operator()()
-{
-    if (m_next) {
-        (*m_next)();
-    }
-}
-
-CellI& Empty::operator[](CellI& role)
-{
-    if (&role == &data::type) {
-        return t();
-    }
-    if (&role == &data::next && m_next) {
-        return *m_next;
-    }
-
-    return Object::emptyObject();
-}
-
-Type& Empty::type()
-{
-    return t();
-}
-
-void Empty::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-std::string Empty::name() const
-{
-    return m_name;
-}
-
-Type& Empty::t()
-{
-    return type::pipeline::Empty;
-}
-
-// ============================================================================
-New::New(Type& objectType, const std::string& name) :
-    m_name(name), m_objectType(objectType)
-{
-}
-
-bool New::has(CellI& role)
-{
-    if (&role == &data::type) {
-        return true;
-    }
-    if (&role == &data::next) {
-        return m_next;
-    }
-    if (&role == &data::coding::objectType) {
-        return true;
-    }
-
-    return false;
-}
-
-void New::set(CellI& role, CellI& value)
-{
-    if (&role == &data::coding::objectType && &value.type() == &Type::t()) {
-        m_value = &value;
-    }
-}
-
-void New::operator()()
-{
-    if (&m_objectType == &Type::t()) {
-        m_value = new Type();
-    }
-    if (&m_objectType == &Number::t()) {
-        m_value = new Number();
-    }
-    if (&m_objectType == &String::t()) {
-        m_value = new String();
-    }
-    if (m_next) {
-        (*m_next)();
-    }
-}
-
-CellI& New::operator[](CellI& role)
-{
-    if (&role == &data::type) {
-        return t();
-    }
-    if (&role == &data::next && m_next) {
-        return *m_next;
-    }
-    if (&role == &data::coding::objectType) {
-        return m_objectType;
-    }
-
-    return Object::emptyObject();
-}
-
-Type& New::type()
-{
-    return t();
-}
-
-void New::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-std::string New::name() const
-{
-    return m_name;
-}
-
-Type& New::t()
-{
-    return type::pipeline::New;
-}
-
-// ============================================================================
 Delete::Delete(Base& input, const std::string& name) :
-    m_name(name), m_input(&input)
+    Base(input.m_first), m_name(name), m_input(&input)
 {
 }
 
 bool Delete::has(CellI& role)
 {
     if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::first) {
         return true;
     }
     if (&role == &data::coding::input) {
@@ -2858,6 +2924,7 @@ void Delete::set(CellI& role, CellI& value)
 
 void Delete::operator()()
 {
+    setCurrent();
     CellI* cell = &(*m_input)[data::coding::value];
     delete cell;
 }
@@ -2866,6 +2933,9 @@ CellI& Delete::operator[](CellI& role)
 {
     if (&role == &data::type) {
         return t();
+    }
+    if (&role == &data::first) {
+        return *m_first;
     }
     if (&role == &data::coding::input && m_input) {
         return *m_input;
@@ -2900,14 +2970,17 @@ bool Node::has(CellI& role)
     if (&role == &data::type) {
         return true;
     }
+    if (&role == &data::first) {
+        return true;
+    }
+    if (&role == &data::next) {
+        return m_next;
+    }
     if (&role == &data::coding::input) {
         return true;
     }
     if (&role == &data::coding::op) {
         return true;
-    }
-    if (&role == &data::next) {
-        return m_next;
     }
     if (&role == &data::coding::value) {
         return m_value;
@@ -2925,6 +2998,7 @@ void Node::set(CellI& role, CellI& value)
 
 void Node::operator()()
 {
+    setCurrent();
     m_value = &(*m_input)[data::coding::value];
     (*m_op)();
     if (m_next) {
@@ -2937,14 +3011,17 @@ CellI& Node::operator[](CellI& role)
     if (&role == &data::type) {
         return t();
     }
+    if (&role == &data::first) {
+        return *m_first;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
     if (&role == &data::coding::input && m_input) {
         return *m_input;
     }
     if (&role == &data::coding::op) {
         return *m_op;
-    }
-    if (&role == &data::next && m_next) {
-        return *m_next;
     }
     if (&role == &data::coding::value && m_value) {
         return *m_value;
@@ -2974,8 +3051,8 @@ Type& Node::t()
 }
 
 // ============================================================================
-IfThen::IfThen(Base& inputNode, const std::string& name) :
-    m_name(name), m_input(inputNode)
+IfThen::IfThen(Base& input, const std::string& name) :
+    Base(input.m_first), m_name(name), m_input(input)
 {
 }
 
@@ -2984,11 +3061,17 @@ bool IfThen::has(CellI& role)
     if (&role == &data::type) {
         return true;
     }
+    if (&role == &data::first) {
+        return true;
+    }
     if (&role == &data::next) {
         return m_next;
     }
-    if (&role == &data::coding::value) {
-        return m_value;
+    if (&role == &data::coding::input) {
+        return true;
+    }
+    if (&role == &data::coding::condition) {
+        return m_condition;
     }
     if (&role == &data::coding::then) {
         return m_thenBranch;
@@ -3002,15 +3085,14 @@ bool IfThen::has(CellI& role)
 
 void IfThen::set(CellI& role, CellI& value)
 {
-    if (&role == &data::coding::value) {
-        m_value = &value;
-    }
 }
 
 void IfThen::operator()()
 {
-    m_value = &m_input[data::coding::value];
-    if (m_value == &data::boolean::true_) {
+    setCurrent();
+    (*m_condition)();
+    bool condition = &(*m_condition)[data::coding::value] == &data::boolean::true_;
+    if (condition) {
         (*m_thenBranch)();
     } else {
         if (m_elseBranch) {
@@ -3027,17 +3109,23 @@ CellI& IfThen::operator[](CellI& role)
     if (&role == &data::type) {
         return t();
     }
+    if (&role == &data::first) {
+        return *m_first;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+    if (&role == &data::coding::input) {
+        return m_input;
+    }
+    if (&role == &data::coding::condition && m_condition) {
+        return *m_condition;
+    }
     if (&role == &data::coding::then && m_thenBranch) {
         return *m_thenBranch;
     }
     if (&role == &data::coding::else_ && m_elseBranch) {
         return *m_elseBranch;
-    }
-    if (&role == &data::coding::value && m_value) {
-        return *m_value;
-    }
-    if (&role == &data::next && m_next) {
-        return *m_next;
     }
 
     return Object::emptyObject();
@@ -3063,6 +3151,11 @@ Type& IfThen::t()
     return type::pipeline::IfThen;
 }
 
+void IfThen::addCondition(Base& cell)
+{
+    m_condition = &cell;
+}
+
 void IfThen::addThenBranch(Base& cell)
 {
     m_thenBranch = &cell;
@@ -3074,8 +3167,8 @@ void IfThen::addElseBranch(Base& cell)
 }
 
 // ============================================================================
-DoWhile::DoWhile(Base& inputNode, const std::string& name) :
-    m_name(name), m_input(inputNode)
+DoWhile::DoWhile(Base& input, const std::string& name) :
+    Base(input.m_first), m_name(name), m_input(input)
 {
 }
 
@@ -3084,8 +3177,14 @@ bool DoWhile::has(CellI& role)
     if (&role == &data::type) {
         return true;
     }
+    if (&role == &data::first) {
+        return true;
+    }
     if (&role == &data::next) {
         return m_next;
+    }
+    if (&role == &data::coding::input) {
+        return true;
     }
     if (&role == &data::coding::condition) {
         return m_condition;
@@ -3099,17 +3198,17 @@ bool DoWhile::has(CellI& role)
 
 void DoWhile::set(CellI& role, CellI& value)
 {
-    if (&role == &data::coding::value) {
-        m_value = &value;
-    }
 }
 
 void DoWhile::operator()()
 {
+    setCurrent();
+    bool condition = false;
     do {
         (*m_statement)();
         (*m_condition)();
-    } while (m_value == &data::boolean::true_);
+        condition = &(*m_condition)[data::coding::value] == &data::boolean::true_;
+    } while (condition);
 
     if (m_next) {
         (*m_next)();
@@ -3121,17 +3220,20 @@ CellI& DoWhile::operator[](CellI& role)
     if (&role == &data::type) {
         return t();
     }
+    if (&role == &data::first) {
+        return *m_first;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+    if (&role == &data::coding::input) {
+        return m_input;
+    }
     if (&role == &data::coding::condition && m_condition) {
         return *m_condition;
     }
     if (&role == &data::coding::statement && m_statement) {
         return *m_statement;
-    }
-    if (&role == &data::coding::value && m_value) {
-        return *m_value;
-    }
-    if (&role == &data::next && m_next) {
-        return *m_next;
     }
 
     return Object::emptyObject();
@@ -3158,14 +3260,17 @@ Type& DoWhile::t()
 }
 
 // ============================================================================
-While::While(Base& inputNode, const std::string& name) :
-    m_name(name), m_input(inputNode)
+While::While(Base& input, const std::string& name) :
+    Base(input.m_first), m_name(name), m_input(input)
 {
 }
 
 bool While::has(CellI& role)
 {
     if (&role == &data::type) {
+        return true;
+    }
+    if (&role == &data::first) {
         return true;
     }
     if (&role == &data::next) {
@@ -3183,17 +3288,18 @@ bool While::has(CellI& role)
 
 void While::set(CellI& role, CellI& value)
 {
-    if (&role == &data::coding::value) {
-        m_value = &value;
-    }
 }
 
 void While::operator()()
 {
+    setCurrent();
+    bool condition = false;
     (*m_condition)();
-    while (m_value == &data::boolean::true_) {
+    condition = &(*m_condition)[data::coding::value] == &data::boolean::true_;
+    while (condition) {
         (*m_statement)();
         (*m_condition)();
+        condition = &(*m_condition)[data::coding::value] == &data::boolean::true_;
     };
 
     if (m_next) {
@@ -3206,17 +3312,20 @@ CellI& While::operator[](CellI& role)
     if (&role == &data::type) {
         return t();
     }
+    if (&role == &data::first) {
+        return *m_first;
+    }
+    if (&role == &data::next && m_next) {
+        return *m_next;
+    }
+    if (&role == &data::coding::input) {
+        return m_input;
+    }
     if (&role == &data::coding::condition && m_condition) {
         return *m_condition;
     }
     if (&role == &data::coding::statement && m_statement) {
         return *m_statement;
-    }
-    if (&role == &data::coding::value && m_value) {
-        return *m_value;
-    }
-    if (&role == &data::next && m_next) {
-        return *m_next;
     }
 
     return Object::emptyObject();
@@ -3247,6 +3356,7 @@ Type& While::t()
 
 // ============================================================================
 namespace type {
+Type Void("Void");
 Type Boolean("Boolean");
 Type Digit("Digit");
 Type Number("Number");
@@ -3258,13 +3368,11 @@ Type Picture("Picture");
 
 namespace op {
 Type Base("Base");
+
 Type Same("Same");
 Type NotSame("NotSame");
 Type Equal("Equal");
 Type NotEqual("NotEqual");
-
-Type New("New");
-Type Delete("Delete");
 
 Type Has("Has");
 Type Get("Get");
@@ -3288,10 +3396,10 @@ Type GreaterThan("GreaterThan");
 
 namespace pipeline {
 Type Base("Base");
-Type Start("Start");
-Type Fork("Fork");
-Type Empty("Empty");
+Type Void("Void");
+Type Input("Input");
 Type New("New");
+Type Fork("Fork");
 Type Delete("Delete");
 Type Node("Node");
 Type IfThen("IfThen");
@@ -3335,10 +3443,103 @@ static void staticInit()
                             { "rhs", type::pipeline::Base, data::equation::rhs },
                             { "output", type::pipeline::Base, data::coding::output } });
 
-    pipeline::Node.addSlots({ { "input", type::pipeline::Base, data::coding::input },
+    op::Has.addSlots({ { "cell", type::pipeline::Base, data::coding::cell },
+                       { "role", type::pipeline::Base, data::coding::role },
+                       { "ooutput", type::op::Base, data::coding::output } });
+
+    op::Get.addSlots({ { "cell", type::pipeline::Base, data::coding::cell },
+                       { "role", type::pipeline::Base, data::coding::role },
+                       { "ooutput", type::op::Base, data::coding::output } });
+
+    op::Set.addSlots({ { "cell", type::pipeline::Base, data::coding::cell },
+                       { "role", type::pipeline::Base, data::coding::role },
+                       { "ooutput", type::op::Base, data::coding::output },
+                       { "value", type::pipeline::Base, data::coding::value } });
+
+    op::logic::And.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                              { "rhs", type::pipeline::Base, data::equation::rhs },
+                              { "output", type::pipeline::Base, data::coding::output } });
+
+    op::logic::Or.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                             { "rhs", type::pipeline::Base, data::equation::rhs },
+                             { "output", type::pipeline::Base, data::coding::output } });
+
+    op::logic::Not.addSlots({ { "input", type::pipeline::Base, data::coding::input },
+                              { "output", type::pipeline::Base, data::coding::output } });
+
+    op::math::Add.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                             { "rhs", type::pipeline::Base, data::equation::rhs },
+                             { "output", type::pipeline::Base, data::coding::output } });
+
+    op::math::Subtract.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                                  { "rhs", type::pipeline::Base, data::equation::rhs },
+                                  { "output", type::pipeline::Base, data::coding::output } });
+
+    op::math::Multiply.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                                  { "rhs", type::pipeline::Base, data::equation::rhs },
+                                  { "output", type::pipeline::Base, data::coding::output } });
+
+    op::math::Divide.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                                { "rhs", type::pipeline::Base, data::equation::rhs },
+                                { "output", type::pipeline::Base, data::coding::output } });
+
+    op::math::LessThan.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                                  { "rhs", type::pipeline::Base, data::equation::rhs },
+                                  { "output", type::pipeline::Base, data::coding::output } });
+
+    op::math::GreaterThan.addSlots({ { "lhs", type::pipeline::Base, data::equation::lhs },
+                                     { "rhs", type::pipeline::Base, data::equation::rhs },
+                                     { "output", type::pipeline::Base, data::coding::output } });
+
+    pipeline::Void.addSlots({ { "first", type::pipeline::Base, data::first },
                               { "next", type::pipeline::Base, data::next },
+                              { "current", type::pipeline::Base, data::current } });
+
+    pipeline::Input.addSlots({ { "first", type::pipeline::Base, data::first },
+                               { "next", type::pipeline::Base, data::next },
+                               { "current", type::pipeline::Base, data::current },
+                               { "value", Type::anyType(), data::coding::value } });
+
+    pipeline::New.addSlots({ { "first", type::pipeline::Base, data::first },
+                             { "next", type::pipeline::Base, data::next },
+                             { "current", type::pipeline::Base, data::current },
+                             { "value", type::pipeline::Base, data::coding::value },
+                             { "objectType", type::op::Base, data::coding::objectType } });
+
+    pipeline::Fork.addSlots({ { "first", type::pipeline::Base, data::first },
+                              { "next", type::pipeline::Base, data::next },
+                              { "input", type::pipeline::Base, data::coding::input },
+                              { "value", type::pipeline::Base, data::coding::value },
+                              { "branch", type::op::Base, data::coding::branch } });
+
+    pipeline::Delete.addSlots({ { "first", type::pipeline::Base, data::first },
+                                { "input", type::pipeline::Base, data::coding::input } });
+
+    pipeline::Node.addSlots({ { "first", type::pipeline::Base, data::first },
+                              { "next", type::pipeline::Base, data::next },
+                              { "input", type::pipeline::Base, data::coding::input },
                               { "op", type::op::Base, data::coding::op },
                               { "value", type::pipeline::Base, data::coding::value } });
+
+    pipeline::IfThen.addSlots({ { "first", type::pipeline::Base, data::first },
+                                { "next", type::pipeline::Base, data::next },
+                                { "input", type::pipeline::Base, data::coding::input },
+                                { "condition", type::pipeline::Base, data::coding::condition },
+                                { "then", type::op::Base, data::coding::then },
+                                { "else", type::op::Base, data::coding::else_ } });
+
+    pipeline::DoWhile.addSlots({ { "first", type::pipeline::Base, data::first },
+                                 { "next", type::pipeline::Base, data::next },
+                                 { "input", type::pipeline::Base, data::coding::input },
+                                 { "condition", type::pipeline::Base, data::coding::condition },
+                                 { "statement", type::op::Base, data::coding::statement } });
+
+    pipeline::While.addSlots({ { "first", type::pipeline::Base, data::first },
+                               { "next", type::pipeline::Base, data::next },
+                               { "input", type::pipeline::Base, data::coding::input },
+                               { "condition", type::pipeline::Base, data::coding::condition },
+                               { "statement", type::op::Base, data::coding::statement } });
+
 }
 
 } // namespace type
@@ -3351,6 +3552,7 @@ Object first(Type::anyType());
 Object last(Type::anyType());
 Object previous(Type::anyType());
 Object next(Type::anyType());
+Object current(Type::anyType());
 
 Object pixels(Type::anyType());
 
@@ -3426,6 +3628,5 @@ void StaticInitializations()
 
     type::staticInit();
 }
-
 } // namespace cells
 } // namespace synth

@@ -781,6 +781,7 @@ namespace pipeline {
 class Base : public CellI
 {
 public:
+    Base(Base* first);
     bool has(CellI& role) override               = 0;
     void set(CellI& role, CellI& value) override = 0;
     void operator()() override                   = 0;
@@ -790,16 +791,18 @@ public:
     std::string name() const override            = 0;
 
     void addNext(Base& cell);
+    void setCurrent();
 
-protected:
     Base* m_next = nullptr;
+    Base* m_first;
 };
 
+
 // ============================================================================
-class Start : public Base
+class Void : public Base
 {
 public:
-    Start(CellI& input, const std::string& name = "Start");
+    Void(const std::string& name = "Void");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -813,7 +816,53 @@ public:
 
 protected:
     std::string m_name;
-    CellI& m_value;
+    Base* m_current;
+};
+
+// ============================================================================
+class Input : public Base
+{
+public:
+    Input(CellI& value, const std::string& name = "Input");
+    Input(CellI* value = nullptr, const std::string& name = "Input");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    std::string m_name;
+    CellI* m_value;
+    Base* m_current;
+};
+
+// ============================================================================
+class New : public Base
+{
+public:
+    New(Type& objectType, const std::string& name = "New");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    Type& type() override;
+    void accept(Visitor& visitor) override;
+    std::string name() const override;
+
+    static Type& t();
+
+protected:
+    std::string m_name;
+    Type& m_objectType;
+    CellI* m_value = nullptr;
+    Base* m_current;
 };
 
 // ============================================================================
@@ -838,48 +887,6 @@ protected:
     CellI* m_value = nullptr;
     Base* m_branch = nullptr;
     std::string m_name;
-};
-
-// ============================================================================
-class Empty : public Base
-{
-public:
-    Empty(const std::string& name = "Empty");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    Type& type() override;
-    void accept(Visitor& visitor) override;
-    std::string name() const override;
-
-    static Type& t();
-
-protected:
-    std::string m_name;
-};
-
-// ============================================================================
-class New : public Base
-{
-public:
-    New(Type& objectType, const std::string& name = "New");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    Type& type() override;
-    void accept(Visitor& visitor) override;
-    std::string name() const override;
-
-    static Type& t();
-
-protected:
-    std::string m_name;
-    Type& m_objectType;
-    CellI* m_value = nullptr;
 };
 
 // ============================================================================
@@ -909,7 +916,7 @@ class Node : public Base
 public:
     template <typename... T>
     Node(Base& input, CellI& op, T&... args) :
-        m_input(&input)
+        Base(input.m_first), m_input(&input)
     {
         initOp(op, args...);
         input.addNext(*this);
@@ -917,7 +924,7 @@ public:
 
     template <typename... T>
     Node(Base& input, const std::string& name, CellI& op, T&... args) :
-        m_name(name), m_input(&input)
+        Base(input.m_first), m_name(name), m_input(&input)
     {
         initOp(op, args...);
         input.addNext(*this);
@@ -1019,15 +1026,16 @@ public:
 
     static Type& t();
 
+    void addCondition(Base& cell);
     void addThenBranch(Base& cell);
     void addElseBranch(Base& cell);
 
 protected:
     std::string m_name;
     CellI& m_input;
+    Base* m_condition  = nullptr;
     Base* m_thenBranch = nullptr;
     Base* m_elseBranch = nullptr;
-    CellI* m_value     = nullptr;
 };
 
 // ============================================================================
@@ -1054,7 +1062,6 @@ protected:
     CellI& m_input;
     Base* m_condition = nullptr;
     Base* m_statement = nullptr;
-    CellI* m_value    = nullptr;
 };
 
 // ============================================================================
@@ -1081,7 +1088,6 @@ protected:
     CellI& m_input;
     Base* m_condition = nullptr;
     Base* m_statement = nullptr;
-    CellI* m_value    = nullptr;
 };
 
 } // namespace pipeline
@@ -1119,10 +1125,10 @@ public:
     virtual void visit(control::op::math::Divide&) { }
     virtual void visit(control::op::math::LessThan&) { }
     virtual void visit(control::op::math::GreaterThan&) { }
-    virtual void visit(control::pipeline::Start&) { }
-    virtual void visit(control::pipeline::Fork&) { }
-    virtual void visit(control::pipeline::Empty&) { }
+    virtual void visit(control::pipeline::Void&) { }
+    virtual void visit(control::pipeline::Input&) { }
     virtual void visit(control::pipeline::New&) { }
+    virtual void visit(control::pipeline::Fork&) { }
     virtual void visit(control::pipeline::Delete&) { }
     virtual void visit(control::pipeline::Node&) { }
     virtual void visit(control::pipeline::IfThen&) { }
@@ -1131,6 +1137,7 @@ public:
 };
 
 namespace type {
+extern Type Void;
 extern Type Boolean;
 extern Type Digit;
 extern Type Number;
@@ -1142,6 +1149,7 @@ extern Type Picture;
 
 namespace op {
 extern Type Base;
+
 extern Type Same;
 extern Type NotSame;
 extern Type Equal;
@@ -1169,10 +1177,10 @@ extern Type GreaterThan;
 
 namespace pipeline {
 extern Type Base;
-extern Type Start;
-extern Type Fork;
-extern Type Empty;
+extern Type Void;
+extern Type Input;
 extern Type New;
+extern Type Fork;
 extern Type Delete;
 extern Type Node;
 extern Type IfThen;
@@ -1191,6 +1199,7 @@ extern Object first;
 extern Object last;
 extern Object previous;
 extern Object next;
+extern Object current;
 
 extern Object pixels;
 

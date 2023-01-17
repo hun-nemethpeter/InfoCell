@@ -68,15 +68,15 @@ int main(int argc, char* argv[])
                     { "value", Number::t(), data::coding::value } });
     Object var1("var1", Variable);
 
-    Start mainStartNode(picture);
+    Input mainStartNode(picture);
     Node node1(mainStartNode, Same::t(), mainStartNode, mainStartNode);
     mainStartNode();
     std::cout << "SameOp: ";
     printAs.value(node1[data::coding::value]);
 
-    Start start(Numbers::get(42));
+    Input start(Numbers::get(42));
     Fork fork1(start);
-    Start value10(Numbers::get(10));
+    Input value10(Numbers::get(10));
     fork1.addBranch(value10);
     Node add10(fork1, math::Add::t(), fork1, value10);
     start();
