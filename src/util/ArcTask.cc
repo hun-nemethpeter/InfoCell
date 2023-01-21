@@ -22,26 +22,26 @@ static const std::array<Color, 10> cellColors = {
     Color(0x87, 0x0C, 0x25)  /* brown */
 };
 
-ArcDemonstration::ArcDemonstration(int number, const std::string& input, const std::string& output) :
+ArcDemonstration::ArcDemonstration(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
     m_number(number),
     m_inputPicture(std::format("Train input {}", number)),
     m_outputPicture(std::format("Train output {}", number)),
-    m_input(m_inputPicture.loadFromJsonArray(input)),
-    m_output(m_outputPicture.loadFromJsonArray(output))
+    m_input(kb, m_inputPicture.loadFromJsonArray(input)),
+    m_output(kb, m_outputPicture.loadFromJsonArray(output))
 {
 }
 
-ArcTask::ArcTask(const nlohmann::json& jsonArcFile) :
+ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
     m_inputPicture("Test input"),
     m_outputPicture("Test solution"),
-    m_testInput(m_inputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
-    m_testSolution(m_outputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/output"_json_pointer])))
+    m_testInput(kb, m_inputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
+    m_testSolution(kb, m_outputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/output"_json_pointer])))
 {
     const nlohmann::json& jsonTrainSet = jsonArcFile.at("train");
     m_demonstrations.reserve(jsonTrainSet.size());
     int number = 1;
     for (const auto& train : jsonTrainSet) {
-        m_demonstrations.emplace_back(number++, to_string(train.at("input")), to_string(train.at("output")));
+        m_demonstrations.emplace_back(kb, number++, to_string(train.at("input")), to_string(train.at("output")));
     }
 }
 

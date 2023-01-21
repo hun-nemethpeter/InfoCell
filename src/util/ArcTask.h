@@ -5,11 +5,16 @@
 #include "cells/Cells.h"
 
 namespace synth {
+namespace cells {
+namespace brain {
+struct Brain;
+} // namespace brain
+} // namespace cells
 
 class ArcDemonstration
 {
 public:
-    ArcDemonstration(int number, const std::string& input, const std::string& output);
+    ArcDemonstration(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output);
 
     const int m_number;
     input::Picture m_inputPicture;
@@ -21,7 +26,7 @@ public:
 class ArcTask
 {
 public:
-    ArcTask(const nlohmann::json& jsonArcFile);
+    ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile);
 
     std::vector<ArcDemonstration> m_demonstrations;
     input::Picture m_inputPicture;

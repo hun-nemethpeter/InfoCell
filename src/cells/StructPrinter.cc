@@ -66,17 +66,18 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
 
 void CellStructPrinter::printImpl(CellI& cell)
 {
+    brain::Brain& kb = cell.kb;
     Type& type = cell.type();
     m_ss << "(" << type.name() << ") ID" << &cell << std::endl;
     for (auto& slotI : type.slots()) {
         const std::string& slotSlotName = slotI.first;
-        Slot& slot                      = *slotI.second;
+        Slot& slot                      = slotI.second;
 
         if (!cell.has(slot.slotRole())) {
             continue;
         }
         CellValuePrinter valuePrinter;
-        Type& slotType       = static_cast<Type&>(slot[Slot::slotSlotType()]);
+        Type& slotType       = static_cast<Type&>(slot[kb.cells.slotType]);
         CellI& connectedCell = cell[slot.slotRole()];
         connectedCell.accept(valuePrinter);
         m_ss << "    +--(" << slotSlotName << ")--> (" << slotType.name() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;

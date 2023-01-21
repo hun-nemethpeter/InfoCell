@@ -19,7 +19,7 @@ void CellValuePrinter::visit(Type& type)
         } else {
             m_ss << ", ";
         }
-        m_ss << slotI.first << ": " << slotI.second->slotType().name();
+        m_ss << slotI.first << ": " << slotI.second.slotType().name();
     }
     m_ss << " }";
 }
@@ -38,7 +38,7 @@ void CellValuePrinter::visit(Object& dataCell)
             m_ss << ", ";
         }
         m_ss << ".";
-        slotI.second->accept(*this);
+        slotI.second.accept(*this);
     }
     m_ss << " }";
 }

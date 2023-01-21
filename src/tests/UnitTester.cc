@@ -65,7 +65,8 @@ void TestCases::addTestCases()
 {
     add(TestCase("PatchTest", []() {
         input::Picture inputPicture("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
-        cells::hybrid::Picture picture(inputPicture);
+        cells::brain::Brain kb;
+        cells::hybrid::Picture picture(kb, inputPicture);
         PatchBoard patchBoard(picture);
         patchBoard.process();
 #if 0
@@ -80,7 +81,8 @@ void TestCases::addTestCases()
 
     add(TestCase("PatchMergeTest", []() {
         input::Picture inputPicture("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
-        cells::hybrid::Picture picture(inputPicture);
+        cells::brain::Brain kb;
+        cells::hybrid::Picture picture(kb, inputPicture);
         PatchBoard patchBoard(picture);
         patchBoard.process();
 #if 0

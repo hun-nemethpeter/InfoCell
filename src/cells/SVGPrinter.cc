@@ -177,23 +177,24 @@ Screen Printer::processResult()
 
 bool Printer::tryVisit(CellI& cell)
 {
-    if (&cell.type() == &hybrid::Color::t()) {
+    brain::Brain& kb = cell.kb;
+    if (&cell.type() == &kb.type.Color) {
         visit(static_cast<hybrid::Color&>(cell));
         return true;
     }
-    if (&cell.type() == &Number::t()) {
+    if (&cell.type() == &kb.type.Number) {
         visit(static_cast<Number&>(cell));
         return true;
     }
-    if (&cell.type() == &String::t()) {
+    if (&cell.type() == &kb.type.String) {
         visit(static_cast<String&>(cell));
         return true;
     }
-    if (&cell.type() == &Type::t()) {
+    if (&cell.type() == &kb.type.Type_) {
         visit(static_cast<Type&>(cell));
         return true;
     }
-    if (&cell.type() == &hybrid::Pixel::t()) {
+    if (&cell.type() == &kb.type.Pixel) {
         visit(static_cast<hybrid::Pixel&>(cell));
         return true;
     }
