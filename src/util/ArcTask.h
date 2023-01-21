@@ -29,10 +29,13 @@ public:
     ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile);
 
     std::vector<ArcDemonstration> m_demonstrations;
+    std::vector<cells::Object> m_exampleObjects;
     input::Picture m_inputPicture;
     input::Picture m_outputPicture;
     cells::hybrid::Picture m_testInput;
     cells::hybrid::Picture m_testSolution;
+    cells::Object m_task;
+    cells::List m_examples;
 };
 
 } // namespace synth

@@ -266,6 +266,16 @@ public:
     pools::Numbers numbers;
 };
 
+class Arc
+{
+public:
+    Arc(brain::Brain& kb);
+
+    Type Demonstration;
+    Type Task;
+    Object examples;
+};
+
 class Brain
 {
 protected:
@@ -286,6 +296,7 @@ public:
     Dimensions dimensions;
     Visualization visualization;
     Numbers numbers;
+    Arc arc;
 
     CellI& toKbBool(bool value);
     bool isInitialized();

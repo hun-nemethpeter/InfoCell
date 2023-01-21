@@ -316,6 +316,21 @@ Pools::Pools(brain::Brain& kb, Type& charType, Object& emptyObject, Type& digit)
 {
 }
 
+Arc::Arc(brain::Brain& kb) :
+    Demonstration(kb, "Demonstration"),
+    Task(kb, "Task"),
+    examples(kb, kb.type.Any)
+{
+    Demonstration.addSlots(
+        { { "input", kb.type.Picture, kb.coding.input },
+          { "output", kb.type.Picture, kb.coding.output } });
+
+    Task.addSlots(
+        { { "examples", kb.type.ListOf(Demonstration), examples },
+          { "input", kb.type.Picture, kb.coding.input },
+          { "output", kb.type.Picture, kb.coding.output } });
+}
+
 Brain::Brain() :
     type(*this),
     cells(*this, type.Void, type.Any),
@@ -329,7 +344,8 @@ Brain::Brain() :
     boolean(*this),
     dimensions(*this, type.Any),
     visualization(*this, type.Any),
-    numbers(*this, type.Any)
+    numbers(*this, type.Any),
+    arc(*this)
 {
     type.Type_.addSlots(
         { { "type", type.Type_, cells.type },
