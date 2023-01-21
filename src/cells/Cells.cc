@@ -124,10 +124,11 @@ Type::Type(brain::Brain& kb, const std::string& name) :
     createSlot("type", kb.type.Type_, kb.cells.type);
 }
 
-Type::Type(brain::Brain& kb, const std::string& name, bool firstType) :
+Type::Type(brain::Brain& kb, const std::string& name, bool) :
     CellI(kb),
     m_name(name)
 {
+    // will be inited with manualInit() for bootstrap
 }
 
 Type::Type(brain::Brain& kb, const std::string& name, std::initializer_list<SlotRef> slots) :
@@ -196,7 +197,7 @@ void Type::addSlots(std::initializer_list<SlotRef> slots)
 
 Slot& Type::createSlot(const std::string& name, Type& type, CellI& role)
 {
-    auto slotIt = m_slots.find(name);
+    auto slotIt = m_slots.find(&role);
     if (slotIt != m_slots.end()) {
         if (&slotIt->second.slotType() != &type) {
             throw "Member name already registered with an other class";
@@ -204,11 +205,10 @@ Slot& Type::createSlot(const std::string& name, Type& type, CellI& role)
         return slotIt->second;
     } else {
         auto it = m_slots.emplace(std::piecewise_construct,
-                                  std::forward_as_tuple(name),
+                                  std::forward_as_tuple(&role),
                                   std::forward_as_tuple(kb, name, type, role));
 
-        Slot& slot     = it.first->second;
-        m_roles[&role] = &slot;
+        Slot& slot = it.first->second;
         if (m_slotsList) {
             m_slotsList->add(slot);
         }
@@ -225,40 +225,21 @@ void Type::manualInit()
     m_slotsList = std::make_unique<List>(kb, m_slots);
 }
 
-bool Type::has(const std::string& name) const
-{
-    return m_slots.find(name) != m_slots.end();
-}
-
 bool Type::hasSlot(CellI& role)
 {
-    return m_roles.find(&role) != m_roles.end();
-}
-
-bool Type::hasSlot(const std::string& name)
-{
-    return m_slots.find(name) != m_slots.end();
+    return m_slots.find(&role) != m_slots.end();
 }
 
 Slot& Type::getSlot(CellI& role)
 {
-    auto findIt = m_roles.find(&role);
-    if (findIt == m_roles.end())
-        throw "emptyMember";
-
-    return *findIt->second;
-}
-
-Slot& Type::getSlot(const std::string& name)
-{
-    auto findIt = m_slots.find(name);
+    auto findIt = m_slots.find(&role);
     if (findIt == m_slots.end())
         throw "emptyMember";
 
     return findIt->second;
 }
 
-std::map<std::string, Slot>& Type::slots()
+std::map<CellI*, Slot>& Type::slots()
 {
     return m_slots;
 }
@@ -434,36 +415,12 @@ void ListItem::value(CellI* v)
 }
 
 // ============================================================================
-template <typename T>
-T* ptr(T& obj) { return &obj; }
-
-template <typename T>
-T* ptr(T* obj) { return obj; }
-
 List::List(brain::Brain& kb, Type& valueType) :
     CellI(kb),
     m_valueType(valueType),
     m_listType(kb.type.ListOf(valueType)),
     m_itemType(kb.type.ListItemOf(valueType))
 {
-}
-
-template <typename T>
-List::List(brain::Brain& kb, std::vector<T>& values) :
-    List(kb, ptr(values.front())->type())
-{
-    for (auto& valueT : values) {
-        add(*ptr(valueT));
-    }
-}
-
-template <typename T>
-List::List(brain::Brain& kb, std::map<std::string, T>& values) :
-    List(kb, (*values.begin()).second.type())
-{
-    for (auto& valuePairs : values) {
-        add(valuePairs.second);
-    }
 }
 
 bool List::has(CellI& role)

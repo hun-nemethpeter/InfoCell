@@ -102,13 +102,13 @@ int main(int argc, char* argv[])
     Number& number_255 = kb.pools.numbers.get(255);
 
     printAs.value(colorClass);
-    printAs.value(colorClass.getSlot("red"));
+    printAs.value(colorClass.getSlot(colorRed));
     printAs.value(redColor);
     printAs.value(number_255);
     printAs.value(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
 
     printAs.cell(redColor);
-    printAs.cell(colorClass.getSlot("red"));
+    printAs.cell(colorClass.getSlot(colorRed));
     printAs.cell(colorClass);
     printAs.cell(number_255);
     printAs.cell(number_255[kb.numbers.sign]);
@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
     printAs.cell(number_255[kb.coding.value][kb.dimensions.size]);
 
     printAs.svg(redColor);
-    printAs.svg(colorClass.getSlot("red"));
+    printAs.svg(colorClass.getSlot(colorRed));
     printAs.svg(colorClass);
     printAs.svg(number_255);
     printAs.svg(number_255[kb.numbers.sign]);

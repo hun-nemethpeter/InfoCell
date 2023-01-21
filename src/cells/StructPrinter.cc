@@ -70,8 +70,7 @@ void CellStructPrinter::printImpl(CellI& cell)
     Type& type = cell.type();
     m_ss << "(" << type.name() << ") ID" << &cell << std::endl;
     for (auto& slotI : type.slots()) {
-        const std::string& slotSlotName = slotI.first;
-        Slot& slot                      = slotI.second;
+        Slot& slot = slotI.second;
 
         if (!cell.has(slot.slotRole())) {
             continue;
@@ -80,7 +79,7 @@ void CellStructPrinter::printImpl(CellI& cell)
         Type& slotType       = static_cast<Type&>(slot[kb.cells.slotType]);
         CellI& connectedCell = cell[slot.slotRole()];
         connectedCell.accept(valuePrinter);
-        m_ss << "    +--(" << slotSlotName << ")--> (" << slotType.name() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
+        m_ss << "    +--(" << slot.name() << ")--> (" << slotType.name() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
     }
 }
 

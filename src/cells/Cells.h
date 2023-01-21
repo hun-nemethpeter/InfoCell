@@ -74,8 +74,8 @@ class Type : public CellI
 {
 public:
     explicit Type(brain::Brain& kb, const std::string& name = "Type");
-    Type(brain::Brain& kb, const std::string& name, bool firstType);
     Type(brain::Brain& kb, const std::string& name, std::initializer_list<SlotRef> slots);
+    Type(brain::Brain& kb, const std::string& name, bool initDuringBootstrap);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -89,19 +89,14 @@ public:
     Slot& createSlot(const std::string& name, Type& type, CellI& role);
     void manualInit();
 
-    bool has(const std::string& name) const;
-
     bool hasSlot(CellI& role);
-    bool hasSlot(const std::string& name);
     Slot& getSlot(CellI& role);
-    Slot& getSlot(const std::string& name);
 
-    std::map<std::string, Slot>& slots();
+    std::map<CellI*, Slot>& slots();
 
 protected:
-    std::map<std::string, Slot> m_slots;
-    std::map<CellI*, Slot*> m_roles;
     std::string m_name;
+    std::map<CellI*, Slot> m_slots;
     std::unique_ptr<List> m_slotsList;
 };
 
@@ -165,10 +160,28 @@ public:
     List(brain::Brain& kb, Type& valueType);
 
     template <typename T>
-    List(brain::Brain& kb, std::vector<T>& values);
+    T& ref(T& obj) { return obj; }
 
     template <typename T>
-    List(brain::Brain& kb, std::map<std::string, T>& values);
+    T& ref(T* obj) { return *obj; }
+
+    template <typename T>
+    List(brain::Brain& kb, std::vector<T>& values) :
+        List(kb, ref(values.front()).type())
+    {
+        for (auto& valueT : values) {
+            add(ref(valueT));
+        }
+    }
+
+    template <typename Key, typename Value>
+    List(brain::Brain& kb, std::map<Key, Value>& values) :
+        List(kb, ref((*values.begin())).second.type())
+    {
+        for (auto& valuePairs : values) {
+            add(ref(valuePairs.second));
+        }
+    }
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
