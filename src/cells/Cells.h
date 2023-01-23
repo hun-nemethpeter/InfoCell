@@ -32,15 +32,11 @@ public:
     virtual std::string label() const;
     virtual void label(const std::string& label);
 
-    virtual std::string comment() const;
-    virtual void comment(const std::string& comment);
-
     bool operator==(CellI& rhs);
     bool operator!=(CellI& rhs);
 
     brain::Brain& kb;
     std::string m_label;
-    std::string m_comment;
 };
 
 // ============================================================================

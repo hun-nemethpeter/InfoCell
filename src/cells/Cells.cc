@@ -28,16 +28,6 @@ void CellI::label(const std::string& label)
     m_label = label;
 }
 
-std::string CellI::comment() const
-{
-    return m_comment;
-}
-
-void CellI::comment(const std::string& comment)
-{
-    m_comment = comment;
-}
-
 bool CellI::operator==(CellI& rhs)
 {
     if (&type() != &rhs.type()) {
