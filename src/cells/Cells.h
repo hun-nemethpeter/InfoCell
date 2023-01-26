@@ -60,6 +60,21 @@ public:
     std::map<CellI*, Slot>* m_container = nullptr;
 };
 
+class SlotMapTypeListItemValue : public CellI
+{
+public:
+    SlotMapTypeListItemValue(brain::Brain& kb, CellI& slotRole);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    CellI& m_slotRole;
+};
+
 class Slot : public CellI
 {
 public:
@@ -75,6 +90,7 @@ public:
     CellI& slotRole();
 
     SlotMapTypeListItem m_slotMapTypeListItem;
+    SlotMapTypeListItemValue m_slotMapTypeListItemValue;
 
 protected:
     CellI& m_slotRole;
@@ -965,7 +981,10 @@ protected:
 class Visitor
 {
 public:
-    virtual void visit(Slot&)     = 0;
+    virtual void visit(Slot&)        = 0;
+    virtual void visit(SlotMapType&) = 0;
+    virtual void visit(SlotMap&)     = 0;
+
     virtual void visit(Type&)     = 0;
     virtual void visit(Object&)   = 0;
     virtual void visit(ListItem&) = 0;

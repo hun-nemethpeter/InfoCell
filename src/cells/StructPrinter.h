@@ -10,6 +10,8 @@ class CellStructPrinter : public Visitor
 {
 public:
     void visit(Slot& cell) override;
+    void visit(SlotMapType&) override;
+    void visit(SlotMap&) override;
     void visit(Type& cell) override;
     void visit(Object& cell) override;
     void visit(ListItem& cell) override;

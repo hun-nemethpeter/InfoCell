@@ -23,6 +23,16 @@ void Printer::visit(Slot& cell)
     m_stack.push(text("Slot"));
 }
 
+void Printer::visit(SlotMapType& slotMapType)
+{
+    m_stack.push(text("SlotMapType"));
+}
+
+void Printer::visit(SlotMap& slotMap)
+{
+    m_stack.push(text("SlotMap"));
+}
+
 void Printer::visit(Type& cell)
 {
     m_stack.push(text("Type"));

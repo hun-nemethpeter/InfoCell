@@ -9,6 +9,14 @@ void CellValuePrinter::visit(Slot& slotCell)
     m_ss << slotCell.slotRole().label() << ": " << slotCell.slotType().label();
 }
 
+void CellValuePrinter::visit(SlotMapType& slotMapType)
+{
+}
+
+void CellValuePrinter::visit(SlotMap& slotMap)
+{
+}
+
 void CellValuePrinter::visit(Type& type)
 {
     m_ss << "class " << type.label() << " { ";

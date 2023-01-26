@@ -21,6 +21,8 @@ public:
     Printer(int width, int height);
 
     void visit(Slot& cell) override;
+    void visit(SlotMapType& cell) override;
+    void visit(SlotMap& cell) override;
     void visit(Type& cell) override;
     void visit(Object& cell) override;
     void visit(ListItem& cell) override;

@@ -15,6 +15,17 @@ void CellStructPrinter::visit(Slot& cell)
     printImpl(cell);
 }
 
+void CellStructPrinter::visit(SlotMapType& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(SlotMap& cell)
+{
+    m_ss << "SlotMap: ";
+    printImpl(cell);
+}
+
 void CellStructPrinter::visit(Type& cell)
 {
     if (!cell.label().empty()) {
@@ -82,7 +93,7 @@ void CellStructPrinter::printImpl(CellI& cell)
             continue;
         }
         CellValuePrinter valuePrinter;
-        Type& slotType       = static_cast<Type&>(slot[kb.cells.slotType]);
+        CellI& slotType      = slot[kb.cells.slotType];
         CellI& connectedCell = cell[role];
         connectedCell.accept(valuePrinter);
         m_ss << "    +--(" << role.label() << ")--> (" << slotType.label() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;

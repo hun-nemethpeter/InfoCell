@@ -78,6 +78,7 @@ SlotRef::SlotRef(CellI& role, CellI& type) :
 Slot::Slot(brain::Brain& kb, CellI& role, CellI& type) :
     CellI(kb),
     m_slotMapTypeListItem(kb),
+    m_slotMapTypeListItemValue(kb, role),
     m_slotRole(role),
     m_slotType(type)
 {
@@ -167,18 +168,18 @@ CellI& SlotMapTypeListItem::operator[](CellI& role)
     }
     if (&role == &kb.sequence.previous) {
         if (prev())
-            return *prev();
+            return prev()->m_slotMapTypeListItem;
         else
             return kb.cells.emptyObject;
     }
     if (&role == &kb.sequence.next) {
         if (next())
-            return *next();
+            return next()->m_slotMapTypeListItem;
         else
             return kb.cells.emptyObject;
     }
     if (&role == &kb.coding.value) {
-        return m_iter->second;
+        return m_iter->second.m_slotMapTypeListItemValue;
     }
 
     return kb.cells.emptyObject;
@@ -206,6 +207,49 @@ Slot* SlotMapTypeListItem::next()
     }
 
     return &nextIter->second;
+}
+// ============================================================================
+// ============================================================================
+SlotMapTypeListItemValue::SlotMapTypeListItemValue(brain::Brain& kb, CellI& slotRole) :
+    CellI(kb), m_slotRole(slotRole)
+{
+}
+
+bool SlotMapTypeListItemValue::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotRole) {
+        return true;
+    }
+    return false;
+}
+
+void SlotMapTypeListItemValue::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+void SlotMapTypeListItemValue::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& SlotMapTypeListItemValue::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.Slot;
+    }
+    if (&role == &kb.cells.slotType) {
+        return kb.type.Slot;
+    }
+    if (&role == &kb.cells.slotRole) {
+        return m_slotRole;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void SlotMapTypeListItemValue::accept(Visitor& visitor)
+{
+    // visitor.visit(*this);
 }
 
 // ============================================================================
@@ -299,7 +343,7 @@ CellI& SlotMapType::operator[](CellI& role)
 
 void SlotMapType::accept(Visitor& visitor)
 {
-    // visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 // ============================================================================
@@ -347,7 +391,7 @@ CellI& SlotMap::operator[](CellI& role)
 
 void SlotMap::accept(Visitor& visitor)
 {
-    // visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 // ============================================================================
@@ -438,11 +482,11 @@ Slot& Type::createSlot(CellI& role, CellI& type)
         return slotIt->second;
     } else {
         auto res = m_slots.emplace(std::piecewise_construct,
-                                  std::forward_as_tuple(&role),
-                                  std::forward_as_tuple(kb, role, type));
+                                   std::forward_as_tuple(&role),
+                                   std::forward_as_tuple(kb, role, type));
 
-        Slot& slot = res.first->second;
-        slot.m_slotMapTypeListItem.m_iter = res.first;
+        Slot& slot                             = res.first->second;
+        slot.m_slotMapTypeListItem.m_iter      = res.first;
         slot.m_slotMapTypeListItem.m_container = &m_slots;
         if (m_slotsList) {
             m_slotsList->add(slot);
