@@ -58,8 +58,6 @@ void Printer::visit(Type_SlotMap_Type_SlotMap& cell)
     m_stack.push(text("Type_SlotMap_Type_SlotMap"));
 }
 
-
-
 void Printer::visit(Object& cell)
 {
     m_stack.push(text("Object"));

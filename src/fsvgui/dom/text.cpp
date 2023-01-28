@@ -4,6 +4,8 @@
 #include <utility>   // for move
 #include <vector>    // for vector
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include "text.h"
 #include "box.h"         // for Box
 #include "color.h"
@@ -72,7 +74,7 @@ TextBoxSize stringBB(const std::string& str, int fontSize, const std::string& fo
 
     int maxY = maxUpperSize + maxBelowSize;
 
-    return { pen_x, maxY, maxBelowSize - 1 };
+    return { pen_x, maxY, maxBelowSize };
 }
 
 #if 0
@@ -106,11 +108,24 @@ void Text::ComputeRequirement()
     requirement_.min_y = m_stringBoxSize.m_height;
 }
 
+static std::string& escape(std::string& data)
+{
+    using boost::algorithm::replace_all;
+    replace_all(data, "&", "&amp;");
+    replace_all(data, "\"", "&quot;");
+    replace_all(data, "\'", "&apos;");
+    replace_all(data, "<", "&lt;");
+    replace_all(data, ">", "&gt;");
+
+    return data;
+}
+
 void Text::Render(Screen& screen)
 {
     const int x = box_.x_min;
-    const int y = box_.y_max - m_stringBoxSize.m_bearing;
-    screen.addSvg(x, y, std::format("<text x=\"{}\" y=\"{}\" font-size=\"{}\" fill=\"rgb({}, {}, {})\">{}</text>", x, y, m_fontSize, m_fontColor.red_, m_fontColor.green_, m_fontColor.blue_, m_text));
+    const int y = box_.y_max;
+    std::string text = m_text;
+    screen.addSvg(x, y, std::format("<text x=\"{}\" y=\"{}\" font-size=\"{}\" fill=\"rgb({}, {}, {})\">{}</text>", x, y, m_fontSize, m_fontColor.red_, m_fontColor.green_, m_fontColor.blue_, escape(text)));
 }
 
 std::shared_ptr<Text> Text::fontSize(int size)

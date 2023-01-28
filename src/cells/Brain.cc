@@ -86,7 +86,8 @@ TypeInit::TypeInit(Types& types)
     listType.add({ { kb.sequence.first, itemType },
                    { kb.sequence.last, itemType },
                    { kb.dimensions.size, kb.type.Number } });
-    type.manualInit();
+    itemType.manualInit();
+    listType.manualInit();
 }
 
 Types::Types(brain::Brain& kb) :

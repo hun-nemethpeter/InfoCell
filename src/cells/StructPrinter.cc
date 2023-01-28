@@ -116,21 +116,17 @@ void CellStructPrinter::printImpl(CellI& cell)
     type.accept(typePrinter);
     m_ss << "    +--(type)--> (" << type.label() << ") ID" << &type << " // " << typePrinter.print() << std::endl;
     CellI& slotList = type[kb.cells.slotList];
-
-    for (CellI* currentListItemPtr = slotList.has(kb.sequence.first) ? &slotList[kb.sequence.first] : nullptr; currentListItemPtr; currentListItemPtr = (*currentListItemPtr).has(kb.sequence.next) ? &(*currentListItemPtr)[kb.sequence.next] : nullptr) {
-        CellI& currentListItem = *currentListItemPtr;
-        CellI& slot            = currentListItem[kb.coding.value];
-        CellI& role            = slot[kb.cells.slotRole];
-
+    visitList(slotList, [this, &kb, &cell](CellI& slot, int i) {
+        CellI& role = slot[kb.cells.slotRole];
         if (!cell.has(role)) {
-            continue;
+            return;
         }
         CellValuePrinter valuePrinter;
         CellI& slotType      = slot[kb.cells.slotType];
         CellI& connectedCell = cell[role];
         connectedCell.accept(valuePrinter);
         m_ss << "    +--(" << role.label() << ")--> (" << slotType.label() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
-    }
+    });
 }
 
 std::string CellStructPrinter::print() const

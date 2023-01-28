@@ -572,14 +572,13 @@ void Type::add(std::initializer_list<SlotRef> slots)
     }
 }
 
-Slot& Type::createSlot(CellI& role, CellI& type)
+void Type::createSlot(CellI& role, CellI& type)
 {
     auto slotIt = m_slots.find(&role);
     if (slotIt != m_slots.end()) {
         if (&slotIt->second[kb.cells.slotType] != &type) {
             throw "Member label already registered with an other class";
         }
-        return slotIt->second;
     } else {
         auto res = m_slots.emplace(std::piecewise_construct,
                                    std::forward_as_tuple(&role),
@@ -591,8 +590,6 @@ Slot& Type::createSlot(CellI& role, CellI& type)
         if (m_slotList) {
             m_slotList->add(slot);
         }
-
-        return slot;
     }
 }
 
@@ -602,25 +599,6 @@ void Type::manualInit()
         return;
     }
     m_slotList = std::make_unique<List>(kb, m_slots);
-}
-
-bool Type::hasSlot(CellI& role)
-{
-    return m_slots.find(&role) != m_slots.end();
-}
-
-Slot& Type::getSlot(CellI& role)
-{
-    auto findIt = m_slots.find(&role);
-    if (findIt == m_slots.end())
-        throw "emptyMember";
-
-    return findIt->second;
-}
-
-std::map<CellI*, Slot>& Type::slots()
-{
-    return m_slots;
 }
 
 // ============================================================================

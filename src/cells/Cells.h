@@ -37,7 +37,7 @@ public:
     bool operator==(CellI& rhs);
     bool operator!=(CellI& rhs);
 
-    brain::Brain& kb;
+    brain::Brain& kb; // knowledge base
     std::string m_label;
 };
 
@@ -198,65 +198,14 @@ public:
     void accept(Visitor& visitor) override;
 
     void add(std::initializer_list<SlotRef> slots);
-    Slot& createSlot(CellI& role, CellI& type);
     void manualInit();
 
-    bool hasSlot(CellI& role);
-    Slot& getSlot(CellI& role);
-
-    std::map<CellI*, Slot>& slots();
-
 protected:
+    void createSlot(CellI& role, CellI& type);
+
     std::map<CellI*, Slot> m_slots;
     std::unique_ptr<List> m_slotList;
     Type_SlotMap m_slotMap;
-};
-
-// ============================================================================
-class Template;
-class TemplateSlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
-{
-public:
-    // one of { type, param, templateOf, selfType } -> m_slotType
-    // type: Type* m_type;
-    // param: CellI* m_paramRole;
-    // templateOf: Template* m_tamplateOf, CellI* m_templateParam;
-    // selfType: -
-    TemplateSlotRef(CellI& role, Type& type);                                 // slotType: type
-    TemplateSlotRef(CellI& role, CellI& slotType, CellI& paramRole);          // slotType: param
-    TemplateSlotRef(CellI& role, Template& templateOf, CellI& templateParam); // slotType: templateOf
-    TemplateSlotRef(CellI& role, CellI& slotType);                            // slotType: selftype
-
-    CellI& m_slotRole;
-    CellI& m_slotType;
-    Type* m_type           = nullptr;
-    CellI* paramRole       = nullptr;
-    Template* m_tamplateOf = nullptr;
-    CellI* m_templateParam = nullptr;
-};
-
-// ============================================================================
-class Template : public CellI
-{
-public:
-    explicit Template(brain::Brain& kb, const std::string& label = "Template");
-    Template(brain::Brain& kb, std::initializer_list<SlotRef> params, std::initializer_list<SlotRef> slots);
-    Template(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> params, std::initializer_list<TemplateSlotRef> slots);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void add(std::initializer_list<TemplateSlotRef> slots);
-    Slot& createSlot(CellI& role, Type& type);
-    void manualInit();
-
-protected:
-    std::map<CellI*, Slot> m_slots;
-    std::unique_ptr<List> m_paramsList;
-    std::unique_ptr<List> m_slotsList;
 };
 
 // ============================================================================
@@ -343,6 +292,125 @@ protected:
     Type& m_itemType;
     std::list<ListItem> m_items;
     std::unique_ptr<Number> m_size;
+};
+
+// ============================================================================
+class Map : public CellI
+{
+public:
+    Map(brain::Brain& kb, CellI& keyType, CellI& valueType);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    void add(CellI& key, CellI& value);
+
+protected:
+    CellI& m_keyType;
+    CellI& m_valueType;
+
+    Type& m_mapType;
+    Type& m_listType;
+    Type& m_itemType;
+    std::list<ListItem> m_items;
+    std::unique_ptr<Number> m_size;
+};
+
+// ============================================================================
+class Template;
+class TemplateParamCell
+{
+public:
+    CellI* m_cell = nullptr;
+};
+
+class TemplateParamParam
+{
+public:
+    CellI* paramRole = nullptr;
+};
+
+class TemplateParamTemplateOf
+{
+public:
+    Template* m_tamplateOf = nullptr;
+    CellI* m_templateParam = nullptr;
+};
+
+class TemplateParamSelfType
+{
+public:
+};
+
+// ============================================================================
+class TemplateCellExpression
+{
+public:
+    TemplateCellExpression(CellI& exprType, TemplateParamCell& expr);
+    TemplateCellExpression(CellI& exprType, TemplateParamParam expr);
+    TemplateCellExpression(CellI& exprType, TemplateParamTemplateOf expr);
+    TemplateCellExpression(CellI& exprType, TemplateParamSelfType& expr);
+
+    CellI& m_exprType; // kb.cells.template.cell | kb.cells.template.param | kb.cells.template.templateOf | kb.cells.template.selfType
+    union Param
+    {
+        TemplateParamCell m_cell;
+        TemplateParamParam m_param;
+        TemplateParamTemplateOf m_templateOf;
+        TemplateParamSelfType m_selfType;
+    };
+    Param m_data;
+};
+
+// ============================================================================
+class TemplateSlot : public Object
+{
+public:
+    TemplateSlot(brain::Brain& kb, CellI& role, CellI& type);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+};
+
+// ============================================================================
+class TemplateSlotRef // Only exists to bypass the non-movable std::initalizer_list limitations
+{
+public:
+    TemplateSlotRef(TemplateCellExpression& role, TemplateCellExpression& type);
+
+    TemplateCellExpression m_role;
+    TemplateCellExpression m_type;
+};
+
+// ============================================================================
+class Template : public CellI
+{
+public:
+    explicit Template(brain::Brain& kb, const std::string& label = "Template");
+    Template(brain::Brain& kb, std::initializer_list<SlotRef> params, std::initializer_list<TemplateSlotRef> slots);
+    Template(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> params, std::initializer_list<TemplateSlotRef> slots);
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    void addParam(SlotRef& param);
+    void addSlot(std::initializer_list<TemplateSlotRef> slots);
+    CellI* instantiate(CellI& param);
+
+protected:
+    std::map<CellI*, Slot> m_params;
+    std::map<CellI*, TemplateSlot> m_slots;
+    List m_paramsList;
+    List m_slotsList;
 };
 
 // ============================================================================

@@ -14,15 +14,12 @@ void CellValuePrinter::visit(Type& type)
 {
     brain::Brain& kb = type.kb;
     m_ss << "Type " << type.label() << " { ";
-    bool isFirst = true;
-    for (auto& slotI : type.slots()) {
-        if (isFirst) {
-            isFirst = false;
-        } else {
+    visitList(type[kb.cells.slotList], [this, &kb](CellI& slot, int i) {
+        if (i != 0) {
             m_ss << ", ";
         }
-        m_ss << slotI.first->label() << ": " << slotI.second[kb.cells.slotType].label();
-    }
+        m_ss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
+    });
     m_ss << " }";
 }
 
@@ -70,25 +67,15 @@ void CellValuePrinter::printImpl(CellI& cell)
         m_ss << cell.label() << ": ";
     }
     m_ss << cell.type().label() << " { ";
-    bool isFirst = true;
 
-    CellI& cellType           = cell.type();
-    CellI& slotList           = cellType[kb.cells.slotList];
-    CellI* currentListItemPtr = slotList.has(kb.sequence.first) ? &slotList[kb.sequence.first] : nullptr;
-    while (currentListItemPtr) {
-        CellI& currentListItem = *currentListItemPtr;
-        CellI& slot            = currentListItem[kb.coding.value];
-
-        if (isFirst) {
-            isFirst = false;
-        } else {
+    visitList(cell.type()[kb.cells.slotList], [this, &kb](CellI& slot, int i) {
+        if (i != 0) {
             m_ss << ", ";
         }
         m_ss << ".";
         slot.accept(*this);
+    });
 
-        currentListItemPtr = currentListItem.has(kb.sequence.next) ? &currentListItem[kb.sequence.next] : nullptr;
-    }
     m_ss << " }";
 }
 

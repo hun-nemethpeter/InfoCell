@@ -25,6 +25,8 @@ add_executable(celltest
     StructPrinter.h
     SVGPrinter.cc
     SVGPrinter.h
+    SVGStructPrinter.cc
+    SVGStructPrinter.h
     ValuePrinter.cc
     ValuePrinter.h
 )
