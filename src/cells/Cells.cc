@@ -132,12 +132,12 @@ CellI& Slot::slotRole()
 }
 
 // ============================================================================
-SlotMapTypeListItem::SlotMapTypeListItem(brain::Brain& kb) :
+Type_SlotMap_Type_SlotList_Item::Type_SlotMap_Type_SlotList_Item(brain::Brain& kb) :
     CellI(kb)
 {
 }
 
-bool SlotMapTypeListItem::has(CellI& role)
+bool Type_SlotMap_Type_SlotList_Item::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.coding.value) {
         return true;
@@ -152,16 +152,16 @@ bool SlotMapTypeListItem::has(CellI& role)
     return false;
 }
 
-void SlotMapTypeListItem::set(CellI& role, CellI& value)
+void Type_SlotMap_Type_SlotList_Item::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
-void SlotMapTypeListItem::operator()()
+void Type_SlotMap_Type_SlotList_Item::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& SlotMapTypeListItem::operator[](CellI& role)
+CellI& Type_SlotMap_Type_SlotList_Item::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.ListItemOf(kb.type.Slot);
@@ -185,12 +185,12 @@ CellI& SlotMapTypeListItem::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void SlotMapTypeListItem::accept(Visitor& visitor)
+void Type_SlotMap_Type_SlotList_Item::accept(Visitor& visitor)
 {
     // visitor.visit(*this);
 }
 
-Slot* SlotMapTypeListItem::prev()
+Slot* Type_SlotMap_Type_SlotList_Item::prev()
 {
     if (m_container->begin() == m_iter) {
         return nullptr;
@@ -199,7 +199,7 @@ Slot* SlotMapTypeListItem::prev()
     return &std::prev(m_iter)->second;
 }
 
-Slot* SlotMapTypeListItem::next()
+Slot* Type_SlotMap_Type_SlotList_Item::next()
 {
     auto nextIter = std::next(m_iter);
     if (nextIter == m_container->end()) {
@@ -208,14 +208,14 @@ Slot* SlotMapTypeListItem::next()
 
     return &nextIter->second;
 }
+
 // ============================================================================
-// ============================================================================
-SlotMapTypeListItemValue::SlotMapTypeListItemValue(brain::Brain& kb, CellI& slotRole) :
+Type_SlotMap_Type_Slot::Type_SlotMap_Type_Slot(brain::Brain& kb, CellI& slotRole) :
     CellI(kb), m_slotRole(slotRole)
 {
 }
 
-bool SlotMapTypeListItemValue::has(CellI& role)
+bool Type_SlotMap_Type_Slot::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotRole) {
         return true;
@@ -223,16 +223,16 @@ bool SlotMapTypeListItemValue::has(CellI& role)
     return false;
 }
 
-void SlotMapTypeListItemValue::set(CellI& role, CellI& value)
+void Type_SlotMap_Type_Slot::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
-void SlotMapTypeListItemValue::operator()()
+void Type_SlotMap_Type_Slot::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& SlotMapTypeListItemValue::operator[](CellI& role)
+CellI& Type_SlotMap_Type_Slot::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.Slot;
@@ -247,18 +247,18 @@ CellI& SlotMapTypeListItemValue::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void SlotMapTypeListItemValue::accept(Visitor& visitor)
+void Type_SlotMap_Type_Slot::accept(Visitor& visitor)
 {
-    // visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 // ============================================================================
-SlotMapTypeList::SlotMapTypeList(brain::Brain& kb, SlotMap& slotMap) :
-    CellI(kb), m_slotMap(slotMap)
+Type_SlotMap_Type_SlotList::Type_SlotMap_Type_SlotList(brain::Brain& kb, std::map<CellI*, Slot>& slots) :
+    CellI(kb), m_slots(slots)
 {
 }
 
-bool SlotMapTypeList::has(CellI& role)
+bool Type_SlotMap_Type_SlotList::has(CellI& role)
 {
     if (&role == &kb.cells.type || &role == &kb.sequence.first || &role == &kb.sequence.last || &role == &kb.dimensions.size) {
         return true;
@@ -266,95 +266,54 @@ bool SlotMapTypeList::has(CellI& role)
     return false;
 }
 
-void SlotMapTypeList::set(CellI& role, CellI& value)
+void Type_SlotMap_Type_SlotList::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
-void SlotMapTypeList::operator()()
+void Type_SlotMap_Type_SlotList::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& SlotMapTypeList::operator[](CellI& role)
+CellI& Type_SlotMap_Type_SlotList::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.ListOf(kb.type.Slot);
     }
     if (&role == &kb.sequence.first) {
-        if (m_slotMap.m_slots.empty()) {
+        if (m_slots.empty()) {
             return kb.cells.emptyObject;
         }
-        return m_slotMap.m_slots.begin()->second.m_slotMapTypeListItem;
+        return m_slots.begin()->second.m_slotMapTypeListItem;
     }
     if (&role == &kb.sequence.last) {
-        if (m_slotMap.m_slots.empty()) {
+        if (m_slots.empty()) {
             return kb.cells.emptyObject;
         }
-        return m_slotMap.m_slots.rbegin()->second.m_slotMapTypeListItem;
+        return m_slots.rbegin()->second.m_slotMapTypeListItem;
     }
     if (&role == &kb.dimensions.size) {
-        Number* number = new Number(kb, (int)m_slotMap.m_slots.size());
+        Number* number = new Number(kb, (int)m_slots.size());
         return *number;
     }
 
     return kb.cells.emptyObject;
 }
 
-void SlotMapTypeList::accept(Visitor& visitor)
+void Type_SlotMap_Type_SlotList::accept(Visitor& visitor)
 {
     // visitor.visit(*this);
 }
 
 // ============================================================================
-SlotMapType::SlotMapType(brain::Brain& kb, SlotMap& slotMap) :
-    CellI(kb), m_slotMap(slotMap), m_slotMapTypeList(kb, slotMap)
-{
-}
-
-bool SlotMapType::has(CellI& role)
-{
-    if (&role == &kb.cells.type || &role == &kb.cells.slotList) {
-        return true;
-    }
-
-    return false;
-}
-
-void SlotMapType::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-void SlotMapType::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& SlotMapType::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.Type_;
-    }
-    if (&role == &kb.cells.slotList) {
-        return m_slotMapTypeList;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void SlotMapType::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ============================================================================
-SlotMap::SlotMap(brain::Brain& kb, std::map<CellI*, Slot>& slots) :
+Type_SlotMap_Type_SlotMap::Type_SlotMap_Type_SlotMap(brain::Brain& kb, std::map<CellI*, Slot>& slots, Type_SlotMap_Type& type_SlotMap_Type) :
     CellI(kb),
     m_slots(slots),
-    m_slotMapType(kb, *this)
+    m_type_SlotMap_Type(type_SlotMap_Type)
 {
 }
 
-bool SlotMap::has(CellI& role)
+bool Type_SlotMap_Type_SlotMap::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
@@ -367,16 +326,110 @@ bool SlotMap::has(CellI& role)
     return false;
 }
 
-void SlotMap::set(CellI& role, CellI& value)
+void Type_SlotMap_Type_SlotMap::set(CellI& role, CellI& value)
 {
     // Do nothing
 }
-void SlotMap::operator()()
+void Type_SlotMap_Type_SlotMap::operator()()
 {
     // Do nothing, this is a data cell
 }
 
-CellI& SlotMap::operator[](CellI& role)
+CellI& Type_SlotMap_Type_SlotMap::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return m_type_SlotMap_Type;
+    }
+    auto slotIt = m_slots.find(&role);
+    if (slotIt != m_slots.end()) {
+        return slotIt->second.m_slotMapTypeListItemValue;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Type_SlotMap_Type_SlotMap::accept(Visitor& visitor)
+{
+    // visitor.visit(*this);
+}
+
+// ============================================================================
+Type_SlotMap_Type::Type_SlotMap_Type(brain::Brain& kb, Type_SlotMap& slotMap) :
+    CellI(kb, "Type_SlotMap_Type"),
+    m_slotList(kb, slotMap.m_slots),
+    m_slotMap(kb, slotMap.m_slots, *this)
+{
+}
+
+bool Type_SlotMap_Type::has(CellI& role)
+{
+    if (&role == &kb.cells.type || &role == &kb.cells.slotList || &role == &kb.cells.slotMap) {
+        return true;
+    }
+
+    return false;
+}
+
+void Type_SlotMap_Type::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+void Type_SlotMap_Type::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Type_SlotMap_Type::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.Type_;
+    }
+    if (&role == &kb.cells.slotList) {
+        return m_slotList;
+    }
+    if (&role == &kb.cells.slotMap) {
+        return m_slotMap;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Type_SlotMap_Type::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ============================================================================
+Type_SlotMap::Type_SlotMap(brain::Brain& kb, std::map<CellI*, Slot>& slots, const std::string& label) :
+    CellI(kb, label),
+    m_slots(slots),
+    m_slotMapType(kb, *this)
+{
+}
+
+bool Type_SlotMap::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    auto slotIt = m_slots.find(&role);
+    if (slotIt != m_slots.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+void Type_SlotMap::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+void Type_SlotMap::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Type_SlotMap::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return m_slotMapType;
@@ -389,7 +442,7 @@ CellI& SlotMap::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void SlotMap::accept(Visitor& visitor)
+void Type_SlotMap::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
@@ -397,15 +450,14 @@ void SlotMap::accept(Visitor& visitor)
 // ============================================================================
 Type::Type(brain::Brain& kb, const std::string& label) :
     CellI(kb, label),
-    m_slotsList(new List(kb, kb.type.Slot)),
-    m_slotMap(kb, m_slots)
+    m_slotList(new List(kb, kb.type.Slot)),
+    m_slotMap(kb, m_slots, label)
 {
-    createSlot(kb.cells.type, kb.type.Type_);
 }
 
 Type::Type(brain::Brain& kb, const std::string& label, bool) :
     CellI(kb, label),
-    m_slotMap(kb, m_slots)
+    m_slotMap(kb, m_slots, "")
 {
     // will be inited with manualInit() for bootstrap
 }
@@ -417,10 +469,9 @@ Type::Type(brain::Brain& kb, std::initializer_list<SlotRef> slots) :
 
 Type::Type(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> slots) :
     CellI(kb, label),
-    m_slotsList(new List(kb, kb.type.Slot)),
-    m_slotMap(kb, m_slots)
+    m_slotList(new List(kb, kb.type.Slot)),
+    m_slotMap(kb, m_slots, label)
 {
-    createSlot(kb.cells.type, kb.type.Type_);
     for (const SlotRef& slotRef : slots) {
         createSlot(slotRef.m_role, slotRef.m_type);
     }
@@ -451,7 +502,7 @@ CellI& Type::operator[](CellI& role)
         return kb.type.Type_;
     }
     if (&role == &kb.cells.slotList) {
-        return *m_slotsList;
+        return *m_slotList;
     }
     if (&role == &kb.cells.slotMap) {
         return m_slotMap;
@@ -459,6 +510,65 @@ CellI& Type::operator[](CellI& role)
 
     return kb.cells.emptyObject;
 }
+
+#if 0
+Object
+    type: Type
+    roleSize: Number
+    roleName: String
+
+Type
+    slotList: Type.SlotList
+    slotMap:  Type.SlotMap
+
+    Type.SlotList
+        type:  ListOf(Slot)
+        first: Type.SlotList.Item1
+        last:  Type.SlotList.Item2
+        size:  2
+
+        Type.SlotList.Item1                           Type.SlotList.Item2
+            type:  ListItemOf(Slot)                       type:  ListItemOf(Slot)
+            next:  Type.SlotList.Item2                    prev:  Type.SlotList.Item1
+            value: Type.Slot1                             value: Type.Slot2
+
+        Type.Slot1                                    Type.Slot2
+            type:     Slot                                type:     Slot
+            slotRole: roleSize                            slotRole: roleName
+            slotType: Number                              slotType: String
+
+    Type.SlotMap
+        type:     Type.SlotMap.Type
+        roleSize: Type.Slot1
+        roleName: Type.Slot2
+
+        Type.SlotMap.Type
+            slotList: Type.SlotMap.Type.SlotList
+            SlotMap:  Type.SlotMap.Type.SlotMap
+
+            Type.SlotMap.Type.SlotList
+                type:  ListOf(Slot)
+                first: Type.SlotMap.Type.SlotList.Item1
+                last:  Type.SlotMap.Type.SlotList.Item2
+                size:  2
+
+                Type.SlotMap.Type.SlotList.Item1              Type.SlotMap.Type.SlotList.Item2
+                    type:  ListItemOf(Slot)                       type:  ListItemOf(Slot)
+                    next:  Type.SlotMap.Type.SlotList.Item2       prev:  Type.SlotMap.Type.SlotList.Item1
+                    value: Type.SlotMap.Type.Slot1                value: Type.SlotMap.Type.Slot2
+
+                Type.SlotMap.Type.Slot1                       Type.SlotMap.Type.Slot2
+                    type:     Slot                                type:     Slot
+                    slotRole: roleSize                            slotRole: roleName
+                    slotType: Slot                                slotType: Slot
+
+            Type.SlotMap.Type.SlotMap
+                type: Type.SlotMap.Type // !!
+                roleSize: Type.SlotMap.Type.Slot1
+                roleName: Type.SlotMap.Type.Slot2
+
+#endif
+
 
 void Type::accept(Visitor& visitor)
 {
@@ -488,8 +598,8 @@ Slot& Type::createSlot(CellI& role, CellI& type)
         Slot& slot                             = res.first->second;
         slot.m_slotMapTypeListItem.m_iter      = res.first;
         slot.m_slotMapTypeListItem.m_container = &m_slots;
-        if (m_slotsList) {
-            m_slotsList->add(slot);
+        if (m_slotList) {
+            m_slotList->add(slot);
         }
 
         return slot;
@@ -498,10 +608,10 @@ Slot& Type::createSlot(CellI& role, CellI& type)
 
 void Type::manualInit()
 {
-    if (m_slotsList) {
+    if (m_slotList) {
         return;
     }
-    m_slotsList = std::make_unique<List>(kb, m_slots);
+    m_slotList = std::make_unique<List>(kb, m_slots);
 }
 
 bool Type::hasSlot(CellI& role)

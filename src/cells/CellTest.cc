@@ -110,6 +110,9 @@ int main(int argc, char* argv[])
     printAs.cell(redColor);
     printAs.cell(colorClass.getSlot(colorRed));
     printAs.cell(colorClass[kb.cells.slotMap]);
+    printAs.value(colorClass[kb.cells.slotMap]);
+    printAs.value(colorClass[kb.cells.slotMap][kb.cells.type]);
+    printAs.value(colorClass[kb.cells.slotMap][kb.cells.type][kb.cells.slotMap]);
     printAs.cell(colorClass);
     printAs.cell(number_255);
     printAs.cell(number_255[kb.numbers.sign]);

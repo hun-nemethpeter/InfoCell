@@ -23,20 +23,42 @@ void Printer::visit(Slot& cell)
     m_stack.push(text("Slot"));
 }
 
-void Printer::visit(SlotMapType& slotMapType)
-{
-    m_stack.push(text("SlotMapType"));
-}
-
-void Printer::visit(SlotMap& slotMap)
-{
-    m_stack.push(text("SlotMap"));
-}
-
 void Printer::visit(Type& cell)
 {
     m_stack.push(text("Type"));
 }
+
+void Printer::visit(Type_SlotMap& slotMap)
+{
+    m_stack.push(text("Type_SlotMap"));
+}
+
+void Printer::visit(Type_SlotMap_Type& slotMapType)
+{
+    m_stack.push(text("Type_SlotMap_Type"));
+}
+
+void Printer::visit(Type_SlotMap_Type_Slot& cell)
+{
+    m_stack.push(text("Type_SlotMap_Type_Slot"));
+}
+
+void Printer::visit(Type_SlotMap_Type_SlotList& cell)
+{
+    m_stack.push(text("Type_SlotMap_Type_SlotList"));
+}
+
+void Printer::visit(Type_SlotMap_Type_SlotList_Item& cell)
+{
+    m_stack.push(text("Type_SlotMap_Type_SlotList_Item"));
+}
+
+void Printer::visit(Type_SlotMap_Type_SlotMap& cell)
+{
+    m_stack.push(text("Type_SlotMap_Type_SlotMap"));
+}
+
+
 
 void Printer::visit(Object& cell)
 {

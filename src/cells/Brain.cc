@@ -75,8 +75,7 @@ TypeInit::TypeInit(Types& types)
                                                     std::forward_as_tuple(kb, "ListItem<Slot>", true));
 
     Type& itemType = listItemIt.first->second;
-    itemType.add({ { kb.cells.type, kb.type.Type_ },
-                   { kb.sequence.previous, itemType },
+    itemType.add({ { kb.sequence.previous, itemType },
                    { kb.sequence.next, itemType },
                    { kb.coding.value, type } });
 
@@ -84,8 +83,7 @@ TypeInit::TypeInit(Types& types)
                                                std::forward_as_tuple(&type),
                                                std::forward_as_tuple(kb, "List<Slot>", true));
     Type& listType = listIt.first->second;
-    listType.add({ { kb.cells.type, kb.type.Type_ },
-                   { kb.sequence.first, itemType },
+    listType.add({ { kb.sequence.first, itemType },
                    { kb.sequence.last, itemType },
                    { kb.dimensions.size, kb.type.Number } });
     type.manualInit();
@@ -384,8 +382,7 @@ Brain::Brain() :
     arc(*this)
 {
     type.Type_.add(
-        { { cells.type, type.Type_ },
-          { cells.slotList, type.ListOf(type.Slot) } });
+        { { cells.slotList, type.ListOf(type.Slot) } });
 
     type.Slot.add(
         { { cells.slotType, type.Type_ },

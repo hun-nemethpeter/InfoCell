@@ -7,30 +7,60 @@ namespace cells {
 // ============================================================================
 void CellStructPrinter::visit(Slot& cell)
 {
+    brain::Brain& kb = cell.kb;
     if (cell.label().empty()) {
-        m_ss << cell.slotRole().label() << ": ";
+        m_ss << cell[kb.cells.slotRole].label() << ": ";
+    } else {
+        m_ss << cell.label() << ": ";
+    }
+    printImpl(cell);
+}
+void CellStructPrinter::visit(Type& cell)
+{
+    if (!cell.label().empty()) {
+        m_ss << cell.label() << ": ";
+    }
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Type_SlotMap& cell)
+{
+    if (cell.label().empty()) {
+        m_ss << "SlotMap: ";
     } else {
         m_ss << cell.label() << ": ";
     }
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(SlotMapType& cell)
+void CellStructPrinter::visit(Type_SlotMap_Type& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(SlotMap& cell)
+void CellStructPrinter::visit(Type_SlotMap_Type_Slot& cell)
 {
-    m_ss << "SlotMap: ";
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(Type& cell)
-{
-    if (!cell.label().empty()) {
+    brain::Brain& kb = cell.kb;
+    if (cell.label().empty()) {
+        m_ss << cell[kb.cells.slotRole].label() << ": ";
+    } else {
         m_ss << cell.label() << ": ";
     }
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Type_SlotMap_Type_SlotList& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Type_SlotMap_Type_SlotList_Item& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Type_SlotMap_Type_SlotMap& cell)
+{
     printImpl(cell);
 }
 
@@ -82,7 +112,10 @@ void CellStructPrinter::printImpl(CellI& cell)
     brain::Brain& kb = cell.kb;
     CellI& type   = cell.type();
     m_ss << "(" << type.label() << ") ID" << &cell << std::endl;
-    CellI& slotList           = type[kb.cells.slotList];
+    CellValuePrinter typePrinter;
+    type.accept(typePrinter);
+    m_ss << "    +--(type)--> (" << type.label() << ") ID" << &type << " // " << typePrinter.print() << std::endl;
+    CellI& slotList = type[kb.cells.slotList];
 
     for (CellI* currentListItemPtr = slotList.has(kb.sequence.first) ? &slotList[kb.sequence.first] : nullptr; currentListItemPtr; currentListItemPtr = (*currentListItemPtr).has(kb.sequence.next) ? &(*currentListItemPtr)[kb.sequence.next] : nullptr) {
         CellI& currentListItem = *currentListItemPtr;
