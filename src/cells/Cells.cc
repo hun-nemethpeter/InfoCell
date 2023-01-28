@@ -637,7 +637,7 @@ std::map<CellI*, Slot>& Type::slots()
 Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     CellI(kb, label), m_type(type)
 {
-    m_roles[&kb.cells.type] = &type;
+    m_slots[&kb.cells.type] = &type;
 }
 
 bool Object::has(CellI& role)
@@ -645,7 +645,7 @@ bool Object::has(CellI& role)
     if (&role == &kb.cells.type)
         return true;
 
-    return m_roles.find(&role) != m_roles.end();
+    return m_slots.find(&role) != m_slots.end();
 }
 
 void Object::set(CellI& role, CellI& value)
@@ -655,7 +655,7 @@ void Object::set(CellI& role, CellI& value)
     }
 
     if (type()[kb.cells.slotMap].has(role)) {
-        m_roles[&role] = &value;
+        m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
     }
@@ -668,8 +668,8 @@ void Object::operator()()
 
 CellI& Object::operator[](CellI& role)
 {
-    auto findIt = m_roles.find(&role);
-    if (findIt == m_roles.end())
+    auto findIt = m_slots.find(&role);
+    if (findIt == m_slots.end())
         return kb.cells.emptyObject;
 
     return *findIt->second;
@@ -678,11 +678,6 @@ CellI& Object::operator[](CellI& role)
 void Object::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-
-std::map<CellI*, CellI*>& Object::roles()
-{
-    return m_roles;
 }
 
 // ============================================================================

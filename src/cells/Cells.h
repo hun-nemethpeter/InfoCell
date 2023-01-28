@@ -245,14 +245,8 @@ public:
     Slot& createSlot(CellI& role, Type& type);
     void manualInit();
 
-    bool hasSlot(CellI& role);
-    Slot& getSlot(CellI& role);
-
-    std::map<CellI*, Slot>& slots();
-
 protected:
     std::map<CellI*, Slot> m_slots;
-
     std::unique_ptr<List> m_paramsList;
     std::unique_ptr<List> m_slotsList;
 };
@@ -269,11 +263,9 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    std::map<CellI*, CellI*>& roles();
-
 protected:
     CellI& m_type;
-    std::map<CellI*, CellI*> m_roles;
+    std::map<CellI*, CellI*> m_slots;
 };
 
 // ============================================================================
