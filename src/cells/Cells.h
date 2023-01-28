@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <iostream>
 #include <list>
 #include <map>
@@ -30,8 +31,8 @@ public:
     CellI& get(CellI& role);
     CellI& type();
 
-    virtual std::string label() const;
-    virtual void label(const std::string& label);
+    std::string label() const;
+    void label(const std::string& label);
 
     bool operator==(CellI& rhs);
     bool operator!=(CellI& rhs);
@@ -286,7 +287,6 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
-    std::string label() const override;
 
     CellI& prev();
     void prev(ListItem* p);
@@ -334,9 +334,7 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
-    std::string label() const override;
 
-    std::list<ListItem>& items();
     void add(CellI& value);
 
 protected:
@@ -399,6 +397,7 @@ class Color : public CellI
 {
 public:
     Color(brain::Brain& kb, const input::Color& inputColor);
+
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
     void operator()() override;
@@ -1035,6 +1034,8 @@ public:
     virtual void visit(control::pipeline::IfThen&) { }
     virtual void visit(control::pipeline::DoWhile&) { }
     virtual void visit(control::pipeline::While&) { }
+
+    void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };
 
 bool tryVisitWith(CellI& cell, Visitor& visitor);

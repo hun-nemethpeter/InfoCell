@@ -81,18 +81,18 @@ void Printer::visit(ListItem& cell)
 void Printer::visit(List& list)
 {
     Elements listItems;
-    int i = 1;
-    for (ListItem& item : list.items()) {
+    visitList(list, [this, &listItems](CellI& value, int i) {
         Element valueAsSvg;
-        if (tryVisitWith(item.value(), *this)) {
+        if (tryVisitWith(value, *this)) {
             valueAsSvg = m_stack.top();
             m_stack.pop();
         } else {
-            valueAsSvg = text(item.value().label())->fontSize(16)->fontColor({ 255, 0, 0 });
+            valueAsSvg = text(value.label())->fontSize(16)->fontColor({ 255, 0, 0 });
         }
-        listItems.push_back(hbox(vbox(text(std::to_string(i++)) | center | borderWidth(10), filler() | size(HEIGHT, EQUAL, 2), valueAsSvg | center | borderWidth(10)),
-                                   filler() | size(WIDTH, EQUAL, 2)));
-    }
+        listItems.push_back(hbox(vbox(text(std::to_string(i + 1)) | center | borderWidth(10), filler() | size(HEIGHT, EQUAL, 2), valueAsSvg | center | borderWidth(10)),
+                                 filler() | size(WIDTH, EQUAL, 2)));
+    });
+
     FlexboxConfig flexConfig;
     flexConfig.direction       = FlexboxConfig::Direction::Row;
     flexConfig.wrap            = FlexboxConfig::Wrap::NoWrap;

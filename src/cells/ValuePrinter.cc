@@ -102,19 +102,16 @@ void CellValuePrinter::visit(ListItem& listItemCell)
 
 }
 
-void CellValuePrinter::visit(List& List)
+void CellValuePrinter::visit(List& list)
 {
     m_ss << "[";
-    bool isFirst = true;
-    for (auto& item : List.items()) {
-        if (isFirst) {
-            isFirst = false;
-        } else {
+    visitList(list, [this](CellI& value, int i) {
+        if (i != 0) {
             m_ss << ",";
         }
         m_ss << " ";
-        item.value().accept(*this);
-    }
+        value.accept(*this);
+    });
     m_ss << " ]";
 }
 

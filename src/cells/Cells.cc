@@ -734,15 +734,6 @@ void ListItem::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-std::string ListItem::label() const
-{
-    std::stringstream ss;
-    if (m_value) {
-        ss << "\"" << m_value->label() << "\"";
-    }
-    return ss.str();
-}
-
 CellI& ListItem::prev()
 {
     return *m_prev;
@@ -832,19 +823,6 @@ CellI& List::operator[](CellI& role)
 void List::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-
-std::string List::label() const
-{
-    std::stringstream ss;
-    ss << "List<>" << std::endl;
-
-    return ss.str();
-}
-
-std::list<ListItem>& List::items()
-{
-    return m_items;
 }
 
 void List::add(CellI& value)
@@ -2986,6 +2964,22 @@ void While::accept(Visitor& visitor)
 
 } // namespace pipeline
 } // namespace control
+
+void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i)> visitFn)
+{
+    brain::Brain& kb = list.kb;
+    int i            = 0;
+
+    CellI* currentListItemPtr = list.has(kb.sequence.first) ? &list[kb.sequence.first] : nullptr;
+    while (currentListItemPtr) {
+        CellI& currentListItem = *currentListItemPtr;
+        CellI& value           = currentListItem[kb.coding.value];
+
+        visitFn(value, i++);
+
+        currentListItemPtr = currentListItem.has(kb.sequence.next) ? &currentListItem[kb.sequence.next] : nullptr;
+    }
+}
 
 bool tryVisitWith(CellI& cell, Visitor& visitor)
 {
