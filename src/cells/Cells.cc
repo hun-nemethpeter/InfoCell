@@ -121,16 +121,6 @@ void Slot::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-CellI& Slot::slotType()
-{
-    return m_slotType;
-}
-
-CellI& Slot::slotRole()
-{
-    return m_slotRole;
-}
-
 // ============================================================================
 Type_SlotMap_Type_SlotList_Item::Type_SlotMap_Type_SlotList_Item(brain::Brain& kb) :
     CellI(kb)
@@ -586,7 +576,7 @@ Slot& Type::createSlot(CellI& role, CellI& type)
 {
     auto slotIt = m_slots.find(&role);
     if (slotIt != m_slots.end()) {
-        if (&slotIt->second.slotType() != &type) {
+        if (&slotIt->second[kb.cells.slotType] != &type) {
             throw "Member label already registered with an other class";
         }
         return slotIt->second;
@@ -873,21 +863,6 @@ void List::add(CellI& value)
     }
     listItemCell.next(nullptr);
     listItemCell.value(&value);
-}
-
-CellI& List::valueType()
-{
-    return m_valueType;
-}
-
-Type& List::listType()
-{
-    return m_listType;
-}
-
-Type& List::itemType()
-{
-    return m_itemType;
 }
 
 // ============================================================================

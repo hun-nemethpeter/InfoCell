@@ -12,6 +12,7 @@ void CellValuePrinter::visit(Slot& cell)
 
 void CellValuePrinter::visit(Type& type)
 {
+    brain::Brain& kb = type.kb;
     m_ss << "Type " << type.label() << " { ";
     bool isFirst = true;
     for (auto& slotI : type.slots()) {
@@ -20,7 +21,7 @@ void CellValuePrinter::visit(Type& type)
         } else {
             m_ss << ", ";
         }
-        m_ss << slotI.first->label() << ": " << slotI.second.slotType().label();
+        m_ss << slotI.first->label() << ": " << slotI.second[kb.cells.slotType].label();
     }
     m_ss << " }";
 }

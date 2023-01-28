@@ -40,6 +40,16 @@ public:
     std::string m_label;
 };
 
+namespace util {
+
+template <typename T>
+T& ref(T& obj) { return obj; }
+
+template <typename T>
+T& ref(T* obj) { return *obj; }
+
+} // namespace util
+
 // ============================================================================
 class Slot;
 class Type_SlotMap_Type_SlotList_Item : public CellI
@@ -86,9 +96,6 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
-
-    CellI& slotType();
-    CellI& slotRole();
 
     Type_SlotMap_Type_SlotList_Item m_slotMapTypeListItem;
     Type_SlotMap_Type_Slot m_slotMapTypeListItemValue;
@@ -301,30 +308,24 @@ protected:
 class Number;
 class List : public CellI
 {
-    template <typename T>
-    T& ref(T& obj) { return obj; }
-
-    template <typename T>
-    T& ref(T* obj) { return *obj; }
-
 public:
     List(brain::Brain& kb, CellI& valueType);
 
     template <typename T>
     List(brain::Brain& kb, std::vector<T>& values) :
-        List(kb, ref(values.front()).type())
+        List(kb, util::ref(values.front()).type())
     {
         for (auto& valueT : values) {
-            add(ref(valueT));
+            add(util::ref(valueT));
         }
     }
 
     template <typename Key, typename Value>
     List(brain::Brain& kb, std::map<Key, Value>& values) :
-        List(kb, ref((*values.begin())).second.type())
+        List(kb, util::ref((*values.begin())).second.type())
     {
         for (auto& valuePairs : values) {
-            add(ref(valuePairs.second));
+            add(util::ref(valuePairs.second));
         }
     }
 
@@ -337,9 +338,6 @@ public:
 
     std::list<ListItem>& items();
     void add(CellI& value);
-    CellI& valueType();
-    Type& listType();
-    Type& itemType();
 
 protected:
     CellI& m_valueType;
