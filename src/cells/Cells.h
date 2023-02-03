@@ -83,10 +83,17 @@ class IndexedList;
 class Type : public CellI
 {
 public:
+    enum class InitMode
+    {
+        InitDuringBootstrap,
+        InitSubTypes,
+        Normal
+    };
+
     explicit Type(brain::Brain& kb, const std::string& label = "Type");
     Type(brain::Brain& kb, std::initializer_list<SlotRef> slots);
     Type(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> slots);
-    Type(brain::Brain& kb, const std::string& label, bool initDuringBootstrap);
+    Type(brain::Brain& kb, const std::string& label, InitMode initMode);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -94,15 +101,25 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void add(std::initializer_list<SlotRef> slots);
+    void addSlots(std::initializer_list<SlotRef> slots);
+    Type& addSubType(CellI& role, const std::string& label, InitMode initMode = InitMode::Normal);
     void manualInit();
+    void manualInitSubTypes();
 
 protected:
     void createSlot(CellI& role, CellI& type);
 
-    std::map<CellI*, Slot> m_slots;
-    std::vector<CellI*> m_slotOrder;
-    std::unique_ptr<IndexedList> m_indexedSlotList;
+    std::map<CellI*, Slot> m_slotsMap;
+    std::vector<CellI*> m_slotsOrder;
+    std::unique_ptr<IndexedList> m_slots;
+
+    std::map<CellI*, Slot> m_parametersMap;
+    std::vector<CellI*> m_parametersOrder;
+    std::unique_ptr<IndexedList> m_parameters;
+
+    std::map<CellI*, Type> m_subTypesMap;
+    std::vector<CellI*> m_subTypesOrder;
+    std::unique_ptr<IndexedList> m_subTypes;
 };
 
 // ============================================================================
@@ -126,7 +143,7 @@ protected:
 class ListItem : public CellI
 {
 public:
-    ListItem(brain::Brain& kb, Type& type);
+    ListItem(brain::Brain& kb, CellI& type);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -144,7 +161,7 @@ public:
     void value(CellI* v);
 
 protected:
-    Type& m_type;
+    CellI& m_type;
     CellI* m_prev  = nullptr;
     CellI* m_next  = nullptr;
     CellI* m_value = nullptr;
@@ -186,7 +203,7 @@ public:
 protected:
     CellI& m_valueType;
     Type& m_listType;
-    Type& m_itemType;
+    CellI& m_itemType;
     std::list<ListItem> m_items;
 };
 
@@ -374,7 +391,7 @@ public:
 
     struct ValueItem
     {
-        ValueItem(brain::Brain& kb, CellI& value, CellI& index, size_t listItemIndex, IndexedList& indexedList);
+        ValueItem(brain::Brain& kb, CellI& index, CellI& value, size_t listItemIndex, IndexedList& indexedList);
 
         ValueItem* prev();
         ValueItem* next();
@@ -390,14 +407,13 @@ public:
     // Store valueType and indexed with valueType.role
     // for example valueType: Slot, role: slotRole, then storing a list of those Slot
     // and creating an index-cell where (Slot obj).role -> Slot
-    IndexedList(brain::Brain& kb, CellI& valueType, CellI& indexRole);
+    IndexedList(brain::Brain& kb, CellI& valueType);
 
-    void add(CellI& value);
+    void add(CellI& key, CellI& value);
 
 protected:
     brain::Brain& m_kb;
     CellI& m_valueType;
-    CellI& m_indexRole;
 
     IndexedValueItems m_indexedValueItems;
     OrderedValueItems m_orderedValueItems;

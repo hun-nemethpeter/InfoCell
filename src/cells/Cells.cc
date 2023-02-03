@@ -123,14 +123,22 @@ void Slot::accept(Visitor& visitor)
 // ============================================================================
 Type::Type(brain::Brain& kb, const std::string& label) :
     CellI(kb, label),
-    m_indexedSlotList(new IndexedList(kb, kb.type.Slot, kb.cells.slotRole))
+    m_slots(new IndexedList(kb, kb.type.Slot))
 {
 }
 
-Type::Type(brain::Brain& kb, const std::string& label, bool) :
+Type::Type(brain::Brain& kb, const std::string& label, InitMode initMode) :
     CellI(kb, label)
 {
-    // will be inited with manualInit() for bootstrap
+    if (initMode == InitMode::InitDuringBootstrap) {
+        // will be inited with manualInit() for bootstrap
+        return;
+    }
+    if (initMode == InitMode::InitSubTypes) {
+        m_slots.reset(new IndexedList(kb, kb.type.Slot));
+        m_subTypes.reset(new IndexedList(kb, kb.type.Type_));
+        return;
+    }
 }
 
 Type::Type(brain::Brain& kb, std::initializer_list<SlotRef> slots) :
@@ -140,7 +148,7 @@ Type::Type(brain::Brain& kb, std::initializer_list<SlotRef> slots) :
 
 Type::Type(brain::Brain& kb, const std::string& label, std::initializer_list<SlotRef> slots) :
     CellI(kb, label),
-    m_indexedSlotList(new IndexedList(kb, kb.type.Slot, kb.cells.slotRole))
+    m_slots(new IndexedList(kb, kb.type.Slot))
 {
     for (const SlotRef& slotRef : slots) {
         createSlot(slotRef.m_role, slotRef.m_type);
@@ -172,10 +180,13 @@ CellI& Type::operator[](CellI& role)
         return kb.type.Type_;
     }
     if (&role == &kb.cells.slotList) {
-        return m_indexedSlotList->m_valueList;
+        return m_slots->m_valueList;
     }
     if (&role == &kb.cells.slotIndex) {
-        return m_indexedSlotList->m_valueIndex;
+        return m_slots->m_valueIndex;
+    }
+    if (&role == &kb.cells.subTypes) {
+        return m_subTypes->m_valueIndex;
     }
 
     return kb.cells.emptyObject;
@@ -186,44 +197,73 @@ void Type::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-void Type::add(std::initializer_list<SlotRef> slots)
+void Type::addSlots(std::initializer_list<SlotRef> slots)
 {
     for (const SlotRef& slotRef : slots) {
         createSlot(slotRef.m_role, slotRef.m_type);
     }
 }
 
+Type& Type::addSubType(CellI& role, const std::string& label, InitMode initMode)
+{
+    auto res           = initMode == InitMode::Normal ? m_subTypesMap.emplace(std::piecewise_construct,
+                                                                              std::forward_as_tuple(&role),
+                                                                              std::forward_as_tuple(kb, label))
+                                                      : m_subTypesMap.emplace(std::piecewise_construct,
+                                                                              std::forward_as_tuple(&role),
+                                                                              std::forward_as_tuple(kb, label, initMode));
+    Type& insertedType = res.first->second;
+    m_subTypesOrder.push_back(&role);
+    if (m_subTypes) {
+        m_subTypes->add(role, insertedType);
+    }
+
+    return insertedType;
+}
+
 void Type::createSlot(CellI& role, CellI& type)
 {
-    auto slotIt = m_slots.find(&role);
-    if (slotIt != m_slots.end()) {
+    auto slotIt = m_slotsMap.find(&role);
+    if (slotIt != m_slotsMap.end()) {
         if (&slotIt->second[kb.cells.slotType] != &type) {
             throw "Member label already registered with an other class";
         }
     } else {
-        auto res = m_slots.emplace(std::piecewise_construct,
-                                   std::forward_as_tuple(&role),
-                                   std::forward_as_tuple(kb, role, type));
+        auto res = m_slotsMap.emplace(std::piecewise_construct,
+                                      std::forward_as_tuple(&role),
+                                      std::forward_as_tuple(kb, role, type));
 
-        Slot& slot                             = res.first->second;
+        Slot& slot = res.first->second;
         if (kb.isInitialized()) {
             slot.label(std::format("Slot of {}.{}", label(), role.label()));
         }
-        m_slotOrder.push_back(&slot);
-        if (m_indexedSlotList) {
-            m_indexedSlotList->add(slot);
+        m_slotsOrder.push_back(&role);
+        if (m_slots) {
+            m_slots->add(role, slot);
         }
     }
 }
 
 void Type::manualInit()
 {
-    if (m_indexedSlotList) {
+    if (m_slots) {
         return;
     }
-    m_indexedSlotList = std::make_unique<IndexedList>(kb, kb.type.Slot, kb.cells.slotRole);
-    for (CellI* slotPtr : m_slotOrder) {
-        m_indexedSlotList->add(*slotPtr);
+    m_slots = std::make_unique<IndexedList>(kb, kb.type.Slot);
+    for (CellI* slotPtr : m_slotsOrder) {
+        m_slots->add(*slotPtr, m_slotsMap.at(slotPtr));
+    }
+}
+
+void Type::manualInitSubTypes()
+{
+    if (m_subTypesOrder.empty()) {
+        return;
+    }
+
+    m_subTypes = std::make_unique<IndexedList>(kb, kb.type.Type_);
+    for (CellI* slotPtr : m_subTypesOrder) {
+        m_subTypes->add(*slotPtr, m_subTypesMap.at(slotPtr));
     }
 }
 
@@ -275,7 +315,7 @@ void Object::accept(Visitor& visitor)
 }
 
 // ============================================================================
-ListItem::ListItem(brain::Brain& kb, Type& t) :
+ListItem::ListItem(brain::Brain& kb, CellI& t) :
     CellI(kb),
     m_type(t)
 {
@@ -373,7 +413,7 @@ List::List(brain::Brain& kb, CellI& valueType) :
     CellI(kb),
     m_valueType(valueType),
     m_listType(kb.type.ListOf(valueType)),
-    m_itemType(kb.type.ListItemOf(valueType))
+    m_itemType(m_listType[kb.cells.subTypes][kb.coding.objectType])
 {
 }
 
@@ -476,7 +516,7 @@ void IndexedList::ValueList::Item::operator()()
 CellI& IndexedList::ValueList::Item::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.ListItemOf(kb.type.Slot);
+        return kb.type.ListOf(kb.type.Slot)[kb.cells.subTypes][kb.coding.objectType];
     }
     if (&role == &kb.sequence.previous) {
         if (m_valueItem.prev())
@@ -592,7 +632,7 @@ void IndexedList::ValueIndex::Type::SlotList::Item::operator()()
 CellI& IndexedList::ValueIndex::Type::SlotList::Item::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.ListItemOf(kb.type.Slot);
+        return kb.type.ListOf(kb.type.Slot)[kb.cells.subTypes][kb.coding.objectType];
     }
     if (&role == &kb.sequence.previous) {
         if (m_valueItem.prev())
@@ -870,7 +910,7 @@ void IndexedList::ValueIndex::accept(Visitor& visitor)
 }
 
 // ============================================================================
-IndexedList::ValueItem::ValueItem(brain::Brain& kb, CellI& value, CellI& index, size_t listItemIndex, IndexedList& indexedList) :
+IndexedList::ValueItem::ValueItem(brain::Brain& kb, CellI& index, CellI& value, size_t listItemIndex, IndexedList& indexedList) :
     m_value(value),
     m_listItemIndex(listItemIndex),
     m_indexedList(indexedList),
@@ -894,20 +934,19 @@ IndexedList::ValueItem* IndexedList::ValueItem::next()
 }
 
 // ============================================================================
-IndexedList::IndexedList(brain::Brain& kb, CellI& valueType, CellI& indexRole) :
+IndexedList::IndexedList(brain::Brain& kb, CellI& valueType) :
     m_kb(kb),
     m_valueType(valueType),
-    m_indexRole(indexRole),
     m_valueList(kb, m_orderedValueItems, valueType),
     m_valueIndex(kb, m_indexedValueItems, m_orderedValueItems, valueType)
 {
 }
 
-void IndexedList::add(CellI& value)
+void IndexedList::add(CellI& key, CellI& value)
 {
     auto it = m_indexedValueItems.emplace(std::piecewise_construct,
-                                          std::forward_as_tuple(&value[m_indexRole]),
-                                          std::forward_as_tuple(m_kb, value, value[m_indexRole], m_orderedValueItems.size(), *this));
+                                          std::forward_as_tuple(&key),
+                                          std::forward_as_tuple(m_kb, key, value, m_orderedValueItems.size(), *this));
     m_orderedValueItems.push_back(&it.first->second);
 }
 

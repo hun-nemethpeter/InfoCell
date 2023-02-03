@@ -68,26 +68,41 @@ TypeInit::TypeInit(Types& types)
 {
     // This is the first type, breaking the infinite init loop here with pre initializing a List<Slot> and ListItem<Slot> here
     // Every type has a list of Slots, so it needs a List<Slot>
-    Brain& kb       = types.kb;
-    Type& type      = types.kb.type.Slot;
-    auto listItemIt = types.m_listItemTypes.emplace(std::piecewise_construct,
-                                                    std::forward_as_tuple(&type),
-                                                    std::forward_as_tuple(kb, "ListItem<Slot>", true));
+    Brain& kb  = types.kb;
 
-    Type& itemType = listItemIt.first->second;
-    itemType.add({ { kb.sequence.previous, itemType },
-                   { kb.sequence.next, itemType },
-                   { kb.coding.value, type } });
+    {
+        Type& type     = types.kb.type.Slot;
+        auto listIt    = types.m_listTypes.emplace(std::piecewise_construct,
+                                                   std::forward_as_tuple(&type),
+                                                   std::forward_as_tuple(kb, "List<Slot>", Type::InitMode::InitDuringBootstrap));
+        Type& listType = listIt.first->second;
+        Type& itemType = listType.addSubType(kb.coding.objectType, "ListItem<Slot>", Type::InitMode::InitDuringBootstrap);
+        listType.addSlots({ { kb.sequence.first, itemType },
+                            { kb.sequence.last, itemType },
+                            { kb.dimensions.size, kb.type.Number } });
+        itemType.addSlots({ { kb.sequence.previous, itemType },
+                            { kb.sequence.next, itemType },
+                            { kb.coding.value, type } });
 
-    auto listIt    = types.m_listTypes.emplace(std::piecewise_construct,
-                                               std::forward_as_tuple(&type),
-                                               std::forward_as_tuple(kb, "List<Slot>", true));
-    Type& listType = listIt.first->second;
-    listType.add({ { kb.sequence.first, itemType },
-                   { kb.sequence.last, itemType },
-                   { kb.dimensions.size, kb.type.Number } });
-    itemType.manualInit();
-    listType.manualInit();
+        itemType.manualInit();
+        listType.manualInit();
+    }
+    {
+        Type& type = types.kb.type.Type_;
+        auto listIt    = types.m_listTypes.emplace(std::piecewise_construct,
+                                                   std::forward_as_tuple(&type),
+                                                   std::forward_as_tuple(kb, "List<Type>", Type::InitMode::InitDuringBootstrap));
+        Type& listType = listIt.first->second;
+        Type& itemType = listType.addSubType(kb.coding.objectType, "ListItem<Type>", Type::InitMode::InitDuringBootstrap);
+        listType.addSlots({ { kb.sequence.first, itemType },
+                            { kb.sequence.last, itemType },
+                            { kb.dimensions.size, kb.type.Number } });
+        itemType.addSlots({ { kb.sequence.previous, itemType },
+                            { kb.sequence.next, itemType },
+                            { kb.coding.value, type } });
+        itemType.manualInit();
+        listType.manualInit();
+    }
 }
 
 Types::Types(brain::Brain& kb) :
@@ -108,12 +123,8 @@ Types::Types(brain::Brain& kb) :
     pipeline(kb),
     kb(kb)
 {
-}
-
-
-Type& Types::IndexedListOf(CellI& valueType, CellI& indexRole)
-{
-    return kb.type.Any; // TODO
+    m_listTypes.at(&kb.type.Slot).manualInitSubTypes();
+    m_listTypes.at(&kb.type.Type_).manualInitSubTypes();
 }
 
 Type& Types::ListOf(CellI& type)
@@ -122,22 +133,22 @@ Type& Types::ListOf(CellI& type)
     if (numberIt != m_listTypes.end()) {
         return numberIt->second;
     } else {
-        std::string typeName = std::format("List<{}>", type.label());
-        auto it              = m_listTypes.emplace(std::piecewise_construct,
+        auto it        = m_listTypes.emplace(std::piecewise_construct,
                                              std::forward_as_tuple(&type),
-                                             std::forward_as_tuple(kb, typeName));
+                                             std::forward_as_tuple(kb, std::format("List<{}>", type.label()), Type::InitMode::InitSubTypes));
         Type& listType = it.first->second;
-        Type& itemType = ListItemOf(type);
-        listType.add({ { kb.sequence.first, itemType },
-                       { kb.sequence.last, itemType },
-                       { kb.dimensions.size, kb.type.Number } });
+        Type& itemType = listType.addSubType(kb.coding.objectType, std::format("ListItem<{}>", type.label()), Type::InitMode::InitSubTypes);
+        listType.addSlots({ { kb.sequence.first, itemType },
+                            { kb.sequence.last, itemType },
+                            { kb.dimensions.size, kb.type.Number } });
+        itemType.addSlots({ { kb.sequence.previous, itemType },
+                            { kb.sequence.next, itemType },
+                            { kb.coding.value, type } });
 
         return it.first->second;
     }
 }
 
-Type& Types::ListItemOf(CellI& type)
-{
 #if 0
     Template ListItemTemplate(kb, "template<T> ListItem",
         { { kb.coding.objectType, kb.type.Type_ } },
@@ -170,22 +181,6 @@ Type& Types::ListItemOf(CellI& type)
 
  // Type ListItemTemplate(kb, "template<T> ListItem", { { kb.coding.parameters, kb.type.Type_ } });
 #endif
-    auto listItemIt = m_listItemTypes.find(&type);
-    if (listItemIt != m_listItemTypes.end()) {
-        return listItemIt->second;
-    } else {
-        std::string typeName = std::format("ListItem<{}>", type.label());
-        auto it = m_listItemTypes.emplace(std::piecewise_construct,
-                                          std::forward_as_tuple(&type),
-                                          std::forward_as_tuple(kb, typeName));
-
-        Type& itemType = it.first->second;
-        itemType.add({ { kb.sequence.previous, itemType },
-                       { kb.sequence.next, itemType },
-                       { kb.coding.value, type } });
-        return itemType;
-    }
-}
 
 Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
     type(kb, anyType, "type"),
@@ -193,6 +188,7 @@ Cells::Cells(brain::Brain& kb, Type& voidType, Type& anyType) :
     slotIndex(kb, anyType, "slotIndex"),
     slotType(kb, anyType, "slotType"),
     slotRole(kb, anyType, "slotRole"),
+    subTypes(kb, anyType, "subTypes"),
     emptyObject(kb, voidType)
 {
 }
@@ -364,11 +360,11 @@ Arc::Arc(brain::Brain& kb) :
     Task(kb, "Task"),
     examples(kb, kb.type.Any)
 {
-    Demonstration.add(
+    Demonstration.addSlots(
         { { kb.coding.input, kb.type.Picture },
           { kb.coding.output, kb.type.Picture } });
 
-    Task.add(
+    Task.addSlots(
         { { examples, kb.type.ListOf(Demonstration) },
           { kb.coding.input, kb.type.Picture },
           { kb.coding.output, kb.type.Picture } });
@@ -390,26 +386,26 @@ Brain::Brain() :
     numbers(*this, type.Any),
     arc(*this)
 {
-    type.Type_.add(
+    type.Type_.addSlots(
         { { cells.slotList, type.ListOf(type.Slot) },
           { cells.slotIndex, type.Any } }); // TODO
 
-    type.Slot.add(
+    type.Slot.addSlots(
         { { cells.slotType, type.Type_ },
           { cells.slotRole, type.Any } });
 
-    type.Number.add(
+    type.Number.addSlots(
         { { coding.value, type.ListOf(type.Digit) },
           { numbers.sign, type.Number } }); // TODO
 
-    type.String.add({ { coding.value, type.ListOf(type.Char) } });
+    type.String.addSlots({ { coding.value, type.ListOf(type.Char) } });
 
-    type.Color.add(
+    type.Color.addSlots(
         { { colors.red, type.Number },
           { colors.green, type.Number },
           { colors.blue, type.Number } });
 
-    type.Pixel.add(
+    type.Pixel.addSlots(
         { { directions.up, type.Pixel },
           { directions.down, type.Pixel },
           { directions.left, type.Pixel },
@@ -417,119 +413,119 @@ Brain::Brain() :
           { coordinates.x, type.Number },
           { coordinates.y, type.Number } });
 
-    type.Picture.add(
+    type.Picture.addSlots(
         { { dimensions.width, type.Number },
           { dimensions.height, type.Number },
           { visualization.pixels, type.ListOf(type.Pixel) } });
 
-    type.op.Same.add({ { equation.lhs, type.pipeline.Base },
+    type.op.Same.addSlots({ { equation.lhs, type.pipeline.Base },
                        { equation.rhs, type.pipeline.Base },
                        { coding.output, type.pipeline.Base } });
 
-    type.op.NotSame.add({ { equation.lhs, type.pipeline.Base },
+    type.op.NotSame.addSlots({ { equation.lhs, type.pipeline.Base },
                           { equation.rhs, type.pipeline.Base },
                           { coding.output, type.pipeline.Base } });
 
-    type.op.Equal.add({ { equation.lhs, type.pipeline.Base },
+    type.op.Equal.addSlots({ { equation.lhs, type.pipeline.Base },
                         { equation.rhs, type.pipeline.Base },
                         { coding.output, type.pipeline.Base } });
 
-    type.op.NotEqual.add({ { equation.lhs, type.pipeline.Base },
+    type.op.NotEqual.addSlots({ { equation.lhs, type.pipeline.Base },
                            { equation.rhs, type.pipeline.Base },
                            { coding.output, type.pipeline.Base } });
 
-    type.op.Has.add({ { coding.cell, type.pipeline.Base },
+    type.op.Has.addSlots({ { coding.cell, type.pipeline.Base },
                       { coding.role, type.pipeline.Base },
                       { coding.output, type.op.Base } });
 
-    type.op.Get.add({ { coding.cell, type.pipeline.Base },
+    type.op.Get.addSlots({ { coding.cell, type.pipeline.Base },
                       { coding.role, type.pipeline.Base },
                       { coding.output, type.op.Base } });
 
-    type.op.Set.add({ { coding.cell, type.pipeline.Base },
+    type.op.Set.addSlots({ { coding.cell, type.pipeline.Base },
                       { coding.role, type.pipeline.Base },
                       { coding.output, type.op.Base },
                       { coding.value, type.pipeline.Base } });
 
-    type.op.logic.And.add({ { equation.lhs, type.pipeline.Base },
+    type.op.logic.And.addSlots({ { equation.lhs, type.pipeline.Base },
                             { equation.rhs, type.pipeline.Base },
                             { coding.output, type.pipeline.Base } });
 
-    type.op.logic.Or.add({ { equation.lhs, type.pipeline.Base },
+    type.op.logic.Or.addSlots({ { equation.lhs, type.pipeline.Base },
                            { equation.rhs, type.pipeline.Base },
                            { coding.output, type.pipeline.Base } });
 
-    type.op.logic.Not.add({ { coding.input, type.pipeline.Base },
+    type.op.logic.Not.addSlots({ { coding.input, type.pipeline.Base },
                             { coding.output, type.pipeline.Base } });
 
-    type.op.math.Add.add({ { equation.lhs, type.pipeline.Base },
+    type.op.math.Add.addSlots({ { equation.lhs, type.pipeline.Base },
                            { equation.rhs, type.pipeline.Base },
                            { coding.output, type.pipeline.Base } });
 
-    type.op.math.Subtract.add({ { equation.lhs, type.pipeline.Base },
+    type.op.math.Subtract.addSlots({ { equation.lhs, type.pipeline.Base },
                                 { equation.rhs, type.pipeline.Base },
                                 { coding.output, type.pipeline.Base } });
 
-    type.op.math.Multiply.add({ { equation.lhs, type.pipeline.Base },
+    type.op.math.Multiply.addSlots({ { equation.lhs, type.pipeline.Base },
                                 { equation.rhs, type.pipeline.Base },
                                 { coding.output, type.pipeline.Base } });
 
-    type.op.math.Divide.add({ { equation.lhs, type.pipeline.Base },
+    type.op.math.Divide.addSlots({ { equation.lhs, type.pipeline.Base },
                               { equation.rhs, type.pipeline.Base },
                               { coding.output, type.pipeline.Base } });
 
-    type.op.math.LessThan.add({ { equation.lhs, type.pipeline.Base },
+    type.op.math.LessThan.addSlots({ { equation.lhs, type.pipeline.Base },
                                 { equation.rhs, type.pipeline.Base },
                                 { coding.output, type.pipeline.Base } });
 
-    type.op.math.GreaterThan.add({ { equation.lhs, type.pipeline.Base },
+    type.op.math.GreaterThan.addSlots({ { equation.lhs, type.pipeline.Base },
                                    { equation.rhs, type.pipeline.Base },
                                    { coding.output, type.pipeline.Base } });
 
-    type.pipeline.Void.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.Void.addSlots({ { sequence.first, type.pipeline.Base },
                              { sequence.next, type.pipeline.Base },
                              { sequence.current, type.pipeline.Base } });
 
-    type.pipeline.Input.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.Input.addSlots({ { sequence.first, type.pipeline.Base },
                               { sequence.next, type.pipeline.Base },
                               { sequence.current, type.pipeline.Base },
                               { coding.value, type.Any } });
 
-    type.pipeline.New.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.New.addSlots({ { sequence.first, type.pipeline.Base },
                             { sequence.next, type.pipeline.Base },
                             { sequence.current, type.pipeline.Base },
                             { coding.value, type.pipeline.Base },
                             { coding.objectType, type.op.Base } });
 
-    type.pipeline.Fork.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.Fork.addSlots({ { sequence.first, type.pipeline.Base },
                              { sequence.next, type.pipeline.Base },
                              { coding.input, type.pipeline.Base },
                              { coding.value, type.pipeline.Base },
                              { coding.branch, type.op.Base } });
 
-    type.pipeline.Delete.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.Delete.addSlots({ { sequence.first, type.pipeline.Base },
                                { coding.input, type.pipeline.Base } });
 
-    type.pipeline.Node.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.Node.addSlots({ { sequence.first, type.pipeline.Base },
                              { sequence.next, type.pipeline.Base },
                              { coding.input, type.pipeline.Base },
                              { coding.op, type.op.Base },
                              { coding.value, type.pipeline.Base } });
 
-    type.pipeline.IfThen.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.IfThen.addSlots({ { sequence.first, type.pipeline.Base },
                                { sequence.next, type.pipeline.Base },
                                { coding.input, type.pipeline.Base },
                                { coding.condition, type.pipeline.Base },
                                { coding.then, type.op.Base },
                                { coding.else_, type.op.Base } });
 
-    type.pipeline.DoWhile.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.DoWhile.addSlots({ { sequence.first, type.pipeline.Base },
                                 { sequence.next, type.pipeline.Base },
                                 { coding.input, type.pipeline.Base },
                                 { coding.condition, type.pipeline.Base },
                                 { coding.statement, type.op.Base } });
 
-    type.pipeline.While.add({ { sequence.first, type.pipeline.Base },
+    type.pipeline.While.addSlots({ { sequence.first, type.pipeline.Base },
                               { sequence.next, type.pipeline.Base },
                               { coding.input, type.pipeline.Base },
                               { coding.condition, type.pipeline.Base },
