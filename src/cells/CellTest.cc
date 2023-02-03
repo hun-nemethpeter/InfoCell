@@ -152,4 +152,6 @@ int main(int argc, char* argv[])
     printAs.svg(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
     printAs.svg(number_255[kb.coding.value][kb.sequence.last]);
     printAs.svg(number_255[kb.coding.value][kb.dimensions.size]);
+
+    std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;
 }

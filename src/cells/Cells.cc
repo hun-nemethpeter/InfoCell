@@ -9,14 +9,31 @@
 namespace synth {
 namespace cells {
 
+int CellI::s_constructed = 0;
+int CellI::s_destructed = 0;
+
+
 CellI::CellI(brain::Brain& kb) :
     kb(kb)
 {
+    s_constructed += 1;
 }
 
 CellI::CellI(brain::Brain& kb, const std::string& label) :
     kb(kb), m_label(label)
 {
+    s_constructed += 1;
+}
+
+CellI::CellI(const CellI& rhs) :
+    kb(rhs.kb), m_label(rhs.m_label)
+{
+    throw "Unexpected cell copy";
+}
+
+CellI::~CellI()
+{
+    s_destructed += 1;
 }
 
 CellI& CellI::get(CellI& role)
