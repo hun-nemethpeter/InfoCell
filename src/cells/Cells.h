@@ -573,7 +573,7 @@ kb.type.ListOfSlot = List<typeIs: Slot> |
     ListItemTemplate.add({ { kb.sequence.previous, ListItemTemplate },
                            { kb.sequence.next, ListItemTemplate } });
 
-    ListItemTemplate[kb.type.Type_][kb.type.template_];
+    ListItemTemplate[kb.cells.type][kb.type.Template];
 
     ListItemTemplateParam1[kb.coding.role] = kb.coding.objectType;
     ListItemTemplateParam1[kb.coding.type] = kb.type.Type_;
@@ -681,11 +681,13 @@ public:
     void addParams(std::initializer_list<Type::SlotRef> params);
     void addParam(const Type::SlotRef& param);
     void addSlots(std::initializer_list<SlotRef> slots);
-    void addSlot(const SlotRef& slot);
+    void addSlot(const SlotRef& slotRef);
 
     CellI* compile(CellI& param);
 
 protected:
+    Object* createDataCell(const CellDescription& cellDescription);
+
     template <typename T>
     class GroupData
     {

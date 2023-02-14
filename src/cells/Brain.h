@@ -5,6 +5,17 @@ namespace cells {
 namespace brain {
 namespace type {
 
+class Template
+{
+public:
+    Template(brain::Brain& kb);
+    Type TemplateSlot;
+    Type DescriptorCell;
+    Type DescriptorParameter;
+    Type DescriptorTemplate;
+    Type DescriptorSelf;
+};
+
 class Pipelines
 {
 public:
@@ -102,6 +113,7 @@ public:
     Type Picture;
     Type Template;
 
+    type::Template template_;
     type::Operations op;
     type::Pipelines pipeline;
 };
@@ -141,6 +153,7 @@ public:
     Object result;
     Object role;
     Object statement;
+    Object template_;
     Object then;
     Object value;
 };

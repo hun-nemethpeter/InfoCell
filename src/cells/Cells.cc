@@ -1159,11 +1159,13 @@ Template::SlotRef::SlotRef(CellDescription role, CellDescription type) :
 Template::Template(brain::Brain& kb, const std::string& label) :
     CellI(kb, label)
 {
+    m_slots.m_group.reset(new Group(kb, kb.type.Any)); // TODO really Any?
 }
 
 Template::Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params) :
     CellI(kb, "Template")
 {
+    m_slots.m_group.reset(new Group(kb, kb.type.Any));
     for (const auto& param : params) {
         addParam(param);
     }
@@ -1172,6 +1174,7 @@ Template::Template(brain::Brain& kb, std::initializer_list<Type::SlotRef> params
 Template::Template(brain::Brain& kb, const std::string& label, std::initializer_list<Type::SlotRef> params) :
     CellI(kb, label)
 {
+    m_slots.m_group.reset(new Group(kb, kb.type.Any));
     for (const auto& param : params) {
         addParam(param);
     }
@@ -1228,8 +1231,51 @@ void Template::addSlots(std::initializer_list<SlotRef> slots)
     }
 }
 
-void Template::addSlot(const SlotRef& slot)
+void Template::addSlot(const SlotRef& slotRef)
 {
+
+    Object* slotRole = createDataCell(slotRef.m_role);
+    Object* slotType = createDataCell(slotRef.m_type);
+
+    auto res = m_slots.m_map.emplace(std::piecewise_construct,
+                                     std::forward_as_tuple(slotRole),
+                                     std::forward_as_tuple(kb, kb.type.template_.TemplateSlot));
+
+    Object& slot = res.first->second;
+    slot.set(kb.cells.slotRole, *slotRole);
+    slot.set(kb.cells.slotType, *slotType);
+
+    m_slots.m_group->add(*slotRole, slot);
+    m_slots.m_order.push_back(slotRole);
+    m_slots.m_group->add(*slotRole, slot);
+}
+
+Object* Template::createDataCell(const CellDescription& cellDescription)
+{
+    switch (cellDescription.m_descriptionKind) {
+    case CellDescription::DescriptionKind::Cell: {
+        Object* itemCell = new Object(kb, kb.type.template_.DescriptorCell);
+        itemCell->set(kb.coding.value, *cellDescription.m_cell.m_cell);
+        return itemCell;
+    } break;
+    case CellDescription::DescriptionKind::Parameter: {
+        Object* itemCell = new Object(kb, kb.type.template_.DescriptorParameter);
+        itemCell->set(kb.coding.value, *cellDescription.m_parameter.m_paramRole);
+        return itemCell;
+    } break;
+    case CellDescription::DescriptionKind::TemplateOf: {
+        Object* itemCell = new Object(kb, kb.type.template_.DescriptorTemplate);
+        itemCell->set(kb.coding.template_, *cellDescription.m_templateOf.m_templateOf);
+        itemCell->set(kb.coding.parameter, *createDataCell(*cellDescription.m_templateOf.m_templateParameter));
+        return itemCell;
+    } break;
+    case CellDescription::DescriptionKind::SelfType: {
+        Object* itemCell = new Object(kb, kb.type.template_.DescriptorSelf);
+        return itemCell;
+    } break;
+    }
+
+    throw "Unhandled template item type";
 }
 
 CellI* Template::compile(CellI& param)

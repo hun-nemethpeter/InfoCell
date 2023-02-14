@@ -13,6 +13,14 @@ static void test()
     Brain kb;
 }
 namespace type {
+Template::Template(brain::Brain& kb) :
+    TemplateSlot(kb, "TemplateSlot"),
+    DescriptorCell(kb, "DescriptorCell"),
+    DescriptorParameter(kb, "DescriptorParameter"),
+    DescriptorTemplate(kb, "DescriptorTemplate"),
+    DescriptorSelf(kb, "DescriptorSelf")
+{
+}
 
 Pipelines::Pipelines(brain::Brain& kb) :
     Base(kb, "Base"),
@@ -121,6 +129,7 @@ Types::Types(brain::Brain& kb) :
     Pixel(kb, "Pixel"),
     Picture(kb, "Picture"),
     Template(kb, "Template"),
+    template_(kb),
     op(kb),
     pipeline(kb),
     kb(kb)
@@ -199,6 +208,7 @@ Coding::Coding(brain::Brain& kb, Type& anyType) :
     result(kb, anyType, "result"),
     role(kb, anyType, "role"),
     statement(kb, anyType, "statement"),
+    template_(kb, anyType, "template"),
     then(kb, anyType, "then"),
     value(kb, anyType, "value")
 {
@@ -390,6 +400,35 @@ Brain::Brain() :
         { { cells.slotType, type.Type_ },
           { cells.slotRole, type.Any } });
 
+    type.template_.TemplateSlot.addSlots(
+        { { cells.slotType, type.Any },
+          { cells.slotRole, type.Any } });
+
+    type.template_.DescriptorCell.addSlots(
+        { { coding.value, type.Any } });
+
+    type.template_.DescriptorParameter.addSlots(
+        { { coding.value, type.Any } });
+
+    type.template_.DescriptorTemplate.addSlots(
+        { { coding.template_, type.Template },
+          { coding.parameter, type.Any } });
+
+    {
+        using CellT       = Template::CellDescription::Cell;
+        using ParamT      = Template::CellDescription::Parameter;
+        using TemplateOfT = Template::CellDescription::TemplateOf;
+        using SelfTypeT   = Template::CellDescription::SelfType;
+
+        cells::Template item(*this, "ListItem<T>", { { coding.objectType, type.Any } });
+        item.addSlots({ { CellT(sequence.previous), SelfTypeT() },
+                        { CellT(sequence.next), SelfTypeT() },
+                        { CellT(coding.value), ParamT(coding.objectType) } });
+        cells::Template list(*this, "List<T>", { { coding.objectType, type.Any } });
+        list.addSlots({ { CellT(sequence.first), TemplateOfT(item, ParamT(coding.objectType)) },
+                        { CellT(sequence.last), SelfTypeT() },
+                        { CellT(dimensions.size), CellT(type.Number) } });
+    }
     Type& listSubType = type.List.addSubType(coding.objectType);
     listSubType.addSlots({ { sequence.previous, listSubType },
                            { sequence.next, listSubType },
