@@ -28,52 +28,42 @@ void StructPrinter::visit(Type& cell)
     printStruct(cell);
 }
 
-void StructPrinter::visit(Group::MemberList::Item& cell)
+void StructPrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Group::MemberList& cell)
+void StructPrinter::visit(Map::Index::Type::Slots::SlotList& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Group::MemberIndex::Type::Slots::SlotList::Item& cell)
+void StructPrinter::visit(Map::Index::Type::Slots::SlotIndex& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Group::MemberIndex::Type::Slots::SlotList& cell)
+void StructPrinter::visit(Map::Index::Type::Slots& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Group::MemberIndex::Type::Slots::SlotIndex& cell)
+void StructPrinter::visit(Map::Index::Type::Slot& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Group::MemberIndex::Type::Slots& cell)
+void StructPrinter::visit(Map::Index::Type& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Group::MemberIndex::Type::Slot& cell)
+void StructPrinter::visit(Map::Index& cell)
 {
     printStruct(cell);
 }
 
-void StructPrinter::visit(Group::MemberIndex::Type& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Group::MemberIndex& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Group& cell)
+void StructPrinter::visit(Map& cell)
 {
     printStruct(cell);
 }

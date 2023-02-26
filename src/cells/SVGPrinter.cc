@@ -28,54 +28,44 @@ void Printer::visit(Type& cell)
     m_stack.push(text("Type"));
 }
 
-void Printer::visit(Group::MemberList::Item& cell)
+void Printer::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
-    m_stack.push(text("Group::MemberList::Item"));
+    m_stack.push(text("Map::Index::Type::Slots::SlotList::Item"));
 }
 
-void Printer::visit(Group::MemberList& cell)
+void Printer::visit(Map::Index::Type::Slots::SlotList& cell)
 {
-    m_stack.push(text("Group::MemberList"));
+    m_stack.push(text("Map::Index::Type::Slots::SlotList"));
 }
 
-void Printer::visit(Group::MemberIndex::Type::Slots::SlotList::Item& cell)
+void Printer::visit(Map::Index::Type::Slots::SlotIndex& cell)
 {
-    m_stack.push(text("Group::MemberIndex::Type::Slots::SlotList::Item"));
+    m_stack.push(text("Map::Index::Type::Slots::SlotIndex"));
 }
 
-void Printer::visit(Group::MemberIndex::Type::Slots::SlotList& cell)
+void Printer::visit(Map::Index::Type::Slots& cell)
 {
-    m_stack.push(text("Group::MemberIndex::Type::Slots::SlotList"));
+    m_stack.push(text("Map::Index::Type::Slots"));
 }
 
-void Printer::visit(Group::MemberIndex::Type::Slots::SlotIndex& cell)
+void Printer::visit(Map::Index::Type::Slot& cell)
 {
-    m_stack.push(text("Group::MemberIndex::Type::Slots::SlotIndex"));
+    m_stack.push(text("Map::Index::Type::Slot"));
 }
 
-void Printer::visit(Group::MemberIndex::Type::Slots& cell)
+void Printer::visit(Map::Index::Type& cell)
 {
-    m_stack.push(text("Group::MemberIndex::Type::Slots"));
+    m_stack.push(text("Map::Index::Type"));
 }
 
-void Printer::visit(Group::MemberIndex::Type::Slot& cell)
+void Printer::visit(Map::Index& cell)
 {
-    m_stack.push(text("Group::MemberIndex::Type::Slot"));
+    m_stack.push(text("Map::Index"));
 }
 
-void Printer::visit(Group::MemberIndex::Type& cell)
+void Printer::visit(Map& cell)
 {
-    m_stack.push(text("Group::MemberIndex::Type"));
-}
-
-void Printer::visit(Group::MemberIndex& cell)
-{
-    m_stack.push(text("Group::MemberIndex"));
-}
-
-void Printer::visit(Group& cell)
-{
-    m_stack.push(text("Group"));
+    m_stack.push(text("Map"));
 }
 
 void Printer::visit(Object& cell)

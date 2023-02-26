@@ -76,13 +76,6 @@ public:
 
 } // namespace type
 
-class Types;
-class TypeInit
-{
-public:
-    TypeInit(Types& types);
-};
-
 class Types
 {
 public:
@@ -94,7 +87,6 @@ public:
 protected:
     brain::Brain& kb;
     std::map<CellI*, Type> m_listTypes;
-    TypeInit m_init;
     friend class TypeInit;
 
 public:
@@ -240,7 +232,7 @@ class Numbers
 {
 public:
     Numbers(brain::Brain& kb, Type& anyType);
-    Group sign;
+    Map sign;
     Object positive;
     Object negative;
 };

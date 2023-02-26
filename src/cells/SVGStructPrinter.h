@@ -15,16 +15,14 @@ public:
 
     void visit(Slot& cell) override;
     void visit(Type& cell) override;
-    void visit(Group::MemberList::Item& cell) override;
-    void visit(Group::MemberList& cell) override;
-    void visit(Group::MemberIndex::Type::Slots::SlotList::Item& cell) override;
-    void visit(Group::MemberIndex::Type::Slots::SlotList& cell) override;
-    void visit(Group::MemberIndex::Type::Slots::SlotIndex& cell) override;
-    void visit(Group::MemberIndex::Type::Slots& cell) override;
-    void visit(Group::MemberIndex::Type::Slot& cell) override;
-    void visit(Group::MemberIndex::Type& cell) override;
-    void visit(Group::MemberIndex& cell) override;
-    void visit(Group& cell) override;
+    void visit(Map::Index::Type::Slots::SlotList::Item& cell) override;
+    void visit(Map::Index::Type::Slots::SlotList& cell) override;
+    void visit(Map::Index::Type::Slots::SlotIndex& cell) override;
+    void visit(Map::Index::Type::Slots& cell) override;
+    void visit(Map::Index::Type::Slot& cell) override;
+    void visit(Map::Index::Type& cell) override;
+    void visit(Map::Index& cell) override;
+    void visit(Map& cell) override;
     void visit(Object& cell) override;
     void visit(List::Item& cell) override;
     void visit(List& cell) override;

@@ -23,53 +23,43 @@ void CellValuePrinter::visit(Type& type)
     m_ss << " }";
 }
 
-void CellValuePrinter::visit(Group::MemberList::Item& cell)
+void CellValuePrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Group::MemberList& cell)
+void CellValuePrinter::visit(Map::Index::Type::Slots::SlotList& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Group::MemberIndex::Type::Slots::SlotList::Item& cell)
+void CellValuePrinter::visit(Map::Index::Type::Slots::SlotIndex& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Group::MemberIndex::Type::Slots::SlotList& cell)
+void CellValuePrinter::visit(Map::Index::Type::Slots& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Group::MemberIndex::Type::Slots::SlotIndex& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Group::MemberIndex::Type::Slots& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Group::MemberIndex::Type::Slot& cell)
+void CellValuePrinter::visit(Map::Index::Type::Slot& cell)
 {
     brain::Brain& kb = cell.kb;
     m_ss << cell[kb.cells.slotRole].label() << ": " << cell[kb.cells.slotType].label();
 }
 
-void CellValuePrinter::visit(Group::MemberIndex::Type& cell)
+void CellValuePrinter::visit(Map::Index::Type& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Group::MemberIndex& cell)
+void CellValuePrinter::visit(Map::Index& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Group& cell)
+void CellValuePrinter::visit(Map& cell)
 {
     printImpl(cell);
 }

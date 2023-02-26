@@ -72,49 +72,7 @@ Operations::Operations(brain::Brain& kb) :
 
 } // namespace type
 
-TypeInit::TypeInit(Types& types)
-{
-    // This is the first type, breaking the infinite init loop here with pre initializing a List<Slot> and ListItem<Slot> here
-    // Every type has a list of Slots, so it needs a List<Slot>
-    Brain& kb  = types.kb;
-
-    {
-        Type& type     = types.kb.type.Slot;
-        auto listIt    = types.m_listTypes.emplace(std::piecewise_construct,
-                                                   std::forward_as_tuple(&type),
-                                                   std::forward_as_tuple(kb, "List<Slot>", Type::InitMode::InitDuringBootstrap));
-        Type& listType = listIt.first->second;
-        Type& itemType = listType.addSubType(kb.coding.objectType, "ListItem<Slot>", Type::InitMode::InitDuringBootstrap);
-        listType.addSlots({ { kb.sequence.first, itemType },
-                            { kb.sequence.last, itemType },
-                            { kb.dimensions.size, kb.type.Number } });
-        itemType.addSlots({ { kb.sequence.previous, itemType },
-                            { kb.sequence.next, itemType },
-                            { kb.coding.value, type } });
-
-        itemType.manualInit();
-        listType.manualInit();
-    }
-    {
-        Type& type = types.kb.type.Type_;
-        auto listIt    = types.m_listTypes.emplace(std::piecewise_construct,
-                                                   std::forward_as_tuple(&type),
-                                                   std::forward_as_tuple(kb, "List<Type>", Type::InitMode::InitDuringBootstrap));
-        Type& listType = listIt.first->second;
-        Type& itemType = listType.addSubType(kb.coding.objectType, "ListItem<Type>", Type::InitMode::InitDuringBootstrap);
-        listType.addSlots({ { kb.sequence.first, itemType },
-                            { kb.sequence.last, itemType },
-                            { kb.dimensions.size, kb.type.Number } });
-        itemType.addSlots({ { kb.sequence.previous, itemType },
-                            { kb.sequence.next, itemType },
-                            { kb.coding.value, type } });
-        itemType.manualInit();
-        listType.manualInit();
-    }
-}
-
 Types::Types(brain::Brain& kb) :
-    m_init(*this),
     Type_(kb, "Type"),
     Slot(kb, "Slot"),
     List(kb, "List"),
@@ -134,8 +92,6 @@ Types::Types(brain::Brain& kb) :
     pipeline(kb),
     kb(kb)
 {
-    m_listTypes.at(&kb.type.Slot).manualInitMembers();
-    m_listTypes.at(&kb.type.Type_).manualInitMembers();
 }
 
 Type& Types::ListOf(CellI& type)
@@ -146,9 +102,9 @@ Type& Types::ListOf(CellI& type)
     } else {
         auto it        = m_listTypes.emplace(std::piecewise_construct,
                                              std::forward_as_tuple(&type),
-                                             std::forward_as_tuple(kb, std::format("List<{}>", type.label()), Type::InitMode::InitSubTypes));
+                                             std::forward_as_tuple(kb, std::format("List<{}>", type.label())));
         Type& listType = it.first->second;
-        Type& itemType = listType.addSubType(kb.coding.objectType, std::format("ListItem<{}>", type.label()), Type::InitMode::InitSubTypes);
+        Type& itemType = listType.addSubType(kb.coding.objectType, std::format("ListItem<{}>", type.label()));
         listType.addSlots({ { kb.sequence.first, itemType },
                             { kb.sequence.last, itemType },
                             { kb.dimensions.size, kb.type.Number } });
