@@ -405,6 +405,11 @@ void RefList::add(CellI& value)
     m_items.back().m_iterator = std::prev(m_items.end());
 }
 
+bool RefList::empty() const
+{
+    return m_items.empty();
+}
+
 // ============================================================================
 RefMap::Index::Type::Slots::SlotList::Item::Item(brain::Brain& kb, Value& value) :
     CellI(kb),
@@ -873,7 +878,8 @@ Template::Template(brain::Brain& kb, const std::string& label) :
     CellI(kb, label),
     m_parameters(kb, kb.type.template_.ParameterDecl),
     m_slots(kb, kb.type.template_.Slot),
-    m_subTypes(kb, kb.type.Template)
+    m_subTypes(kb, kb.type.template_.Slot),
+    m_memberOf(kb, kb.type.template_.Descriptor)
 {
 }
 
@@ -935,28 +941,25 @@ void Template::addParams(brain::templates::ParameterDecl& param)
 
 void Template::addSlots(brain::templates::Slot& slot)
 {
-    m_slots.add(slot[kb.cells.slotRole], slot);
+    m_slots.add(slot);
 }
 
-Template& Template::addSubTypeTemplate(CellI& role, const std::string& label)
+void Template::addSubTypes(brain::templates::Slot& slot)
 {
-    Template& template_ = *new Template(kb, label);
-    m_subTypes.add(role, template_);
-
-    return template_;
+    m_subTypes.add(slot);
 }
 
 CellI& Template::getParamType()
 {
-    if (!m_paramType) {
-        m_paramType = std::make_unique<Type>(kb, std::format("{}<T>::params", label()));
-        Type& type  = *m_paramType;
+    if (!m_parametersType) {
+        m_parametersType = std::make_unique<Type>(kb, std::format("{}<T>::parameters", label()));
+        Type& type       = *m_parametersType;
         Visitor::visitList(m_parameters[kb.cells.list], [this, &type](CellI& slot, int i) {
             type.addSlot(slot[kb.cells.slotRole], slot[kb.cells.slotType]);
         });
     }
 
-    return *m_paramType;
+    return *m_parametersType;
 }
 
 Type& Template::compile(CellI& param)
@@ -974,13 +977,11 @@ Type& Template::compile(CellI& param)
         ss << param[role].label();
     });
     type.label(std::format("{}<{}>", label(), ss.str()));
-    Visitor::visitList(m_slots[kb.cells.list], [this, &type, &param](CellI& slot, int i) {
+    Visitor::visitList(m_slots, [this, &type, &param](CellI& slot, int i) {
         type.addSlot(compileCell(slot[kb.cells.slotRole], param, type), compileCell(slot[kb.cells.slotType], param, type));
     });
-    Visitor::visitList(m_subTypes[kb.cells.index][kb.cells.type][kb.cells.list], [this, &type, &param](CellI& slot, int i) {
-        CellI& role           = slot[kb.cells.slotRole];
-        Template& templateObj = static_cast<Template&>(m_subTypes[kb.cells.index][role]);
-        type.addSubType(role, templateObj.compile(param));
+    Visitor::visitList(m_subTypes, [this, &type, &param](CellI& slot, int i) {
+        type.addSubType(compileCell(slot[kb.cells.slotRole], param, type), static_cast<Template&>(compileCell(slot[kb.cells.slotType], param, type)).compile(param));
     });
 
     return type;

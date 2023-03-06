@@ -486,7 +486,7 @@ Brain::Brain() :
 
     type.template_.SelfType.addMembership(type.template_.Descriptor);
 
-    Template& listItem = templates.list.addSubTypeTemplate(coding.objectType, "ListItem");
+    Template& listItem = *new cells::Template(*this, "ListItem");
     listItem.addParams(
         templates.parameterDecl(coding.objectType, type.Type_));
     listItem.addSlots(
@@ -501,6 +501,8 @@ Brain::Brain() :
         templates.slot(templates.cell(sequence.last), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
         templates.slot(templates.cell(coding.objectType), templates.parameter(coding.objectType)),
         templates.slot(templates.cell(dimensions.size), templates.cell(type.Number)));
+    templates.list.addSubTypes(
+        templates.slot(templates.cell(coding.objectType), templates.cell(listItem)));
 
     // We should indicate that template.list is a container and it has a first, last, size, objectType member.
     // And also, that template.list -> item is an iterator prev, next, value

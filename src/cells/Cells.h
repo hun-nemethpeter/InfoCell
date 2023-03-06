@@ -112,6 +112,7 @@ public:
     void accept(Visitor& visitor) override;
 
     void add(CellI& value);
+    bool empty() const;
 
     struct Value
     {
@@ -304,7 +305,6 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    //    void add(CellI& value); // value is the key
     void add(CellI& key, CellI& value);
     bool empty() const;
 
@@ -410,7 +410,6 @@ A type should have a parameter like thing where we can express what kind of obje
 
 A type should have some kind of definition where we can express what is the relation between theese parameters, members, and what is the purpose of theese.
 #endif
-class TemplateParam;
 
 // ============================================================================
 class Template : public CellI
@@ -440,7 +439,13 @@ public:
         addSlots(std::forward<Args>(args)...);
     }
 
-    Template& addSubTypeTemplate(CellI& role, const std::string& label);
+    void addSubTypes(brain::templates::Slot& slot);
+    template <typename... Args>
+    void addSubTypes(brain::templates::Slot& slot, Args&&... args)
+    {
+        addSubTypes(slot);
+        addSubTypes(std::forward<Args>(args)...);
+    }
 
     CellI& getParamType();
     Type& compile(CellI& param);
@@ -449,9 +454,11 @@ protected:
     CellI& compileCell(CellI& descriptor, CellI& param, CellI& selfType);
 
     RefMap m_parameters;
-    RefMap m_slots;
-    RefMap m_subTypes;
-    std::unique_ptr<Type> m_paramType;
+    std::unique_ptr<Type> m_parametersType;
+
+    RefList m_slots;
+    RefList m_subTypes;
+    RefList m_memberOf;
 };
 
 // ============================================================================
