@@ -28,44 +28,44 @@ void Printer::visit(Type& cell)
     m_stack.push(text("Type"));
 }
 
-void Printer::visit(RefMap::Index::Type::Slots::SlotList::Item& cell)
+void Printer::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
-    m_stack.push(text("RefMap::Index::Type::Slots::SlotList::Item"));
+    m_stack.push(text("Map::Index::Type::Slots::SlotList::Item"));
 }
 
-void Printer::visit(RefMap::Index::Type::Slots::SlotList& cell)
+void Printer::visit(Map::Index::Type::Slots::SlotList& cell)
 {
-    m_stack.push(text("RefMap::Index::Type::Slots::SlotList"));
+    m_stack.push(text("Map::Index::Type::Slots::SlotList"));
 }
 
-void Printer::visit(RefMap::Index::Type::Slots::SlotIndex& cell)
+void Printer::visit(Map::Index::Type::Slots::SlotIndex& cell)
 {
-    m_stack.push(text("RefMap::Index::Type::Slots::SlotIndex"));
+    m_stack.push(text("Map::Index::Type::Slots::SlotIndex"));
 }
 
-void Printer::visit(RefMap::Index::Type::Slots& cell)
+void Printer::visit(Map::Index::Type::Slots& cell)
 {
-    m_stack.push(text("RefMap::Index::Type::Slots"));
+    m_stack.push(text("Map::Index::Type::Slots"));
 }
 
-void Printer::visit(RefMap::Index::Type::Slot& cell)
+void Printer::visit(Map::Index::Type::Slot& cell)
 {
-    m_stack.push(text("RefMap::Index::Type::Slot"));
+    m_stack.push(text("Map::Index::Type::Slot"));
 }
 
-void Printer::visit(RefMap::Index::Type& cell)
+void Printer::visit(Map::Index::Type& cell)
 {
-    m_stack.push(text("RefMap::Index::Type"));
+    m_stack.push(text("Map::Index::Type"));
 }
 
-void Printer::visit(RefMap::Index& cell)
+void Printer::visit(Map::Index& cell)
 {
-    m_stack.push(text("RefMap::Index"));
+    m_stack.push(text("Map::Index"));
 }
 
-void Printer::visit(RefMap& cell)
+void Printer::visit(Map& cell)
 {
-    m_stack.push(text("RefMap"));
+    m_stack.push(text("Map"));
 }
 
 void Printer::visit(Object& cell)
@@ -73,7 +73,7 @@ void Printer::visit(Object& cell)
     m_stack.push(text("Object"));
 }
 
-void Printer::visit(RefList::Item& cell)
+void Printer::visit(List::Item& cell)
 {
     brain::Brain& kb = cell.kb;
 
@@ -88,7 +88,7 @@ void Printer::visit(RefList::Item& cell)
                       filler() | size(WIDTH, EQUAL, 2)));
 }
 
-void Printer::visit(RefList& list)
+void Printer::visit(List& list)
 {
     Elements listItems;
     visitList(list, [this, &listItems](CellI& value, int i) {

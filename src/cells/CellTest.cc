@@ -120,6 +120,7 @@ int main(int argc, char* argv[])
     templateListParam.set(kb.coding.objectType, kb.type.Digit);
     CellI& templateListType = kb.templates.list.compile(templateListParam);
     printAs.value(templateListType);
+    printAs.cell(templateListType);
     printAs.value(templateListType[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
 
     printAs.value(colorClass);

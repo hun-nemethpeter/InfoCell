@@ -15,17 +15,17 @@ public:
 
     void visit(Slot& cell) override;
     void visit(Type& cell) override;
-    void visit(RefMap::Index::Type::Slots::SlotList::Item& cell) override;
-    void visit(RefMap::Index::Type::Slots::SlotList& cell) override;
-    void visit(RefMap::Index::Type::Slots::SlotIndex& cell) override;
-    void visit(RefMap::Index::Type::Slots& cell) override;
-    void visit(RefMap::Index::Type::Slot& cell) override;
-    void visit(RefMap::Index::Type& cell) override;
-    void visit(RefMap::Index& cell) override;
-    void visit(RefMap& cell) override;
+    void visit(Map::Index::Type::Slots::SlotList::Item& cell) override;
+    void visit(Map::Index::Type::Slots::SlotList& cell) override;
+    void visit(Map::Index::Type::Slots::SlotIndex& cell) override;
+    void visit(Map::Index::Type::Slots& cell) override;
+    void visit(Map::Index::Type::Slot& cell) override;
+    void visit(Map::Index::Type& cell) override;
+    void visit(Map::Index& cell) override;
+    void visit(Map& cell) override;
     void visit(Object& cell) override;
-    void visit(RefList::Item& cell) override;
-    void visit(RefList& cell) override;
+    void visit(List::Item& cell) override;
+    void visit(List& cell) override;
     void visit(Number& cell) override;
     void visit(String& cell) override;
     void visit(hybrid::Color& cell) override;

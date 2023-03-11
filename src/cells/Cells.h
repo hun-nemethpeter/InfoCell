@@ -67,7 +67,7 @@ T& ref(T* obj) { return *obj; }
 } // namespace util
 
 // ============================================================================
-class RefList : public CellI
+class List : public CellI
 {
 public:
     struct Value;
@@ -85,11 +85,11 @@ public:
         Value& m_value;
     };
 
-    RefList(brain::Brain& kb, CellI& valueType);
+    List(brain::Brain& kb, CellI& valueType);
 
     template <typename T>
-    RefList(brain::Brain& kb, std::vector<T>& values) :
-        RefList(kb, util::ref(values.front()).type())
+    List(brain::Brain& kb, std::vector<T>& values) :
+        List(kb, util::ref(values.front()).type())
     {
         for (auto& valueT : values) {
             add(util::ref(valueT));
@@ -97,8 +97,8 @@ public:
     }
 
     template <typename Key, typename Value>
-    RefList(brain::Brain& kb, std::map<Key, Value>& values) :
-        RefList(kb, util::ref((*values.begin())).second.type())
+    List(brain::Brain& kb, std::map<Key, Value>& values) :
+        List(kb, util::ref((*values.begin())).second.type())
     {
         for (auto& valuePairs : values) {
             add(util::ref(valuePairs.second));
@@ -116,12 +116,12 @@ public:
 
     struct Value
     {
-        Value(RefList& list, CellI& value);
+        Value(List& list, CellI& value);
 
         Value* prev();
         Value* next();
 
-        RefList& m_list;
+        List& m_list;
         CellI& m_value;
         std::list<Value>::iterator m_iterator;
         Item m_listItem;
@@ -133,7 +133,7 @@ protected:
 };
 
 // ============================================================================
-class RefMap : public CellI
+class Map : public CellI
 {
 #if 0
 SomeValue
@@ -285,19 +285,19 @@ public:
 
     struct Value
     {
-        Value(RefMap& group, CellI& value, CellI& index, size_t listItemIndex);
+        Value(Map& group, CellI& value, CellI& index, size_t listItemIndex);
 
         Value* prev();
         Value* next();
 
-        RefMap& m_group;
+        Map& m_group;
         CellI& m_value;
         std::list<Value*>::iterator m_iterator;
         Index::Type::Slots::SlotList::Item m_indexTypeSlotsListItem;
         Index::Type::Slot m_indexTypeSlot;
     };
 
-    RefMap(brain::Brain& kb, CellI& valueType, const std::string& label = "");
+    Map(brain::Brain& kb, CellI& valueType, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -315,7 +315,7 @@ protected:
     OrderedValues m_orderedValues;
 
 public:
-    RefList m_list;
+    List m_list;
     Index m_index;
 };
 
@@ -354,7 +354,9 @@ public:
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
+
     void addSlot(CellI& role, CellI& type);
+
     void addSlots(Slot& slot);
     template <typename... Args>
     void addSlots(Slot& slot, Args&&... args)
@@ -366,16 +368,16 @@ public:
     void addMembership(CellI& type);
 
 protected:
-    RefMap m_slots;
-    RefMap m_subTypes;
-    RefMap m_memberOf;
+    Map m_slots;
+    Map m_subTypes;
+    Map m_memberOf;
 };
 
 // ============================================================================
 class Object : public CellI
 {
 public:
-    Object(brain::Brain& kb, CellI& classCell, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -392,7 +394,7 @@ protected:
 class Template : public CellI
 {
 public:
-    explicit Template(brain::Brain& kb, const std::string& label = "Template");
+    explicit Template(brain::Brain& kb, CellI& type, const std::string& label = "Template");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -436,15 +438,104 @@ public:
     Type& compile(CellI& param);
 
 protected:
-    CellI& compileCell(CellI& descriptor, CellI& param, CellI& selfType);
+    CellI& compileCell(CellI& descriptor, CellI& param, CellI& self);
 
-    RefMap m_parameters;
+    CellI& m_type;
+    Map m_parameters;
     std::unique_ptr<Type> m_parametersType;
 
-    RefList m_slots;
-    RefList m_subTypes;
-    RefList m_memberOf;
+    List m_slots;
+    List m_subTypes;
+    List m_memberOf;
 };
+
+// ============================================================================
+class CellTemplate : public CellI
+{
+public:
+    explicit CellTemplate(brain::Brain& kb, CellI& type, const std::string& label = "CellTemplate");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    void addParams(brain::templates::ParameterDecl& param);
+    template <typename... Args>
+    void addParams(brain::templates::ParameterDecl& param, Args&&... args)
+    {
+        addParams(param);
+        addParams(std::forward<Args>(args)...);
+    }
+
+    void addSlots(brain::templates::Slot& slot);
+    template <typename... Args>
+    void addSlots(brain::templates::Slot& slot, Args&&... args)
+    {
+        addSlots(slot);
+        addSlots(std::forward<Args>(args)...);
+    }
+
+    CellI& getParamType();
+    CellI& compile(CellI& param);
+
+protected:
+    CellI& compileCell(CellI& descriptor, CellI& param, CellI& self);
+
+    CellI& m_type;
+    Map m_parameters;
+    std::unique_ptr<Type> m_parametersType;
+
+    List m_slots;
+};
+
+// ============================================================================
+class Function : public CellI
+{
+public:
+    explicit Function(brain::Brain& kb, const std::string& label = "Function");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    void addInputs(brain::templates::ParameterDecl& input);
+    template <typename... Args>
+    void addInputs(brain::templates::ParameterDecl& input, Args&&... args)
+    {
+        addInputs(input);
+        addInputs(std::forward<Args>(args)...);
+    }
+
+    void addOutputs(brain::templates::ParameterDecl& output);
+    template <typename... Args>
+    void addOutputs(brain::templates::ParameterDecl& output, Args&&... args)
+    {
+        addOutputs(output);
+        addOutputs(std::forward<Args>(args)...);
+    }
+
+    void addAsts(brain::templates::Slot& ast);
+    template <typename... Args>
+    void addAsts(brain::templates::Slot& ast, Args&&... args)
+    {
+        addAsts(ast);
+        addAsts(std::forward<Args>(args)...);
+    }
+
+    CellI& compile(CellI& param);
+
+protected:
+    CellI& compileCell(CellI& descriptor, CellI& param, CellI& self);
+
+    List m_inputs;
+    List m_outputs;
+    List m_asts;
+};
+
 
 // ============================================================================
 class Number : public CellI
@@ -466,7 +557,7 @@ protected:
 
     int m_value;
     std::vector<Object*> m_digits;
-    std::unique_ptr<RefList> m_digitsList;
+    std::unique_ptr<List> m_digitsList;
 };
 
 // ============================================================================
@@ -488,7 +579,7 @@ protected:
 
     std::string m_value;
     std::vector<Object*> m_characters;
-    std::unique_ptr<RefList> m_charactersList;
+    std::unique_ptr<List> m_charactersList;
 };
 
 namespace hybrid {
@@ -569,7 +660,7 @@ protected:
     Number& m_widthCell;
     Number& m_heightCell;
     std::vector<Pixel> m_pixels;
-    std::unique_ptr<RefList> m_pixelsList;
+    std::unique_ptr<List> m_pixelsList;
 };
 
 } // namespace hybrid
@@ -1098,17 +1189,17 @@ public:
     virtual void visit(Number&) = 0;
     virtual void visit(String&) = 0;
 
-    virtual void visit(RefList&)       = 0;
-    virtual void visit(RefList::Item&) = 0;
+    virtual void visit(List&)       = 0;
+    virtual void visit(List::Item&) = 0;
 
-    virtual void visit(RefMap::Index::Type::Slots::SlotList::Item&) = 0;
-    virtual void visit(RefMap::Index::Type::Slots::SlotList&)       = 0;
-    virtual void visit(RefMap::Index::Type::Slots::SlotIndex&)      = 0;
-    virtual void visit(RefMap::Index::Type::Slots&)                 = 0;
-    virtual void visit(RefMap::Index::Type::Slot&)                  = 0;
-    virtual void visit(RefMap::Index::Type&)                        = 0;
-    virtual void visit(RefMap::Index&)                              = 0;
-    virtual void visit(RefMap&)                                     = 0;
+    virtual void visit(Map::Index::Type::Slots::SlotList::Item&) = 0;
+    virtual void visit(Map::Index::Type::Slots::SlotList&)       = 0;
+    virtual void visit(Map::Index::Type::Slots::SlotIndex&)      = 0;
+    virtual void visit(Map::Index::Type::Slots&)                 = 0;
+    virtual void visit(Map::Index::Type::Slot&)                  = 0;
+    virtual void visit(Map::Index::Type&)                        = 0;
+    virtual void visit(Map::Index&)                              = 0;
+    virtual void visit(Map&)                                     = 0;
 
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;

@@ -20,7 +20,7 @@ Template::Template(brain::Brain& kb) :
     Cell(kb, "Cell"),
     Parameter(kb, "Parameter"),
     TemplateOf(kb, "Template"),
-    SelfType(kb, "SelfType")
+    Self(kb, "Self")
 {
 }
 
@@ -230,7 +230,7 @@ TemplateOf::TemplateOf(brain::Brain& kb, Template& templateOf, CellDescription& 
 }
 
 SelfType::SelfType(brain::Brain& kb) :
-    CellDescriptionT<SelfType>(kb, kb.type.template_.SelfType)
+    CellDescriptionT<SelfType>(kb, kb.type.template_.Self)
 {
 }
 
@@ -238,7 +238,7 @@ SelfType::SelfType(brain::Brain& kb) :
 
 Templates::Templates(brain::Brain& kb) :
     kb(kb),
-    list(kb, "List")
+    list(kb, kb.type.Type_, "List")
 {
 }
 
@@ -487,16 +487,17 @@ Brain::Brain() :
         cells.slot(coding.parameter, type.template_.Descriptor),
         cells.slot(coding.value, type.template_.Descriptor));
 
-    type.template_.SelfType.addMembership(
+    type.template_.Self.addMembership(
         type.template_.Descriptor);
 
-    Template& listItem = *new cells::Template(*this, "ListItem");
+    Template& listItem = *new cells::Template(*this, type.Type_, "ListItem");
     listItem.addParams(
         templates.parameterDecl(coding.objectType, type.Type_));
     listItem.addSlots(
         templates.slot(templates.cell(sequence.previous), templates.selfType()),
         templates.slot(templates.cell(sequence.next), templates.selfType()),
         templates.slot(templates.cell(coding.value), templates.parameter(coding.objectType)));
+
     templates.list.addParams(
         templates.parameterDecl(coding.objectType, type.Type_));
     templates.list.addSlots(
@@ -511,23 +512,53 @@ Brain::Brain() :
     // And also, that template.list -> item is an iterator prev, next, value
 
     Type& listSubType = *new Type(*this, "ListItem");
-    type.List.addSubType(
-        coding.objectType, listSubType);
     listSubType.addSlots(
         cells.slot(sequence.previous, listSubType),
         cells.slot(sequence.next, listSubType),
         cells.slot(coding.value, type.Any));
+    listSubType.addMembership(
+        type.Iterator
+    );
 
     type.List.addSlots(
         cells.slot(sequence.first, listSubType),
         cells.slot(sequence.last, listSubType),
         cells.slot(dimensions.size, type.Number));
+    type.List.addSubType(
+        coding.objectType, listSubType);
+    type.List.addMembership(
+        type.Container
+    );
 
     listItem.addMembership(
         templates.cell(listSubType));
 
     templates.list.addMembership(
         templates.cell(type.List));
+
+    type.Template.addSlots(
+        cells.slot(coding.parameters, type.MapOf(type.template_.ParameterDecl)),
+        cells.slot(cells.slots, type.ListOf(type.template_.Slot)),
+        cells.slot(cells.subTypes, type.ListOf(type.template_.Slot)),
+        cells.slot(cells.memberOf, type.ListOf(type.template_.Descriptor)));
+
+#if 0
+    Function listAdd(*this, "List::Add");
+    listAdd.addInputs(
+        function.parameterDecl(coding.self, type.List),
+        function.parameterDecl(coding.value, type.Any));
+    listAdd.addAsts(
+        ListItem* newListItem = new ListItem();
+        newListItem->value    = param[coding.value];
+        if (!param[coding.self].has(sequence.first)) {
+            param[coding.self].set(sequence.first, newListItem);
+        } else {
+            param[coding.self][sequence.last].set(sequence.next, newListItem);
+            newListItem.set(sequence.previous, param[coding.self][sequence.last]);
+        }
+        param[coding.self].set(sequence.last, newListItem);
+    );
+#endif
 
     type.Number.addSlots(
         cells.slot(coding.value, type.ListOf(type.Digit)),

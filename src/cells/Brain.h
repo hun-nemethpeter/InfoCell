@@ -27,7 +27,7 @@ public:
     Type Cell;
     Type Parameter;
     Type TemplateOf;
-    Type SelfType;
+    Type Self;
 };
 
 class Pipelines
@@ -321,7 +321,7 @@ class Numbers
 {
 public:
     Numbers(brain::Brain& kb, Type& anyType);
-    RefMap sign;
+    Map sign;
     Object positive;
     Object negative;
 };

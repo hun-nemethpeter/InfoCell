@@ -23,27 +23,27 @@ void CellStructPrinter::visit(Type& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefMap::Index::Type::Slots::SlotList::Item& cell)
+void CellStructPrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefMap::Index::Type::Slots::SlotList& cell)
+void CellStructPrinter::visit(Map::Index::Type::Slots::SlotList& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefMap::Index::Type::Slots::SlotIndex& cell)
+void CellStructPrinter::visit(Map::Index::Type::Slots::SlotIndex& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefMap::Index::Type::Slots& cell)
+void CellStructPrinter::visit(Map::Index::Type::Slots& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefMap::Index::Type::Slot& cell)
+void CellStructPrinter::visit(Map::Index::Type::Slot& cell)
 {
     brain::Brain& kb = cell.kb;
     if (cell.label().empty()) {
@@ -54,12 +54,12 @@ void CellStructPrinter::visit(RefMap::Index::Type::Slot& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefMap::Index::Type& cell)
+void CellStructPrinter::visit(Map::Index::Type& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefMap::Index& cell)
+void CellStructPrinter::visit(Map::Index& cell)
 {
     if (cell.label().empty()) {
         m_ss << "IndexedList::ValueIndex: ";
@@ -69,7 +69,7 @@ void CellStructPrinter::visit(RefMap::Index& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefMap& cell)
+void CellStructPrinter::visit(Map& cell)
 {
     printImpl(cell);
 }
@@ -82,12 +82,12 @@ void CellStructPrinter::visit(Object& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefList::Item& cell)
+void CellStructPrinter::visit(List::Item& cell)
 {
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(RefList& cell)
+void CellStructPrinter::visit(List& cell)
 {
     printImpl(cell);
 }
