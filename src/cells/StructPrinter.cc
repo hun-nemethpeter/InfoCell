@@ -119,12 +119,19 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
 
 void CellStructPrinter::printImpl(CellI& cell)
 {
+    const bool needId = false;
     brain::Brain& kb = cell.kb;
     CellI& type   = cell.type();
-    m_ss << "(" << type.label() << ") ID" << &cell << std::endl;
+    m_ss << "(" << type.label() << ")";
+    if (needId)
+        m_ss << " ID" << &cell;
+    m_ss << std::endl;
     CellValuePrinter typePrinter;
     type.accept(typePrinter);
-    m_ss << "    +--(type)--> (" << type.label() << ") ID" << &type << " // " << typePrinter.print() << std::endl;
+    m_ss << "    +--(type)--> (" << type.label() << ")";
+    if (needId)
+        m_ss << " ID" << &type;
+    m_ss << " // " << typePrinter.print() << std::endl;
     CellI& slotList = type[kb.cells.slots][kb.cells.list];
     visitList(slotList, [this, &kb, &cell](CellI& slot, int i) {
         CellI& role = slot[kb.cells.slotRole];
@@ -135,7 +142,10 @@ void CellStructPrinter::printImpl(CellI& cell)
         CellI& slotType      = slot[kb.cells.slotType];
         CellI& connectedCell = cell[role];
         connectedCell.accept(valuePrinter);
-        m_ss << "    +--(" << role.label() << ")--> (" << slotType.label() << ") ID" << &connectedCell << " // " << valuePrinter.print() << std::endl;
+        m_ss << "    +--(" << role.label() << ")--> (" << slotType.label() << ")";
+        if (needId)
+            m_ss << " ID " << &connectedCell;
+        m_ss << " // " << valuePrinter.print() << std::endl;
     });
 }
 
