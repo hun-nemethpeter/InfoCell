@@ -1145,6 +1145,66 @@ List& CellTemplate::slots()
 }
 
 // ============================================================================
+Function::Function(brain::Brain& kb, const std::string& label) :
+    CellI(kb, label)
+{
+}
+
+bool Function::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    // TODO
+
+    return false;
+}
+
+void Function::set(CellI& role, CellI& value)
+{
+    // Do nothing
+}
+
+void Function::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Function::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.Template; // TODO
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Function::accept(Visitor& visitor)
+{
+    // TODO
+}
+
+void Function::addInputs(Map& input)
+{
+    m_inputs = &input;
+}
+
+void Function::addOutputs(Map& output)
+{
+    m_outputs = &output;
+}
+
+void Function::addAsts(List& ast)
+{
+    m_asts = &ast;
+}
+
+CellI& Function::compile(CellI& param)
+{
+    return kb.type.Any; // TODO
+}
+
+// ============================================================================
 Number::Number(brain::Brain& kb, int value) :
     CellI(kb),
     m_value(value)
@@ -2002,8 +2062,8 @@ void Set::operator()()
     CellI& cell  = m_cell[kb.coding.value];
     CellI& role  = m_role[kb.coding.value];
     CellI& value = m_value[kb.coding.value];
-
     cell.set(role, value);
+    m_output.set(kb.coding.value, cell);
 }
 
 CellI& Set::operator[](CellI& role)
@@ -2651,12 +2711,14 @@ void Void::accept(Visitor& visitor)
 
 // ============================================================================
 Input::Input(brain::Brain& kb, CellI& value, const std::string& label) :
-    Base(kb, this, label), m_value(&value), m_current(this)
+    Base(kb, this, label),
+    m_value(&value),
+    m_current(this)
 {
 }
 
 Input::Input(brain::Brain& kb, CellI* value, const std::string& label) :
-    Base(kb, this, label), m_value(value), m_current(this)
+    Input(kb, *value, label)
 {
 }
 

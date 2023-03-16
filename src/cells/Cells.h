@@ -506,40 +506,21 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addInputs(brain::templates::ParameterDecl& input);
-    template <typename... Args>
-    void addInputs(brain::templates::ParameterDecl& input, Args&&... args)
-    {
-        addInputs(input);
-        addInputs(std::forward<Args>(args)...);
-    }
-
-    void addOutputs(brain::templates::ParameterDecl& output);
-    template <typename... Args>
-    void addOutputs(brain::templates::ParameterDecl& output, Args&&... args)
-    {
-        addOutputs(output);
-        addOutputs(std::forward<Args>(args)...);
-    }
-
-    void addAsts(brain::templates::Slot& ast);
-    template <typename... Args>
-    void addAsts(brain::templates::Slot& ast, Args&&... args)
-    {
-        addAsts(ast);
-        addAsts(std::forward<Args>(args)...);
-    }
+    void addInputs(Map& input);
+    void addOutputs(Map& output);
+    void addAsts(List& ast);
 
     CellI& compile(CellI& param);
 
 protected:
-    CellI& compileCell(CellI& descriptor, CellI& param, CellI& self);
+    Map& inputs();
+    Map& outputs();
+    List& asts();
 
-    List m_inputs;
-    List m_outputs;
-    List m_asts;
+    Map* m_inputs  = nullptr;
+    Map* m_outputs = nullptr;
+    List* m_asts   = nullptr;
 };
-
 
 // ============================================================================
 class Number : public CellI

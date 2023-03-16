@@ -72,9 +72,69 @@ Operations::Operations(brain::Brain& kb) :
 {
 }
 
+Ast::Pipelines::Pipelines(brain::Brain& kb) :
+    Input(kb, "Input"),
+    New(kb, "New"),
+    Fork(kb, "Fork"),
+    Delete(kb, "Delete"),
+    Node(kb, "Node"),
+    If(kb, "If"),
+    Do(kb, "Do"),
+    While(kb, "While")
+{
+}
+
+Ast::Operations::Logic::Logic(brain::Brain& kb) :
+    And(kb, "And"),
+    Or(kb, "Or"),
+    Not(kb, "Not")
+{
+}
+
+Ast::Operations::Math::Math(brain::Brain& kb) :
+    Add(kb, "Add"),
+    Subtract(kb, "Subtract"),
+    Multiply(kb, "Multiply"),
+    Divide(kb, "Divide"),
+    LessThan(kb, "LessThan"),
+    GreaterThan(kb, "GreaterThan")
+{
+}
+
+Ast::Operations::Operations(brain::Brain& kb) :
+    Base(kb, "Base"),
+    Same(kb, "Same"),
+    NotSame(kb, "NotSame"),
+    Equal(kb, "Equal"),
+    NotEqual(kb, "NotEqual"),
+    Has(kb, "Has"),
+    Get(kb, "Get"),
+    Set(kb, "Set"),
+    logic(kb),
+    math(kb)
+{
+}
+
+Ast::Ast(brain::Brain& kb) :
+        kb(kb),
+        Parameter(kb, "Parameter"),
+        Cell(kb, "Cell"),
+        HasMember(kb, "HasMember"),
+        GetMember(kb, "GetMember"),
+        SetMember(kb, "SetMember"),
+        SetVar(kb, "SetVar"),
+        GetVar(kb, "GetVar"),
+        Self(kb, "Self"),
+        Block(kb, "Block"),
+        op(kb),
+        pipeline(kb)
+{
+}
+
 } // namespace type
 
 Types::Types(brain::Brain& kb) :
+    kb(kb),
     Type_(kb, "Type"),
     Slot(kb, "Slot"),
     Container(kb, "Conatainer"),
@@ -96,7 +156,7 @@ Types::Types(brain::Brain& kb) :
     template_(kb),
     op(kb),
     pipeline(kb),
-    kb(kb)
+    ast(kb)
 {
 }
 
@@ -272,6 +332,399 @@ templates::Self& Templates::self()
     return templates::Self::New(kb);
 }
 
+namespace ast {
+Base::Base(brain::Brain& kb, CellI& classCell, const std::string& label) :
+    Object(kb, classCell, label)
+{
+}
+
+namespace pipeline {
+
+Input::Input(brain::Brain& kb, CellI& cell) :
+    BaseT<Input>(kb, kb.type.ast.pipeline.Input)
+{
+    set(kb.coding.input, cell);
+}
+
+New::New(brain::Brain& kb, Base& ast) :
+    BaseT<New>(kb, kb.type.ast.pipeline.New)
+{
+}
+
+Fork::Fork(brain::Brain& kb) :
+    BaseT<Fork>(kb, kb.type.ast.pipeline.Fork)
+{
+}
+
+Delete::Delete(brain::Brain& kb, Base& ast) :
+    BaseT<Delete>(kb, kb.type.ast.pipeline.Delete)
+{
+}
+
+Node::Node(brain::Brain& kb) :
+    BaseT<Node>(kb, kb.type.ast.pipeline.Node)
+{
+}
+
+If::If(brain::Brain& kb, Base& condition, Base& thenBranch) :
+    BaseT<If>(kb, kb.type.ast.pipeline.If)
+{
+}
+
+If::If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch) :
+    BaseT<If>(kb, kb.type.ast.pipeline.If)
+{
+}
+
+Do::Do(brain::Brain& kb, Base& condition, Base& statement) :
+    BaseT<Do>(kb, kb.type.ast.pipeline.Do)
+{
+}
+
+While::While(brain::Brain& kb, Base& condition, Base& statement) :
+    BaseT<While>(kb, kb.type.ast.pipeline.While)
+{
+}
+
+} // namespace pipeline
+
+Pipeline::Pipeline(brain::Brain& kb) :
+    kb(kb)
+{
+}
+
+pipeline::Input& Pipeline::input(CellI& cell)
+{
+    return pipeline::Input::New(kb, cell);
+}
+
+pipeline::New& Pipeline::new_(Base& ast)
+{
+    return pipeline::New::NewT<pipeline::New>::New(kb, ast);
+}
+
+pipeline::Fork& Pipeline::fork()
+{
+    return pipeline::Fork::New(kb);
+}
+
+pipeline::Delete& Pipeline::delete_(Base& ast)
+{
+    return pipeline::Delete::New(kb, ast);
+}
+
+pipeline::Node& Pipeline::node()
+{
+    return pipeline::Node::New(kb);
+}
+
+pipeline::If& Pipeline::if_(Base& condition, Base& thenBranch)
+{
+    return pipeline::If::New(kb, condition, thenBranch);
+}
+
+pipeline::If& Pipeline::if_(Base& condition, Base& thenBranch, Base& elseBranch)
+{
+    return pipeline::If::New(kb, condition, thenBranch, elseBranch);
+}
+
+pipeline::Do& Pipeline::do_(Base& condition, Base& statement)
+{
+    return pipeline::Do::New(kb, condition, statement);
+}
+
+pipeline::While& Pipeline::while_(Base& condition, Base& statement)
+{
+    return pipeline::While::New(kb, condition, statement);
+}
+
+namespace logic {
+
+And::And(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<And>(kb, kb.type.ast.op.logic.And)
+{
+}
+
+Or::Or(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Or>(kb, kb.type.ast.op.logic.Or)
+{
+}
+
+Not::Not(brain::Brain& kb, Base& input) :
+    BaseT<Not>(kb, kb.type.ast.op.logic.Not)
+{
+}
+
+} // namespace logic
+
+Logic::Logic(brain::Brain& kb) :
+    kb(kb)
+{
+}
+
+logic::And& Logic::and_(Base& lhs, Base& rhs)
+{
+    return logic::And::New(kb, lhs, rhs);
+}
+
+logic::Or& Logic::or_(Base& lhs, Base& rhs)
+{
+    return logic::Or::New(kb, lhs, rhs);
+}
+
+logic::Not& Logic::not_(Base& input)
+{
+    return logic::Not::New(kb, input);
+}
+namespace math {
+Add::Add(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Add>(kb, kb.type.ast.op.math.Add)
+{
+}
+
+Subtract::Subtract(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Subtract>(kb, kb.type.ast.op.math.Subtract)
+{
+}
+
+Multiply::Multiply(brain::Brain& kb, Base& lhs, Base& rhs)
+    : BaseT<Multiply>(kb, kb.type.ast.op.math.Multiply)
+{
+}
+
+Divide::Divide(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Divide>(kb, kb.type.ast.op.math.Divide)
+{
+}
+
+LessThan::LessThan(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<LessThan>(kb, kb.type.ast.op.math.LessThan)
+{
+}
+
+GreaterThan::GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<GreaterThan>(kb, kb.type.ast.op.math.GreaterThan)
+{
+}
+
+} // namespace math
+
+Math::Math(brain::Brain& kb) :
+    kb(kb)
+{
+}
+
+math::Add& Math::add(Base& lhs, Base& rhs)
+{
+    return math::Add::New(kb, lhs, rhs);
+}
+
+math::Subtract& Math::subtract(Base& lhs, Base& rhs)
+{
+    return math::Subtract::New(kb, lhs, rhs);
+}
+
+math::Multiply& Math::multiply(Base& lhs, Base& rhs)
+{
+    return math::Multiply::New(kb, lhs, rhs);
+}
+
+math::Divide& Math::divide(Base& lhs, Base& rhs)
+{
+    return math::Divide::New(kb, lhs, rhs);
+}
+
+math::LessThan& Math::lessThan(Base& lhs, Base& rhs)
+{
+    return math::LessThan::New(kb, lhs, rhs);
+}
+
+math::GreaterThan& Math::greaterThan(Base& lhs, Base& rhs)
+{
+    return math::GreaterThan::New(kb, lhs, rhs);
+}
+
+Same::Same(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Same>(kb, kb.type.ast.op.Same)
+{
+}
+
+NotSame::NotSame(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<NotSame>(kb, kb.type.ast.op.NotSame)
+{
+}
+
+Equal::Equal(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Equal>(kb, kb.type.ast.op.Equal)
+{
+}
+
+NotEqual::NotEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<NotEqual>(kb, kb.type.ast.op.NotEqual)
+{
+}
+
+Has::Has(brain::Brain& kb, Base& cell, Base& role) :
+    BaseT<Has>(kb, kb.type.ast.op.Has)
+{
+}
+
+Get::Get(brain::Brain& kb, Base& cell, Base& role) :
+    BaseT<Get>(kb, kb.type.ast.op.Get)
+{
+}
+
+Set::Set(brain::Brain& kb, Base& cell, Base& role, Base& value) :
+    BaseT<Set>(kb, kb.type.ast.op.Set)
+{
+}
+
+Op::Op(brain::Brain& kb) :
+    kb(kb),
+    logic(kb),
+    math(kb)
+{
+}
+
+Same& Op::same(Base& lhs, Base& rhs)
+{
+    return Same::New(kb, lhs, rhs);
+}
+
+NotSame& Op::notSame(Base& lhs, Base& rhs)
+{
+    return NotSame::New(kb, lhs, rhs);
+}
+
+Equal& Op::equal(Base& lhs, Base& rhs)
+{
+    return Equal::New(kb, lhs, rhs);
+}
+
+NotEqual& Op::notEqual(Base& lhs, Base& rhs)
+{
+    return NotEqual::New(kb, lhs, rhs);
+}
+
+Has& Op::has(Base& cell, Base& role)
+{
+    return Has::New(kb, cell, role);
+}
+
+Get& Op::get(Base& cell, Base& role)
+{
+    return Get::New(kb, cell, role);
+}
+
+Set& Op::set(Base& cell, Base& role, Base& value)
+{
+    return Set::New(kb, cell, role, value);
+}
+
+Parameter::Parameter(brain::Brain& kb, CellI& cell) :
+    BaseT<Parameter>(kb, kb.type.ast.Parameter)
+{
+}
+
+Cell::Cell(brain::Brain& kb, CellI& cell) :
+    BaseT<Cell>(kb, kb.type.ast.Cell)
+{
+}
+
+HasMember::HasMember(brain::Brain& kb, Base& role) :
+    BaseT<HasMember>(kb, kb.type.ast.HasMember)
+{
+}
+
+GetMember::GetMember(brain::Brain& kb, Base& role) :
+    BaseT<GetMember>(kb, kb.type.ast.GetMember)
+{
+}
+
+SetMember::SetMember(brain::Brain& kb, Base& role, Base& value) :
+    BaseT<SetMember>(kb, kb.type.ast.SetMember)
+{
+}
+
+SetVar::SetVar(brain::Brain& kb, CellI& cell, Base& ast) :
+    BaseT<SetVar>(kb, kb.type.ast.SetVar)
+{
+}
+
+GetVar::GetVar(brain::Brain& kb, CellI& cell) :
+    BaseT<GetVar>(kb, kb.type.ast.GetVar)
+{
+}
+
+Self::Self(brain::Brain& kb) :
+    BaseT<Self>(kb, kb.type.ast.Self)
+{
+}
+
+Block::Block(brain::Brain& kb) :
+    BaseT<Block>(kb, kb.type.ast.Block)
+{
+}
+
+void Block::add(Base& ast)
+{
+    // TODO
+}
+
+List& Block::toList()
+{
+    return kb.list(kb.type.Any); // TODO
+}
+
+} // namespace ast
+
+Ast::Ast(brain::Brain& kb) :
+    kb(kb),
+    pipeline(kb),
+    op(kb)
+{
+}
+
+ast::Parameter& Ast::parameter(CellI& cell)
+{
+    return ast::Parameter::New(kb, cell);
+}
+
+ast::Cell& Ast::cell(CellI& cell)
+{
+    return ast::Cell::New(kb, cell);
+}
+
+ast::HasMember& Ast::hasMember(ast::Base& role)
+{
+    return ast::HasMember::New(kb, role);
+}
+
+ast::GetMember& Ast::getMember(ast::Base& role)
+{
+    return ast::GetMember::New(kb, role);
+}
+
+ast::SetMember& Ast::setMember(ast::Base& role, ast::Base& value)
+{
+    return ast::SetMember::New(kb, role, value);
+}
+
+ast::SetVar& Ast::setVar(CellI& cell, ast::Base& ast)
+{
+    return ast::SetVar::New(kb, cell, ast);
+}
+
+ast::GetVar& Ast::getVar(CellI& cell)
+{
+    return ast::GetVar::New(kb, cell);
+}
+
+ast::Self& Ast::self()
+{
+    return ast::Self::New(kb);
+}
+
 Sequence::Sequence(brain::Brain& kb) :
     first(kb, kb.type.Any, "first"),
     last(kb, kb.type.Any, "last"),
@@ -442,6 +895,7 @@ Brain::Brain() :
     coding(*this, type.Any),
     pools(*this, type.Char, cells.emptyObject, type.Digit),
     templates(*this),
+    ast(*this),
     sequence(*this),
     equation(*this, type.Any),
     directions(*this, type.Any),
@@ -542,22 +996,33 @@ Brain::Brain() :
         cells.slot(cells.subTypes, type.ListOf(type.template_.Slot)),
         cells.slot(cells.memberOf, type.ListOf(type.template_.Descriptor)));
 
+    Function listAdd(*this, "List::Add");
+    listAdd.addAsts(ast.block(
+        ast.setVar(pools.numbers.get(1), ast.pipeline.new_(ast.self())),
+        ast.op.set(ast.getVar(pools.numbers.get(1)), ast.cell(coding.value), ast.parameter(coding.value)),
+                         ast.pipeline.if_(ast.op.logic.not_(ast.hasMember(ast.cell(sequence.first))),
+                         ast.setMember(ast.cell(sequence.first), ast.getVar(pools.numbers.get(1))),
+                         ast.block(ast.setMember(ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))),
+                                   ast.op.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
+        ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1)))
+    ).toList());
 #if 0
     Function listAdd(*this, "List::Add");
-    listAdd.addInputs(
-        function.parameterDecl(coding.self, type.List),
-        function.parameterDecl(coding.value, type.Any));
-    listAdd.addAsts(
-        ListItem* newListItem = new ListItem();
-        newListItem->value    = param[coding.value];
-        if (!param[coding.self].has(sequence.first)) {
-            param[coding.self].set(sequence.first, newListItem);
+    listAdd.addInputs(list(function.parameterDecl(coding.self, type.List),
+                           function.parameterDecl(coding.value, type.Any)));
+    listAdd.addAsts(list(
+        ListItem* newListItem = new ListItem();                                    // auto newListItem = ast.new_(type.self);
+        newListItem->value    = param[coding.value];                               // ast.op.set(newListItem, coding.value, ast.parameter(coding.value));
+        if (!param[coding.self].has(sequence.first)) {                             // ast.pipeline.if_(ast.op.logic.not(ast.op.has(ast.self, sequence.first)),
+            param[coding.self].set(sequence.first, newListItem);                   //                  ast.op.set(ast.self, sequence.first, newListItem)
         } else {
-            param[coding.self][sequence.last].set(sequence.next, newListItem);
-            newListItem.set(sequence.previous, param[coding.self][sequence.last]);
+            param[coding.self][sequence.last].set(sequence.next, newListItem);     //                  list(ast.op.set(ast.self, sequence.next, newListItem),
+            newListItem.set(sequence.previous, param[coding.self][sequence.last]); //                       ast.op.set(newListItem, sequence.previous, )));
         }
-        param[coding.self].set(sequence.last, newListItem);
-    );
+        param[coding.self].set(sequence.last, newListItem);                        // ast.op.set(ast.self, sequence.last, newListItem);
+    ));
+#endif
+
     CellTemplate testTemplate(*this);
     testTemplate.type(type.Type_);
     testTemplate.addParams(map(coding.objectType, type.Type_));
@@ -565,7 +1030,6 @@ Brain::Brain() :
                                templates.slot(templates.cell(sequence.last), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
                                templates.slot(templates.cell(coding.objectType), templates.parameter(coding.objectType)),
                                templates.slot(templates.cell(dimensions.size), templates.cell(type.Number))));
-#endif
 
     type.Number.addSlots(
         cells.slot(coding.value, type.ListOf(type.Digit)),
