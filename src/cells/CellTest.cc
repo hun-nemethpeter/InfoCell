@@ -63,8 +63,7 @@ public:
     svg::StructPrinter m_svgStructPrinter;
 };
 
-using namespace control::expr;
-using namespace control::stmt;
+using namespace control;
 
 int main(int argc, char* argv[])
 {

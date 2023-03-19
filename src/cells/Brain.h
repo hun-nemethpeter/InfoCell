@@ -34,128 +34,39 @@ public:
 class Control
 {
 public:
-    class Operations
-    {
-    public:
-        class Logic
-        {
-        public:
-            Logic(brain::Brain& kb);
-            Type And;
-            Type Or;
-            Type Not;
-        };
-
-        class Math
-        {
-        public:
-            Math(brain::Brain& kb);
-            Type Add;
-            Type Subtract;
-            Type Multiply;
-            Type Divide;
-            Type LessThan;
-            Type GreaterThan;
-        };
-
-        Operations(brain::Brain& kb);
-        Type Base;
-
-        Type Same;
-        Type NotSame;
-        Type Equal;
-        Type NotEqual;
-
-        Type Has;
-        Type Get;
-        Type Set;
-
-        Logic logic;
-        Math math;
-    };
-
-    class Pipelines
-    {
-    public:
-        Pipelines(brain::Brain& kb);
-        Type Base;
-        Type Input;
-        Type New;
-        Type Delete;
-        Type IfThen;
-        Type DoWhile;
-        Type While;
-    };
-
     Control(brain::Brain& kb);
 
-protected:
-    brain::Brain& kb;
-
-public:
     Type Base;
     Type Block;
     Type Function;
-
-    Operations op;
-    Pipelines pipeline;
+    Type Delete;
+    Type Set;
+    Type If;
+    Type Do;
+    Type While;
+    Type Expression;
+    Type Input;
+    Type New;
+    Type Same;
+    Type NotSame;
+    Type Equal;
+    Type NotEqual;
+    Type Has;
+    Type Get;
+    Type And;
+    Type Or;
+    Type Not;
+    Type Add;
+    Type Subtract;
+    Type Multiply;
+    Type Divide;
+    Type LessThan;
+    Type GreaterThan;
 };
 
 class Ast
 {
 public:
-    class Pipelines
-    {
-    public:
-        Pipelines(brain::Brain& kb);
-        Type Input;
-        Type New;
-        Type Delete;
-        Type If;
-        Type Do;
-        Type While;
-    };
-
-    class Operations
-    {
-    public:
-        class Logic
-        {
-        public:
-            Logic(brain::Brain& kb);
-            Type And;
-            Type Or;
-            Type Not;
-        };
-
-        class Math
-        {
-        public:
-            Math(brain::Brain& kb);
-            Type Add;
-            Type Subtract;
-            Type Multiply;
-            Type Divide;
-            Type LessThan;
-            Type GreaterThan;
-        };
-
-        Operations(brain::Brain& kb);
-        Type Base;
-
-        Type Same;
-        Type NotSame;
-        Type Equal;
-        Type NotEqual;
-
-        Type Has;
-        Type Get;
-        Type Set;
-
-        Logic logic;
-        Math math;
-    };
-
     Ast(brain::Brain& kb);
 
 protected:
@@ -163,6 +74,7 @@ protected:
 
 public:
     Type Base;
+
     Type Parameter;
     Type ParameterDecl;
     Type Cell;
@@ -172,11 +84,32 @@ public:
     Type SetVar;
     Type GetVar;
     Type Self;
+
     Type Block;
     Type Function;
-
-    Operations op;
-    Pipelines pipeline;
+    Type Delete;
+    Type Set;
+    Type If;
+    Type Do;
+    Type While;
+    Type Expression;
+    Type Input;
+    Type New;
+    Type Same;
+    Type NotSame;
+    Type Equal;
+    Type NotEqual;
+    Type Has;
+    Type Get;
+    Type And;
+    Type Or;
+    Type Not;
+    Type Add;
+    Type Subtract;
+    Type Multiply;
+    Type Divide;
+    Type LessThan;
+    Type GreaterThan;
 };
 
 } // namespace type
@@ -344,349 +277,256 @@ public:
     Template list;
 };
 
-namespace ast {
-
-class Base : public Object
-{
-public:
-    Base(brain::Brain& kb, CellI& classCell, const std::string& label = "");
-};
-
-template <typename T>
-class BaseT : public Base,
-              public NewT<T>
-{
-public:
-    BaseT<T>(brain::Brain& kb, CellI& classCell, const std::string& label = "") :
-        Base(kb, classCell, label), kb(kb)
-    {
-    }
-
-    brain::Brain& kb;
-};
-
-namespace pipeline {
-class Input : public BaseT<Input>
-{
-public:
-    Input(brain::Brain& kb, CellI& value);
-};
-
-class New : public BaseT<New>
-{
-public:
-    New(brain::Brain& kb, Base& objectType);
-};
-
-class Delete : public BaseT<Delete>
-{
-public:
-    Delete(brain::Brain& kb, Base& cell);
-};
-
-class If : public BaseT<If>
-{
-public:
-    If(brain::Brain& kb, Base& condition, Base& thenBranch);
-    If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch);
-};
-
-class Do : public BaseT<Do>
-{
-public:
-    Do(brain::Brain& kb, Base& condition, Base& statement);
-};
-
-class While : public BaseT<While>
-{
-public:
-    While(brain::Brain& kb, Base& condition, Base& statement);
-};
-
-} // namespace pipeline
-
-class Pipeline
-{
-public:
-    Pipeline(brain::Brain& kb);
-
-    pipeline::Input& input(CellI& value);
-    pipeline::New& new_(Base& objectType);
-    pipeline::Delete& delete_(Base& cell);
-    pipeline::If& if_(Base& condition, Base& thenBranch);
-    pipeline::If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
-    pipeline::Do& do_(Base& condition, Base& statement);
-    pipeline::While& while_(Base& condition, Base& statement);
-
-protected:
-    brain::Brain& kb;
-};
-
-namespace logic {
-class And : public BaseT<And>
-{
-public:
-    And(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class Or : public BaseT<Or>
-{
-public:
-    Or(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class Not : public BaseT<Not>
-{
-public:
-    Not(brain::Brain& kb, Base& value);
-};
-}
-
-class Logic
-{
-public:
-    Logic(brain::Brain& kb);
-    logic::And& and_(Base& lhs, Base& rhs);
-    logic::Or& or_(Base& lhs, Base& rhs);
-    logic::Not& not_(Base& value);
-
-protected:
-    brain::Brain& kb;
-};
-
-namespace math {
-class Add : public BaseT<Add>
-{
-public:
-    Add(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class Subtract : public BaseT<Subtract>
-{
-public:
-    Subtract(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class Multiply : public BaseT<Multiply>
-{
-public:
-    Multiply(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class Divide : public BaseT<Divide>
-{
-public:
-    Divide(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class LessThan : public BaseT<LessThan>
-{
-public:
-    LessThan(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class GreaterThan : public BaseT<GreaterThan>
-{
-public:
-    GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-} // namespace math
-
-class Math
-{
-public:
-    Math(brain::Brain& kb);
-
-    math::Add& add(Base& lhs, Base& rhs);
-    math::Subtract& subtract(Base& lhs, Base& rhs);
-    math::Multiply& multiply(Base& lhs, Base& rhs);
-    math::Divide& divide(Base& lhs, Base& rhs);
-    math::LessThan& lessThan(Base& lhs, Base& rhs);
-    math::GreaterThan& greaterThan(Base& lhs, Base& rhs);
-
-protected:
-    brain::Brain& kb;
-};
-
-class Same : public BaseT<Same>
-{
-public:
-    Same(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class NotSame : public BaseT<NotSame>
-{
-public:
-    NotSame(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class Equal : public BaseT<Equal>
-{
-public:
-    Equal(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class NotEqual : public BaseT<NotEqual>
-{
-public:
-    NotEqual(brain::Brain& kb, Base& lhs, Base& rhs);
-};
-
-class Has : public BaseT<Has>
-{
-public:
-    Has(brain::Brain& kb, Base& cell, Base& role);
-};
-
-class Get : public BaseT<Get>
-{
-public:
-    Get(brain::Brain& kb, Base& cell, Base& role);
-};
-
-class Set : public BaseT<Set>
-{
-public:
-    Set(brain::Brain& kb, Base& cell, Base& role, Base& value);
-};
-
-class Op
-{
-public:
-    Op(brain::Brain& kb);
-
-    Same& same(Base& lhs, Base& rhs);
-    NotSame& notSame(Base& lhs, Base& rhs);
-
-    Equal& equal(Base& lhs, Base& rhs);
-    NotEqual& notEqual(Base& lhs, Base& rhs);
-
-    Has& has(Base& cell, Base& role);
-    Get& get(Base& cell, Base& role);
-    Set& set(Base& cell, Base& role, Base& value);
-
-protected:
-    brain::Brain& kb;
-
-public:
-    Logic logic;
-    Math math;
-
-};
-
-class Parameter : public BaseT<Parameter>
-{
-public:
-    Parameter(brain::Brain& kb, CellI& role);
-};
-
-class ParameterDecl : public BaseT<ParameterDecl>
-{
-public:
-    ParameterDecl(brain::Brain& kb, CellI& role, CellI& type);
-};
-
-class Cell : public BaseT<Cell>
-{
-public:
-    Cell(brain::Brain& kb, CellI& value);
-};
-
-class HasMember : public BaseT<HasMember>
-{
-public:
-    HasMember(brain::Brain& kb, Base& role);
-};
-
-class GetMember : public BaseT<GetMember>
-{
-public:
-    GetMember(brain::Brain& kb, Base& role);
-};
-
-class SetMember : public BaseT<SetMember>
-{
-public:
-    SetMember(brain::Brain& kb, Base& role, Base& value);
-};
-
-class SetVar : public BaseT<SetVar>
-{
-public:
-    SetVar(brain::Brain& kb, CellI& role, Base& value);
-};
-
-class GetVar : public BaseT<GetVar>
-{
-public:
-    GetVar(brain::Brain& kb, CellI& role);
-};
-
-class Self : public BaseT<Self>
-{
-public:
-    Self(brain::Brain& kb);
-};
-
-class Block : public BaseT<Block>
-{
-public:
-    Block(brain::Brain& kb, List& list);
-};
-
-class Function : public BaseT<Function>
-{
-public:
-    Function(brain::Brain& kb, const std::string& label = "Function");
-
-    void addInputs(List& input);
-    void addOutputs(List& output);
-    void addAsts(Block& ast);
-    CellI& inputType();
-    CellI& outputType();
-    CellI& compile(CellI& parameters);
-
-protected:
-    CellI& compileAst(CellI& ast, CellI& param, CellI& self);
-    List& inputs();
-    List& outputs();
-    Block& asts();
-
-    List* m_inputs = nullptr;
-    List* m_outputs = nullptr;
-    Block* m_asts  = nullptr;
-
-    std::unique_ptr<Type> m_inputType;
-    std::unique_ptr<Type> m_outputType;
-};
-
-} // namespace ast
-
 class Ast
 {
 public:
+    class Base : public Object
+    {
+    public:
+        Base(brain::Brain& kb, CellI& classCell, const std::string& label = "");
+    };
+    template <typename T>
+    class BaseT : public Base,
+                  public NewT<T>
+    {
+    public:
+        BaseT<T>(brain::Brain& kb, CellI& classCell, const std::string& label = "") :
+            Base(kb, classCell, label), kb(kb)
+        {
+        }
+
+        brain::Brain& kb;
+    };
+    class Parameter : public BaseT<Parameter>
+    {
+    public:
+        Parameter(brain::Brain& kb, CellI& role);
+    };
+    class ParameterDecl : public BaseT<ParameterDecl>
+    {
+    public:
+        ParameterDecl(brain::Brain& kb, CellI& role, CellI& type);
+    };
+    class Cell : public BaseT<Cell>
+    {
+    public:
+        Cell(brain::Brain& kb, CellI& value);
+    };
+    class HasMember : public BaseT<HasMember>
+    {
+    public:
+        HasMember(brain::Brain& kb, Base& role);
+    };
+    class GetMember : public BaseT<GetMember>
+    {
+    public:
+        GetMember(brain::Brain& kb, Base& role);
+    };
+    class SetMember : public BaseT<SetMember>
+    {
+    public:
+        SetMember(brain::Brain& kb, Base& role, Base& value);
+    };
+    class SetVar : public BaseT<SetVar>
+    {
+    public:
+        SetVar(brain::Brain& kb, CellI& role, Base& value);
+    };
+    class GetVar : public BaseT<GetVar>
+    {
+    public:
+        GetVar(brain::Brain& kb, CellI& role);
+    };
+    class Self : public BaseT<Self>
+    {
+    public:
+        Self(brain::Brain& kb);
+    };
+
+    class Block : public BaseT<Block>
+    {
+    public:
+        Block(brain::Brain& kb, List& list);
+    };
+    class Function : public BaseT<Function>
+    {
+    public:
+        Function(brain::Brain& kb, const std::string& label = "Function");
+
+        void addInputs(List& input);
+        void addOutputs(List& output);
+        void addAsts(Block& ast);
+        CellI& inputType();
+        CellI& outputType();
+        CellI& compile(CellI& parameters);
+
+    protected:
+        CellI& compileAst(CellI& ast, CellI& param, CellI& self);
+        List& inputs();
+        List& outputs();
+        Block& asts();
+
+        List* m_inputs  = nullptr;
+        List* m_outputs = nullptr;
+        Block* m_asts   = nullptr;
+
+        std::unique_ptr<Type> m_inputType;
+        std::unique_ptr<Type> m_outputType;
+    };
+    class Delete : public BaseT<Delete>
+    {
+    public:
+        Delete(brain::Brain& kb, Base& cell);
+    };
+    class Set : public BaseT<Set>
+    {
+    public:
+        Set(brain::Brain& kb, Base& cell, Base& role, Base& value);
+    };
+    class If : public BaseT<If>
+    {
+    public:
+        If(brain::Brain& kb, Base& condition, Base& thenBranch);
+        If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch);
+    };
+    class Do : public BaseT<Do>
+    {
+    public:
+        Do(brain::Brain& kb, Base& condition, Base& statement);
+    };
+    class While : public BaseT<While>
+    {
+    public:
+        While(brain::Brain& kb, Base& condition, Base& statement);
+    };
+    class Input : public BaseT<Input>
+    {
+    public:
+        Input(brain::Brain& kb, CellI& value);
+    };
+    class New : public BaseT<New>
+    {
+    public:
+        New(brain::Brain& kb, Base& objectType);
+    };
+    class Same : public BaseT<Same>
+    {
+    public:
+        Same(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class NotSame : public BaseT<NotSame>
+    {
+    public:
+        NotSame(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class Equal : public BaseT<Equal>
+    {
+    public:
+        Equal(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class NotEqual : public BaseT<NotEqual>
+    {
+    public:
+        NotEqual(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class Has : public BaseT<Has>
+    {
+    public:
+        Has(brain::Brain& kb, Base& cell, Base& role);
+    };
+    class Get : public BaseT<Get>
+    {
+    public:
+        Get(brain::Brain& kb, Base& cell, Base& role);
+    };
+    class And : public BaseT<And>
+    {
+    public:
+        And(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class Or : public BaseT<Or>
+    {
+    public:
+        Or(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class Not : public BaseT<Not>
+    {
+    public:
+        Not(brain::Brain& kb, Base& value);
+    };
+    class Add : public BaseT<Add>
+    {
+    public:
+        Add(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class Subtract : public BaseT<Subtract>
+    {
+    public:
+        Subtract(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class Multiply : public BaseT<Multiply>
+    {
+    public:
+        Multiply(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class Divide : public BaseT<Divide>
+    {
+    public:
+        Divide(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class LessThan : public BaseT<LessThan>
+    {
+    public:
+        LessThan(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+    class GreaterThan : public BaseT<GreaterThan>
+    {
+    public:
+        GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs);
+    };
+
     Ast(brain::Brain& kb);
 
-    ast::Parameter& parameter(CellI& role);
-    ast::ParameterDecl& parameterDecl(CellI& role, CellI& type);
-    ast::Cell& cell(CellI& value);
-    ast::HasMember& hasMember(ast::Base& role);
-    ast::GetMember& getMember(ast::Base& role);
-    ast::SetMember& setMember(ast::Base& role, ast::Base& value);
-    ast::SetVar& setVar(CellI& role, ast::Base& value);
-    ast::GetVar& getVar(CellI& role);
-    ast::Self& self();
+    Parameter& parameter(CellI& role);
+    ParameterDecl& parameterDecl(CellI& role, CellI& type);
+    Cell& cell(CellI& value);
+    HasMember& hasMember(Base& role);
+    GetMember& getMember(Base& role);
+    SetMember& setMember(Base& role, Base& value);
+    SetVar& setVar(CellI& role, Base& value);
+    GetVar& getVar(CellI& role);
+    Self& self();
+
     template <typename... Args>
-    ast::Block& block(ast::Base& ast, Args&&... args);
-    ast::Function& function(List& inputs, ast::Block& asts);
-    ast::Function& function(List& inputs, ast::Block& asts, List& outputs);
+    Block& block(Base& ast, Args&&... args);
+    Function& function(List& inputs, Block& asts);
+    Function& function(List& inputs, Block& asts, List& outputs);
+    Delete& delete_(Base& cell);
+    Set& set(Base& cell, Base& role, Base& value);
+    If& if_(Base& condition, Base& thenBranch);
+    If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
+    Do& do_(Base& condition, Base& statement);
+    While& while_(Base& condition, Base& statement);
+    Input& input(CellI& value);
+    New& new_(Base& objectType);
+    Same& same(Base& lhs, Base& rhs);
+    NotSame& notSame(Base& lhs, Base& rhs);
+    Equal& equal(Base& lhs, Base& rhs);
+    NotEqual& notEqual(Base& lhs, Base& rhs);
+    Has& has(Base& cell, Base& role);
+    Get& get(Base& cell, Base& role);
+    And& and_(Base& lhs, Base& rhs);
+    Or& or_(Base& lhs, Base& rhs);
+    Not& not_(Base& value);
+    Add& add(Base& lhs, Base& rhs);
+    Subtract& subtract(Base& lhs, Base& rhs);
+    Multiply& multiply(Base& lhs, Base& rhs);
+    Divide& divide(Base& lhs, Base& rhs);
+    LessThan& lessThan(Base& lhs, Base& rhs);
+    GreaterThan& greaterThan(Base& lhs, Base& rhs);
 
 protected:
     brain::Brain& kb;
-
-public:
-    ast::Pipeline pipeline;
-    ast::Op op;
 };
 
 class Sequence
@@ -852,7 +692,7 @@ public:
     Numbers numbers;
     Arc arc;
 
-    ast::Function listAdd;
+    Ast::Function listAdd;
 
     CellI& toKbBool(bool value);
 
@@ -884,9 +724,9 @@ public:
 };
 
 template <typename... Args>
-ast::Block& Ast::block(ast::Base& ast, Args&&... args)
+Ast::Block& Ast::block(Base& ast, Args&&... args)
 {
-    return *new ast::Block(kb, kb.list(std::forward<Args>(args)...));
+    return *new Block(kb, kb.list(std::forward<Args>(args)...));
 }
 
 } // namespace brain

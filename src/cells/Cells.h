@@ -631,7 +631,24 @@ public:
 };
 
 // ============================================================================
-class Function : public CellI
+class Block : public Base
+{
+public:
+    Block(brain::Brain& kb, List& list, const std::string& label = "Block");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+protected:
+    CellI* m_current;
+    List& m_list;
+};
+
+// ============================================================================
+class Function : public Base
 {
 public:
     explicit Function(brain::Brain& kb, const std::string& label = "Function");
@@ -652,41 +669,11 @@ protected:
     CellI* m_asts   = nullptr;
 };
 
-namespace expr {
-class Base;
-}
-
-namespace stmt {
-
-// ============================================================================
-class Base : public control::Base
-{
-public:
-    Base(brain::Brain& kb, const std::string& label);
-};
-
-// ============================================================================
-class Block : public Base
-{
-public:
-    Block(brain::Brain& kb, List& list, const std::string& label = "Block");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI* m_current;
-    List& m_list;
-};
-
 // ============================================================================
 class Delete : public Base
 {
 public:
-    Delete(brain::Brain& kb, Base& input, const std::string& label = "Delete");
+    Delete(brain::Brain& kb, CellI& cell, const std::string& label = "Delete");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -695,7 +682,7 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    CellI* m_input = nullptr;
+    CellI* m_cell = nullptr;
 };
 
 // ============================================================================
@@ -717,11 +704,11 @@ protected:
 };
 
 // ============================================================================
-class IfThen : public Base
+class If : public Base
 {
 public:
-    IfThen(brain::Brain& kb, expr::Base& condition, stmt::Base& thenBranch, const std::string& label = "IfThen");
-    IfThen(brain::Brain& kb, expr::Base& condition, stmt::Base& thenBranch, stmt::Base* elseBranch, const std::string& label = "IfThen");
+    If(brain::Brain& kb, CellI& condition, CellI& thenBranch, const std::string& label = "If");
+    If(brain::Brain& kb, CellI& condition, CellI& thenBranch, CellI& elseBranch, const std::string& label = "If");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -734,16 +721,16 @@ public:
     void addElseBranch(Base& cell);
 
 protected:
-    Base* m_condition  = nullptr;
-    Base* m_thenBranch = nullptr;
-    Base* m_elseBranch = nullptr;
+    CellI* m_condition = nullptr;
+    CellI* m_thenBranch = nullptr;
+    CellI* m_elseBranch = nullptr;
 };
 
 // ============================================================================
-class DoWhile : public Base
+class Do : public Base
 {
 public:
-    DoWhile(brain::Brain& kb, expr::Base& condition, stmt::Base& statement, const std::string& label = "DoWhile");
+    Do(brain::Brain& kb, CellI& condition, CellI& statement, const std::string& label = "Do");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -755,15 +742,15 @@ public:
     void addStatement(Base& cell);
 
 protected:
-    Base* m_condition = nullptr;
-    Base* m_statement = nullptr;
+    CellI* m_condition = nullptr;
+    CellI* m_statement = nullptr;
 };
 
 // ============================================================================
 class While : public Base
 {
 public:
-    While(brain::Brain& kb, expr::Base& condition, stmt::Base& statement, const std::string& label = "While");
+    While(brain::Brain& kb, CellI& condition, CellI& statement, const std::string& label = "While");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -775,24 +762,21 @@ public:
     void addStatement(Base& cell);
 
 protected:
-    Base* m_condition = nullptr;
-    Base* m_statement = nullptr;
+    CellI* m_condition = nullptr;
+    CellI* m_statement = nullptr;
 };
 
-} // namespace stmt
-namespace expr {
-
 // ============================================================================
-class Base : public control::Base
+class Expression : public Base
 {
 public:
-    Base(brain::Brain& kb, const std::string& label);
+    Expression(brain::Brain& kb, const std::string& label);
 
     CellI* m_value = nullptr;
 };
 
 // ============================================================================
-class Input : public Base
+class Input : public Expression
 {
 public:
     Input(brain::Brain& kb, CellI& value, const std::string& label = "Input");
@@ -806,7 +790,7 @@ public:
 };
 
 // ============================================================================
-class New : public Base
+class New : public Expression
 {
 public:
     New(brain::Brain& kb, CellI& objectType, const std::string& label = "New");
@@ -822,10 +806,10 @@ protected:
 };
 
 // ============================================================================
-class Same : public Base
+class Same : public Expression
 {
 public:
-    Same(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    Same(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -834,15 +818,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class NotSame : public Base
+class NotSame : public Expression
 {
 public:
-    NotSame(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    NotSame(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -851,15 +835,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class Equal : public Base
+class Equal : public Expression
 {
 public:
-    Equal(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    Equal(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -868,15 +852,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class NotEqual : public Base
+class NotEqual : public Expression
 {
 public:
-    NotEqual(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    NotEqual(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -885,12 +869,12 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class Has : public Base
+class Has : public Expression
 {
 public:
     Has(brain::Brain& kb, CellI& cell, CellI& role);
@@ -907,7 +891,7 @@ protected:
 };
 
 // ============================================================================
-class Get : public Base
+class Get : public Expression
 {
 public:
     Get(brain::Brain& kb, CellI& cell, CellI& role);
@@ -924,10 +908,10 @@ protected:
 };
 
 // ============================================================================
-class And : public Base
+class And : public Expression
 {
 public:
-    And(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    And(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -936,15 +920,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class Or : public Base
+class Or : public Expression
 {
 public:
-    Or(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    Or(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -953,15 +937,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class Not : public Base
+class Not : public Expression
 {
 public:
-    Not(brain::Brain& kb, expr::Base& input);
+    Not(brain::Brain& kb, CellI& input);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -970,11 +954,11 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_input;
+    CellI& m_input;
 };
 
 // ============================================================================
-class Add : public Base
+class Add : public Expression
 {
 public:
     Add(brain::Brain& kb, CellI& lhs, CellI& rhs);
@@ -991,10 +975,10 @@ protected:
 };
 
 // ============================================================================
-class Subtract : public Base
+class Subtract : public Expression
 {
 public:
-    Subtract(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    Subtract(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1003,15 +987,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class Multiply : public Base
+class Multiply : public Expression
 {
 public:
-    Multiply(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    Multiply(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1020,15 +1004,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class Divide : public Base
+class Divide : public Expression
 {
 public:
-    Divide(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    Divide(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1037,15 +1021,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class LessThan : public Base
+class LessThan : public Expression
 {
 public:
-    LessThan(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    LessThan(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1054,15 +1038,15 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
 // ============================================================================
-class GreaterThan : public Base
+class GreaterThan : public Expression
 {
 public:
-    GreaterThan(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs);
+    GreaterThan(brain::Brain& kb, CellI& lhs, CellI& rhs);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1071,11 +1055,10 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    expr::Base& m_lhs;
-    expr::Base& m_rhs;
+    CellI& m_lhs;
+    CellI& m_rhs;
 };
 
-} // namespace expr
 } // namespace control
 
 // ============================================================================
@@ -1104,29 +1087,30 @@ public:
     virtual void visit(hybrid::Pixel&)   = 0;
     virtual void visit(hybrid::Picture&) = 0;
 
-    virtual void visit(control::stmt::Block&) { }
-    virtual void visit(control::stmt::Delete&) { }
-    virtual void visit(control::stmt::Set&) { }
-    virtual void visit(control::stmt::IfThen&) { }
-    virtual void visit(control::stmt::DoWhile&) { }
-    virtual void visit(control::stmt::While&) { }
-    virtual void visit(control::expr::Input&) { }
-    virtual void visit(control::expr::New&) { }
-    virtual void visit(control::expr::Same&) { }
-    virtual void visit(control::expr::NotSame&) { }
-    virtual void visit(control::expr::Equal&) { }
-    virtual void visit(control::expr::NotEqual&) { }
-    virtual void visit(control::expr::Has&) { }
-    virtual void visit(control::expr::Get&) { }
-    virtual void visit(control::expr::And&) { }
-    virtual void visit(control::expr::Or&) { }
-    virtual void visit(control::expr::Not&) { }
-    virtual void visit(control::expr::Add&) { }
-    virtual void visit(control::expr::Subtract&) { }
-    virtual void visit(control::expr::Multiply&) { }
-    virtual void visit(control::expr::Divide&) { }
-    virtual void visit(control::expr::LessThan&) { }
-    virtual void visit(control::expr::GreaterThan&) { }
+    virtual void visit(control::Block&) { }
+    virtual void visit(control::Function&) { }
+    virtual void visit(control::Delete&) { }
+    virtual void visit(control::Set&) { }
+    virtual void visit(control::If&) { }
+    virtual void visit(control::Do&) { }
+    virtual void visit(control::While&) { }
+    virtual void visit(control::Input&) { }
+    virtual void visit(control::New&) { }
+    virtual void visit(control::Same&) { }
+    virtual void visit(control::NotSame&) { }
+    virtual void visit(control::Equal&) { }
+    virtual void visit(control::NotEqual&) { }
+    virtual void visit(control::Has&) { }
+    virtual void visit(control::Get&) { }
+    virtual void visit(control::And&) { }
+    virtual void visit(control::Or&) { }
+    virtual void visit(control::Not&) { }
+    virtual void visit(control::Add&) { }
+    virtual void visit(control::Subtract&) { }
+    virtual void visit(control::Multiply&) { }
+    virtual void visit(control::Divide&) { }
+    virtual void visit(control::LessThan&) { }
+    virtual void visit(control::GreaterThan&) { }
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };

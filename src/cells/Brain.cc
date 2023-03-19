@@ -18,95 +18,33 @@ Template::Template(brain::Brain& kb) :
 {
 }
 
-Control::Operations::Logic::Logic(brain::Brain& kb) :
-    And(kb, "And"),
-    Or(kb, "Or"),
-    Not(kb, "Not")
-{
-}
-
-Control::Operations::Math::Math(brain::Brain& kb) :
-    Add(kb, "Add"),
-    Subtract(kb, "Subtract"),
-    Multiply(kb, "Multiply"),
-    Divide(kb, "Divide"),
-    LessThan(kb, "LessThan"),
-    GreaterThan(kb, "GreaterThan")
-{
-}
-
-Control::Operations::Operations(brain::Brain& kb) :
-    Base(kb, "Base"),
-    Same(kb, "Same"),
-    NotSame(kb, "NotSame"),
-    Equal(kb, "Equal"),
-    NotEqual(kb, "NotEqual"),
-    Has(kb, "Has"),
-    Get(kb, "Get"),
-    Set(kb, "Set"),
-    logic(kb), math(kb)
-{
-}
-
-Control::Pipelines::Pipelines(brain::Brain& kb) :
-    Base(kb, "Base"),
-    Input(kb, "Input"),
-    New(kb, "New"),
-    Delete(kb, "Delete"),
-    IfThen(kb, "IfThen"),
-    DoWhile(kb, "DoWhile"),
-    While(kb, "While")
-{
-}
-
 Control::Control(brain::Brain& kb) :
-    kb(kb),
     Base(kb, "Base"),
     Block(kb, "Block"),
     Function(kb, "Function"),
-    op(kb),
-    pipeline(kb)
-{
-}
-
-Ast::Pipelines::Pipelines(brain::Brain& kb) :
-    Input(kb, "Input"),
-    New(kb, "New"),
     Delete(kb, "Delete"),
+    Set(kb, "Set"),
     If(kb, "If"),
     Do(kb, "Do"),
-    While(kb, "While")
-{
-}
-
-Ast::Operations::Logic::Logic(brain::Brain& kb) :
-    And(kb, "And"),
-    Or(kb, "Or"),
-    Not(kb, "Not")
-{
-}
-
-Ast::Operations::Math::Math(brain::Brain& kb) :
-    Add(kb, "Add"),
-    Subtract(kb, "Subtract"),
-    Multiply(kb, "Multiply"),
-    Divide(kb, "Divide"),
-    LessThan(kb, "LessThan"),
-    GreaterThan(kb, "GreaterThan")
-{
-}
-
-Ast::Operations::Operations(brain::Brain& kb) :
-    Base(kb, "Base"),
+    While(kb, "While"),
+    Expression(kb, "Expression"),
+    Input(kb, "Input"),
+    New(kb, "New"),
     Same(kb, "Same"),
     NotSame(kb, "NotSame"),
     Equal(kb, "Equal"),
     NotEqual(kb, "NotEqual"),
     Has(kb, "Has"),
     Get(kb, "Get"),
-    Set(kb, "Set"),
-    logic(kb),
-    math(kb)
+    And(kb, "And"),
+    Or(kb, "Or"),
+    Not(kb, "Not"),
+    Add(kb, "Add"),
+    Subtract(kb, "Subtract"),
+    Multiply(kb, "Multiply"),
+    Divide(kb, "Divide"),
+    LessThan(kb, "LessThan"),
+    GreaterThan(kb, "GreaterThan")
 {
 }
 
@@ -124,8 +62,29 @@ Ast::Ast(brain::Brain& kb) :
     Self(kb, "Self"),
     Block(kb, "Block"),
     Function(kb, "Function"),
-    op(kb),
-    pipeline(kb)
+    Delete(kb, "Delete"),
+    Set(kb, "Set"),
+    If(kb, "If"),
+    Do(kb, "Do"),
+    While(kb, "While"),
+    Expression(kb, "Expression"),
+    Input(kb, "Input"),
+    New(kb, "New"),
+    Same(kb, "Same"),
+    NotSame(kb, "NotSame"),
+    Equal(kb, "Equal"),
+    NotEqual(kb, "NotEqual"),
+    Has(kb, "Has"),
+    Get(kb, "Get"),
+    And(kb, "And"),
+    Or(kb, "Or"),
+    Not(kb, "Not"),
+    Add(kb, "Add"),
+    Subtract(kb, "Subtract"),
+    Multiply(kb, "Multiply"),
+    Divide(kb, "Divide"),
+    LessThan(kb, "LessThan"),
+    GreaterThan(kb, "GreaterThan")
 {
 }
 
@@ -333,405 +292,99 @@ templates::Self& Templates::self()
     return templates::Self::New(kb);
 }
 
-namespace ast {
-Base::Base(brain::Brain& kb, CellI& classCell, const std::string& label) :
+// ============================================================================
+Ast::Base::Base(brain::Brain& kb, CellI& classCell, const std::string& label) :
     Object(kb, classCell, label)
 {
 }
 
-namespace pipeline {
-
-Input::Input(brain::Brain& kb, CellI& cell) :
-    BaseT<Input>(kb, kb.type.ast.pipeline.Input)
-{
-    set(kb.coding.input, cell);
-}
-
-New::New(brain::Brain& kb, Base& objectType) :
-    BaseT<New>(kb, kb.type.ast.pipeline.New)
-{
-    set(kb.coding.objectType, objectType);
-}
-
-Delete::Delete(brain::Brain& kb, Base& cell) :
-    BaseT<Delete>(kb, kb.type.ast.pipeline.Delete)
-{
-    set(kb.coding.cell, cell);
-}
-
-If::If(brain::Brain& kb, Base& condition, Base& thenBranch) :
-    BaseT<If>(kb, kb.type.ast.pipeline.If)
-{
-    set(kb.coding.condition, condition);
-    set(kb.coding.then, thenBranch);
-}
-
-If::If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch) :
-    BaseT<If>(kb, kb.type.ast.pipeline.If)
-{
-    set(kb.coding.condition, condition);
-    set(kb.coding.then, thenBranch);
-    set(kb.coding.else_, elseBranch);
-}
-
-Do::Do(brain::Brain& kb, Base& condition, Base& statement) :
-    BaseT<Do>(kb, kb.type.ast.pipeline.Do)
-{
-    set(kb.coding.condition, condition);
-    set(kb.coding.statement, statement);
-}
-
-While::While(brain::Brain& kb, Base& condition, Base& statement) :
-    BaseT<While>(kb, kb.type.ast.pipeline.While)
-{
-    set(kb.coding.condition, condition);
-    set(kb.coding.statement, statement);
-}
-
-} // namespace pipeline
-
-Pipeline::Pipeline(brain::Brain& kb) :
-    kb(kb)
-{
-}
-
-pipeline::Input& Pipeline::input(CellI& cell)
-{
-    return pipeline::Input::New(kb, cell);
-}
-
-pipeline::New& Pipeline::new_(Base& ast)
-{
-    return pipeline::New::NewT<pipeline::New>::New(kb, ast);
-}
-
-pipeline::Delete& Pipeline::delete_(Base& ast)
-{
-    return pipeline::Delete::New(kb, ast);
-}
-
-pipeline::If& Pipeline::if_(Base& condition, Base& thenBranch)
-{
-    return pipeline::If::New(kb, condition, thenBranch);
-}
-
-pipeline::If& Pipeline::if_(Base& condition, Base& thenBranch, Base& elseBranch)
-{
-    return pipeline::If::New(kb, condition, thenBranch, elseBranch);
-}
-
-pipeline::Do& Pipeline::do_(Base& condition, Base& statement)
-{
-    return pipeline::Do::New(kb, condition, statement);
-}
-
-pipeline::While& Pipeline::while_(Base& condition, Base& statement)
-{
-    return pipeline::While::New(kb, condition, statement);
-}
-
-namespace logic {
-
-And::And(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<And>(kb, kb.type.ast.op.logic.And)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-Or::Or(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<Or>(kb, kb.type.ast.op.logic.Or)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-Not::Not(brain::Brain& kb, Base& value) :
-    BaseT<Not>(kb, kb.type.ast.op.logic.Not)
-{
-    set(kb.coding.value, value);
-}
-
-} // namespace logic
-
-Logic::Logic(brain::Brain& kb) :
-    kb(kb)
-{
-}
-
-logic::And& Logic::and_(Base& lhs, Base& rhs)
-{
-    return logic::And::New(kb, lhs, rhs);
-}
-
-logic::Or& Logic::or_(Base& lhs, Base& rhs)
-{
-    return logic::Or::New(kb, lhs, rhs);
-}
-
-logic::Not& Logic::not_(Base& input)
-{
-    return logic::Not::New(kb, input);
-}
-namespace math {
-Add::Add(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<Add>(kb, kb.type.ast.op.math.Add)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-Subtract::Subtract(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<Subtract>(kb, kb.type.ast.op.math.Subtract)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-Multiply::Multiply(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<Multiply>(kb, kb.type.ast.op.math.Multiply)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-Divide::Divide(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<Divide>(kb, kb.type.ast.op.math.Divide)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-LessThan::LessThan(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<LessThan>(kb, kb.type.ast.op.math.LessThan)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-GreaterThan::GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<GreaterThan>(kb, kb.type.ast.op.math.GreaterThan)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-} // namespace math
-
-Math::Math(brain::Brain& kb) :
-    kb(kb)
-{
-}
-
-math::Add& Math::add(Base& lhs, Base& rhs)
-{
-    return math::Add::New(kb, lhs, rhs);
-}
-
-math::Subtract& Math::subtract(Base& lhs, Base& rhs)
-{
-    return math::Subtract::New(kb, lhs, rhs);
-}
-
-math::Multiply& Math::multiply(Base& lhs, Base& rhs)
-{
-    return math::Multiply::New(kb, lhs, rhs);
-}
-
-math::Divide& Math::divide(Base& lhs, Base& rhs)
-{
-    return math::Divide::New(kb, lhs, rhs);
-}
-
-math::LessThan& Math::lessThan(Base& lhs, Base& rhs)
-{
-    return math::LessThan::New(kb, lhs, rhs);
-}
-
-math::GreaterThan& Math::greaterThan(Base& lhs, Base& rhs)
-{
-    return math::GreaterThan::New(kb, lhs, rhs);
-}
-
-Same::Same(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<Same>(kb, kb.type.ast.op.Same)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-NotSame::NotSame(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<NotSame>(kb, kb.type.ast.op.NotSame)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-Equal::Equal(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<Equal>(kb, kb.type.ast.op.Equal)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-NotEqual::NotEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
-    BaseT<NotEqual>(kb, kb.type.ast.op.NotEqual)
-{
-    set(kb.coding.lhs, lhs);
-    set(kb.coding.rhs, rhs);
-}
-
-Has::Has(brain::Brain& kb, Base& cell, Base& role) :
-    BaseT<Has>(kb, kb.type.ast.op.Has)
-{
-    set(kb.coding.cell, cell);
-    set(kb.coding.role, role);
-}
-
-Get::Get(brain::Brain& kb, Base& cell, Base& role) :
-    BaseT<Get>(kb, kb.type.ast.op.Get)
-{
-    set(kb.coding.cell, cell);
-    set(kb.coding.role, role);
-}
-
-Set::Set(brain::Brain& kb, Base& cell, Base& role, Base& value) :
-    BaseT<Set>(kb, kb.type.ast.op.Set)
-{
-    set(kb.coding.cell, cell);
-    set(kb.coding.role, role);
-    set(kb.coding.value, value);
-}
-
-Op::Op(brain::Brain& kb) :
-    kb(kb),
-    logic(kb),
-    math(kb)
-{
-}
-
-Same& Op::same(Base& lhs, Base& rhs)
-{
-    return Same::New(kb, lhs, rhs);
-}
-
-NotSame& Op::notSame(Base& lhs, Base& rhs)
-{
-    return NotSame::New(kb, lhs, rhs);
-}
-
-Equal& Op::equal(Base& lhs, Base& rhs)
-{
-    return Equal::New(kb, lhs, rhs);
-}
-
-NotEqual& Op::notEqual(Base& lhs, Base& rhs)
-{
-    return NotEqual::New(kb, lhs, rhs);
-}
-
-Has& Op::has(Base& cell, Base& role)
-{
-    return Has::New(kb, cell, role);
-}
-
-Get& Op::get(Base& cell, Base& role)
-{
-    return Get::New(kb, cell, role);
-}
-
-Set& Op::set(Base& cell, Base& role, Base& value)
-{
-    return Set::New(kb, cell, role, value);
-}
-
-Parameter::Parameter(brain::Brain& kb, CellI& role) :
+Ast::Parameter::Parameter(brain::Brain& kb, CellI& role) :
     BaseT<Parameter>(kb, kb.type.ast.Parameter)
 {
     set(kb.coding.role, role);
 }
 
-ParameterDecl::ParameterDecl(brain::Brain& kb, CellI& role, CellI& type) :
+Ast::ParameterDecl::ParameterDecl(brain::Brain& kb, CellI& role, CellI& type) :
     BaseT<ParameterDecl>(kb, kb.type.ast.ParameterDecl)
 {
     set(kb.cells.slotRole, role);
     set(kb.cells.slotType, type);
 }
 
-Cell::Cell(brain::Brain& kb, CellI& value) :
+Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
     BaseT<Cell>(kb, kb.type.ast.Cell)
 {
     set(kb.coding.value, value);
 }
 
-HasMember::HasMember(brain::Brain& kb, Base& role) :
+Ast::HasMember::HasMember(brain::Brain& kb, Base& role) :
     BaseT<HasMember>(kb, kb.type.ast.HasMember)
 {
     set(kb.coding.role, role);
 }
 
-GetMember::GetMember(brain::Brain& kb, Base& role) :
+Ast::GetMember::GetMember(brain::Brain& kb, Base& role) :
     BaseT<GetMember>(kb, kb.type.ast.GetMember)
 {
     set(kb.coding.role, role);
 }
 
-SetMember::SetMember(brain::Brain& kb, Base& role, Base& value) :
+Ast::SetMember::SetMember(brain::Brain& kb, Base& role, Base& value) :
     BaseT<SetMember>(kb, kb.type.ast.SetMember)
 {
     set(kb.coding.role, role);
     set(kb.coding.value, value);
 }
 
-SetVar::SetVar(brain::Brain& kb, CellI& role, Base& value) :
+Ast::SetVar::SetVar(brain::Brain& kb, CellI& role, Base& value) :
     BaseT<SetVar>(kb, kb.type.ast.SetVar)
 {
     set(kb.coding.role, role);
     set(kb.coding.value, value);
 }
 
-GetVar::GetVar(brain::Brain& kb, CellI& role) :
+Ast::GetVar::GetVar(brain::Brain& kb, CellI& role) :
     BaseT<GetVar>(kb, kb.type.ast.GetVar)
 {
     set(kb.coding.role, role);
 }
 
-Self::Self(brain::Brain& kb) :
+Ast::Self::Self(brain::Brain& kb) :
     BaseT<Self>(kb, kb.type.ast.Self)
 {
 }
 
-Block::Block(brain::Brain& kb, List& list) :
+Ast::Block::Block(brain::Brain& kb, List& list) :
     BaseT<Block>(kb, kb.type.ast.Block)
 {
     set(kb.coding.value, list);
 }
 
-Function::Function(brain::Brain& kb, const std::string& label) :
+Ast::Function::Function(brain::Brain& kb, const std::string& label) :
     BaseT<Function>(kb, kb.type.ast.Function)
 {
     this->label(label);
 }
 
-void Function::addInputs(List& input)
+void Ast::Function::addInputs(List& input)
 {
     set(kb.coding.input, input);
     m_inputs = &input;
 }
 
-void Function::addOutputs(List& output)
+void Ast::Function::addOutputs(List& output)
 {
     set(kb.coding.output, output);
     m_inputs = &output;
 }
 
-void Function::addAsts(Block& ast)
+void Ast::Function::addAsts(Block& ast)
 {
     set(kb.coding.ast, ast);
     m_asts = &ast;
 }
 
-CellI& Function::inputType()
+CellI& Ast::Function::inputType()
 {
     if (!m_inputType) {
         m_inputType = std::make_unique<Type>(kb, std::format("{}::parameters", label()));
@@ -744,7 +397,7 @@ CellI& Function::inputType()
     return *m_inputType;
 }
 
-CellI& Function::compile(CellI& parameters)
+CellI& Ast::Function::compile(CellI& parameters)
 {
     cells::control::Function& ret = *new cells::control::Function(kb);
     CellI& block                  = compileAst(asts(), inputs(), ret);
@@ -765,52 +418,63 @@ CellI& Function::compile(CellI& parameters)
     return ret;
 }
 
-CellI& Function::compileAst(CellI& ast, CellI& parameters, CellI& self)
+CellI& Ast::Function::compileAst(CellI& ast, CellI& parameters, CellI& self)
 {
-    if (&ast.type() == &kb.type.ast.pipeline.Input) {
-        return *new control::expr::Input(kb, &compileAst(ast[kb.coding.value], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.pipeline.New) {
-        return *new control::expr::New(kb, compileAst(ast[kb.coding.objectType], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.pipeline.Delete) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.pipeline.If) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.pipeline.Do) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.pipeline.While) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.logic.And) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.logic.Or) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.logic.Not) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.math.Add) {
-        return *new control::expr::Add(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.op.math.Subtract) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.math.Multiply) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.math.Divide) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.math.LessThan) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.math.GreaterThan) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.Same) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.NotSame) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.Equal) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.NotEqual) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.op.Has) {
-        return *new control::expr::Has(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.op.Get) {
-        return *new control::expr::Get(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.op.Set) {
-        return *new control::stmt::Set(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self), compileAst(ast[kb.coding.value], parameters, self));
+    if (&ast.type() == &kb.type.ast.Block) {
+        List& list         = static_cast<List&>(ast[kb.coding.value]);
+        auto& compiledAsts = *new cells::List(kb, kb.type.control.Base);
+        Visitor::visitList(list, [this, &compiledAsts, &ast, &parameters, &self](CellI& ast, int) {
+            compiledAsts.add(compileAst(ast, parameters, self));
+        });
+        return *new control::Block(kb, compiledAsts);
+    } else if (&ast.type() == &kb.type.ast.Delete) {
+        return *new control::Delete(kb, compileAst(ast[kb.coding.cell], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Set) {
+        return *new control::Set(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self), compileAst(ast[kb.coding.value], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.If) {
+        if (ast.has(kb.coding.else_)) {
+            return *new control::If(kb, compileAst(ast[kb.coding.condition], parameters, self), compileAst(ast[kb.coding.then], parameters, self), compileAst(ast[kb.coding.else_], parameters, self));
+        } else {
+            return *new control::If(kb, compileAst(ast[kb.coding.condition], parameters, self), compileAst(ast[kb.coding.then], parameters, self));
+        }
+    } else if (&ast.type() == &kb.type.ast.Do) {
+        return *new control::Do(kb, compileAst(ast[kb.coding.condition], parameters, self), compileAst(ast[kb.coding.statement], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.While) {
+        return *new control::While(kb, compileAst(ast[kb.coding.condition], parameters, self), compileAst(ast[kb.coding.statement], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Input) {
+        return *new control::Input(kb, &compileAst(ast[kb.coding.value], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.New) {
+        return *new control::New(kb, compileAst(ast[kb.coding.objectType], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.And) {
+        return *new control::And(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Or) {
+        return *new control::Or(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Not) {
+        return *new control::Not(kb, compileAst(ast[kb.coding.value], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Add) {
+        return *new control::Add(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Subtract) {
+        return *new control::Subtract(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Multiply) {
+        return *new control::Multiply(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Divide) {
+        return *new control::Divide(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.LessThan) {
+        return *new control::LessThan(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.GreaterThan) {
+        return *new control::GreaterThan(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Same) {
+        return *new control::Same(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.NotSame) {
+        return *new control::NotSame(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Equal) {
+        return *new control::Equal(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.NotEqual) {
+        return *new control::NotEqual(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Has) {
+        return *new control::Has(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self));
+    } else if (&ast.type() == &kb.type.ast.Get) {
+        return *new control::Get(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self));
     } else if (&ast.type() == &kb.type.ast.Parameter) {
         return parameters[ast[kb.coding.role]];
     } else if (&ast.type() == &kb.type.ast.Cell) {
@@ -827,13 +491,6 @@ CellI& Function::compileAst(CellI& ast, CellI& parameters, CellI& self)
         return ast; // TODO
     } else if (&ast.type() == &kb.type.ast.Function) {
         return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.Block) {
-        List& list = static_cast<List&>(ast[kb.coding.value]);
-        auto& compiledAsts = *new cells::List(kb, kb.type.control.Base);
-        Visitor::visitList(list, [this, &compiledAsts, &ast, &parameters, &self](CellI& ast, int) {
-            compiledAsts.add(compileAst(ast, parameters, self));
-        });
-        return *new control::stmt::Block(kb, compiledAsts);
     } else if (&ast.type() == &kb.type.ast.Self) {
         return parameters[kb.coding.self];
     }
@@ -841,73 +498,343 @@ CellI& Function::compileAst(CellI& ast, CellI& parameters, CellI& self)
     throw "Unknown function AST!";
 }
 
-List& Function::inputs()
+List& Ast::Function::inputs()
 {
     return *m_inputs;
 }
 
-List& Function::outputs()
+List& Ast::Function::outputs()
 {
     return *m_outputs;
 }
 
-Block& Function::asts()
+Ast::Block& Ast::Function::asts()
 {
     return *m_asts;
 }
 
-} // namespace ast
+Ast::Delete::Delete(brain::Brain& kb, Base& cell) :
+    BaseT<Delete>(kb, kb.type.ast.Delete)
+{
+    set(kb.coding.cell, cell);
+}
+
+Ast::Set::Set(brain::Brain& kb, Base& cell, Base& role, Base& value) :
+    BaseT<Set>(kb, kb.type.ast.Set)
+{
+    set(kb.coding.cell, cell);
+    set(kb.coding.role, role);
+    set(kb.coding.value, value);
+}
+
+Ast::If::If(brain::Brain& kb, Base& condition, Base& thenBranch) :
+    BaseT<If>(kb, kb.type.ast.If)
+{
+    set(kb.coding.condition, condition);
+    set(kb.coding.then, thenBranch);
+}
+
+Ast::If::If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch) :
+    BaseT<If>(kb, kb.type.ast.If)
+{
+    set(kb.coding.condition, condition);
+    set(kb.coding.then, thenBranch);
+    set(kb.coding.else_, elseBranch);
+}
+
+Ast::Do::Do(brain::Brain& kb, Base& condition, Base& statement) :
+    BaseT<Do>(kb, kb.type.ast.Do)
+{
+    set(kb.coding.condition, condition);
+    set(kb.coding.statement, statement);
+}
+
+Ast::While::While(brain::Brain& kb, Base& condition, Base& statement) :
+    BaseT<While>(kb, kb.type.ast.While)
+{
+    set(kb.coding.condition, condition);
+    set(kb.coding.statement, statement);
+}
+
+Ast::Input::Input(brain::Brain& kb, CellI& cell) :
+    BaseT<Input>(kb, kb.type.ast.Input)
+{
+    set(kb.coding.input, cell);
+}
+
+Ast::New::New(brain::Brain& kb, Base& objectType) :
+    BaseT<New>(kb, kb.type.ast.New)
+{
+    set(kb.coding.objectType, objectType);
+}
+
+Ast::Same::Same(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Same>(kb, kb.type.ast.Same)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::NotSame::NotSame(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<NotSame>(kb, kb.type.ast.NotSame)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::Equal::Equal(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Equal>(kb, kb.type.ast.Equal)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::NotEqual::NotEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<NotEqual>(kb, kb.type.ast.NotEqual)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::Has::Has(brain::Brain& kb, Base& cell, Base& role) :
+    BaseT<Has>(kb, kb.type.ast.Has)
+{
+    set(kb.coding.cell, cell);
+    set(kb.coding.role, role);
+}
+
+Ast::Get::Get(brain::Brain& kb, Base& cell, Base& role) :
+    BaseT<Get>(kb, kb.type.ast.Get)
+{
+    set(kb.coding.cell, cell);
+    set(kb.coding.role, role);
+}
+
+Ast::And::And(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<And>(kb, kb.type.ast.And)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::Or::Or(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Or>(kb, kb.type.ast.Or)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::Not::Not(brain::Brain& kb, Base& value) :
+    BaseT<Not>(kb, kb.type.ast.Not)
+{
+    set(kb.coding.value, value);
+}
+
+Ast::Add::Add(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Add>(kb, kb.type.ast.Add)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::Subtract::Subtract(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Subtract>(kb, kb.type.ast.Subtract)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::Multiply::Multiply(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Multiply>(kb, kb.type.ast.Multiply)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::Divide::Divide(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<Divide>(kb, kb.type.ast.Divide)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::LessThan::LessThan(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<LessThan>(kb, kb.type.ast.LessThan)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
+
+Ast::GreaterThan::GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs) :
+    BaseT<GreaterThan>(kb, kb.type.ast.GreaterThan)
+{
+    set(kb.coding.lhs, lhs);
+    set(kb.coding.rhs, rhs);
+}
 
 Ast::Ast(brain::Brain& kb) :
-    kb(kb),
-    pipeline(kb),
-    op(kb)
+    kb(kb)
 {
 }
 
-ast::Parameter& Ast::parameter(CellI& cell)
+Ast::Parameter& Ast::parameter(CellI& cell)
 {
-    return ast::Parameter::New(kb, cell);
+    return Parameter::New(kb, cell);
 }
 
-ast::ParameterDecl& Ast::parameterDecl(CellI& role, CellI& type)
+Ast::ParameterDecl& Ast::parameterDecl(CellI& role, CellI& type)
 {
-    return ast::ParameterDecl::New(kb, role, type);
+    return ParameterDecl::New(kb, role, type);
 }
 
-ast::Cell& Ast::cell(CellI& cell)
+Ast::Cell& Ast::cell(CellI& cell)
 {
-    return ast::Cell::New(kb, cell);
+    return Cell::New(kb, cell);
 }
 
-ast::HasMember& Ast::hasMember(ast::Base& role)
+Ast::HasMember& Ast::hasMember(Base& role)
 {
-    return ast::HasMember::New(kb, role);
+    return HasMember::New(kb, role);
 }
 
-ast::GetMember& Ast::getMember(ast::Base& role)
+Ast::GetMember& Ast::getMember(Base& role)
 {
-    return ast::GetMember::New(kb, role);
+    return GetMember::New(kb, role);
 }
 
-ast::SetMember& Ast::setMember(ast::Base& role, ast::Base& value)
+Ast::SetMember& Ast::setMember(Base& role, Base& value)
 {
-    return ast::SetMember::New(kb, role, value);
+    return Ast::SetMember::New(kb, role, value);
 }
 
-ast::SetVar& Ast::setVar(CellI& cell, ast::Base& ast)
+Ast::SetVar& Ast::setVar(CellI& cell, Base& ast)
 {
-    return ast::SetVar::New(kb, cell, ast);
+    return SetVar::New(kb, cell, ast);
 }
 
-ast::GetVar& Ast::getVar(CellI& cell)
+Ast::GetVar& Ast::getVar(CellI& cell)
 {
-    return ast::GetVar::New(kb, cell);
+    return GetVar::New(kb, cell);
 }
 
-ast::Self& Ast::self()
+Ast::Self& Ast::self()
 {
-    return ast::Self::New(kb);
+    return Self::New(kb);
+}
+
+Ast::Delete& Ast::delete_(Base& ast)
+{
+    return Delete::New(kb, ast);
+}
+
+Ast::Set& Ast::set(Base& cell, Base& role, Base& value)
+{
+    return Set::New(kb, cell, role, value);
+}
+
+Ast::If& Ast::if_(Base& condition, Base& thenBranch)
+{
+    return If::New(kb, condition, thenBranch);
+}
+
+Ast::If& Ast::if_(Base& condition, Base& thenBranch, Base& elseBranch)
+{
+    return If::New(kb, condition, thenBranch, elseBranch);
+}
+
+Ast::Do& Ast::do_(Base& condition, Base& statement)
+{
+    return Do::New(kb, condition, statement);
+}
+
+Ast::While& Ast::while_(Base& condition, Base& statement)
+{
+    return While::New(kb, condition, statement);
+}
+
+Ast::Input& Ast::input(CellI& cell)
+{
+    return Input::New(kb, cell);
+}
+
+Ast::New& Ast::new_(Base& ast)
+{
+    return New::NewT<Ast::New>::New(kb, ast);
+}
+
+Ast::Same& Ast::same(Base& lhs, Base& rhs)
+{
+    return Same::New(kb, lhs, rhs);
+}
+
+Ast::NotSame& Ast::notSame(Base& lhs, Base& rhs)
+{
+    return NotSame::New(kb, lhs, rhs);
+}
+
+Ast::Equal& Ast::equal(Base& lhs, Base& rhs)
+{
+    return Equal::New(kb, lhs, rhs);
+}
+
+Ast::NotEqual& Ast::notEqual(Base& lhs, Base& rhs)
+{
+    return NotEqual::New(kb, lhs, rhs);
+}
+
+Ast::Has& Ast::has(Base& cell, Base& role)
+{
+    return Has::New(kb, cell, role);
+}
+
+Ast::Get& Ast::get(Base& cell, Base& role)
+{
+    return Get::New(kb, cell, role);
+}
+
+Ast::And& Ast::and_(Base& lhs, Base& rhs)
+{
+    return And::New(kb, lhs, rhs);
+}
+
+Ast::Or& Ast::or_(Base& lhs, Base& rhs)
+{
+    return Or::New(kb, lhs, rhs);
+}
+
+Ast::Not& Ast::not_(Base& input)
+{
+    return Not::New(kb, input);
+}
+
+Ast::Add& Ast::add(Base& lhs, Base& rhs)
+{
+    return Add::New(kb, lhs, rhs);
+}
+
+Ast::Subtract& Ast::subtract(Base& lhs, Base& rhs)
+{
+    return Subtract::New(kb, lhs, rhs);
+}
+
+Ast::Multiply& Ast::multiply(Base& lhs, Base& rhs)
+{
+    return Multiply::New(kb, lhs, rhs);
+}
+
+Ast::Divide& Ast::divide(Base& lhs, Base& rhs)
+{
+    return Divide::New(kb, lhs, rhs);
+}
+
+Ast::LessThan& Ast::lessThan(Base& lhs, Base& rhs)
+{
+    return LessThan::New(kb, lhs, rhs);
+}
+
+Ast::GreaterThan& Ast::greaterThan(Base& lhs, Base& rhs)
+{
+    return GreaterThan::New(kb, lhs, rhs);
 }
 
 Sequence::Sequence(brain::Brain& kb) :
@@ -1180,90 +1107,90 @@ Brain::Brain() :
         cells.slot(cells.subTypes, type.ListOf(type.template_.Slot)),
         cells.slot(cells.memberOf, type.ListOf(type.template_.Descriptor)));
 
-    type.ast.pipeline.Input.addSlots(
+    type.ast.Input.addSlots(
         cells.slot(coding.value, type.ast.Base));
 
-    type.ast.pipeline.New.addSlots(
+    type.ast.New.addSlots(
         cells.slot(coding.objectType, type.ast.Base));
 
-    // type.ast.pipeline.Fork.addSlots();
+    // type.ast.Fork.addSlots();
 
-    type.ast.pipeline.Delete.addSlots(
+    type.ast.Delete.addSlots(
         cells.slot(coding.cell, type.ast.Base));
 
-    type.ast.pipeline.If.addSlots(
+    type.ast.If.addSlots(
         cells.slot(coding.condition, type.ast.Base),
         cells.slot(coding.then, type.ast.Base),
         cells.slot(coding.else_, type.ast.Base));
 
-    type.ast.pipeline.Do.addSlots(
+    type.ast.Do.addSlots(
         cells.slot(coding.condition, type.ast.Base),
         cells.slot(coding.statement, type.ast.Base));
 
-    type.ast.pipeline.While.addSlots(
+    type.ast.While.addSlots(
         cells.slot(coding.condition, type.ast.Base),
         cells.slot(coding.statement, type.ast.Base));
 
-    type.ast.op.logic.And.addSlots(
+    type.ast.And.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.logic.Or.addSlots(
+    type.ast.Or.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.logic.Not.addSlots(
+    type.ast.Not.addSlots(
         cells.slot(coding.value, type.ast.Base));
 
-    type.ast.op.math.Add.addSlots(
+    type.ast.Add.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.math.Subtract.addSlots(
+    type.ast.Subtract.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.math.Multiply.addSlots(
+    type.ast.Multiply.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.math.Divide.addSlots(
+    type.ast.Divide.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.math.LessThan.addSlots(
+    type.ast.LessThan.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.math.GreaterThan.addSlots(
+    type.ast.GreaterThan.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.Same.addSlots(
+    type.ast.Same.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.NotSame.addSlots(
+    type.ast.NotSame.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.Equal.addSlots(
+    type.ast.Equal.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.NotEqual.addSlots(
+    type.ast.NotEqual.addSlots(
         cells.slot(coding.lhs, type.ast.Base),
         cells.slot(coding.rhs, type.ast.Base));
 
-    type.ast.op.Has.addSlots(
+    type.ast.Has.addSlots(
         cells.slot(coding.cell, type.ast.Base),
         cells.slot(coding.role, type.ast.Base));
 
-    type.ast.op.Get.addSlots(
+    type.ast.Get.addSlots(
         cells.slot(coding.cell, type.ast.Base),
         cells.slot(coding.role, type.ast.Base));
 
-    type.ast.op.Set.addSlots(
+    type.ast.Set.addSlots(
         cells.slot(coding.cell, type.ast.Base),
         cells.slot(coding.role, type.ast.Base),
         cells.slot(coding.value, type.ast.Base));
@@ -1308,12 +1235,12 @@ Brain::Brain() :
         ast.parameterDecl(coding.value, type.Any)));
 
     listAdd.addAsts(ast.block(
-        ast.setVar(pools.numbers.get(1), ast.pipeline.new_(ast.self())),
-        ast.op.set(ast.getVar(pools.numbers.get(1)), ast.cell(coding.value), ast.parameter(coding.value)),
-        ast.pipeline.if_(ast.op.logic.not_(ast.hasMember(ast.cell(sequence.first))),
+        ast.setVar(pools.numbers.get(1), ast.new_(ast.self())),
+        ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(coding.value), ast.parameter(coding.value)),
+        ast.if_(ast.not_(ast.hasMember(ast.cell(sequence.first))),
                          ast.setMember(ast.cell(sequence.first), ast.getVar(pools.numbers.get(1))),          // then
                          ast.block(ast.setMember(ast.cell(sequence.next), ast.getVar(pools.numbers.get(1))), // else
-                                   ast.op.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
+                                   ast.set(ast.getVar(pools.numbers.get(1)), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
         ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1)))));
 #if 0
     listAdd.addAsts(list(
@@ -1362,129 +1289,129 @@ Brain::Brain() :
         cells.slot(dimensions.height, type.Number),
         cells.slot(visualization.pixels, type.ListOf(type.Pixel)));
 
-    type.control.op.Same.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.Same.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.NotSame.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.NotSame.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.Equal.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.Equal.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.NotEqual.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.NotEqual.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.Has.addSlots(
-        cells.slot(coding.cell, type.control.pipeline.Base),
-        cells.slot(coding.role, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.op.Base));
+    type.control.Has.addSlots(
+        cells.slot(coding.cell, type.control.Base),
+        cells.slot(coding.role, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.Get.addSlots(
-        cells.slot(coding.cell, type.control.pipeline.Base),
-        cells.slot(coding.role, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.op.Base));
+    type.control.Get.addSlots(
+        cells.slot(coding.cell, type.control.Base),
+        cells.slot(coding.role, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.Set.addSlots(
-        cells.slot(coding.cell, type.control.pipeline.Base),
-        cells.slot(coding.role, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.op.Base),
-        cells.slot(coding.value, type.control.pipeline.Base));
+    type.control.Set.addSlots(
+        cells.slot(coding.cell, type.control.Base),
+        cells.slot(coding.role, type.control.Base),
+        cells.slot(coding.output, type.control.Base),
+        cells.slot(coding.value, type.control.Base));
 
-    type.control.op.logic.And.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.And.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.logic.Or.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.Or.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.logic.Not.addSlots(
-        cells.slot(coding.input, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.Not.addSlots(
+        cells.slot(coding.input, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.math.Add.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.Add.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.math.Subtract.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.Subtract.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.math.Multiply.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.Multiply.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.math.Divide.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.Divide.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.math.LessThan.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.LessThan.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.op.math.GreaterThan.addSlots(
-        cells.slot(equation.lhs, type.control.pipeline.Base),
-        cells.slot(equation.rhs, type.control.pipeline.Base),
-        cells.slot(coding.output, type.control.pipeline.Base));
+    type.control.GreaterThan.addSlots(
+        cells.slot(equation.lhs, type.control.Base),
+        cells.slot(equation.rhs, type.control.Base),
+        cells.slot(coding.output, type.control.Base));
 
-    type.control.pipeline.Input.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(sequence.next, type.control.pipeline.Base),
-        cells.slot(sequence.current, type.control.pipeline.Base),
+    type.control.Input.addSlots(
+        cells.slot(sequence.first, type.control.Base),
+        cells.slot(sequence.next, type.control.Base),
+        cells.slot(sequence.current, type.control.Base),
         cells.slot(coding.value, type.Any));
 
-    type.control.pipeline.New.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(sequence.next, type.control.pipeline.Base),
-        cells.slot(sequence.current, type.control.pipeline.Base),
-        cells.slot(coding.value, type.control.pipeline.Base),
-        cells.slot(coding.objectType, type.control.op.Base));
+    type.control.New.addSlots(
+        cells.slot(sequence.first, type.control.Base),
+        cells.slot(sequence.next, type.control.Base),
+        cells.slot(sequence.current, type.control.Base),
+        cells.slot(coding.value, type.control.Base),
+        cells.slot(coding.objectType, type.control.Base));
 
-    type.control.pipeline.Delete.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(coding.input, type.control.pipeline.Base));
+    type.control.Delete.addSlots(
+        cells.slot(sequence.first, type.control.Base),
+        cells.slot(coding.input, type.control.Base));
 
-    type.control.pipeline.IfThen.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(sequence.next, type.control.pipeline.Base),
-        cells.slot(coding.input, type.control.pipeline.Base),
-        cells.slot(coding.condition, type.control.pipeline.Base),
-        cells.slot(coding.then, type.control.op.Base),
-        cells.slot(coding.else_, type.control.op.Base));
+    type.control.If.addSlots(
+        cells.slot(sequence.first, type.control.Base),
+        cells.slot(sequence.next, type.control.Base),
+        cells.slot(coding.input, type.control.Base),
+        cells.slot(coding.condition, type.control.Base),
+        cells.slot(coding.then, type.control.Base),
+        cells.slot(coding.else_, type.control.Base));
 
-    type.control.pipeline.DoWhile.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(sequence.next, type.control.pipeline.Base),
-        cells.slot(coding.input, type.control.pipeline.Base),
-        cells.slot(coding.condition, type.control.pipeline.Base),
-        cells.slot(coding.statement, type.control.op.Base));
+    type.control.Do.addSlots(
+        cells.slot(sequence.first, type.control.Base),
+        cells.slot(sequence.next, type.control.Base),
+        cells.slot(coding.input, type.control.Base),
+        cells.slot(coding.condition, type.control.Base),
+        cells.slot(coding.statement, type.control.Base));
 
-    type.control.pipeline.While.addSlots(
-        cells.slot(sequence.first, type.control.pipeline.Base),
-        cells.slot(sequence.next, type.control.pipeline.Base),
-        cells.slot(coding.input, type.control.pipeline.Base),
-        cells.slot(coding.condition, type.control.pipeline.Base),
-        cells.slot(coding.statement, type.control.op.Base));
+    type.control.While.addSlots(
+        cells.slot(sequence.first, type.control.Base),
+        cells.slot(sequence.next, type.control.Base),
+        cells.slot(coding.input, type.control.Base),
+        cells.slot(coding.condition, type.control.Base),
+        cells.slot(coding.statement, type.control.Base));
 
     type.control.Function.addSlots(
-        cells.slot(coding.input, type.MapOf(type.control.pipeline.Base)),
+        cells.slot(coding.input, type.MapOf(type.control.Base)),
         cells.slot(coding.ast, type.ListOf(type.control.Base)),
-        cells.slot(coding.output, type.MapOf(type.control.pipeline.Base)));
+        cells.slot(coding.output, type.MapOf(type.control.Base)));
 
     m_initialized = true;
 }

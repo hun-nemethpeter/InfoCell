@@ -1638,10 +1638,58 @@ Base::Base(brain::Brain& kb, const std::string& label) :
 {
 }
 #pragma endregion
+#pragma region Block
+// ============================================================================
+Block::Block(brain::Brain& kb, List& list, const std::string& label) :
+    Base(kb, label),
+    m_list(list)
+{
+}
+
+bool Block::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.coding.value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Block::set(CellI& role, CellI& value)
+{
+}
+
+void Block::operator()()
+{
+    Visitor::visitList(m_list, [this](CellI& op, int) {
+        op();
+    });
+}
+
+CellI& Block::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.Block;
+    }
+    if (&role == &kb.coding.value) {
+        return m_list;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Block::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
 #pragma region Function
 // ============================================================================
 Function::Function(brain::Brain& kb, const std::string& label) :
-    CellI(kb, label)
+    Base(kb, label)
 {
 }
 
@@ -1695,67 +1743,11 @@ void Function::addAsts(CellI& ast)
 }
 
 #pragma endregion
-namespace stmt {
-#pragma region Base
-// ============================================================================
-Base::Base(brain::Brain& kb, const std::string& label) :
-    control::Base(kb, label)
-{
-}
-#pragma endregion
-#pragma region Block
-// ============================================================================
-Block::Block(brain::Brain& kb, List& list, const std::string& label) :
-    Base(kb, label),
-    m_list(list)
-{
-}
-
-bool Block::has(CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return true;
-    }
-    if (&role == &kb.coding.value) {
-        return true;
-    }
-
-    return false;
-}
-
-void Block::set(CellI& role, CellI& value)
-{
-}
-
-void Block::operator()()
-{
-    Visitor::visitList(m_list, [this](CellI& op, int) {
-        op();
-    });
-}
-
-CellI& Block::operator[](CellI& role)
-{
-    if (&role == &kb.cells.type) {
-        return kb.type.control.Block;
-    }
-    if (&role == &kb.coding.value) {
-        return m_list;
-    }
-
-    return kb.cells.emptyObject;
-}
-
-void Block::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
 #pragma region Delete
 // ============================================================================
-Delete::Delete(brain::Brain& kb, Base& input, const std::string& label) :
+Delete::Delete(brain::Brain& kb, CellI& cell, const std::string& label) :
     Base(kb, label),
-    m_input(&input)
+    m_cell(&cell)
 {
 }
 
@@ -1777,17 +1769,17 @@ void Delete::set(CellI& role, CellI& value)
 
 void Delete::operator()()
 {
-    CellI* cell = &(*m_input)[kb.coding.value];
+    CellI* cell = &(*m_cell)[kb.coding.value];
     delete cell;
 }
 
 CellI& Delete::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.Delete;
+        return kb.type.control.Delete;
     }
-    if (&role == &kb.coding.input && m_input) {
-        return *m_input;
+    if (&role == &kb.coding.input && m_cell) {
+        return *m_cell;
     }
 
     return kb.cells.emptyObject;
@@ -1842,7 +1834,7 @@ void Set::operator()()
 CellI& Set::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.Set;
+        return kb.type.control.Set;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -1862,19 +1854,24 @@ void Set::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 #pragma endregion
-#pragma region IfThen
+#pragma region If
 // ============================================================================
-IfThen::IfThen(brain::Brain& kb, expr::Base& condition, stmt::Base& thenBranch, const std::string& label) :
-    IfThen(kb, condition, thenBranch, nullptr)
+If::If(brain::Brain& kb, CellI& condition, CellI& thenBranch, const std::string& label) :
+    Base(kb, label),
+    m_condition(&condition),
+    m_thenBranch(&thenBranch)
 {
 }
 
-IfThen::IfThen(brain::Brain& kb, expr::Base& condition, stmt::Base& thenBranch, stmt::Base* elseBranch, const std::string& label) :
-    Base(kb, label)
+If::If(brain::Brain& kb, CellI& condition, CellI& thenBranch, CellI& elseBranch, const std::string& label) :
+    Base(kb, label),
+    m_condition(&condition),
+    m_thenBranch(&thenBranch),
+    m_elseBranch(&elseBranch)
 {
 }
 
-bool IfThen::has(CellI& role)
+bool If::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
@@ -1892,11 +1889,11 @@ bool IfThen::has(CellI& role)
     return false;
 }
 
-void IfThen::set(CellI& role, CellI& value)
+void If::set(CellI& role, CellI& value)
 {
 }
 
-void IfThen::operator()()
+void If::operator()()
 {
     (*m_condition)();
     bool condition = &(*m_condition)[kb.coding.value] == &kb.boolean.true_;
@@ -1909,10 +1906,10 @@ void IfThen::operator()()
     }
 }
 
-CellI& IfThen::operator[](CellI& role)
+CellI& If::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.IfThen;
+        return kb.type.control.If;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -1927,34 +1924,34 @@ CellI& IfThen::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void IfThen::accept(Visitor& visitor)
+void If::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 
-void IfThen::addCondition(Base& cell)
+void If::addCondition(Base& cell)
 {
     m_condition = &cell;
 }
 
-void IfThen::addThenBranch(Base& cell)
+void If::addThenBranch(Base& cell)
 {
     m_thenBranch = &cell;
 }
 
-void IfThen::addElseBranch(Base& cell)
+void If::addElseBranch(Base& cell)
 {
     m_elseBranch = &cell;
 }
 #pragma endregion
-#pragma region DoWhile
+#pragma region Do
 // ============================================================================
-DoWhile::DoWhile(brain::Brain& kb, expr::Base& condition, stmt::Base& statement, const std::string& label) :
+Do::Do(brain::Brain& kb, CellI& condition, CellI& statement, const std::string& label) :
     Base(kb, label)
 {
 }
 
-bool DoWhile::has(CellI& role)
+bool Do::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
@@ -1969,11 +1966,11 @@ bool DoWhile::has(CellI& role)
     return false;
 }
 
-void DoWhile::set(CellI& role, CellI& value)
+void Do::set(CellI& role, CellI& value)
 {
 }
 
-void DoWhile::operator()()
+void Do::operator()()
 {
     bool condition = false;
     do {
@@ -1983,10 +1980,10 @@ void DoWhile::operator()()
     } while (condition);
 }
 
-CellI& DoWhile::operator[](CellI& role)
+CellI& Do::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.DoWhile;
+        return kb.type.control.Do;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -1998,14 +1995,14 @@ CellI& DoWhile::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void DoWhile::accept(Visitor& visitor)
+void Do::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
 #pragma endregion
 #pragma region While
 // ============================================================================
-While::While(brain::Brain& kb, expr::Base& condition, stmt::Base& statement, const std::string& label) :
+While::While(brain::Brain& kb, CellI& condition, CellI& statement, const std::string& label) :
     Base(kb, label)
 {
 }
@@ -2044,7 +2041,7 @@ void While::operator()()
 CellI& While::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.While;
+        return kb.type.control.While;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -2061,19 +2058,17 @@ void While::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 #pragma endregion
-}
-namespace expr {
-#pragma region Base
+#pragma region Expression
 // ============================================================================
-Base::Base(brain::Brain& kb, const std::string& label) :
-    control::Base(kb, label)
+Expression::Expression(brain::Brain& kb, const std::string& label) :
+    Base(kb, label)
 {
 }
 #pragma endregion
 #pragma region Input
 // ============================================================================
 Input::Input(brain::Brain& kb, CellI& value, const std::string& label) :
-    Base(kb, label)
+    Expression(kb, label)
 {
     m_value = &value;
 }
@@ -2106,7 +2101,7 @@ void Input::operator()()
 CellI& Input::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.Input;
+        return kb.type.control.Input;
     }
     if (&role == &kb.coding.value && m_value) {
         return *m_value;
@@ -2123,7 +2118,7 @@ void Input::accept(Visitor& visitor)
 #pragma region New
 // ============================================================================
 New::New(brain::Brain& kb, CellI& objectType, const std::string& label) :
-    Base(kb, label),
+    Expression(kb, label),
     m_objectType(objectType)
 {
 }
@@ -2167,7 +2162,7 @@ void New::operator()()
 CellI& New::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.pipeline.New;
+        return kb.type.control.New;
     }
     if (&role == &kb.coding.value && m_value) {
         return *m_value;
@@ -2186,8 +2181,8 @@ void New::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Same
 // ============================================================================
-Same::Same(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "Same"),
+Same::Same(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "Same"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2226,7 +2221,7 @@ void Same::operator()()
 CellI& Same::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.Same;
+        return kb.type.control.Same;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2248,8 +2243,8 @@ void Same::accept(Visitor& visitor)
 #pragma endregion
 #pragma region NotSame
 // ============================================================================
-NotSame::NotSame(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "NotSame"),
+NotSame::NotSame(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "NotSame"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2288,7 +2283,7 @@ void NotSame::operator()()
 CellI& NotSame::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.NotSame;
+        return kb.type.control.NotSame;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2310,8 +2305,8 @@ void NotSame::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Equal
 // ============================================================================
-Equal::Equal(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "Equal"),
+Equal::Equal(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "Equal"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2350,7 +2345,7 @@ void Equal::operator()()
 CellI& Equal::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.Equal;
+        return kb.type.control.Equal;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2372,8 +2367,8 @@ void Equal::accept(Visitor& visitor)
 #pragma endregion
 #pragma region NotEqual
 // ============================================================================
-NotEqual::NotEqual(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "NotEqual"),
+NotEqual::NotEqual(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "NotEqual"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2412,7 +2407,7 @@ void NotEqual::operator()()
 CellI& NotEqual::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.NotEqual;
+        return kb.type.control.NotEqual;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2435,7 +2430,7 @@ void NotEqual::accept(Visitor& visitor)
 #pragma region Has
 // ============================================================================
 Has::Has(brain::Brain& kb, CellI& cell, CellI& role) :
-    Base(kb, "Has"),
+    Expression(kb, "Has"),
     m_cell(cell),
     m_role(role)
 {
@@ -2474,7 +2469,7 @@ void Has::operator()()
 CellI& Has::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.Has;
+        return kb.type.control.Has;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -2497,7 +2492,7 @@ void Has::accept(Visitor& visitor)
 #pragma region Get
 // ============================================================================
 Get::Get(brain::Brain& kb, CellI& cell, CellI& role) :
-    Base(kb, "Get"),
+    Expression(kb, "Get"),
     m_cell(cell),
     m_role(role)
 {
@@ -2536,7 +2531,7 @@ void Get::operator()()
 CellI& Get::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.Get;
+        return kb.type.control.Get;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -2558,8 +2553,8 @@ void Get::accept(Visitor& visitor)
 #pragma endregion
 #pragma region And
 // ============================================================================
-And::And(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "And"),
+And::And(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "And"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2598,7 +2593,7 @@ void And::operator()()
 CellI& And::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.logic.And;
+        return kb.type.control.And;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2620,8 +2615,8 @@ void And::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Or
 // ============================================================================
-Or::Or(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "Or"),
+Or::Or(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "Or"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2660,7 +2655,7 @@ void Or::operator()()
 CellI& Or::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.logic.Or;
+        return kb.type.control.Or;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2682,8 +2677,8 @@ void Or::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Not
 // ============================================================================
-Not::Not(brain::Brain& kb, expr::Base& input) :
-    Base(kb, "Not"),
+Not::Not(brain::Brain& kb, CellI& input) :
+    Expression(kb, "Not"),
     m_input(input)
 {
 }
@@ -2717,7 +2712,7 @@ void Not::operator()()
 CellI& Not::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.logic.Not;
+        return kb.type.control.Not;
     }
     if (&role == &kb.coding.input) {
         return m_input;
@@ -2737,7 +2732,7 @@ void Not::accept(Visitor& visitor)
 #pragma region Add
 // ============================================================================
 Add::Add(brain::Brain& kb, CellI& lhs, CellI& rhs) :
-    Base(kb, "Add"),
+    Expression(kb, "Add"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2775,7 +2770,7 @@ void Add::operator()()
 CellI& Add::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.Add;
+        return kb.type.control.Add;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2797,8 +2792,8 @@ void Add::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Subtract
 // ============================================================================
-Subtract::Subtract(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "Subtract"),
+Subtract::Subtract(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "Subtract"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2837,7 +2832,7 @@ void Subtract::operator()()
 CellI& Subtract::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.Subtract;
+        return kb.type.control.Subtract;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2859,8 +2854,8 @@ void Subtract::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Multiply
 // ============================================================================
-Multiply::Multiply(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "Multiply"),
+Multiply::Multiply(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "Multiply"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2899,7 +2894,7 @@ void Multiply::operator()()
 CellI& Multiply::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.Multiply;
+        return kb.type.control.Multiply;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2921,8 +2916,8 @@ void Multiply::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Divide
 // ============================================================================
-Divide::Divide(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "Divide"),
+Divide::Divide(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "Divide"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -2961,7 +2956,7 @@ void Divide::operator()()
 CellI& Divide::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.Divide;
+        return kb.type.control.Divide;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2983,8 +2978,8 @@ void Divide::accept(Visitor& visitor)
 #pragma endregion
 #pragma region LessThan
 // ============================================================================
-LessThan::LessThan(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "LessThan"),
+LessThan::LessThan(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "LessThan"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -3023,7 +3018,7 @@ void LessThan::operator()()
 CellI& LessThan::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.LessThan;
+        return kb.type.control.LessThan;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -3045,8 +3040,8 @@ void LessThan::accept(Visitor& visitor)
 #pragma endregion
 #pragma region GreaterThan
 // ============================================================================
-GreaterThan::GreaterThan(brain::Brain& kb, expr::Base& lhs, expr::Base& rhs) :
-    Base(kb, "GreaterThan"),
+GreaterThan::GreaterThan(brain::Brain& kb, CellI& lhs, CellI& rhs) :
+    Expression(kb, "GreaterThan"),
     m_lhs(lhs),
     m_rhs(rhs)
 {
@@ -3085,7 +3080,7 @@ void GreaterThan::operator()()
 CellI& GreaterThan::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.op.math.GreaterThan;
+        return kb.type.control.GreaterThan;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -3105,7 +3100,6 @@ void GreaterThan::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 #pragma endregion
-} // namespace expr
 } // namespace control
 
 void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i)> visitFn)
