@@ -45,7 +45,8 @@ public:
     Type Do;
     Type While;
     Type Expression;
-    Type Input;
+    Type Ref;
+    Type Var;
     Type New;
     Type Same;
     Type NotSame;
@@ -78,11 +79,6 @@ public:
     Type Parameter;
     Type ParameterDecl;
     Type Cell;
-    Type HasMember;
-    Type GetMember;
-    Type SetMember;
-    Type SetVar;
-    Type GetVar;
     Type Self;
 
     Type Block;
@@ -93,7 +89,9 @@ public:
     Type Do;
     Type While;
     Type Expression;
-    Type Input;
+    Type Ref;
+    Type Var;
+    Type Member;
     Type New;
     Type Same;
     Type NotSame;
@@ -297,6 +295,16 @@ public:
 
         brain::Brain& kb;
     };
+    class Cell : public BaseT<Cell>
+    {
+    public:
+        Cell(brain::Brain& kb, CellI& value);
+    };
+    class Self : public BaseT<Self>
+    {
+    public:
+        Self(brain::Brain& kb);
+    };
     class Parameter : public BaseT<Parameter>
     {
     public:
@@ -306,41 +314,6 @@ public:
     {
     public:
         ParameterDecl(brain::Brain& kb, CellI& role, CellI& type);
-    };
-    class Cell : public BaseT<Cell>
-    {
-    public:
-        Cell(brain::Brain& kb, CellI& value);
-    };
-    class HasMember : public BaseT<HasMember>
-    {
-    public:
-        HasMember(brain::Brain& kb, Base& role);
-    };
-    class GetMember : public BaseT<GetMember>
-    {
-    public:
-        GetMember(brain::Brain& kb, Base& role);
-    };
-    class SetMember : public BaseT<SetMember>
-    {
-    public:
-        SetMember(brain::Brain& kb, Base& role, Base& value);
-    };
-    class SetVar : public BaseT<SetVar>
-    {
-    public:
-        SetVar(brain::Brain& kb, CellI& role, Base& value);
-    };
-    class GetVar : public BaseT<GetVar>
-    {
-    public:
-        GetVar(brain::Brain& kb, CellI& role);
-    };
-    class Self : public BaseT<Self>
-    {
-    public:
-        Self(brain::Brain& kb);
     };
 
     class Block : public BaseT<Block>
@@ -356,12 +329,16 @@ public:
         void addInputs(List& input);
         void addOutputs(List& output);
         void addAsts(Block& ast);
+        void toMethod(Type& type);
         CellI& inputType();
         CellI& outputType();
-        CellI& compile(CellI& parameters);
+        CellI& compile();
+        CellI& compile(CellI& type);
 
     protected:
-        CellI& compileAst(CellI& ast, CellI& param, CellI& self);
+        CellI& compileImpl(CellI* type);
+        void compileParams(cells::control::Function& function, CellI* type);
+        CellI& compileAst(CellI& ast, cells::control::Function& function, CellI* type);
         List& inputs();
         List& outputs();
         Block& asts();
@@ -399,10 +376,15 @@ public:
     public:
         While(brain::Brain& kb, Base& condition, Base& statement);
     };
-    class Input : public BaseT<Input>
+    class Ref : public BaseT<Ref>
     {
     public:
-        Input(brain::Brain& kb, CellI& value);
+        Ref(brain::Brain& kb, CellI& value);
+    };
+    class Var : public BaseT<Var>
+    {
+    public:
+        Var(brain::Brain& kb, CellI& role);
     };
     class New : public BaseT<New>
     {
@@ -487,15 +469,15 @@ public:
 
     Ast(brain::Brain& kb);
 
+    Cell& cell(CellI& value);
+    Self& self();
     Parameter& parameter(CellI& role);
     ParameterDecl& parameterDecl(CellI& role, CellI& type);
-    Cell& cell(CellI& value);
-    HasMember& hasMember(Base& role);
-    GetMember& getMember(Base& role);
-    SetMember& setMember(Base& role, Base& value);
-    SetVar& setVar(CellI& role, Base& value);
-    GetVar& getVar(CellI& role);
-    Self& self();
+    Has& hasMember(Base& role);
+    Get& getMember(Base& role);
+    Set& setMember(Base& role, Base& value);
+    Set& setVar(CellI& role, Base& value);
+    Get& getVar(CellI& role);
 
     template <typename... Args>
     Block& block(Base& ast, Args&&... args);
@@ -507,7 +489,8 @@ public:
     If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
     Do& do_(Base& condition, Base& statement);
     While& while_(Base& condition, Base& statement);
-    Input& input(CellI& value);
+    Ref& ref(CellI& value);
+    Var& var(CellI& role);
     New& new_(Base& objectType);
     Same& same(Base& lhs, Base& rhs);
     NotSame& notSame(Base& lhs, Base& rhs);

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Picture.h"
-#include "cells/Cells.h"
+#include "cells/Brain.h"
 #include "util/ArcTask.h"
 #include "util/Logging.h"
 

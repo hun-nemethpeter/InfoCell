@@ -331,6 +331,9 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
+    bool hasKey(CellI& key);
+    CellI& getValue(CellI& key);
+
     void add(CellI& key, CellI& value);
     template <typename... Args>
     void add(CellI& key, CellI& value, Args&&... args)
@@ -659,14 +662,16 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addInputs(List& input);
-    void addOutputs(List& output);
-    void addAsts(CellI& ast);
+    void addInputs(Map& input);
+    void addOutputs(Map& output);
+    CellI& getOrCreateVar(CellI& role, CellI& type);
+    CellI& getInput(CellI& role);
 
 protected:
-    List* m_inputs  = nullptr;
-    List* m_outputs = nullptr;
-    CellI* m_asts   = nullptr;
+    Map* m_inputs  = nullptr;
+    Map* m_outputs = nullptr;
+    CellI* m_op     = nullptr;
+    Map m_localVars;
 };
 
 // ============================================================================
@@ -776,17 +781,32 @@ public:
 };
 
 // ============================================================================
-class Input : public Expression
+class Ref : public Expression
 {
 public:
-    Input(brain::Brain& kb, CellI& value, const std::string& label = "Input");
-    Input(brain::Brain& kb, CellI* value = nullptr, const std::string& label = "Input");
+    Ref(brain::Brain& kb, CellI& value, const std::string& label = "Ref");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
+};
+
+// ============================================================================
+class Var : public Expression
+{
+public:
+    Var(brain::Brain& kb, CellI& m_type, const std::string& label = "Var");
+    Var(brain::Brain& kb, CellI& m_type, CellI& value, const std::string& label = "Var");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    CellI& m_type;
 };
 
 // ============================================================================
@@ -1094,7 +1114,8 @@ public:
     virtual void visit(control::If&) { }
     virtual void visit(control::Do&) { }
     virtual void visit(control::While&) { }
-    virtual void visit(control::Input&) { }
+    virtual void visit(control::Ref&) { }
+    virtual void visit(control::Var&) { }
     virtual void visit(control::New&) { }
     virtual void visit(control::Same&) { }
     virtual void visit(control::NotSame&) { }

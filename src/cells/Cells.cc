@@ -1689,7 +1689,8 @@ void Block::accept(Visitor& visitor)
 #pragma region Function
 // ============================================================================
 Function::Function(brain::Brain& kb, const std::string& label) :
-    Base(kb, label)
+    Base(kb, label),
+    m_localVars(kb, kb.type.control.Var)
 {
 }
 
@@ -1698,25 +1699,34 @@ bool Function::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    // TODO
+    if (&role == &kb.coding.op) {
+        return m_op;
+    }
 
     return false;
 }
 
 void Function::set(CellI& role, CellI& value)
 {
-    // Do nothing
+    if (&role == &kb.coding.op && !m_op) {
+        m_op = &value;
+    }
 }
 
 void Function::operator()()
 {
-    // Do nothing, this is a data cell
+    if (m_op) {
+        m_op->eval();
+    }
 }
 
 CellI& Function::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
         return kb.type.control.Function;
+    }
+    if (&role == &kb.coding.op && m_op) {
+        return *m_op;
     }
 
     return kb.cells.emptyObject;
@@ -1727,20 +1737,29 @@ void Function::accept(Visitor& visitor)
     // TODO
 }
 
-void Function::addInputs(List& input)
+void Function::addInputs(Map& input)
 {
     m_inputs = &input;
 }
 
-void Function::addOutputs(List& output)
+void Function::addOutputs(Map& output)
 {
     m_outputs = &output;
 }
 
-void Function::addAsts(CellI& ast)
+CellI& Function::getOrCreateVar(CellI& role, CellI& type)
 {
-    m_asts = &ast;
+    if (!m_localVars.m_index.has(role)) {
+        m_localVars.add(role, *new Var(kb, type));
+    }
+    return m_localVars.m_index[role];
 }
+
+CellI& Function::getInput(CellI& role)
+{
+    return m_inputs->m_index[role];
+}
+
 
 #pragma endregion
 #pragma region Delete
@@ -2065,20 +2084,15 @@ Expression::Expression(brain::Brain& kb, const std::string& label) :
 {
 }
 #pragma endregion
-#pragma region Input
+#pragma region Ref
 // ============================================================================
-Input::Input(brain::Brain& kb, CellI& value, const std::string& label) :
+Ref::Ref(brain::Brain& kb, CellI& value, const std::string& label) :
     Expression(kb, label)
 {
     m_value = &value;
 }
 
-Input::Input(brain::Brain& kb, CellI* value, const std::string& label) :
-    Input(kb, *value, label)
-{
-}
-
-bool Input::has(CellI& role)
+bool Ref::has(CellI& role)
 {
     if (&role == &kb.cells.type) {
         return true;
@@ -2090,18 +2104,18 @@ bool Input::has(CellI& role)
     return false;
 }
 
-void Input::set(CellI& role, CellI& value)
+void Ref::set(CellI& role, CellI& value)
 {
 }
 
-void Input::operator()()
+void Ref::operator()()
 {
 }
 
-CellI& Input::operator[](CellI& role)
+CellI& Ref::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Input;
+        return kb.type.control.Ref;
     }
     if (&role == &kb.coding.value && m_value) {
         return *m_value;
@@ -2110,7 +2124,62 @@ CellI& Input::operator[](CellI& role)
     return kb.cells.emptyObject;
 }
 
-void Input::accept(Visitor& visitor)
+void Ref::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region Var
+// ============================================================================
+Var::Var(brain::Brain& kb, CellI& type, CellI& value, const std::string& label) :
+    Expression(kb, label),
+    m_type(type)
+{
+    m_value = &value;
+}
+
+Var::Var(brain::Brain& kb, CellI& type, const std::string& label) :
+    Expression(kb, label),
+    m_type(type)
+{
+}
+
+bool Var::has(CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return true;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return true;
+    }
+
+    return false;
+}
+
+void Var::set(CellI& role, CellI& value)
+{
+    if (&role == &kb.coding.value) {
+        m_value = &value;
+    }
+}
+
+void Var::operator()()
+{
+}
+
+CellI& Var::operator[](CellI& role)
+{
+    if (&role == &kb.cells.type) {
+        return kb.type.control.Var;
+    }
+    if (&role == &kb.coding.value && m_value) {
+        return *m_value;
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Var::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }

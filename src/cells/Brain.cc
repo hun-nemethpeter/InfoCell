@@ -28,7 +28,8 @@ Control::Control(brain::Brain& kb) :
     Do(kb, "Do"),
     While(kb, "While"),
     Expression(kb, "Expression"),
-    Input(kb, "Input"),
+    Ref(kb, "Ref"),
+    Var(kb, "Var"),
     New(kb, "New"),
     Same(kb, "Same"),
     NotSame(kb, "NotSame"),
@@ -54,11 +55,6 @@ Ast::Ast(brain::Brain& kb) :
     Parameter(kb, "Parameter"),
     ParameterDecl(kb, "ParameterDecl"),
     Cell(kb, "Cell"),
-    HasMember(kb, "HasMember"),
-    GetMember(kb, "GetMember"),
-    SetMember(kb, "SetMember"),
-    SetVar(kb, "SetVar"),
-    GetVar(kb, "GetVar"),
     Self(kb, "Self"),
     Block(kb, "Block"),
     Function(kb, "Function"),
@@ -68,7 +64,9 @@ Ast::Ast(brain::Brain& kb) :
     Do(kb, "Do"),
     While(kb, "While"),
     Expression(kb, "Expression"),
-    Input(kb, "Input"),
+    Ref(kb, "Ref"),
+    Var(kb, "Var"),
+    Member(kb, "Member"),
     New(kb, "New"),
     Same(kb, "Same"),
     NotSame(kb, "NotSame"),
@@ -317,38 +315,6 @@ Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
     set(kb.coding.value, value);
 }
 
-Ast::HasMember::HasMember(brain::Brain& kb, Base& role) :
-    BaseT<HasMember>(kb, kb.type.ast.HasMember)
-{
-    set(kb.coding.role, role);
-}
-
-Ast::GetMember::GetMember(brain::Brain& kb, Base& role) :
-    BaseT<GetMember>(kb, kb.type.ast.GetMember)
-{
-    set(kb.coding.role, role);
-}
-
-Ast::SetMember::SetMember(brain::Brain& kb, Base& role, Base& value) :
-    BaseT<SetMember>(kb, kb.type.ast.SetMember)
-{
-    set(kb.coding.role, role);
-    set(kb.coding.value, value);
-}
-
-Ast::SetVar::SetVar(brain::Brain& kb, CellI& role, Base& value) :
-    BaseT<SetVar>(kb, kb.type.ast.SetVar)
-{
-    set(kb.coding.role, role);
-    set(kb.coding.value, value);
-}
-
-Ast::GetVar::GetVar(brain::Brain& kb, CellI& role) :
-    BaseT<GetVar>(kb, kb.type.ast.GetVar)
-{
-    set(kb.coding.role, role);
-}
-
 Ast::Self::Self(brain::Brain& kb) :
     BaseT<Self>(kb, kb.type.ast.Self)
 {
@@ -397,102 +363,122 @@ CellI& Ast::Function::inputType()
     return *m_inputType;
 }
 
-CellI& Ast::Function::compile(CellI& parameters)
+CellI& Ast::Function::compile()
 {
-    cells::control::Function& ret = *new cells::control::Function(kb);
-    CellI& block                  = compileAst(asts(), inputs(), ret);
+    return compileImpl(nullptr);
+}
+
+CellI& Ast::Function::compile(CellI& type)
+{
+    return compileImpl(&type);
+}
+
+CellI& Ast::Function::compileImpl(CellI* type)
+{
+    cells::control::Function& function = *new cells::control::Function(kb);
 
     std::stringstream ss;
-    Visitor::visitList(inputs(), [this, &ss, &parameters](CellI& slot, int i) {
-        CellI& role = slot[kb.cells.slotRole];
-        if (!parameters.has(role)) {
-            return;
-        }
+    Visitor::visitList(inputs(), [this, &ss, &function](CellI& slot, int i) {
         if (i != 0) {
             ss << ", ";
         }
         ss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
     });
-    ret.label(std::format("{}({})", label(), ss.str()));
+    function.label(std::format("{}({})", label(), ss.str()));
+    compileParams(function, type);
+    function.set(kb.coding.op, compileAst(asts(), function, type));
 
-    return ret;
+    return function;
 }
 
-CellI& Ast::Function::compileAst(CellI& ast, CellI& parameters, CellI& self)
+void Ast::Function::compileParams(cells::control::Function& function, CellI* type)
 {
+    if (m_inputs) {
+        Map& params = *new Map(kb, kb.type.control.Var);
+        if (type) {
+            params.add(kb.coding.self, *new cells::control::Var(kb, *type));
+        }
+        Visitor::visitList(inputs(), [this, &params](CellI& slot, int i) {
+            params.add(slot[kb.cells.slotRole], *new cells::control::Var(kb, slot[kb.cells.slotType]));
+        });
+        function.addInputs(params);
+    }
+    if (m_outputs) {
+        Map& params = *new Map(kb, kb.type.control.Var);
+        Visitor::visitList(outputs(), [this, &params](CellI& slot, int i) {
+            params.add(slot[kb.cells.slotRole], *new cells::control::Var(kb, slot[kb.cells.slotType]));
+        });
+        function.addOutputs(params);
+    }
+}
+
+CellI& Ast::Function::compileAst(CellI& ast, cells::control::Function& function, CellI* type)
+{
+    auto eval = [this, &function, type](CellI& ast) -> CellI& { return compileAst(ast, function, type); };
+
     if (&ast.type() == &kb.type.ast.Block) {
         List& list         = static_cast<List&>(ast[kb.coding.value]);
         auto& compiledAsts = *new cells::List(kb, kb.type.control.Base);
-        Visitor::visitList(list, [this, &compiledAsts, &ast, &parameters, &self](CellI& ast, int) {
-            compiledAsts.add(compileAst(ast, parameters, self));
+        Visitor::visitList(list, [this, &compiledAsts, &ast, &function, type](CellI& ast, int) {
+            compiledAsts.add(compileAst(ast, function, type));
         });
         return *new control::Block(kb, compiledAsts);
-    } else if (&ast.type() == &kb.type.ast.Delete) {
-        return *new control::Delete(kb, compileAst(ast[kb.coding.cell], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Set) {
-        return *new control::Set(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self), compileAst(ast[kb.coding.value], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.If) {
-        if (ast.has(kb.coding.else_)) {
-            return *new control::If(kb, compileAst(ast[kb.coding.condition], parameters, self), compileAst(ast[kb.coding.then], parameters, self), compileAst(ast[kb.coding.else_], parameters, self));
-        } else {
-            return *new control::If(kb, compileAst(ast[kb.coding.condition], parameters, self), compileAst(ast[kb.coding.then], parameters, self));
-        }
-    } else if (&ast.type() == &kb.type.ast.Do) {
-        return *new control::Do(kb, compileAst(ast[kb.coding.condition], parameters, self), compileAst(ast[kb.coding.statement], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.While) {
-        return *new control::While(kb, compileAst(ast[kb.coding.condition], parameters, self), compileAst(ast[kb.coding.statement], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Input) {
-        return *new control::Input(kb, &compileAst(ast[kb.coding.value], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.New) {
-        return *new control::New(kb, compileAst(ast[kb.coding.objectType], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.And) {
-        return *new control::And(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Or) {
-        return *new control::Or(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Not) {
-        return *new control::Not(kb, compileAst(ast[kb.coding.value], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Add) {
-        return *new control::Add(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Subtract) {
-        return *new control::Subtract(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Multiply) {
-        return *new control::Multiply(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Divide) {
-        return *new control::Divide(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.LessThan) {
-        return *new control::LessThan(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.GreaterThan) {
-        return *new control::GreaterThan(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Same) {
-        return *new control::Same(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.NotSame) {
-        return *new control::NotSame(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Equal) {
-        return *new control::Equal(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.NotEqual) {
-        return *new control::NotEqual(kb, compileAst(ast[kb.coding.lhs], parameters, self), compileAst(ast[kb.coding.rhs], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Has) {
-        return *new control::Has(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Get) {
-        return *new control::Get(kb, compileAst(ast[kb.coding.cell], parameters, self), compileAst(ast[kb.coding.role], parameters, self));
-    } else if (&ast.type() == &kb.type.ast.Parameter) {
-        return parameters[ast[kb.coding.role]];
     } else if (&ast.type() == &kb.type.ast.Cell) {
         return ast[kb.coding.value];
-    } else if (&ast.type() == &kb.type.ast.HasMember) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.GetMember) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.SetMember) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.SetVar) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.GetVar) {
-        return ast; // TODO
-    } else if (&ast.type() == &kb.type.ast.Function) {
-        return ast; // TODO
     } else if (&ast.type() == &kb.type.ast.Self) {
-        return parameters[kb.coding.self];
+        return *new control::Get(kb, function.getInput(kb.coding.self), kb.coding.value);
+    } else if (&ast.type() == &kb.type.ast.Parameter) {
+        return *new control::Get(kb, function.getInput(ast[kb.coding.role]), kb.coding.value);
+    } else if (&ast.type() == &kb.type.ast.Delete) {
+        return *new control::Delete(kb, eval(ast[kb.coding.cell]));
+    } else if (&ast.type() == &kb.type.ast.Set) {
+        return *new control::Set(kb, eval(ast[kb.coding.cell]), eval(ast[kb.coding.role]), eval(ast[kb.coding.value]));
+    } else if (&ast.type() == &kb.type.ast.If) {
+        if (ast.has(kb.coding.else_)) {
+            return *new control::If(kb, eval(ast[kb.coding.condition]), eval(ast[kb.coding.then]), eval(ast[kb.coding.else_]));
+        } else {
+            return *new control::If(kb, eval(ast[kb.coding.condition]), eval(ast[kb.coding.then]));
+        }
+    } else if (&ast.type() == &kb.type.ast.Do) {
+        return *new control::Do(kb, eval(ast[kb.coding.condition]), eval(ast[kb.coding.statement]));
+    } else if (&ast.type() == &kb.type.ast.While) {
+        return *new control::While(kb, eval(ast[kb.coding.condition]), eval(ast[kb.coding.statement]));
+    } else if (&ast.type() == &kb.type.ast.Ref) {
+        return *new control::Ref(kb, eval(ast[kb.coding.value]));
+    } else if (&ast.type() == &kb.type.ast.Var) {
+        return function.getOrCreateVar(ast[kb.coding.role], kb.type.Any);
+    } else if (&ast.type() == &kb.type.ast.New) {
+        return *new control::New(kb, eval(ast[kb.coding.objectType]));
+    } else if (&ast.type() == &kb.type.ast.And) {
+        return *new control::And(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Or) {
+        return *new control::Or(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Not) {
+        return *new control::Not(kb, eval(ast[kb.coding.value]));
+    } else if (&ast.type() == &kb.type.ast.Add) {
+        return *new control::Add(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Subtract) {
+        return *new control::Subtract(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Multiply) {
+        return *new control::Multiply(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Divide) {
+        return *new control::Divide(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.LessThan) {
+        return *new control::LessThan(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.GreaterThan) {
+        return *new control::GreaterThan(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Same) {
+        return *new control::Same(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.NotSame) {
+        return *new control::NotSame(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Equal) {
+        return *new control::Equal(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.NotEqual) {
+        return *new control::NotEqual(kb, eval(ast[kb.coding.lhs]), eval(ast[kb.coding.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Has) {
+        return *new control::Has(kb, eval(ast[kb.coding.cell]), eval(ast[kb.coding.role]));
+    } else if (&ast.type() == &kb.type.ast.Get) {
+        return *new control::Get(kb, eval(ast[kb.coding.cell]), eval(ast[kb.coding.role]));
     }
 
     throw "Unknown function AST!";
@@ -556,10 +542,16 @@ Ast::While::While(brain::Brain& kb, Base& condition, Base& statement) :
     set(kb.coding.statement, statement);
 }
 
-Ast::Input::Input(brain::Brain& kb, CellI& cell) :
-    BaseT<Input>(kb, kb.type.ast.Input)
+Ast::Ref::Ref(brain::Brain& kb, CellI& cell) :
+    BaseT<Ref>(kb, kb.type.ast.Ref)
 {
     set(kb.coding.input, cell);
+}
+
+Ast::Var::Var(brain::Brain& kb, CellI& role) :
+    BaseT<Var>(kb, kb.type.ast.Var)
+{
+    set(kb.coding.role, role);
 }
 
 Ast::New::New(brain::Brain& kb, Base& objectType) :
@@ -677,6 +669,16 @@ Ast::Ast(brain::Brain& kb) :
 {
 }
 
+Ast::Cell& Ast::cell(CellI& cell)
+{
+    return Cell::New(kb, cell);
+}
+
+Ast::Self& Ast::self()
+{
+    return Self::New(kb);
+}
+
 Ast::Parameter& Ast::parameter(CellI& cell)
 {
     return Parameter::New(kb, cell);
@@ -687,39 +689,29 @@ Ast::ParameterDecl& Ast::parameterDecl(CellI& role, CellI& type)
     return ParameterDecl::New(kb, role, type);
 }
 
-Ast::Cell& Ast::cell(CellI& cell)
+Ast::Has& Ast::hasMember(Base& role)
 {
-    return Cell::New(kb, cell);
+    return kb.ast.has(kb.ast.self(), kb.ast.cell(role));
 }
 
-Ast::HasMember& Ast::hasMember(Base& role)
+Ast::Get& Ast::getMember(Base& role)
 {
-    return HasMember::New(kb, role);
+    return kb.ast.get(kb.ast.self(), kb.ast.cell(role));
 }
 
-Ast::GetMember& Ast::getMember(Base& role)
+Ast::Set& Ast::setMember(Base& role, Base& value)
 {
-    return GetMember::New(kb, role);
+    return kb.ast.set(kb.ast.self(), kb.ast.cell(role), kb.ast.cell(value));
 }
 
-Ast::SetMember& Ast::setMember(Base& role, Base& value)
+Ast::Set& Ast::setVar(CellI& cell, Base& ast)
 {
-    return Ast::SetMember::New(kb, role, value);
+    return kb.ast.set(kb.ast.var(cell), kb.ast.cell(kb.coding.value), ast);
 }
 
-Ast::SetVar& Ast::setVar(CellI& cell, Base& ast)
+Ast::Get& Ast::getVar(CellI& cell)
 {
-    return SetVar::New(kb, cell, ast);
-}
-
-Ast::GetVar& Ast::getVar(CellI& cell)
-{
-    return GetVar::New(kb, cell);
-}
-
-Ast::Self& Ast::self()
-{
-    return Self::New(kb);
+    return kb.ast.get(kb.ast.var(cell), kb.ast.cell(kb.coding.value));
 }
 
 Ast::Delete& Ast::delete_(Base& ast)
@@ -752,9 +744,14 @@ Ast::While& Ast::while_(Base& condition, Base& statement)
     return While::New(kb, condition, statement);
 }
 
-Ast::Input& Ast::input(CellI& cell)
+Ast::Ref& Ast::ref(CellI& cell)
 {
-    return Input::New(kb, cell);
+    return Ref::New(kb, cell);
+}
+
+Ast::Var& Ast::var(CellI& role)
+{
+    return Var::New(kb, role);
 }
 
 Ast::New& Ast::new_(Base& ast)
@@ -1107,13 +1104,14 @@ Brain::Brain() :
         cells.slot(cells.subTypes, type.ListOf(type.template_.Slot)),
         cells.slot(cells.memberOf, type.ListOf(type.template_.Descriptor)));
 
-    type.ast.Input.addSlots(
+    type.ast.Ref.addSlots(
         cells.slot(coding.value, type.ast.Base));
+
+    type.ast.Var.addSlots(
+        cells.slot(coding.role, type.ast.Base));
 
     type.ast.New.addSlots(
         cells.slot(coding.objectType, type.ast.Base));
-
-    // type.ast.Fork.addSlots();
 
     type.ast.Delete.addSlots(
         cells.slot(coding.cell, type.ast.Base));
@@ -1204,23 +1202,6 @@ Brain::Brain() :
 
     type.ast.Cell.addSlots(
         cells.slot(coding.value, type.Any));
-
-    type.ast.HasMember.addSlots(
-        cells.slot(coding.role, type.ast.Base));
-
-    type.ast.GetMember.addSlots(
-        cells.slot(coding.role, type.ast.Base));
-
-    type.ast.SetMember.addSlots(
-        cells.slot(coding.role, type.ast.Base),
-        cells.slot(coding.value, type.ast.Base));
-
-    type.ast.SetVar.addSlots(
-        cells.slot(coding.role, type.Any),
-        cells.slot(coding.value, type.ast.Base));
-
-    type.ast.GetVar.addSlots(
-        cells.slot(coding.role, type.Any));
 
     type.ast.Block.addSlots(
         cells.slot(coding.value, type.Any));
@@ -1367,12 +1348,12 @@ Brain::Brain() :
     type.control.GreaterThan.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Any));
 
-    type.control.Input.addSlots(
-        cells.slot(sequence.first, type.control.Base),
-        cells.slot(sequence.next, type.control.Base),
-        cells.slot(sequence.current, type.control.Base),
+    type.control.Ref.addSlots(
+        cells.slot(coding.value, type.Any));
+
+    type.control.Var.addSlots(
         cells.slot(coding.value, type.Any));
 
     type.control.New.addSlots(

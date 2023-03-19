@@ -86,14 +86,14 @@ int main(int argc, char* argv[])
 
     Object var1(kb, Variable, "var1");
 
-    Input mainStartNode(kb, picture);
+    Ref mainStartNode(kb, picture);
     Same node1(kb, mainStartNode, mainStartNode);
     node1();
     std::cout << "SameOp: ";
     printAs.value(node1[kb.coding.value]);
 
-    Input start(kb, kb.pools.numbers.get(42));
-    Input value10(kb, kb.pools.numbers.get(10));
+    Ref start(kb, kb.pools.numbers.get(42));
+    Ref value10(kb, kb.pools.numbers.get(10));
     Add add10(kb, start, value10);
     add10();
     std::cout << "42 + 10 = ";
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
     printAs.value(listAddInput, "listAddInput");
     listAddInput.set(kb.coding.value, number_255);
     printAs.cell(listAddInput, "listAddInput set");
-    CellI& listAddCompiled = kb.listAdd.compile(listAddInput);
+    CellI& listAddCompiled = kb.listAdd.compile();
     printAs.cell(listAddCompiled, "listAddCompiled");
 
     printAs.value(colorClass);
