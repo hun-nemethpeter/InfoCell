@@ -1273,82 +1273,81 @@ Brain::Brain() :
     type.control.Same.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.NotSame.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.Equal.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.NotEqual.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.Has.addSlots(
         cells.slot(coding.cell, type.control.Base),
         cells.slot(coding.role, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.Get.addSlots(
         cells.slot(coding.cell, type.control.Base),
         cells.slot(coding.role, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Any));
 
     type.control.Set.addSlots(
         cells.slot(coding.cell, type.control.Base),
         cells.slot(coding.role, type.control.Base),
-        cells.slot(coding.output, type.control.Base),
         cells.slot(coding.value, type.control.Base));
 
     type.control.And.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.Or.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.Not.addSlots(
         cells.slot(coding.input, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.Add.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Number));
 
     type.control.Subtract.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Number));
 
     type.control.Multiply.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Number));
 
     type.control.Divide.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Number));
 
     type.control.LessThan.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.output, type.control.Base));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.GreaterThan.addSlots(
         cells.slot(equation.lhs, type.control.Base),
         cells.slot(equation.rhs, type.control.Base),
-        cells.slot(coding.value, type.Any));
+        cells.slot(coding.value, type.Boolean));
 
     type.control.Ref.addSlots(
         cells.slot(coding.value, type.Any));
@@ -1357,35 +1356,22 @@ Brain::Brain() :
         cells.slot(coding.value, type.Any));
 
     type.control.New.addSlots(
-        cells.slot(sequence.first, type.control.Base),
-        cells.slot(sequence.next, type.control.Base),
-        cells.slot(sequence.current, type.control.Base),
-        cells.slot(coding.value, type.control.Base),
+        cells.slot(coding.value, type.Any),
         cells.slot(coding.objectType, type.control.Base));
 
     type.control.Delete.addSlots(
-        cells.slot(sequence.first, type.control.Base),
         cells.slot(coding.input, type.control.Base));
 
     type.control.If.addSlots(
-        cells.slot(sequence.first, type.control.Base),
-        cells.slot(sequence.next, type.control.Base),
-        cells.slot(coding.input, type.control.Base),
         cells.slot(coding.condition, type.control.Base),
         cells.slot(coding.then, type.control.Base),
         cells.slot(coding.else_, type.control.Base));
 
     type.control.Do.addSlots(
-        cells.slot(sequence.first, type.control.Base),
-        cells.slot(sequence.next, type.control.Base),
-        cells.slot(coding.input, type.control.Base),
         cells.slot(coding.condition, type.control.Base),
         cells.slot(coding.statement, type.control.Base));
 
     type.control.While.addSlots(
-        cells.slot(sequence.first, type.control.Base),
-        cells.slot(sequence.next, type.control.Base),
-        cells.slot(coding.input, type.control.Base),
         cells.slot(coding.condition, type.control.Base),
         cells.slot(coding.statement, type.control.Base));
 
