@@ -5,6 +5,8 @@
 #include "ValuePrinter.h"
 #include <fstream>
 
+#include <gtest/gtest.h>
+
 using namespace synth;
 using namespace synth::cells;
 
@@ -65,33 +67,76 @@ public:
 
 using namespace control;
 
-int main(int argc, char* argv[])
+static void oldTest();
+
+class CellTest : public ::testing::Test
 {
-    brain::Brain kb;
-    auto& cells = kb.cells;
+protected:
+    CellTest() :
+        kb(*m_kb),
+        cells(kb.cells)
+    {
+    }
 
+    static std::unique_ptr<brain::Brain> m_kb;
+    brain::Brain& kb;
+    brain::Cells& cells = kb.cells;
     PrintAs printAs;
+};
+std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
+TEST_F(CellTest, HybridPicture)
+{
     input::Picture inputPicture("input");
     inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
     hybrid::Picture picture(kb, inputPicture);
 
     printAs.svg(picture);
     printAs.svg(picture[kb.visualization.pixels]);
+    printAs.value(picture[kb.visualization.pixels]);
 
-    Type Variable(kb, "Color");
-    Variable.addSlots(
-        cells.slot(kb.coding.label, kb.type.String),
-        cells.slot(kb.coding.value, kb.type.Number));
+    EXPECT_EQ(&picture[kb.cells.type], &kb.type.Picture);
+    EXPECT_EQ(&picture[kb.dimensions.width], &kb.pools.numbers.get(3));
+    EXPECT_EQ(&picture[kb.dimensions.height], &kb.pools.numbers.get(3));
+    EXPECT_EQ(&picture[kb.visualization.pixels][kb.cells.type], &kb.type.ListOf(kb.type.Pixel));
+}
 
-    Object var1(kb, Variable, "var1");
+TEST_F(CellTest, BasicObjectTest)
+{
+    Type testType(kb, "Test");
+    testType.addSlots(
+        cells.slot(kb.coding.result, kb.type.Digit),
+        cells.slot(kb.coding.value, kb.type.Number)); // TODO implement type checking
 
-    Ref mainStartNode(kb, picture);
-    Same node1(kb, mainStartNode, mainStartNode);
-    node1();
-    std::cout << "SameOp: ";
-    printAs.value(node1[kb.coding.value]);
+    Object object(kb, testType, "testObject");
 
+    EXPECT_EQ(object.label(), "testObject");
+    EXPECT_EQ(&object.type(), &testType);
+
+    EXPECT_EQ(&object[kb.coding.value], &kb.cells.emptyObject);
+    EXPECT_NO_THROW(object.set(kb.coding.value, kb.pools.numbers.get(42)));
+    printAs.value(object[kb.coding.value]);
+    EXPECT_ANY_THROW(object.set(kb.coding.argument, kb.pools.numbers.get(42)));
+}
+
+TEST_F(CellTest, BasicControlOpTest)
+{
+    Ref testValue1(kb, kb.type.Char);
+    Ref testValue2(kb, kb.type.Color);
+    Same sameOpEq(kb, testValue1, testValue1);
+    Same sameOpNe(kb, testValue1, testValue2);
+    sameOpEq();
+    sameOpNe();
+
+    printAs.value(sameOpEq[kb.coding.value], "testValue1 == testValue1");
+    printAs.value(sameOpNe[kb.coding.value], "testValue1 != testValue1");
+
+    EXPECT_EQ(&sameOpEq[kb.coding.value], &kb.boolean.true_);
+    EXPECT_EQ(&sameOpNe[kb.coding.value], &kb.boolean.false_);
+}
+
+TEST_F(CellTest, BasicControlAddTest)
+{
     Ref start(kb, kb.pools.numbers.get(42));
     Ref value10(kb, kb.pools.numbers.get(10));
     Add add10(kb, start, value10);
@@ -99,8 +144,22 @@ int main(int argc, char* argv[])
     std::cout << "42 + 10 = ";
     printAs.value(add10[kb.coding.value]);
 
-    printAs.value(var1[kb.coding.value]);
-    printAs.value(picture[kb.visualization.pixels]);
+    EXPECT_EQ(&add10[kb.coding.value], &kb.pools.numbers.get(52));
+}
+
+int main(int argc, char** argv)
+{
+    oldTest();
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+
+void oldTest()
+{
+    brain::Brain kb;
+    auto& cells = kb.cells;
+
+    PrintAs printAs;
 
     Object colorRed(kb, kb.type.Any, "red");
     Object colorGreen(kb, kb.type.Any, "green");

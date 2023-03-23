@@ -1,9 +1,10 @@
 [requires]
-nlohmann_json/3.10.2
-utfcpp/3.2.1
+nlohmann_json/3.11.2
+utfcpp/3.2.3
 ftxui/3.0.0
 boost/1.81.0
-freetype/2.12.1
+freetype/2.13.0
+gtest/1.13.0
 
 [generators]
 cmake

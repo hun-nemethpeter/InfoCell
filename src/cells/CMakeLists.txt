@@ -17,6 +17,7 @@ target_link_libraries(cellslib
         CONAN_PKG::utfcpp
         CONAN_PKG::boost
         CONAN_PKG::freetype
+        CONAN_PKG::gtest
 )
 
 add_executable(celltest
