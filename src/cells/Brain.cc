@@ -369,19 +369,6 @@ void Ast::Function::addAsts(Block& ast)
     m_asts = &ast;
 }
 
-CellI& Ast::Function::inputType()
-{
-    if (!m_inputType) {
-        m_inputType = std::make_unique<Type>(kb, std::format("{}::parameters", label()));
-        Type& type  = *m_inputType;
-        Visitor::visitList(inputs(), [this, &type](CellI& slot, int i) {
-            type.addSlot(slot[kb.cells.slotRole], slot[kb.cells.slotType]);
-        });
-    }
-
-    return *m_inputType;
-}
-
 CellI& Ast::Function::compile()
 {
     return compileImpl(nullptr);
@@ -395,16 +382,16 @@ CellI& Ast::Function::compile(CellI& type)
 CellI& Ast::Function::compileImpl(CellI* type)
 {
     cells::control::Function& function = *new cells::control::Function(kb);
+    compileParams(function, type);
 
     std::stringstream ss;
-    Visitor::visitList(inputs(), [this, &ss, &function](CellI& slot, int i) {
+    Visitor::visitList(function[kb.coding.input][kb.cells.list], [this, &ss, &function](CellI& slot, int i) {
         if (i != 0) {
             ss << ", ";
         }
         ss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
     });
     function.label(std::format("{}({})", label(), ss.str()));
-    compileParams(function, type);
     function.set(kb.coding.op, compileAst(asts(), function, type));
 
     return function;
@@ -412,14 +399,16 @@ CellI& Ast::Function::compileImpl(CellI* type)
 
 void Ast::Function::compileParams(cells::control::Function& function, CellI* type)
 {
-    if (m_inputs) {
+    if (m_inputs || type) {
         Map& params = *new Map(kb, kb.type.control.Var);
         if (type) {
             params.add(kb.coding.self, *new cells::control::Var(kb, *type));
         }
-        Visitor::visitList(inputs(), [this, &params](CellI& slot, int i) {
-            params.add(slot[kb.cells.slotRole], *new cells::control::Var(kb, slot[kb.cells.slotType]));
-        });
+        if (m_inputs) {
+            Visitor::visitList(inputs(), [this, &params](CellI& slot, int i) {
+                params.add(slot[kb.cells.slotRole], *new cells::control::Var(kb, slot[kb.cells.slotType]));
+            });
+        }
         function.addInputs(params);
     }
     if (m_outputs) {
@@ -447,9 +436,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::control::Function& function,
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
         return *new control::Ref(kb, function);
     } else if (&ast.type() == &kb.type.ast.Self) {
-        return function.getInput(kb.coding.self);
+        return function[kb.coding.input][kb.cells.index][kb.coding.self];
     } else if (&ast.type() == &kb.type.ast.Parameter) {
-        return function.getInput(ast[kb.coding.role]);
+        return function[kb.coding.input][kb.cells.index][ast[kb.coding.role]];
     } else if (&ast.type() == &kb.type.ast.Delete) {
         return *new control::Delete(kb, compile(ast[kb.coding.cell]));
     } else if (&ast.type() == &kb.type.ast.Set) {
@@ -1049,9 +1038,7 @@ Brain::Brain() :
     dimensions(*this, type.Any),
     visualization(*this, type.Any),
     numbers(*this, type.Any),
-    arc(*this),
-    listAdd(*this, "List::Add"),
-    listSize(*this, "List::Size")
+    arc(*this)
 {
     type.Type_.addSlots(
         cells.slot(cells.slots, type.MapOf(type.Slot)),
@@ -1244,8 +1231,15 @@ Brain::Brain() :
         cells.slot(coding.ast, type.ListOf(type.ast.Base)),
         cells.slot(coding.output, type.ListOf(type.ast.ParameterDecl)));
 
+    Ast::Function listCtor(*this, "List::Ctor");
+    Ast::Function listAdd(*this, "List::Add");
+    Ast::Function listSize(*this, "List::Size");
+
+    listCtor.addAsts(ast.block(
+        ast.setMember(ast.cell(dimensions.size), ast.cell(pools.numbers.get(0))),
+        ast.setMember(ast.cell(coding.objectType), ast.cell(type.Any))));
+
     listAdd.addInputs(list(
-        ast.parameterDecl(coding.self, type.List),
         ast.parameterDecl(coding.value, type.Any)));
 
     listAdd.addAsts(ast.block(
@@ -1258,8 +1252,6 @@ Brain::Brain() :
         ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1))),
         ast.setMember(ast.cell(dimensions.size), ast.add(ast.getMember(ast.cell(dimensions.size)), ast.cell(pools.numbers.get(1))))));
 
-    listSize.addInputs(list(
-        ast.parameterDecl(coding.self, type.List)));
     listSize.addOutputs(list(
         ast.parameterDecl(coding.value, type.Any)));
     listSize.addAsts(ast.block(
@@ -1285,8 +1277,9 @@ Brain::Brain() :
     methodData.set(coding.static_, boolean.false_);
     methodData.set(coding.const_, boolean.false_);
 #endif
-    type.List.addMethod(sequence.add, listAdd.compile());
-    type.List.addMethod(dimensions.size, listSize.compile());
+    type.List.addMethod(cells.constructor, listCtor.compile(type.List));
+    type.List.addMethod(sequence.add, listAdd.compile(type.List));
+    type.List.addMethod(dimensions.size, listSize.compile(type.List));
 
     CellTemplate testTemplate(*this);
     testTemplate.type(type.Type_);

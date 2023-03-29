@@ -1832,11 +1832,6 @@ CellI& Function::getOrCreateVar(CellI& role, CellI& type)
     return m_localVars.m_index[role];
 }
 
-CellI& Function::getInput(CellI& role)
-{
-    return m_inputs->m_index[role];
-}
-
 #pragma endregion
 #pragma region Delete
 // ============================================================================

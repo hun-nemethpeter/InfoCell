@@ -340,8 +340,6 @@ public:
         void addOutputs(List& output);
         void addAsts(Block& ast);
         void toMethod(Type& type);
-        CellI& inputType();
-        CellI& outputType();
         CellI& compile();
         CellI& compile(CellI& type);
 
@@ -696,9 +694,6 @@ public:
     Visualization visualization;
     Numbers numbers;
     Arc arc;
-
-    Ast::Function listAdd;
-    Ast::Function listSize;
 
     CellI& toKbBool(bool value);
 

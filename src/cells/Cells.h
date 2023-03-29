@@ -700,7 +700,6 @@ public:
     void addInputs(Map& input);
     void addOutputs(Map& output);
     CellI& getOrCreateVar(CellI& role, CellI& type);
-    CellI& getInput(CellI& role);
 
 protected:
     Map* m_inputs  = nullptr;
