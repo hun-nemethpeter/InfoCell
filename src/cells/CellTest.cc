@@ -83,6 +83,89 @@ protected:
 };
 std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
+TEST_F(CellTest, CallMethod)
+{
+    Object list(kb, kb.type.List);
+
+    CellI& _0_ = kb.pools.numbers.get(0);
+    CellI& _1_ = kb.pools.numbers.get(1);
+    CellI& _2_ = kb.pools.numbers.get(2);
+    CellI& _3_ = kb.pools.numbers.get(3);
+
+    list.set(kb.dimensions.size, kb.pools.numbers.get(0)); // TODO constructor
+    list.set(kb.coding.objectType, kb.type.Number); // TODO constructor
+    // list.constructor();
+    printAs.value(list);
+    EXPECT_EQ(&list[kb.dimensions.size], &_0_);
+
+    list.method(kb.sequence.add, { kb.coding.value, _1_ });
+    EXPECT_EQ(&list[kb.dimensions.size], &_1_);
+
+    CellI& firstItem = list[kb.sequence.first];
+    EXPECT_EQ(&firstItem, &list[kb.sequence.last]);
+    EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
+    EXPECT_EQ(firstItem.has(kb.sequence.next), false);
+    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+    printAs.value(list);
+
+    list.method(kb.sequence.add, { kb.coding.value, kb.pools.numbers.get(2) });
+    EXPECT_EQ(&list[kb.dimensions.size], &_2_);
+
+    CellI& secondItem = list[kb.sequence.last];
+    EXPECT_EQ(&firstItem, &list[kb.sequence.first]);
+    EXPECT_NE(&firstItem, &list[kb.sequence.last]);
+
+    EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
+    EXPECT_EQ(&firstItem[kb.sequence.next], &secondItem);
+    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+
+    EXPECT_EQ(&secondItem[kb.sequence.previous], &firstItem);
+    EXPECT_EQ(secondItem.has(kb.sequence.next), false);
+    EXPECT_EQ(&secondItem[kb.coding.value], &_2_);
+
+
+    printAs.value(list);
+    list.method(kb.sequence.add, { kb.coding.value, _3_ });
+    EXPECT_EQ(&list[kb.dimensions.size], &_3_);
+    printAs.value(list);
+    CellI& size = list.method(kb.dimensions.size);
+    printAs.value(size);
+}
+
+TEST_F(CellTest, CreatingListAdd)
+{
+    Object testList(kb, kb.type.ListOf(kb.type.Number));
+    testList.set(kb.dimensions.size, kb.pools.numbers.get(0));
+    testList.set(kb.coding.objectType, kb.type.Number);
+    printAs.cell(testList.type(), "1");
+    printAs.cell(testList.type()[kb.cells.memberOf], "2");
+    printAs.cell(testList.type()[kb.cells.memberOf][kb.cells.index], "3");
+    printAs.value(testList[kb.cells.type][kb.cells.subTypes][kb.cells.index][kb.coding.objectType], "testList::objectType");
+
+    Object listAddInput(kb, kb.listAdd.inputType());
+    printAs.value(listAddInput, "listAddInput");
+    listAddInput.set(kb.coding.value, kb.pools.numbers.get(255));
+    printAs.cell(listAddInput, "listAddInput set");
+
+    CellI& listAddCompiled = kb.listAdd.compile();
+    printAs.cell(listAddCompiled, "listAddCompiled");
+    printAs.value(listAddCompiled[kb.coding.input][kb.cells.index], "listAddCompiled.input.index");
+    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.self].set(kb.coding.value, testList);
+    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, kb.pools.numbers.get(1));
+    printAs.value(testList, "testList");
+    printAs.cell(testList, "testList");
+    listAddCompiled.eval();
+    printAs.value(testList, "testList after add1");
+    printAs.cell(testList, "testList after add1");
+    printAs.cell(testList[kb.sequence.first], "testList[first] after add1");
+    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, kb.pools.numbers.get(2));
+    listAddCompiled.eval();
+    printAs.value(testList, "testList after add2");
+    printAs.cell(testList, "testList after add2");
+    printAs.cell(testList[kb.sequence.first], "testList[first] after add2");
+    printAs.cell(testList[kb.sequence.last], "testList[last] after add2");
+}
+
 TEST_F(CellTest, HybridPicture)
 {
     input::Picture inputPicture("input");
@@ -209,39 +292,6 @@ TEST_F(CellTest, CreatingTemplate)
     printAs.value(templateListType[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
 }
 
-TEST_F(CellTest, CreatingListAdd)
-{
-    Object testList(kb, kb.type.ListOf(kb.type.Number));
-    testList.set(kb.dimensions.size, kb.pools.numbers.get(0));
-    testList.set(kb.coding.objectType, kb.type.Number);
-    printAs.cell(testList.type(), "1");
-    printAs.cell(testList.type()[kb.cells.memberOf], "2");
-    printAs.cell(testList.type()[kb.cells.memberOf][kb.cells.index], "3");
-    printAs.value(testList[kb.cells.type][kb.cells.subTypes][kb.cells.index][kb.coding.objectType], "testList::objectType");
-
-    Object listAddInput(kb, kb.listAdd.inputType());
-    printAs.value(listAddInput, "listAddInput");
-    listAddInput.set(kb.coding.value, kb.pools.numbers.get(255));
-    printAs.cell(listAddInput, "listAddInput set");
-    CellI& listAddCompiled = kb.listAdd.compile();
-    printAs.cell(listAddCompiled, "listAddCompiled");
-    printAs.value(listAddCompiled[kb.coding.input][kb.cells.index], "listAddCompiled.input.index");
-    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.self].set(kb.coding.value, testList);
-    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, kb.pools.numbers.get(1));
-    printAs.value(testList, "testList");
-    printAs.cell(testList, "testList");
-    listAddCompiled.eval();
-    printAs.value(testList, "testList after add1");
-    printAs.cell(testList, "testList after add1");
-    printAs.cell(testList[kb.sequence.first], "testList[first] after add1");
-    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, kb.pools.numbers.get(2));
-    listAddCompiled.eval();
-    printAs.value(testList, "testList after add2");
-    printAs.cell(testList, "testList after add2");
-    printAs.cell(testList[kb.sequence.first], "testList[first] after add2");
-    printAs.cell(testList[kb.sequence.last], "testList[last] after add2");
-}
-
 TEST_F(CellTest, CreatingNumber)
 {
     Number& number_0   = kb.pools.numbers.get(0);
@@ -274,5 +324,6 @@ int main(int argc, char** argv)
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;
+
     return ret;
 }

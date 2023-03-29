@@ -81,7 +81,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     }
 
-    if (cell.type()[kb.cells.memberOf][kb.cells.index].has(kb.type.List)) {
+    if (cell.type()[kb.cells.memberOf][kb.cells.index].has(kb.type.List) || &cell.type() == &kb.type.List) {
         m_ss << "[";
         visitList(cell, [this](CellI& value, int i) {
             if (i != 0) {

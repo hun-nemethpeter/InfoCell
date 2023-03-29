@@ -149,6 +149,73 @@ void Object::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
+
+void Object::constructor()
+{
+    getConstructor()();
+}
+
+void Object::destructor()
+{
+    getMethod(kb.cells.destructor)();
+}
+
+CellI& Object::method(CellI& role)
+{
+    CellI& method = getMethod(role);
+    method();
+
+    return getFnValue(method);
+}
+
+CellI& Object::getConstructor()
+{
+    return getMethod(kb.cells.constructor);
+}
+
+CellI& Object::getMethod(CellI& role)
+{
+    if (type().has(kb.cells.methods)) {
+        CellI& methodsIndex = type()[kb.cells.methods][kb.cells.index];
+        if (methodsIndex.has(role)) {
+            CellI& method = methodsIndex[role];
+            setSelf(method);
+            return method;
+        }
+    }
+
+    throw "No such method!";
+}
+
+CellI& Object::getFnValue(CellI& fn)
+{
+    if (fn.has(kb.coding.output)) {
+        CellI& outputsIndex = fn[kb.coding.output][kb.cells.index];
+        if (outputsIndex.has(kb.coding.value)) {
+            return outputsIndex[kb.coding.value][kb.coding.value];
+        }
+    }
+
+    return kb.cells.emptyObject;
+}
+
+void Object::setSelf(CellI& fn)
+{
+    setFnParam(fn, { kb.coding.self, *this });
+}
+
+void Object::setFnParam(CellI& fn, Param param)
+{
+    if (fn.has(kb.coding.input)) {
+        CellI& inputsIndex = fn[kb.coding.input][kb.cells.index];
+        if (inputsIndex.has(param.role)) {
+            inputsIndex[param.role].set(kb.coding.value, param.value);
+        } else {
+            throw "No such param!";
+        }
+    }
+}
+
 #pragma endregion
 #pragma region List::Item
 // ============================================================================
@@ -1769,7 +1836,6 @@ CellI& Function::getInput(CellI& role)
 {
     return m_inputs->m_index[role];
 }
-
 
 #pragma endregion
 #pragma region Delete

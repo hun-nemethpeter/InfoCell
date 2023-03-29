@@ -39,6 +39,8 @@ public:
     virtual void operator()()                   = 0;
     virtual CellI& operator[](CellI& role)      = 0;
     virtual void accept(Visitor& visitor)       = 0;
+    CellI& call(CellI& method);
+    CellI& call(CellI& method, CellI& param1Role, CellI& param1Value);
 
     CellI& get(CellI& role);
     CellI& type();
@@ -57,6 +59,15 @@ public:
     static int s_destructed;
 };
 
+struct Param
+{
+    Param(CellI& role, CellI& value) :
+        role(role), value(value) { }
+
+    CellI& role;
+    CellI& value;
+};
+
 // ============================================================================
 class Object : public CellI
 {
@@ -69,7 +80,51 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
+    void constructor();
+
+    template <typename... Args>
+    void constructor(Param& param, Args&&... args)
+    {
+        CellI& method = getConstructor();
+        setFnParam(method, param);
+        if constexpr (sizeof...(Args) > 0) {
+            setFnParam(method, std::forward<Args>(args)...);
+        }
+        method();
+    }
+
+    void destructor();
+
+    CellI& method(CellI& role);
+
+    template <typename... Args>
+    CellI& method(CellI& role, Param param, Args&&... args)
+    {
+        CellI& method = getMethod(role);
+        setFnParam(method, param);
+        if constexpr (sizeof...(Args) > 0) {
+            setFnParam(method, std::forward<Args>(args)...);
+        }
+        method();
+
+        return getFnValue(method);
+    }
+
 protected:
+    CellI& getConstructor();
+    CellI& getMethod(CellI& role);
+    CellI& getFnValue(CellI& fn);
+
+    void setSelf(CellI& fn);
+    void setFnParam(CellI& fn, Param param);
+
+    template <typename... Args>
+    void setFnParam(CellI& fn, Param param, Args&&... args)
+    {
+        setFnParam(fn, param);
+        setFnParam(fn, std::forward<Args>(args)...);
+    }
+
     CellI& m_type;
     std::map<CellI*, CellI*> m_slots;
 };

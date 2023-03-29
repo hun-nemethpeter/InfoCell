@@ -80,6 +80,7 @@ public:
     Type ParameterDecl;
     Type Cell;
     Type Self;
+    Type SelfFn;
 
     Type Block;
     Type Function;
@@ -160,6 +161,8 @@ public:
 
     brain::Brain& kb;
     Object type;
+    Object constructor;
+    Object destructor;
     Object slots;
     Object slotType;
     Object slotRole;
@@ -306,6 +309,11 @@ public:
     {
     public:
         Self(brain::Brain& kb);
+    };
+    class SelfFn : public BaseT<SelfFn>
+    {
+    public:
+        SelfFn(brain::Brain& kb);
     };
     class Parameter : public BaseT<Parameter>
     {
@@ -473,6 +481,8 @@ public:
 
     Cell& cell(CellI& value);
     Self& self();
+    SelfFn& selfFn();
+    Set& return_(Base& value);
     Parameter& parameter(CellI& role);
     ParameterDecl& parameterDecl(CellI& role, CellI& type);
     Has& hasMember(Base& role);
@@ -688,6 +698,7 @@ public:
     Arc arc;
 
     Ast::Function listAdd;
+    Ast::Function listSize;
 
     CellI& toKbBool(bool value);
 
