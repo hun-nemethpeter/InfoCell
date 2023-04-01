@@ -73,7 +73,7 @@ public:
     void constructor();
 
     template <typename... Args>
-    void constructor(Param& param, Args&&... args)
+    void constructor(Param param, Args&&... args)
     {
         CellI& method = getConstructor();
         setFnParam(method, param);

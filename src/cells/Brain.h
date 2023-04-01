@@ -3,6 +3,79 @@
 
 namespace synth {
 namespace cells {
+namespace brain {
+
+class Cells
+{
+public:
+    Cells(brain::Brain& kb);
+    cells::CellI& slot(cells::CellI& role, cells::CellI& type);
+
+    brain::Brain& kb;
+    Object type;
+    Object constructor;
+    Object destructor;
+    Object slots;
+    Object slotType;
+    Object slotRole;
+    Object subTypes;
+    Object index;
+    Object list;
+    Object memberOf;
+    Object methods;
+    Object emptyObject;
+};
+
+class Sequence
+{
+public:
+    Sequence(brain::Brain& kb);
+    Object first;
+    Object last;
+    Object previous;
+    Object next;
+    Object current;
+    Object add;
+};
+
+class Dimensions
+{
+public:
+    Dimensions(brain::Brain& kb);
+    Object width;
+    Object height;
+    Object size;
+};
+
+class Coding
+{
+public:
+    Coding(brain::Brain& kb);
+    Object argument;
+    Object ast;
+    Object branch;
+    Object cell;
+    Object condition;
+    Object container;
+    Object else_;
+    Object input;
+    Object item;
+    Object label;
+    Object lhs;
+    Object objectType;
+    Object op;
+    Object output;
+    Object parameter;
+    Object parameters;
+    Object result;
+    Object rhs;
+    Object role;
+    Object self;
+    Object statement;
+    Object template_;
+    Object then;
+    Object value;
+};
 
 template <typename T>
 class NewT
@@ -15,7 +88,6 @@ public:
     }
 };
 
-namespace brain {
 namespace type {
 
 class Op
@@ -135,57 +207,6 @@ public:
 
     type::Op op;
     type::Ast ast;
-};
-
-class Cells
-{
-public:
-    Cells(brain::Brain& kb);
-    cells::CellI& slot(cells::CellI& role, cells::CellI& type);
-
-    brain::Brain& kb;
-    Object type;
-    Object constructor;
-    Object destructor;
-    Object slots;
-    Object slotType;
-    Object slotRole;
-    Object subTypes;
-    Object index;
-    Object list;
-    Object memberOf;
-    Object methods;
-    Object emptyObject;
-};
-
-class Coding
-{
-public:
-    Coding(brain::Brain& kb, Type& anyType);
-    Object argument;
-    Object ast;
-    Object branch;
-    Object cell;
-    Object condition;
-    Object container;
-    Object else_;
-    Object input;
-    Object item;
-    Object label;
-    Object lhs;
-    Object objectType;
-    Object op;
-    Object output;
-    Object parameter;
-    Object parameters;
-    Object result;
-    Object rhs;
-    Object role;
-    Object self;
-    Object statement;
-    Object template_;
-    Object then;
-    Object value;
 };
 
 class Ast
@@ -430,30 +451,10 @@ protected:
     brain::Brain& kb;
 };
 
-class Sequence
-{
-public:
-    Sequence(brain::Brain& kb);
-    Object first;
-    Object last;
-    Object previous;
-    Object next;
-    Object current;
-    Object add;
-};
-
-class Equation
-{
-public:
-    Equation(brain::Brain& kb, Type& anyType);
-    Object lhs;
-    Object rhs;
-};
-
 class Directions
 {
 public:
-    Directions(brain::Brain& kb, Type& anyType);
+    Directions(brain::Brain& kb);
     Object up;
     Object down;
     Object left;
@@ -463,7 +464,7 @@ public:
 class Coordinates
 {
 public:
-    Coordinates(brain::Brain& kb, Type& anyType);
+    Coordinates(brain::Brain& kb);
     Object x;
     Object y;
 };
@@ -471,7 +472,7 @@ public:
 class Colors
 {
 public:
-    Colors(brain::Brain& kb, Type& anyType);
+    Colors(brain::Brain& kb);
     Object red;
     Object green;
     Object blue;
@@ -485,19 +486,10 @@ public:
     Object false_;
 };
 
-class Dimensions
-{
-public:
-    Dimensions(brain::Brain& kb, Type& anyType);
-    Object width;
-    Object height;
-    Object size;
-};
-
 class Visualization
 {
 public:
-    Visualization(brain::Brain& kb, Type& anyType);
+    Visualization(brain::Brain& kb);
     Object color;
     Object pixels;
 };
@@ -505,7 +497,7 @@ public:
 class Numbers
 {
 public:
-    Numbers(brain::Brain& kb, Type& anyType);
+    Numbers(brain::Brain& kb);
     Map sign;
     Object positive;
     Object negative;
@@ -516,22 +508,19 @@ namespace pools {
 class Chars
 {
 public:
-    Chars(brain::Brain& kb, Type& charType, Object& emptyObject);
+    Chars(brain::Brain& kb);
     Object& get(char32_t utf32Char);
-    Type& type();
 
 protected:
     void registerUnicodeBlock(char32_t from, char32_t to);
     std::map<char32_t, Object> s_characters;
-    Type& m_charType;
-    Object& m_emptyObject;
-    brain::Brain& m_kb;
+    brain::Brain& kb;
 };
 
 class Digits
 {
 public:
-    Digits(brain::Brain& kb, Type& digit);
+    Digits(brain::Brain& kb);
     Object& operator[](int digit);
 
 protected:
@@ -554,7 +543,7 @@ protected:
 class Pools
 {
 public:
-    Pools(brain::Brain& kb, Type& charType, Object& emptyObject, Type& digit);
+    Pools(brain::Brain& kb);
     pools::Chars chars;
     pools::Digits digits;
     pools::Numbers numbers;
@@ -587,17 +576,16 @@ protected:
 public:
     Brain();
     Cells cells;
+    Sequence sequence;
+    Dimensions dimensions;
+    Coding coding;
     Types type;
     Pools pools;
-    Coding coding;
     Ast ast;
-    Sequence sequence;
-    Equation equation;
     Directions directions;
     Coordinates coordinates;
     Colors colors;
     Boolean boolean;
-    Dimensions dimensions;
     Visualization visualization;
     Numbers numbers;
     Arc arc;

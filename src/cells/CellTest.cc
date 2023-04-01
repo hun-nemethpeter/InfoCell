@@ -146,6 +146,15 @@ TEST_F(CellTest, CallMethod)
     printAs.value(size);
 }
 
+TEST_F(CellTest, CreatetTypeWithConstructor)
+{
+    Object newType(kb, kb.type.Type_);
+    newType.constructor({ cells.slots, kb.map(kb.sequence.previous, kb.cells.slot(kb.sequence.previous, kb.type.ListItem)) });
+//    newType.constructor({ cells.slots, kb.list(kb.cells.slot(kb.sequence.previous, kb.type.ListItem)) });
+
+    printAs.cell(newType);
+}
+
 TEST_F(CellTest, CreatingListAdd)
 {
     Object testList(kb, kb.type.ListOf(kb.type.Number));

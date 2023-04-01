@@ -2069,10 +2069,10 @@ bool Same::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2101,10 +2101,10 @@ CellI& Same::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.Same;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2133,10 +2133,10 @@ bool NotSame::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2165,10 +2165,10 @@ CellI& NotSame::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.NotSame;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2197,10 +2197,10 @@ bool Equal::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2229,10 +2229,10 @@ CellI& Equal::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.Equal;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2261,10 +2261,10 @@ bool NotEqual::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2291,10 +2291,10 @@ CellI& NotEqual::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.NotEqual;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2451,10 +2451,10 @@ bool And::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2483,10 +2483,10 @@ CellI& And::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.And;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2515,10 +2515,10 @@ bool Or::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2547,10 +2547,10 @@ CellI& Or::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.Or;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2634,10 +2634,10 @@ bool Add::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2665,10 +2665,10 @@ CellI& Add::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.Add;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2697,10 +2697,10 @@ bool Subtract::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2729,10 +2729,10 @@ CellI& Subtract::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.Subtract;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2761,10 +2761,10 @@ bool Multiply::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2793,10 +2793,10 @@ CellI& Multiply::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.Multiply;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2825,10 +2825,10 @@ bool Divide::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2857,10 +2857,10 @@ CellI& Divide::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.Divide;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2889,10 +2889,10 @@ bool LessThan::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2921,10 +2921,10 @@ CellI& LessThan::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.LessThan;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
@@ -2953,10 +2953,10 @@ bool GreaterThan::has(CellI& role)
     if (&role == &kb.cells.type) {
         return true;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return true;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2985,10 +2985,10 @@ CellI& GreaterThan::operator[](CellI& role)
     if (&role == &kb.cells.type) {
         return kb.type.op.GreaterThan;
     }
-    if (&role == &kb.equation.lhs) {
+    if (&role == &kb.coding.lhs) {
         return m_lhs;
     }
-    if (&role == &kb.equation.rhs) {
+    if (&role == &kb.coding.rhs) {
         return m_rhs;
     }
     if (&role == &kb.coding.value) {
