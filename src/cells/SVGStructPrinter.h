@@ -30,7 +30,7 @@ public:
     void visit(hybrid::Color& cell) override;
     void visit(hybrid::Pixel& cell) override;
     void visit(hybrid::Picture& cell) override;
-    void visit(control::Function&) override;
+    void visit(op::Function&) override;
 
     void showcaseLastResult(const std::string& caseName);
     std::string print();

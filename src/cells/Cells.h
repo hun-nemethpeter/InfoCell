@@ -12,16 +12,6 @@ namespace synth {
 namespace cells {
 namespace brain {
 class Brain;
-
-namespace templates {
-class ParameterDecl;
-class Slot;
-class CellDescription;
-class Cell;
-class Parameter;
-class TemplateOf;
-class Self;
-} // namespace templates
 } // namespace brain
 
 // ============================================================================
@@ -571,7 +561,7 @@ protected:
 
 } // namespace hybrid
 
-namespace control {
+namespace op {
 // ============================================================================
 class Base : public CellI
 {
@@ -1051,31 +1041,31 @@ public:
     virtual void visit(hybrid::Pixel&)   = 0;
     virtual void visit(hybrid::Picture&) = 0;
 
-    virtual void visit(control::Block&) { }
-    virtual void visit(control::Function&) = 0;
-    virtual void visit(control::Delete&) { }
-    virtual void visit(control::Set&) { }
-    virtual void visit(control::If&) { }
-    virtual void visit(control::Do&) { }
-    virtual void visit(control::While&) { }
-    virtual void visit(control::Ref&) { }
-    virtual void visit(control::Var&) { }
-    virtual void visit(control::New&) { }
-    virtual void visit(control::Same&) { }
-    virtual void visit(control::NotSame&) { }
-    virtual void visit(control::Equal&) { }
-    virtual void visit(control::NotEqual&) { }
-    virtual void visit(control::Has&) { }
-    virtual void visit(control::Get&) { }
-    virtual void visit(control::And&) { }
-    virtual void visit(control::Or&) { }
-    virtual void visit(control::Not&) { }
-    virtual void visit(control::Add&) { }
-    virtual void visit(control::Subtract&) { }
-    virtual void visit(control::Multiply&) { }
-    virtual void visit(control::Divide&) { }
-    virtual void visit(control::LessThan&) { }
-    virtual void visit(control::GreaterThan&) { }
+    virtual void visit(op::Block&) { }
+    virtual void visit(op::Function&) = 0;
+    virtual void visit(op::Delete&) { }
+    virtual void visit(op::Set&) { }
+    virtual void visit(op::If&) { }
+    virtual void visit(op::Do&) { }
+    virtual void visit(op::While&) { }
+    virtual void visit(op::Ref&) { }
+    virtual void visit(op::Var&) { }
+    virtual void visit(op::New&) { }
+    virtual void visit(op::Same&) { }
+    virtual void visit(op::NotSame&) { }
+    virtual void visit(op::Equal&) { }
+    virtual void visit(op::NotEqual&) { }
+    virtual void visit(op::Has&) { }
+    virtual void visit(op::Get&) { }
+    virtual void visit(op::And&) { }
+    virtual void visit(op::Or&) { }
+    virtual void visit(op::Not&) { }
+    virtual void visit(op::Add&) { }
+    virtual void visit(op::Subtract&) { }
+    virtual void visit(op::Multiply&) { }
+    virtual void visit(op::Divide&) { }
+    virtual void visit(op::LessThan&) { }
+    virtual void visit(op::GreaterThan&) { }
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };

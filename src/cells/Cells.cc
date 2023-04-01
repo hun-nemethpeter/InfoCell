@@ -603,7 +603,7 @@ Map::Index::Type::Slots::Slots(brain::Brain& kb, IndexedValues& indexedValues, O
 {
     if (&valueType == &kb.type.Slot) {
         label("Index<Slot>::Map");
-    }else if (&valueType == &kb.type.control.Function) {
+    }else if (&valueType == &kb.type.op.Function) {
         label("Index<Method>::Map");
     } else {
         label(std::format("Index<{}>::Map", valueType.label()));
@@ -657,7 +657,7 @@ Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedVa
 {
     if (&valueType == &kb.type.Slot) {
         label("Index<Slot>");
-    } else if (&valueType == &kb.type.control.Function) {
+    } else if (&valueType == &kb.type.op.Function) {
         label("Index<Method>");
     } else {
         label(std::format("Index<{}>", valueType.label()));
@@ -863,7 +863,7 @@ Type::Type(brain::Brain& kb, const std::string& label) :
     m_slots(kb, kb.type.Slot),
     m_subTypes(kb, kb.type.Type_),
     m_memberOf(kb, kb.type.Type_),
-    m_methods(kb, kb.type.control.Function)
+    m_methods(kb, kb.type.op.Function)
 {
 }
 
@@ -1417,7 +1417,7 @@ int Picture::height() const
 }
 #pragma endregion
 } // namespace hybrid
-namespace control {
+namespace op {
 #pragma region Base
 // ============================================================================
 Base::Base(brain::Brain& kb, const std::string& label) :
@@ -1460,7 +1460,7 @@ void Block::operator()()
 CellI& Block::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Block;
+        return kb.type.op.Block;
     }
     if (&role == &kb.coding.value) {
         return m_list;
@@ -1478,7 +1478,7 @@ void Block::accept(Visitor& visitor)
 // ============================================================================
 Function::Function(brain::Brain& kb, const std::string& label) :
     Base(kb, label),
-    m_localVars(kb, kb.type.control.Var)
+    m_localVars(kb, kb.type.op.Var)
 {
 }
 
@@ -1522,7 +1522,7 @@ void Function::operator()()
 CellI& Function::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Function;
+        return kb.type.op.Function;
     }
     if (&role == &kb.coding.input && m_inputs) {
         return *m_inputs;
@@ -1595,7 +1595,7 @@ void Delete::operator()()
 CellI& Delete::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Delete;
+        return kb.type.op.Delete;
     }
     if (&role == &kb.coding.input && m_cell) {
         return *m_cell;
@@ -1657,7 +1657,7 @@ void Set::operator()()
 CellI& Set::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Set;
+        return kb.type.op.Set;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -1732,7 +1732,7 @@ void If::operator()()
 CellI& If::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.If;
+        return kb.type.op.If;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -1806,7 +1806,7 @@ void Do::operator()()
 CellI& Do::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Do;
+        return kb.type.op.Do;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -1864,7 +1864,7 @@ void While::operator()()
 CellI& While::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.While;
+        return kb.type.op.While;
     }
     if (&role == &kb.coding.condition && m_condition) {
         return *m_condition;
@@ -1919,7 +1919,7 @@ void Ref::operator()()
 CellI& Ref::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Ref;
+        return kb.type.op.Ref;
     }
     if (&role == &kb.coding.value && m_value) {
         return *m_value;
@@ -1974,7 +1974,7 @@ void Var::operator()()
 CellI& Var::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Var;
+        return kb.type.op.Var;
     }
     if (&role == &kb.coding.value && m_value) {
         return *m_value;
@@ -2038,7 +2038,7 @@ void New::operator()()
 CellI& New::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.New;
+        return kb.type.op.New;
     }
     if (&role == &kb.coding.value && m_value) {
         return *m_value;
@@ -2099,7 +2099,7 @@ void Same::operator()()
 CellI& Same::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Same;
+        return kb.type.op.Same;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2163,7 +2163,7 @@ void NotSame::operator()()
 CellI& NotSame::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.NotSame;
+        return kb.type.op.NotSame;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2227,7 +2227,7 @@ void Equal::operator()()
 CellI& Equal::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Equal;
+        return kb.type.op.Equal;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2289,7 +2289,7 @@ void NotEqual::operator()()
 CellI& NotEqual::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.NotEqual;
+        return kb.type.op.NotEqual;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2353,7 +2353,7 @@ void Has::operator()()
 CellI& Has::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Has;
+        return kb.type.op.Has;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -2417,7 +2417,7 @@ void Get::operator()()
 CellI& Get::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Get;
+        return kb.type.op.Get;
     }
     if (&role == &kb.coding.cell) {
         return m_cell;
@@ -2481,7 +2481,7 @@ void And::operator()()
 CellI& And::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.And;
+        return kb.type.op.And;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2545,7 +2545,7 @@ void Or::operator()()
 CellI& Or::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Or;
+        return kb.type.op.Or;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2603,7 +2603,7 @@ void Not::operator()()
 CellI& Not::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Not;
+        return kb.type.op.Not;
     }
     if (&role == &kb.coding.input) {
         return m_input;
@@ -2663,7 +2663,7 @@ void Add::operator()()
 CellI& Add::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Add;
+        return kb.type.op.Add;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2727,7 +2727,7 @@ void Subtract::operator()()
 CellI& Subtract::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Subtract;
+        return kb.type.op.Subtract;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2791,7 +2791,7 @@ void Multiply::operator()()
 CellI& Multiply::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Multiply;
+        return kb.type.op.Multiply;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2855,7 +2855,7 @@ void Divide::operator()()
 CellI& Divide::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.Divide;
+        return kb.type.op.Divide;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2919,7 +2919,7 @@ void LessThan::operator()()
 CellI& LessThan::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.LessThan;
+        return kb.type.op.LessThan;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;
@@ -2983,7 +2983,7 @@ void GreaterThan::operator()()
 CellI& GreaterThan::operator[](CellI& role)
 {
     if (&role == &kb.cells.type) {
-        return kb.type.control.GreaterThan;
+        return kb.type.op.GreaterThan;
     }
     if (&role == &kb.equation.lhs) {
         return m_lhs;

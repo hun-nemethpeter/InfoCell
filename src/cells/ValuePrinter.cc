@@ -159,7 +159,7 @@ void CellValuePrinter::visit(hybrid::Picture& cell)
     m_ss << "(Picture)" << cell.label() << "[" << cell.width() << ", " << cell.height() << "]";
 }
 
-void CellValuePrinter::visit(control::Function& cell)
+void CellValuePrinter::visit(op::Function& cell)
 {
     printImpl(cell);
 }

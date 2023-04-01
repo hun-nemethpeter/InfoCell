@@ -107,7 +107,7 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(control::Function& cell)
+void CellStructPrinter::visit(op::Function& cell)
 {
     printImpl(cell);
 }

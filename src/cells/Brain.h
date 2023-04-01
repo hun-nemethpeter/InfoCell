@@ -18,10 +18,10 @@ public:
 namespace brain {
 namespace type {
 
-class Control
+class Op
 {
 public:
-    Control(brain::Brain& kb);
+    Op(brain::Brain& kb);
 
     Type Base;
     Type Block;
@@ -116,6 +116,7 @@ protected:
 
 public:
     Type Type_;
+    Type Cell;
     Type Slot;
     Type Container;
     Type Iterator;
@@ -123,8 +124,6 @@ public:
     Type ListItem;
     Type Map;
     Type Index;
-    Type Void;
-    Type Any;
     Type Boolean;
     Type Char;
     Type Digit;
@@ -133,16 +132,15 @@ public:
     Type Color;
     Type Pixel;
     Type Picture;
-    Type Template;
 
-    type::Control control;
+    type::Op op;
     type::Ast ast;
 };
 
 class Cells
 {
 public:
-    Cells(brain::Brain& kb, Type& voidType, Type& anyType);
+    Cells(brain::Brain& kb);
     cells::CellI& slot(cells::CellI& role, cells::CellI& type);
 
     brain::Brain& kb;
@@ -255,8 +253,8 @@ public:
 
     protected:
         CellI& compileImpl(CellI* type);
-        void compileParams(cells::control::Function& function, CellI* type);
-        CellI& compileAst(CellI& ast, cells::control::Function& function, CellI* type);
+        void compileParams(cells::op::Function& function, CellI* type);
+        CellI& compileAst(CellI& ast, cells::op::Function& function, CellI* type);
         List& inputs();
         List& outputs();
         Block& asts();

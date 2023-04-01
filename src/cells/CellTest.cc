@@ -65,7 +65,7 @@ public:
     svg::StructPrinter m_svgStructPrinter;
 };
 
-using namespace control;
+using namespace op;
 
 class CellTest : public ::testing::Test
 {
@@ -94,7 +94,7 @@ TEST_F(CellTest, CallMethod)
     list.constructor();
     printAs.value(list);
     EXPECT_EQ(&list[kb.dimensions.size], &_0_);
-    EXPECT_EQ(&list[kb.coding.objectType], &kb.type.Any);
+    EXPECT_EQ(&list[kb.coding.objectType], &kb.type.Cell);
 
     list.method(kb.sequence.add, { kb.coding.value, _1_ });
     EXPECT_EQ(&list[kb.dimensions.size], &_1_);
@@ -240,9 +240,9 @@ TEST_F(CellTest, BasicControlAddTest)
 
 TEST_F(CellTest, CreatingCustomType)
 {
-    Object colorRed(kb, kb.type.Any, "red");
-    Object colorGreen(kb, kb.type.Any, "green");
-    Object colorBlue(kb, kb.type.Any, "blue");
+    Object colorRed(kb, kb.type.Cell, "red");
+    Object colorGreen(kb, kb.type.Cell, "green");
+    Object colorBlue(kb, kb.type.Cell, "blue");
 
     Type colorClass(kb, "Color");
     colorClass.addSlots(
