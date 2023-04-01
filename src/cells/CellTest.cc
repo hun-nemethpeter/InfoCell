@@ -291,17 +291,6 @@ TEST_F(CellTest, CreatingCustomType)
     printAs.svg(colorClass);
 }
 
-TEST_F(CellTest, CreatingTemplate)
-{
-    CellI& templateListParamType = kb.templates.list.getParamType();
-    Object templateListParam(kb, templateListParamType);
-    templateListParam.set(kb.coding.objectType, kb.type.Digit);
-    CellI& templateListType = kb.templates.list.compile(templateListParam);
-    printAs.value(templateListType, "compiled templateListType");
-    printAs.cell(templateListType);
-    printAs.value(templateListType[kb.cells.subTypes][kb.cells.index][kb.coding.objectType]);
-}
-
 TEST_F(CellTest, CreatingNumber)
 {
     Number& number_0   = kb.pools.numbers.get(0);

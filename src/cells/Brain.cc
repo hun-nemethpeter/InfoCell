@@ -7,17 +7,6 @@ namespace synth {
 namespace cells {
 namespace brain {
 namespace type {
-Template::Template(brain::Brain& kb) :
-    ParameterDecl(kb, "ParameterDecl"),
-    Slot(kb, "Slot"),
-    Descriptor(kb, "Descriptor"),
-    Cell(kb, "Cell"),
-    Parameter(kb, "Parameter"),
-    TemplateOf(kb, "Template"),
-    Self(kb, "Self")
-{
-}
-
 Control::Control(brain::Brain& kb) :
     Base(kb, "control::Base"),
     Block(kb, "control::Block"),
@@ -110,7 +99,6 @@ Types::Types(brain::Brain& kb) :
     Pixel(kb, "Pixel"),
     Picture(kb, "Picture"),
     Template(kb, "Template"),
-    template_(kb),
     control(kb),
     ast(kb)
 {
@@ -219,89 +207,6 @@ Coding::Coding(brain::Brain& kb, Type& anyType) :
     then(kb, anyType, "then"),
     value(kb, anyType, "value")
 {
-}
-
-namespace templates {
-CellDescription::CellDescription(brain::Brain& kb, CellI& classCell, const std::string& label) :
-    Object(kb, classCell, label)
-{
-}
-
-ParameterDecl::ParameterDecl(brain::Brain& kb, CellI& role, CellI& type) :
-    Object(kb, kb.type.template_.ParameterDecl)
-{
-    set(kb.cells.slotRole, role);
-    set(kb.cells.slotType, type);
-}
-
-Slot::Slot(brain::Brain& kb, templates::CellDescription& role, templates::CellDescription& type) :
-    Object(kb, kb.type.template_.Slot)
-{
-    set(kb.cells.slotRole, role);
-    set(kb.cells.slotType, type);
-}
-
-Cell::Cell(brain::Brain& kb, CellI& cell) :
-    CellDescriptionT<Cell>(kb, kb.type.template_.Cell)
-{
-    set(kb.coding.value, cell);
-}
-
-Parameter::Parameter(brain::Brain& kb, CellI& paramRole) :
-    CellDescriptionT<Parameter>(kb, kb.type.template_.Parameter)
-{
-    set(kb.coding.value, paramRole);
-}
-
-TemplateOf::TemplateOf(brain::Brain& kb, Template& templateOf, CellDescription& paramDescription, CellDescription& valueDescription) :
-    CellDescriptionT<TemplateOf>(kb, kb.type.template_.TemplateOf)
-{
-    set(kb.coding.template_, templateOf);
-    set(kb.coding.parameter, paramDescription);
-    set(kb.coding.value, valueDescription);
-}
-
-Self::Self(brain::Brain& kb) :
-    CellDescriptionT<Self>(kb, kb.type.template_.Self)
-{
-}
-
-} // namespace templates
-
-Templates::Templates(brain::Brain& kb) :
-    kb(kb),
-    list(kb, kb.type.Type_, "List")
-{
-}
-
-templates::ParameterDecl& Templates::parameterDecl(CellI& role, CellI& type)
-{
-    return templates::ParameterDecl::New(kb, role, type);
-}
-
-templates::Slot& Templates::slot(templates::CellDescription& role, templates::CellDescription& type)
-{
-    return templates::Slot::New(kb, role, type);
-}
-
-templates::Cell& Templates::cell(CellI& cell)
-{
-    return templates::Cell::New(kb, cell);
-}
-
-templates::Parameter& Templates::parameter(CellI& paramRole)
-{
-    return templates::Parameter::New(kb, paramRole);
-}
-
-templates::TemplateOf& Templates::templateOf(Template& templateOf, templates::CellDescription& paramDescription, templates::CellDescription& valueDescription)
-{
-    return templates::TemplateOf::New(kb, templateOf, paramDescription, valueDescription);
-}
-
-templates::Self& Templates::self()
-{
-    return templates::Self::New(kb);
 }
 
 // ============================================================================
@@ -1027,7 +932,6 @@ Brain::Brain() :
     type(*this),
     coding(*this, type.Any),
     pools(*this, type.Char, cells.emptyObject, type.Digit),
-    templates(*this),
     ast(*this),
     sequence(*this),
     equation(*this, type.Any),
@@ -1046,55 +950,6 @@ Brain::Brain() :
         cells.slot(cells.memberOf, type.MapOf(type.Type_)),
         cells.slot(cells.methods, type.MapOf(type.control.Function)));
 
-    type.template_.ParameterDecl.addSlots(
-        cells.slot(cells.slotType, type.Type_),
-        cells.slot(cells.slotRole, type.Any));
-
-    type.template_.Slot.addSlots(
-        cells.slot(cells.slotType, type.template_.Descriptor),
-        cells.slot(cells.slotRole, type.template_.Descriptor));
-
-    type.template_.Cell.addMembership(
-        type.template_.Descriptor);
-    type.template_.Cell.addSlots(
-        cells.slot(coding.value, type.Any));
-
-    type.template_.Parameter.addMembership(
-        type.template_.Descriptor);
-    type.template_.Parameter.addSlots(
-        cells.slot(coding.value, type.Any));
-
-    type.template_.TemplateOf.addMembership(
-        type.template_.Descriptor);
-    type.template_.TemplateOf.addSlots(
-        cells.slot(coding.template_, type.Template),
-        cells.slot(coding.parameter, type.template_.Descriptor),
-        cells.slot(coding.value, type.template_.Descriptor));
-
-    type.template_.Self.addMembership(
-        type.template_.Descriptor);
-
-    Template& listItem = *new cells::Template(*this, type.Type_, "ListItem");
-    listItem.addParams(
-        templates.parameterDecl(coding.objectType, type.Type_));
-    listItem.addSlots(
-        templates.slot(templates.cell(sequence.previous), templates.self()),
-        templates.slot(templates.cell(sequence.next), templates.self()),
-        templates.slot(templates.cell(coding.value), templates.parameter(coding.objectType)));
-
-    templates.list.addParams(
-        templates.parameterDecl(coding.objectType, type.Type_));
-    templates.list.addSlots(
-        templates.slot(templates.cell(sequence.first), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
-        templates.slot(templates.cell(sequence.last), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
-        templates.slot(templates.cell(coding.objectType), templates.parameter(coding.objectType)),
-        templates.slot(templates.cell(dimensions.size), templates.cell(type.Number)));
-    templates.list.addSubTypes(
-        templates.slot(templates.cell(coding.objectType), templates.cell(listItem)));
-
-    // We should indicate that template.list is a container and it has a first, last, size, objectType member.
-    // And also, that template.list -> item is an iterator prev, next, value
-
     type.ListItem.addSlots(
         cells.slot(sequence.previous, type.ListItem),
         cells.slot(sequence.next, type.ListItem),
@@ -1111,18 +966,6 @@ Brain::Brain() :
         coding.objectType, type.ListItem);
     type.List.addMembership(
         type.Container);
-
-    listItem.addMembership(
-        templates.cell(type.ListItem));
-
-    templates.list.addMembership(
-        templates.cell(type.List));
-
-    type.Template.addSlots(
-        cells.slot(coding.parameters, type.MapOf(type.template_.ParameterDecl)),
-        cells.slot(cells.slots, type.ListOf(type.template_.Slot)),
-        cells.slot(cells.subTypes, type.ListOf(type.template_.Slot)),
-        cells.slot(cells.memberOf, type.ListOf(type.template_.Descriptor)));
 
     type.ast.Ref.addSlots(
         cells.slot(coding.value, type.ast.Base));
@@ -1280,14 +1123,6 @@ Brain::Brain() :
     type.List.addMethod(cells.constructor, listCtor.compile(type.List));
     type.List.addMethod(sequence.add, listAdd.compile(type.List));
     type.List.addMethod(dimensions.size, listSize.compile(type.List));
-
-    CellTemplate testTemplate(*this);
-    testTemplate.type(type.Type_);
-    testTemplate.addParams(map(coding.objectType, type.Type_));
-    testTemplate.addSlots(list(templates.slot(templates.cell(sequence.first), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
-                               templates.slot(templates.cell(sequence.last), templates.templateOf(listItem, templates.cell(coding.objectType), templates.cell(coding.objectType))),
-                               templates.slot(templates.cell(coding.objectType), templates.parameter(coding.objectType)),
-                               templates.slot(templates.cell(dimensions.size), templates.cell(type.Number))));
 
     type.Number.addSlots(
         cells.slot(coding.value, type.ListOf(type.Digit)),
