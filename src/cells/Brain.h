@@ -62,6 +62,7 @@ public:
     Object else_;
     Object input;
     Object item;
+    Object key;
     Object keyType;
     Object label;
     Object lhs;
@@ -139,7 +140,8 @@ public:
     Type Base;
 
     Type Parameter;
-    Type ParameterDecl;
+    Type Slot;
+    Type Call;
     Type Cell;
     Type Self;
     Type SelfFn;
@@ -252,10 +254,19 @@ public:
     public:
         Parameter(brain::Brain& kb, CellI& role);
     };
-    class ParameterDecl : public BaseT<ParameterDecl>
+    class Slot : public BaseT<Slot>
     {
     public:
-        ParameterDecl(brain::Brain& kb, CellI& role, CellI& type);
+        Slot(brain::Brain& kb, CellI& role, CellI& value);
+    };
+    class Call : public BaseT<Call>
+    {
+    public:
+        Call(brain::Brain& kb, CellI& cell, CellI& method);
+        Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1);
+        Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
+        Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
+        Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     };
 
     class Block : public BaseT<Block>
@@ -330,6 +341,10 @@ public:
     {
     public:
         New(brain::Brain& kb, Base& objectType);
+        New(brain::Brain& kb, Base& objectType, Slot& slot1);
+        New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2);
+        New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3);
+        New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     };
     class Same : public BaseT<Same>
     {
@@ -414,7 +429,12 @@ public:
     SelfFn& selfFn();
     Set& return_(Base& value);
     Parameter& parameter(CellI& role);
-    ParameterDecl& parameterDecl(CellI& role, CellI& type);
+    Slot& slot(CellI& role, CellI& type);
+    Call& call(CellI& cell, CellI& method);
+    Call& call(CellI& cell, CellI& method, Slot& slot1);
+    Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
+    Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
+    Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     Has& hasMember(Base& role);
     Get& getMember(Base& role);
     Set& setMember(Base& role, Base& value);
@@ -434,6 +454,10 @@ public:
     Ref& ref(CellI& value);
     Var& var(CellI& role);
     New& new_(Base& objectType);
+    New& new_(Base& objectType, Slot& slot1);
+    New& new_(Base& objectType, Slot& slot1, Slot& slot2);
+    New& new_(Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3);
+    New& new_(Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     Same& same(Base& lhs, Base& rhs);
     NotSame& notSame(Base& lhs, Base& rhs);
     Equal& equal(Base& lhs, Base& rhs);

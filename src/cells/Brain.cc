@@ -53,6 +53,7 @@ Coding::Coding(brain::Brain& kb) :
     else_(kb, kb.type.Cell, "else_"),
     input(kb, kb.type.Cell, "input"),
     item(kb, kb.type.Cell, "item"),
+    key(kb, kb.type.Cell, "key"),
     keyType(kb, kb.type.Cell, "keyType"),
     label(kb, kb.type.Cell, "label"),
     lhs(kb, kb.type.Cell, "lhs"),
@@ -222,7 +223,8 @@ Ast::Ast(brain::Brain& kb) :
     kb(kb),
     Base(kb, "ast::Base"),
     Parameter(kb, "ast::Parameter"),
-    ParameterDecl(kb, "ast::ParameterDecl"),
+    Slot(kb, "ast::Slot"),
+    Call(kb, "ast::Call"),
     Cell(kb, "ast::Cell"),
     Self(kb, "ast::Self"),
     SelfFn(kb, "ast::SelfFn"),
@@ -265,7 +267,8 @@ Ast::Ast(brain::Brain& kb) :
         cells.slot(coding.role, Base));
 
     New.addSlots(
-        cells.slot(coding.objectType, Base));
+        cells.slot(coding.objectType, Base),
+        cells.slot(kb.coding.parameters, kb.type.ListOf(kb.type.ast.Slot)));
 
     Delete.addSlots(
         cells.slot(coding.cell, Base));
@@ -350,20 +353,25 @@ Ast::Ast(brain::Brain& kb) :
     Parameter.addSlots(
         cells.slot(coding.role, type.Cell));
 
-    ParameterDecl.addSlots(
+    Slot.addSlots(
         cells.slot(cells.slotRole, Base),
         cells.slot(cells.slotType, Base));
 
     Cell.addSlots(
         cells.slot(coding.value, type.Cell));
 
+    Call.addSlots(
+        cells.slot(kb.coding.cell, Base),
+        cells.slot(kb.cells.methods, Base),
+        cells.slot(kb.coding.parameters, type.ListOf(Slot)));
+
     Block.addSlots(
         cells.slot(coding.value, type.Cell));
 
     Function.addSlots(
-        cells.slot(coding.input, type.ListOf(ParameterDecl)),
+        cells.slot(coding.input, type.ListOf(Slot)),
         cells.slot(coding.ast, type.ListOf(Base)),
-        cells.slot(coding.output, type.ListOf(ParameterDecl)));
+        cells.slot(coding.output, type.ListOf(Slot)));
 }
 
 } // namespace type
@@ -464,11 +472,50 @@ Ast::Parameter::Parameter(brain::Brain& kb, CellI& role) :
     set(kb.coding.role, role);
 }
 
-Ast::ParameterDecl::ParameterDecl(brain::Brain& kb, CellI& role, CellI& type) :
-    BaseT<ParameterDecl>(kb, kb.type.ast.ParameterDecl)
+Ast::Slot::Slot(brain::Brain& kb, CellI& role, CellI& type) :
+    BaseT<Slot>(kb, kb.type.ast.Slot)
 {
     set(kb.cells.slotRole, role);
     set(kb.cells.slotType, type);
+}
+
+Ast::Call::Call(brain::Brain& kb, CellI& cell, CellI& method) :
+    BaseT<Call>(kb, kb.type.ast.Call)
+{
+    set(kb.coding.cell, cell);
+    set(kb.cells.methods, method);
+}
+
+Ast::Call::Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1) :
+    BaseT<Call>(kb, kb.type.ast.Call)
+{
+    set(kb.coding.cell, cell);
+    set(kb.cells.methods, method);
+    set(kb.coding.parameters, kb.list(slot1));
+}
+
+Ast::Call::Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2) :
+    BaseT<Call>(kb, kb.type.ast.Call)
+{
+    set(kb.coding.cell, cell);
+    set(kb.cells.methods, method);
+    set(kb.coding.parameters, kb.list(slot1, slot2));
+}
+
+Ast::Call::Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3) :
+    BaseT<Call>(kb, kb.type.ast.Call)
+{
+    set(kb.coding.cell, cell);
+    set(kb.cells.methods, method);
+    set(kb.coding.parameters, kb.list(slot1, slot2, slot3));
+}
+
+Ast::Call::Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4) :
+    BaseT<Call>(kb, kb.type.ast.Call)
+{
+    set(kb.coding.cell, cell);
+    set(kb.cells.methods, method);
+    set(kb.coding.parameters, kb.list(slot1, slot2, slot3, slot4));
 }
 
 Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
@@ -615,6 +662,8 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         return *new op::Ref(kb, function.getOrCreateVar(ast[kb.coding.role], kb.type.Cell));
     } else if (&ast.type() == &kb.type.ast.New) {
         return *new op::New(kb, compile(ast[kb.coding.objectType]));
+    } else if (&ast.type() == &kb.type.ast.Call) {
+        return ast; // TODO
     } else if (&ast.type() == &kb.type.ast.And) {
         return *new op::And(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.Or) {
@@ -724,6 +773,34 @@ Ast::New::New(brain::Brain& kb, Base& objectType) :
     BaseT<New>(kb, kb.type.ast.New)
 {
     set(kb.coding.objectType, objectType);
+}
+
+Ast::New::New(brain::Brain& kb, Base& objectType, Slot& slot1) :
+    BaseT<New>(kb, kb.type.ast.New)
+{
+    set(kb.coding.objectType, objectType);
+    set(kb.coding.parameters, kb.list(slot1));
+}
+
+Ast::New::New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2) :
+    BaseT<New>(kb, kb.type.ast.New)
+{
+    set(kb.coding.objectType, objectType);
+    set(kb.coding.parameters, kb.list(slot1, slot2));
+}
+
+Ast::New::New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3) :
+    BaseT<New>(kb, kb.type.ast.New)
+{
+    set(kb.coding.objectType, objectType);
+    set(kb.coding.parameters, kb.list(slot1, slot2, slot3));
+}
+
+Ast::New::New(brain::Brain& kb, Base& objectType, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4) :
+    BaseT<New>(kb, kb.type.ast.New)
+{
+    set(kb.coding.objectType, objectType);
+    set(kb.coding.parameters, kb.list(slot1, slot2, slot3, slot4));
 }
 
 Ast::Same::Same(brain::Brain& kb, Base& lhs, Base& rhs) :
@@ -862,9 +939,34 @@ Ast::Parameter& Ast::parameter(CellI& role)
     return Parameter::New(kb, role);
 }
 
-Ast::ParameterDecl& Ast::parameterDecl(CellI& role, CellI& type)
+Ast::Slot& Ast::slot(CellI& role, CellI& type)
 {
-    return ParameterDecl::New(kb, role, type);
+    return Slot::New(kb, role, type);
+}
+
+Ast::Call& Ast::call(CellI& cell, CellI& method)
+{
+    return Call::New(kb, cell, method);
+}
+
+Ast::Call& Ast::call(CellI& cell, CellI& method, Slot& slot1)
+{
+    return Call::New(kb, cell, method, slot1);
+}
+
+Ast::Call& Ast::call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2)
+{
+    return Call::New(kb, cell, method, slot1, slot2);
+}
+
+Ast::Call& Ast::call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3)
+{
+    return Call::New(kb, cell, method, slot1, slot2, slot3);
+}
+
+Ast::Call& Ast::call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4)
+{
+    return Call::New(kb, cell, method, slot1, slot2, slot3, slot4);
 }
 
 Ast::Has& Ast::hasMember(Base& role)
@@ -935,6 +1037,26 @@ Ast::Var& Ast::var(CellI& role)
 Ast::New& Ast::new_(Base& ast)
 {
     return New::NewT<Ast::New>::New(kb, ast);
+}
+
+Ast::New& Ast::new_(Base& ast, Slot& slot1)
+{
+    return New::NewT<Ast::New>::New(kb, ast, slot1);
+}
+
+Ast::New& Ast::new_(Base& ast, Slot& slot1, Slot& slot2)
+{
+    return New::NewT<Ast::New>::New(kb, ast, slot1, slot2);
+}
+
+Ast::New& Ast::new_(Base& ast, Slot& slot1, Slot& slot2, Slot& slot3)
+{
+    return New::NewT<Ast::New>::New(kb, ast, slot1, slot2, slot3);
+}
+
+Ast::New& Ast::new_(Base& ast, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4)
+{
+    return New::NewT<Ast::New>::New(kb, ast, slot1, slot2, slot3, slot4);
 }
 
 Ast::Same& Ast::same(Base& lhs, Base& rhs)
@@ -1181,7 +1303,7 @@ Brain::Brain() :
         cells.slot(cells.slots, type.MapOf(type.Slot)),
         cells.slot(cells.subTypes, type.MapOf(type.Type_)),
         cells.slot(cells.memberOf, type.MapOf(type.Type_)),
-        cells.slot(cells.methods, type.MapOf(type.op.Function)));
+        cells.slot(cells.methods, type.MapOf(type.ast.Function)));
 
     type.ListItem.addSlots(
         cells.slot(sequence.previous, type.ListItem),
@@ -1209,59 +1331,65 @@ Brain::Brain() :
 
     Ast::Function& mapCtor = *new Ast::Function(*this, "Map::Ctor");
     mapCtor.addInputs(list(
-        ast.parameterDecl(coding.keyType, type.Cell),
-        ast.parameterDecl(coding.objectType, type.Cell)));
+        ast.slot(coding.keyType, type.Cell),
+        ast.slot(coding.objectType, type.Cell)));
     mapCtor.addAsts(ast.block(
         ast.setMember(ast.cell(dimensions.size), ast.cell(_0_)),
         ast.setMember(ast.cell(coding.keyType), ast.parameter(coding.keyType)),
         ast.setMember(ast.cell(coding.objectType), ast.parameter(coding.objectType))));
-    type.Map.addMethod(cells.constructor, mapCtor.compile(type.Map));
+    type.Map.addMethod(cells.constructor, mapCtor);
 
     Ast::Function& mapAdd  = *new Ast::Function(*this, "Map::Add");
     mapAdd.addInputs(list(
-        ast.parameterDecl(coding.keyType, type.Cell),
-        ast.parameterDecl(coding.objectType, type.Cell)));
+        ast.slot(coding.key, type.Cell),
+        ast.slot(coding.value, type.Cell)));
     mapAdd.addAsts(ast.block(
+        ast.if_(ast.equal(ast.getMember(ast.cell(dimensions.size)), ast.cell(_0_)),
+                ast.block(ast.setMember(ast.cell(cells.list), ast.new_(ast.cell(type.List))),
+                          ast.setMember(ast.cell(cells.index), ast.new_(ast.cell(type.Index))),
+                          ast.call(ast.getMember(ast.cell(cells.list)), ast.cell(cells.constructor), ast.slot(ast.cell(coding.objectType), ast.getMember(ast.cell(coding.objectType)))))),
+        ast.call(ast.getMember(ast.cell(cells.list)), ast.cell(sequence.add), ast.slot(ast.cell(coding.value), ast.parameter(coding.value))),
+        ast.set(ast.getMember(ast.cell(cells.index)), ast.parameter(coding.value), ast.get(ast.getMember(ast.cell(cells.list)), ast.cell(sequence.last))),
         ast.setMember(ast.cell(dimensions.size), ast.add(ast.getMember(ast.cell(dimensions.size)), ast.cell(_1_)))));
-    type.Map.addMethod(sequence.add, mapAdd.compile(type.Map));
+    type.Map.addMethod(sequence.add, mapAdd);
 
     Ast::Function& mapSize = *new Ast::Function(*this, "Map::Size");
     mapSize.addOutputs(list(
-        ast.parameterDecl(coding.value, type.Number)));
+        ast.slot(coding.value, type.Number)));
     mapSize.addAsts(ast.block(
         ast.return_(ast.getMember(ast.cell(dimensions.size)))));
-    type.Map.addMethod(dimensions.size, mapSize.compile(type.Map));
+    type.Map.addMethod(dimensions.size, mapSize);
 
     Ast::Function& mapEmpty = *new Ast::Function(*this, "Map::Empty");
     mapEmpty.addOutputs(list(
-        ast.parameterDecl(coding.value, type.Boolean)));
+        ast.slot(coding.value, type.Boolean)));
     mapEmpty.addAsts(ast.block(
         ast.if_(ast.equal(ast.getMember(ast.cell(dimensions.size)), ast.cell(_0_)), ast.return_(ast.cell(boolean.true_)), ast.return_(ast.cell(boolean.false_)))));
-    type.Map.addMethod(sequence.empty, mapEmpty.compile(type.Map));
+    type.Map.addMethod(sequence.empty, mapEmpty);
 
     Ast::Function& typeCtor = *new Ast::Function(*this, "Type::Ctor");
     typeCtor.addInputs(list(
-        ast.parameterDecl(cells.slots, type.ListOf(type.Slot)),
-        ast.parameterDecl(cells.subTypes, type.MapOf(type.Type_)),
-        ast.parameterDecl(cells.memberOf, type.MapOf(type.Type_)),
-        ast.parameterDecl(cells.methods, type.MapOf(type.op.Function))));
+        ast.slot(cells.slots, type.ListOf(type.Slot)),
+        ast.slot(cells.subTypes, type.MapOf(type.Type_)),
+        ast.slot(cells.memberOf, type.MapOf(type.Type_)),
+        ast.slot(cells.methods, type.MapOf(type.ast.Function))));
     typeCtor.addAsts(ast.block(
         ast.setMember(ast.cell(cells.slots), ast.parameter(cells.slots)),
         ast.setMember(ast.cell(cells.subTypes), ast.parameter(cells.subTypes)),
         ast.setMember(ast.cell(cells.memberOf), ast.parameter(cells.memberOf)),
         ast.setMember(ast.cell(cells.methods), ast.parameter(cells.methods))));
-    type.Type_.addMethod(cells.constructor, typeCtor.compile(type.Type_));
+    type.Type_.addMethod(cells.constructor, typeCtor);
 
 
     Ast::Function& listCtor = *new Ast::Function(*this, "List::Ctor");
     listCtor.addAsts(ast.block(
         ast.setMember(ast.cell(dimensions.size), ast.cell(_0_)),
         ast.setMember(ast.cell(coding.objectType), ast.cell(type.Cell))));
-    type.List.addMethod(cells.constructor, listCtor.compile(type.List));
+    type.List.addMethod(cells.constructor, listCtor);
 
     Ast::Function& listAdd = *new Ast::Function(*this, "List::Add");
     listAdd.addInputs(list(
-        ast.parameterDecl(coding.value, type.Cell)));
+        ast.slot(coding.value, type.Cell)));
     listAdd.addAsts(ast.block(
         ast.setVar(_1_, ast.new_(ast.get(ast.get(ast.get(ast.get(ast.self(), ast.cell(cells.type)), ast.cell(cells.subTypes)), ast.cell(cells.index)), ast.cell(coding.objectType)))),
         ast.set(ast.getVar(_1_), ast.cell(coding.value), ast.parameter(coding.value)),
@@ -1271,21 +1399,21 @@ Brain::Brain() :
                           ast.set(ast.getVar(_1_), ast.cell(sequence.previous), ast.getMember(ast.cell(sequence.last))))),
         ast.setMember(ast.cell(sequence.last), ast.getVar(pools.numbers.get(1))),
         ast.setMember(ast.cell(dimensions.size), ast.add(ast.getMember(ast.cell(dimensions.size)), ast.cell(_1_)))));
-    type.List.addMethod(sequence.add, listAdd.compile(type.List));
+    type.List.addMethod(sequence.add, listAdd);
 
     Ast::Function& listSize = *new Ast::Function(*this, "List::Size");
     listSize.addOutputs(list(
-        ast.parameterDecl(coding.value, type.Number)));
+        ast.slot(coding.value, type.Number)));
     listSize.addAsts(ast.block(
         ast.return_(ast.getMember(ast.cell(dimensions.size)))));
-    type.List.addMethod(dimensions.size, listSize.compile(type.List));
+    type.List.addMethod(dimensions.size, listSize);
 
     Ast::Function& listEmpty = *new Ast::Function(*this, "List::Empty");
     listEmpty.addOutputs(list(
-        ast.parameterDecl(coding.value, type.Boolean)));
+        ast.slot(coding.value, type.Boolean)));
     listEmpty.addAsts(ast.block(
         ast.if_(ast.equal(ast.getMember(ast.cell(dimensions.size)), ast.cell(_0_)), ast.return_(ast.cell(boolean.true_)), ast.return_(ast.cell(boolean.false_)))));
-    type.List.addMethod(sequence.empty, listEmpty.compile(type.List));
+    type.List.addMethod(sequence.empty, listEmpty);
 #if 0
     listAdd.addAsts(list(
         ListItem* newListItem = new ListItem();

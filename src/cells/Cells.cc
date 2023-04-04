@@ -258,7 +258,8 @@ CellI& Object::getMethod(CellI& role)
     if (type().has(kb.cells.methods)) {
         CellI& methodsIndex = type()[kb.cells.methods][kb.cells.index];
         if (methodsIndex.has(role)) {
-            CellI& method = methodsIndex[role];
+            brain::Ast::Function& ast = static_cast<brain::Ast::Function&>(methodsIndex[role]);
+            CellI& method = ast.compile(type()); // TODO: memory leak
             setSelf(method);
             return method;
         }

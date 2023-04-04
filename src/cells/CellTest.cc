@@ -80,16 +80,16 @@ protected:
     brain::Brain& kb;
     brain::Cells& cells = kb.cells;
     PrintAs printAs;
-    CellI& _0_    = kb.pools.numbers.get(0);
-    CellI& _1_    = kb.pools.numbers.get(1);
-    CellI& _2_    = kb.pools.numbers.get(2);
-    CellI& _3_    = kb.pools.numbers.get(3);
-    CellI& _4_    = kb.pools.numbers.get(4);
-    CellI& _5_    = kb.pools.numbers.get(5);
-    CellI& _6_    = kb.pools.numbers.get(6);
-    CellI& _7_    = kb.pools.numbers.get(7);
-    CellI& _8_    = kb.pools.numbers.get(8);
-    CellI& _9_    = kb.pools.numbers.get(9);
+    CellI& _0_    = kb._0_;
+    CellI& _1_    = kb._1_;
+    CellI& _2_    = kb._2_;
+    CellI& _3_    = kb._3_;
+    CellI& _4_    = kb._4_;
+    CellI& _5_    = kb._5_;
+    CellI& _6_    = kb._6_;
+    CellI& _7_    = kb._7_;
+    CellI& _8_    = kb._8_;
+    CellI& _9_    = kb._9_;
     CellI& true_  = kb.boolean.true_;
     CellI& false_ = kb.boolean.false_;
 };
@@ -200,36 +200,6 @@ TEST_F(CellTest, CreatedTypeWithConstructor)
     EXPECT_ANY_THROW(newObject.set(kb.dimensions.height, _1_));
     EXPECT_NO_THROW(newObject.set(kb.dimensions.size, _1_));
     printAs.cell(newObject, "newObject.size = 1");
-}
-
-TEST_F(CellTest, CreatingListAdd)
-{
-    Object testList(kb, kb.type.ListOf(kb.type.Number));
-    testList.set(kb.dimensions.size, _0_);
-    testList.set(kb.coding.objectType, kb.type.Number);
-
-    printAs.cell(testList.type(), "1");
-    printAs.cell(testList.type()[kb.cells.memberOf], "2");
-    printAs.cell(testList.type()[kb.cells.memberOf][kb.cells.index], "3");
-    printAs.value(testList[kb.cells.type][kb.cells.subTypes][kb.cells.index][kb.coding.objectType], "testList::objectType");
-
-    CellI& listAddCompiled = kb.type.List[kb.cells.methods][kb.cells.index][kb.sequence.add];
-    printAs.cell(listAddCompiled, "listAddCompiled");
-    printAs.value(listAddCompiled[kb.coding.input][kb.cells.index], "listAddCompiled.input.index");
-    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.self].set(kb.coding.value, testList);
-    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, _1_);
-    printAs.value(testList, "testList");
-    printAs.cell(testList, "testList");
-    listAddCompiled.eval();
-    printAs.value(testList, "testList after add1");
-    printAs.cell(testList, "testList after add1");
-    printAs.cell(testList[kb.sequence.first], "testList[first] after add1");
-    listAddCompiled[kb.coding.input][kb.cells.index][kb.coding.value].set(kb.coding.value, _2_);
-    listAddCompiled.eval();
-    printAs.value(testList, "testList after add2");
-    printAs.cell(testList, "testList after add2");
-    printAs.cell(testList[kb.sequence.first], "testList[first] after add2");
-    printAs.cell(testList[kb.sequence.last], "testList[last] after add2");
 }
 
 TEST_F(CellTest, HybridPicture)
