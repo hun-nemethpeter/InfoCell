@@ -700,10 +700,10 @@ public:
 };
 
 // ============================================================================
-class Ref : public Expression
+class ConstVar : public Expression
 {
 public:
-    Ref(brain::Brain& kb, CellI& value, const std::string& label = "Ref");
+    ConstVar(brain::Brain& kb, CellI& value, const std::string& label = "ConstVar");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -1032,7 +1032,7 @@ public:
     virtual void visit(op::If&) { }
     virtual void visit(op::Do&) { }
     virtual void visit(op::While&) { }
-    virtual void visit(op::Ref&) { }
+    virtual void visit(op::ConstVar&) { }
     virtual void visit(op::Var&) { }
     virtual void visit(op::New&) { }
     virtual void visit(op::Same&) { }

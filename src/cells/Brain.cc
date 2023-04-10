@@ -84,7 +84,7 @@ Op::Op(brain::Brain& kb) :
     Do(kb, "op::Do"),
     While(kb, "op::While"),
     Expression(kb, "op::Expression"),
-    Ref(kb, "op::Ref"),
+    ConstVar(kb, "op::ConstVar"),
     Var(kb, "op::Var"),
     New(kb, "op::New"),
     Same(kb, "op::Same"),
@@ -186,7 +186,7 @@ Op::Op(brain::Brain& kb) :
         cells.slot(coding.rhs, Base),
         cells.slot(coding.value, type.Boolean));
 
-    Ref.addSlots(
+    ConstVar.addSlots(
         cells.slot(coding.value, type.Cell));
 
     Var.addSlots(
@@ -236,7 +236,7 @@ Ast::Ast(brain::Brain& kb) :
     Do(kb, "ast::Do"),
     While(kb, "ast::While"),
     Expression(kb, "ast::Expression"),
-    Ref(kb, "ast::Ref"),
+    ConstVar(kb, "ast::ConstVar"),
     Var(kb, "ast::Var"),
     Member(kb, "ast::Member"),
     New(kb, "ast::New"),
@@ -260,7 +260,7 @@ Ast::Ast(brain::Brain& kb) :
     auto& coding = kb.coding;
     auto& type   = kb.type;
 
-    Ref.addSlots(
+    ConstVar.addSlots(
         cells.slot(coding.value, Base));
 
     Var.addSlots(
@@ -628,16 +628,16 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
     auto compile = [this, &function, type](CellI& ast) -> CellI& { return compileAst(ast, function, type); };
 
     if (&ast.type() == &kb.type.ast.Block) {
-        List& list         = static_cast<List&>(ast[kb.coding.value]);
+        CellI& list        = ast[kb.coding.value];
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
         Visitor::visitList(list, [this, &compiledAsts, &ast, &function, type](CellI& ast, int) {
             compiledAsts.add(compileAst(ast, function, type));
         });
         return *new op::Block(kb, compiledAsts);
     } else if (&ast.type() == &kb.type.ast.Cell) {
-        return *new op::Ref(kb, ast[kb.coding.value]);
+        return *new op::ConstVar(kb, ast[kb.coding.value]);
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
-        return *new op::Ref(kb, function);
+        return *new op::ConstVar(kb, function);
     } else if (&ast.type() == &kb.type.ast.Self) {
         return function[kb.coding.input][kb.cells.index][kb.coding.self];
     } else if (&ast.type() == &kb.type.ast.Parameter) {
@@ -656,13 +656,26 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         return *new op::Do(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.statement]));
     } else if (&ast.type() == &kb.type.ast.While) {
         return *new op::While(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.statement]));
-    } else if (&ast.type() == &kb.type.ast.Ref) {
-        return *new op::Ref(kb, compile(ast[kb.coding.value]));
+    } else if (&ast.type() == &kb.type.ast.ConstVar) {
+        return *new op::ConstVar(kb, compile(ast[kb.coding.value]));
     } else if (&ast.type() == &kb.type.ast.Var) {
-        return *new op::Ref(kb, function.getOrCreateVar(ast[kb.coding.role], kb.type.Cell));
+        return *new op::ConstVar(kb, function.getOrCreateVar(ast[kb.coding.role], kb.type.Cell));
     } else if (&ast.type() == &kb.type.ast.New) {
         return *new op::New(kb, compile(ast[kb.coding.objectType]));
     } else if (&ast.type() == &kb.type.ast.Call) {
+#if 0
+        auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
+        CellI& cell = compile(ast[kb.coding.cell]);
+        CellI& method = compile(ast[kb.cells.methods]);
+        Ast::Get& getMethod = kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.cell(cell), kb.ast.cell(kb.cells.type)), kb.ast.cell(kb.cells.methods)), kb.ast.cell(kb.cells.index)), kb.ast.cell(method));
+        op::Var& varMethod  = *new op::Var(kb, kb.type.Cell, compile(getMethod));
+        CellI& setSelf = compile(kb.ast.set(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.self), kb.ast.cell(cell)));
+        compiledAsts.add(setSelf);
+        Visitor::visitList(ast[kb.coding.parameters], [this, &ast, &function, type, &compiledAsts, &varMethod](CellI& ast, int) {
+            compiledAsts.add(compileAst(kb.ast.set(kb.ast.cell(varMethod), kb.ast.cell(ast[kb.cells.slotRole]), kb.ast.cell(ast[kb.cells.slotType])), function, type));
+        });
+        compiledAsts.add(varMethod);
+#endif
         return ast; // TODO
     } else if (&ast.type() == &kb.type.ast.And) {
         return *new op::And(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
@@ -757,8 +770,8 @@ Ast::While::While(brain::Brain& kb, Base& condition, Base& statement) :
     set(kb.coding.statement, statement);
 }
 
-Ast::Ref::Ref(brain::Brain& kb, CellI& cell) :
-    BaseT<Ref>(kb, kb.type.ast.Ref)
+Ast::ConstVar::ConstVar(brain::Brain& kb, CellI& cell) :
+    BaseT<ConstVar>(kb, kb.type.ast.ConstVar)
 {
     set(kb.coding.value, cell);
 }
@@ -1024,9 +1037,9 @@ Ast::While& Ast::while_(Base& condition, Base& statement)
     return While::New(kb, condition, statement);
 }
 
-Ast::Ref& Ast::ref(CellI& cell)
+Ast::ConstVar& Ast::ref(CellI& cell)
 {
-    return Ref::New(kb, cell);
+    return ConstVar::New(kb, cell);
 }
 
 Ast::Var& Ast::var(CellI& role)

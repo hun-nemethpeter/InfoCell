@@ -240,8 +240,8 @@ TEST_F(CellTest, BasicObjectTest)
 
 TEST_F(CellTest, BasicControlOpTest)
 {
-    Ref testValue1(kb, kb.type.Char);
-    Ref testValue2(kb, kb.type.Color);
+    ConstVar testValue1(kb, kb.type.Char);
+    ConstVar testValue2(kb, kb.type.Color);
     Same sameOpEq(kb, testValue1, testValue1);
     Same sameOpNe(kb, testValue1, testValue2);
     sameOpEq();
@@ -256,8 +256,8 @@ TEST_F(CellTest, BasicControlOpTest)
 
 TEST_F(CellTest, BasicControlAddTest)
 {
-    Ref start(kb, kb.pools.numbers.get(42));
-    Ref value10(kb, kb.pools.numbers.get(10));
+    ConstVar start(kb, kb.pools.numbers.get(42));
+    ConstVar value10(kb, kb.pools.numbers.get(10));
     Add add10(kb, start, value10);
     add10();
     std::cout << "42 + 10 = ";

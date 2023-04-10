@@ -108,7 +108,7 @@ public:
     Type Do;
     Type While;
     Type Expression;
-    Type Ref;
+    Type ConstVar;
     Type Var;
     Type New;
     Type Same;
@@ -154,7 +154,7 @@ public:
     Type Do;
     Type While;
     Type Expression;
-    Type Ref;
+    Type ConstVar;
     Type Var;
     Type Member;
     Type New;
@@ -327,10 +327,10 @@ public:
     public:
         While(brain::Brain& kb, Base& condition, Base& statement);
     };
-    class Ref : public BaseT<Ref>
+    class ConstVar : public BaseT<ConstVar>
     {
     public:
-        Ref(brain::Brain& kb, CellI& value);
+        ConstVar(brain::Brain& kb, CellI& value);
     };
     class Var : public BaseT<Var>
     {
@@ -451,7 +451,7 @@ public:
     If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
     Do& do_(Base& condition, Base& statement);
     While& while_(Base& condition, Base& statement);
-    Ref& ref(CellI& value);
+    ConstVar& ref(CellI& value);
     Var& var(CellI& role);
     New& new_(Base& objectType);
     New& new_(Base& objectType, Slot& slot1);
