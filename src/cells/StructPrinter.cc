@@ -37,7 +37,7 @@ void CellStructPrinter::visit(Map::Index::Type::Slot& cell)
 {
     brain::Brain& kb = cell.kb;
     if (cell.label().empty()) {
-        m_ss << cell[kb.cells.slotRole].label() << ": ";
+        m_ss << cell[kb.coding.slotRole].label() << ": ";
     } else {
         m_ss << cell.label() << ": ";
     }
@@ -119,7 +119,7 @@ void CellStructPrinter::printImpl(CellI& cell)
     CellI& type   = cell.type();
     if (&type == &kb.type.Slot) {
         if (cell.label().empty()) {
-            m_ss << cell[kb.cells.slotRole].label() << ": ";
+            m_ss << cell[kb.coding.slotRole].label() << ": ";
         } else {
             m_ss << cell.label() << ": ";
         }
@@ -135,14 +135,14 @@ void CellStructPrinter::printImpl(CellI& cell)
     if (needId)
         m_ss << " ID" << &type;
     m_ss << " // " << typePrinter.print() << std::endl;
-    CellI& slotList = type[kb.cells.slots][kb.cells.list];
+    CellI& slotList = type[kb.coding.slots][kb.coding.list];
     visitList(slotList, [this, &kb, &cell](CellI& slot, int i) {
-        CellI& role = slot[kb.cells.slotRole];
+        CellI& role = slot[kb.coding.slotRole];
         if (!cell.has(role)) {
             return;
         }
         CellValuePrinter valuePrinter;
-        CellI& slotType      = slot[kb.cells.slotType];
+        CellI& slotType      = slot[kb.coding.slotType];
         CellI& connectedCell = cell[role];
         connectedCell.accept(valuePrinter);
         m_ss << "    +--(" << role.label() << ")--> (" << slotType.label() << ")";

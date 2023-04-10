@@ -8,7 +8,7 @@ void CellValuePrinter::visit(Type& type)
 {
     brain::Brain& kb = type.kb;
     m_ss << "Type " << type.label();
-    visitList(type[kb.cells.memberOf][kb.cells.list], [this, &kb](CellI& member, int i) {
+    visitList(type[kb.coding.memberOf][kb.coding.list], [this, &kb](CellI& member, int i) {
         if (i != 0) {
             m_ss << ", ";
         } else {
@@ -17,11 +17,11 @@ void CellValuePrinter::visit(Type& type)
         m_ss << member.label();
     });
     m_ss << " { ";
-    visitList(type[kb.cells.slots][kb.cells.list], [this, &kb](CellI& slot, int i) {
+    visitList(type[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i) {
         if (i != 0) {
             m_ss << ", ";
         }
-        m_ss << slot[kb.cells.slotRole].label() << ": " << slot[kb.cells.slotType].label();
+        m_ss << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
     });
     m_ss << " }";
 }
@@ -49,7 +49,7 @@ void CellValuePrinter::visit(Map::Index::Type::Slots& cell)
 void CellValuePrinter::visit(Map::Index::Type::Slot& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << cell[kb.cells.slotRole].label() << ": " << cell[kb.cells.slotType].label();
+    m_ss << cell[kb.coding.slotRole].label() << ": " << cell[kb.coding.slotType].label();
 }
 
 void CellValuePrinter::visit(Map::Index::Type& cell)
@@ -77,11 +77,11 @@ void CellValuePrinter::printImpl(CellI& cell)
     brain::Brain& kb = cell.kb;
 
     if (&cell.type() == &kb.type.Slot) {
-        m_ss << cell[kb.cells.slotRole].label() << ": " << cell[kb.cells.slotType].label();
+        m_ss << cell[kb.coding.slotRole].label() << ": " << cell[kb.coding.slotType].label();
         return;
     }
 
-    if (cell.type()[kb.cells.memberOf][kb.cells.index].has(kb.type.List) || &cell.type() == &kb.type.List) {
+    if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.List) || &cell.type() == &kb.type.List) {
         m_ss << "[";
         visitList(cell, [this](CellI& value, int i) {
             if (i != 0) {
@@ -99,7 +99,7 @@ void CellValuePrinter::printImpl(CellI& cell)
     }
     m_ss << cell.type().label() << " { ";
 
-    visitList(cell.type()[kb.cells.slots][kb.cells.list], [this, &kb](CellI& slot, int i) {
+    visitList(cell.type()[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i) {
         if (i != 0) {
             m_ss << ", ";
         }

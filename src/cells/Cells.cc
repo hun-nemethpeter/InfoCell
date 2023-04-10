@@ -47,7 +47,7 @@ CellI& CellI::get(CellI& role)
 
 CellI& CellI::type()
 {
-    return (*this)[kb.cells.type];
+    return (*this)[kb.coding.type];
 }
 
 void CellI::eval()
@@ -70,12 +70,12 @@ bool CellI::operator==(CellI& rhs)
     if (&type() != &rhs.type()) {
         return false;
     }
-    CellI& slotList    = type()[kb.cells.slots][kb.cells.list];
+    CellI& slotList    = type()[kb.coding.slots][kb.coding.list];
     CellI* slotItemPtr = slotList.has(kb.sequence.first) ? &slotList[kb.sequence.first] : nullptr;
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.coding.value];
-        CellI& role     = slot[kb.cells.slotRole];
+        CellI& role     = slot[kb.coding.slotRole];
 
         bool hasLeftSlot = has(role);
         if (hasLeftSlot != rhs.has(role)) {
@@ -102,11 +102,11 @@ Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.cells.type] = &type;
+    m_slots[&kb.coding.type] = &type;
     if (kb.initPhase() == InitPhase::Init) {
         return;
     }
-    if (!hasMethod(kb.cells.constructor0)) {
+    if (!hasMethod(kb.coding.constructor0)) {
         return;
     }
     constructor();
@@ -116,8 +116,8 @@ Object::Object(brain::Brain& kb, CellI& type, Param param1, const std::string& l
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.cells.type] = &type;
-    if (!hasMethod(kb.cells.constructor1)) {
+    m_slots[&kb.coding.type] = &type;
+    if (!hasMethod(kb.coding.constructor1)) {
         return;
     }
     constructor(param1);
@@ -127,8 +127,8 @@ Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, const 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.cells.type] = &type;
-    if (!hasMethod(kb.cells.constructor2)) {
+    m_slots[&kb.coding.type] = &type;
+    if (!hasMethod(kb.coding.constructor2)) {
         return;
     }
     constructor(param1, param2);
@@ -138,8 +138,8 @@ Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.cells.type] = &type;
-    if (!hasMethod(kb.cells.constructor3)) {
+    m_slots[&kb.coding.type] = &type;
+    if (!hasMethod(kb.coding.constructor3)) {
         return;
     }
     constructor(param1, param2, param3);
@@ -150,8 +150,8 @@ Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param 
     CellI(kb, label),
     m_type(type)
 {
-    m_slots[&kb.cells.type] = &type;
-    if (!hasMethod(kb.cells.constructor4)) {
+    m_slots[&kb.coding.type] = &type;
+    if (!hasMethod(kb.coding.constructor4)) {
         return;
     }
     constructor(param1, param2, param3, param4);
@@ -162,7 +162,7 @@ Object::~Object()
     if (kb.initPhase() == InitPhase::Init || kb.initPhase() == InitPhase::DestructBegin) {
         return;
     }
-    if (!hasMethod(kb.cells.destructor)) {
+    if (!hasMethod(kb.coding.destructor)) {
         return;
     }
     destructor();
@@ -170,7 +170,7 @@ Object::~Object()
 
 bool Object::has(CellI& role)
 {
-    if (&role == &kb.cells.type)
+    if (&role == &kb.coding.type)
         return true;
 
     return m_slots.find(&role) != m_slots.end();
@@ -178,7 +178,7 @@ bool Object::has(CellI& role)
 
 void Object::set(CellI& role, CellI& value)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         throw "Type change not allowed.";
     }
 
@@ -187,7 +187,7 @@ void Object::set(CellI& role, CellI& value)
         return;
     }
 
-    if (type()[kb.cells.slots][kb.cells.index].has(role)) {
+    if (type()[kb.coding.slots][kb.coding.index].has(role)) {
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
@@ -438,19 +438,19 @@ void Object::accept(Visitor& visitor)
 
 void Object::constructor()
 {
-    getMethod(kb.cells.constructor0)();
+    getMethod(kb.coding.constructor0)();
 }
 
 void Object::constructor(Param param1)
 {
-    CellI& method = getMethod(kb.cells.constructor1);
+    CellI& method = getMethod(kb.coding.constructor1);
     setFnParam(method, param1);
     method();
 }
 
 void Object::constructor(Param param1, Param param2)
 {
-    CellI& method = getMethod(kb.cells.constructor2);
+    CellI& method = getMethod(kb.coding.constructor2);
     setFnParam(method, param1);
     setFnParam(method, param2);
     method();
@@ -458,7 +458,7 @@ void Object::constructor(Param param1, Param param2)
 
 void Object::constructor(Param param1, Param param2, Param param3)
 {
-    CellI& method = getMethod(kb.cells.constructor3);
+    CellI& method = getMethod(kb.coding.constructor3);
     setFnParam(method, param1);
     setFnParam(method, param2);
     setFnParam(method, param3);
@@ -467,7 +467,7 @@ void Object::constructor(Param param1, Param param2, Param param3)
 
 void Object::constructor(Param param1, Param param2, Param param3, Param param4)
 {
-    CellI& method = getMethod(kb.cells.constructor4);
+    CellI& method = getMethod(kb.coding.constructor4);
     setFnParam(method, param1);
     setFnParam(method, param2);
     setFnParam(method, param3);
@@ -477,7 +477,7 @@ void Object::constructor(Param param1, Param param2, Param param3, Param param4)
 
 void Object::destructor()
 {
-    getMethod(kb.cells.destructor)();
+    getMethod(kb.coding.destructor)();
 }
 
 CellI& Object::method(CellI& role)
@@ -532,13 +532,13 @@ CellI& Object::method(CellI& role, Param param1, Param param2, Param param3, Par
 
 bool Object::hasMethod(CellI& role)
 {
-    return type().has(kb.cells.methods) && type()[kb.cells.methods][kb.cells.index].has(role);
+    return type().has(kb.coding.methods) && type()[kb.coding.methods][kb.coding.index].has(role);
 }
 
 CellI& Object::getMethod(CellI& role)
 {
-    if (type().has(kb.cells.methods)) {
-        CellI& methodsIndex = type()[kb.cells.methods][kb.cells.index];
+    if (type().has(kb.coding.methods)) {
+        CellI& methodsIndex = type()[kb.coding.methods][kb.coding.index];
         if (methodsIndex.has(role)) {
             brain::Ast::Function& ast = static_cast<brain::Ast::Function&>(methodsIndex[role]);
             CellI& method = ast.compile(type()); // TODO: memory leak
@@ -553,13 +553,13 @@ CellI& Object::getMethod(CellI& role)
 CellI& Object::getFnValue(CellI& fn)
 {
     if (fn.has(kb.coding.output)) {
-        CellI& outputsIndex = fn[kb.coding.output][kb.cells.index];
+        CellI& outputsIndex = fn[kb.coding.output][kb.coding.index];
         if (outputsIndex.has(kb.coding.value)) {
             return outputsIndex[kb.coding.value][kb.coding.value];
         }
     }
 
-    return kb.cells.emptyObject;
+    return kb.coding.emptyObject;
 }
 
 void Object::setSelf(CellI& fn)
@@ -570,7 +570,7 @@ void Object::setSelf(CellI& fn)
 void Object::setFnParam(CellI& fn, Param param)
 {
     if (fn.has(kb.coding.input)) {
-        CellI& inputsIndex = fn[kb.coding.input][kb.cells.index];
+        CellI& inputsIndex = fn[kb.coding.input][kb.coding.index];
         if (inputsIndex.has(param.role)) {
             inputsIndex[param.role].set(kb.coding.value, param.value);
         } else {
@@ -589,7 +589,7 @@ List::Item::Item(brain::Brain& kb, Value& value) :
 
 bool List::Item::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.coding.value) {
+    if (&role == &kb.coding.type || &role == &kb.coding.value) {
         return true;
     }
     if (&role == &kb.sequence.previous && m_value.prev()) {
@@ -614,8 +614,8 @@ void List::Item::operator()()
 
 CellI& List::Item::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
-        return kb.type.ListOf(m_value.m_list.m_valueType)[kb.cells.subTypes][kb.cells.index][kb.coding.objectType];
+    if (&role == &kb.coding.type) {
+        return kb.type.ListOf(m_value.m_list.m_valueType)[kb.coding.subTypes][kb.coding.index][kb.coding.objectType];
     }
     if (&role == &kb.sequence.previous) {
         if (m_value.prev())
@@ -670,7 +670,7 @@ List::List(brain::Brain& kb, CellI& valueType) :
 
 bool List::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.dimensions.size) {
+    if (&role == &kb.coding.type || &role == &kb.dimensions.size) {
         return true;
     }
     if ((&role == &kb.sequence.first || &role == &kb.sequence.last) && !m_items.empty()) {
@@ -695,7 +695,7 @@ void List::operator()()
 
 CellI& List::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.ListOf(m_valueType);
     }
     if (&role == &kb.sequence.first) {
@@ -734,7 +734,7 @@ bool List::empty() const
 
 CellI& List::toNative()
 {
-    Object& ret = *new Object(kb, get(kb.cells.type));
+    Object& ret = *new Object(kb, get(kb.coding.type));
     ret.set(kb.sequence.first, get(kb.sequence.first));
     ret.set(kb.sequence.last, get(kb.sequence.first));
     ret.set(kb.dimensions.size, get(kb.dimensions.size));
@@ -753,7 +753,7 @@ Map::Index::Type::Slots::SlotList::Item::Item(brain::Brain& kb, Value& value) :
 
 bool Map::Index::Type::Slots::SlotList::Item::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.coding.value) {
+    if (&role == &kb.coding.type || &role == &kb.coding.value) {
         return true;
     }
     if (&role == &kb.sequence.previous && m_value.prev()) {
@@ -778,8 +778,8 @@ void Map::Index::Type::Slots::SlotList::Item::operator()()
 
 CellI& Map::Index::Type::Slots::SlotList::Item::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
-        return kb.type.ListOf(kb.type.Slot)[kb.cells.subTypes][kb.cells.index][kb.coding.objectType];
+    if (&role == &kb.coding.type) {
+        return kb.type.ListOf(kb.type.Slot)[kb.coding.subTypes][kb.coding.index][kb.coding.objectType];
     }
     if (&role == &kb.sequence.previous) {
         if (m_value.prev())
@@ -815,7 +815,7 @@ Map::Index::Type::Slots::SlotList::SlotList(brain::Brain& kb, OrderedValues& ord
 
 bool Map::Index::Type::Slots::SlotList::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.sequence.first || &role == &kb.sequence.last || &role == &kb.dimensions.size) {
+    if (&role == &kb.coding.type || &role == &kb.sequence.first || &role == &kb.sequence.last || &role == &kb.dimensions.size) {
         return true;
     }
 
@@ -834,7 +834,7 @@ void Map::Index::Type::Slots::SlotList::operator()()
 
 CellI& Map::Index::Type::Slots::SlotList::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.ListOf(kb.type.Slot);
     }
     if (&role == &kb.sequence.first) {
@@ -872,7 +872,7 @@ Map::Index::Type::Slots::SlotIndex::SlotIndex(brain::Brain& kb, IndexedValues& i
 
 bool Map::Index::Type::Slots::SlotIndex::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     auto slotIt = m_indexedValues.find(&role);
@@ -895,7 +895,7 @@ void Map::Index::Type::Slots::SlotIndex::operator()()
 
 CellI& Map::Index::Type::Slots::SlotIndex::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return m_type;
     }
     auto slotIt = m_indexedValues.find(&role);
@@ -921,7 +921,7 @@ Map::Index::Type::Slot::Slot(brain::Brain& kb, CellI& slotRole) :
 
 bool Map::Index::Type::Slot::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.cells.slotType || &role == &kb.cells.slotRole) {
+    if (&role == &kb.coding.type || &role == &kb.coding.slotType || &role == &kb.coding.slotRole) {
         return true;
     }
     return false;
@@ -939,13 +939,13 @@ void Map::Index::Type::Slot::operator()()
 
 CellI& Map::Index::Type::Slot::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.Slot;
     }
-    if (&role == &kb.cells.slotType) {
+    if (&role == &kb.coding.slotType) {
         return kb.type.Slot;
     }
-    if (&role == &kb.cells.slotRole) {
+    if (&role == &kb.coding.slotRole) {
         return m_slotRole;
     }
 
@@ -975,7 +975,7 @@ Map::Index::Type::Slots::Slots(brain::Brain& kb, IndexedValues& indexedValues, O
 
 bool Map::Index::Type::Slots::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.cells.index || &role == &kb.cells.list) {
+    if (&role == &kb.coding.type || &role == &kb.coding.index || &role == &kb.coding.list) {
         return true;
     }
 
@@ -994,13 +994,13 @@ void Map::Index::Type::Slots::operator()()
 
 CellI& Map::Index::Type::Slots::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.MapOf(kb.type.Slot);
     }
-    if (&role == &kb.cells.index) {
+    if (&role == &kb.coding.index) {
         return m_slotIndex;
     }
-    if (&role == &kb.cells.list) {
+    if (&role == &kb.coding.list) {
         return m_slotList;
     }
 
@@ -1029,7 +1029,7 @@ Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedVa
 
 bool Map::Index::Type::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.cells.slots) {
+    if (&role == &kb.coding.type || &role == &kb.coding.slots) {
         return true;
     }
 
@@ -1048,16 +1048,16 @@ void Map::Index::Type::operator()()
 
 CellI& Map::Index::Type::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.Type_;
     }
-    if (&role == &kb.cells.slots) {
+    if (&role == &kb.coding.slots) {
         return m_slots;
     }
-    if (&role == &kb.cells.memberOf) {
+    if (&role == &kb.coding.memberOf) {
         static std::unique_ptr<Map> s_memberOfList;
         if (!s_memberOfList) {
-            s_memberOfList = std::make_unique<Map>(kb, kb.cells.type);
+            s_memberOfList = std::make_unique<Map>(kb, kb.coding.type);
             s_memberOfList->add(kb.type.List, kb.type.List);
         }
         return *s_memberOfList;
@@ -1083,7 +1083,7 @@ Map::Index::Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues&
 
 bool Map::Index::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     auto slotIt = m_indexedValues.find(&role);
@@ -1106,7 +1106,7 @@ void Map::Index::operator()()
 
 CellI& Map::Index::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return m_type;
     }
     auto slotIt = m_indexedValues.find(&role);
@@ -1154,13 +1154,13 @@ Map::Map(brain::Brain& kb, CellI& valueType, const std::string& label) :
 
 bool Map::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.dimensions.size) {
+    if (&role == &kb.coding.type || &role == &kb.dimensions.size) {
         return true;
     }
-    if (&role == &kb.cells.index && !m_orderedValues.empty()) {
+    if (&role == &kb.coding.index && !m_orderedValues.empty()) {
         return true;
     }
-    if (&role == &kb.cells.list && !m_orderedValues.empty()) {
+    if (&role == &kb.coding.list && !m_orderedValues.empty()) {
         return true;
     }
 
@@ -1179,13 +1179,13 @@ void Map::operator()()
 
 CellI& Map::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.MapOf(m_valueType);
     }
-    if (&role == &kb.cells.index) {
+    if (&role == &kb.coding.index) {
         return m_index;
     }
-    if (&role == &kb.cells.list) {
+    if (&role == &kb.coding.list) {
         return m_list;
     }
     if (&role == &kb.dimensions.size) {
@@ -1240,19 +1240,19 @@ Type::Type(brain::Brain& kb, const std::string& label) :
 
 bool Type::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
-    if (&role == &kb.cells.slots && !m_slots.empty()) {
+    if (&role == &kb.coding.slots && !m_slots.empty()) {
         return true;
     }
-    if (&role == &kb.cells.subTypes && !m_subTypes.empty()) {
+    if (&role == &kb.coding.subTypes && !m_subTypes.empty()) {
         return true;
     }
-    if (&role == &kb.cells.memberOf && !m_memberOf.empty()) {
+    if (&role == &kb.coding.memberOf && !m_memberOf.empty()) {
         return true;
     }
-    if (&role == &kb.cells.methods && !m_methods.empty()) {
+    if (&role == &kb.coding.methods && !m_methods.empty()) {
         return true;
     }
 
@@ -1271,19 +1271,19 @@ void Type::operator()()
 
 CellI& Type::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.Type_;
     }
-    if (&role == &kb.cells.slots) {
+    if (&role == &kb.coding.slots) {
         return m_slots;
     }
-    if (&role == &kb.cells.subTypes) {
+    if (&role == &kb.coding.subTypes) {
         return m_subTypes;
     }
-    if (&role == &kb.cells.memberOf) {
+    if (&role == &kb.coding.memberOf) {
         return m_memberOf;
     }
-    if (&role == &kb.cells.methods) {
+    if (&role == &kb.coding.methods) {
         return m_methods;
     }
 
@@ -1298,15 +1298,15 @@ void Type::accept(Visitor& visitor)
 void Type::addSlot(CellI& role, CellI& type)
 {
     CellI& slot = *new Object(kb, kb.type.Slot);
-    slot.set(kb.cells.slotRole, role);
-    slot.set(kb.cells.slotType, type);
+    slot.set(kb.coding.slotRole, role);
+    slot.set(kb.coding.slotType, type);
     slot.label(std::format("Slot of {}.{}", label(), role.label()));
     m_slots.add(role, slot);
 }
 
 void Type::addSlots(CellI& slot)
 {
-    CellI& role = slot[kb.cells.slotRole];
+    CellI& role = slot[kb.coding.slotRole];
     slot.label(std::format("Slot of {}.{}", label(), role.label()));
     m_slots.add(role, slot);
 }
@@ -1336,7 +1336,7 @@ Number::Number(brain::Brain& kb, int value) :
 
 bool Number::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.coding.value) {
+    if (&role == &kb.coding.type || &role == &kb.coding.value) {
         return true;
     }
     if (&role == &kb.numbers.sign) {
@@ -1358,7 +1358,7 @@ void Number::operator()()
 
 CellI& Number::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.Number;
     }
 
@@ -1418,7 +1418,7 @@ String::String(brain::Brain& kb, const std::string& str) :
 
 bool String::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.coding.value) {
+    if (&role == &kb.coding.type || &role == &kb.coding.value) {
         return true;
     }
     return false;
@@ -1436,7 +1436,7 @@ void String::operator()()
 
 CellI& String::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.String;
     } else if (&role == &kb.coding.value) {
         if (m_characters.empty()) {
@@ -1482,7 +1482,7 @@ Color::Color(brain::Brain& kb, const input::Color& inputColor) :
 
 bool Color::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.colors.red || &role == &kb.colors.green || &role == &kb.colors.blue) {
@@ -1503,7 +1503,7 @@ void Color::operator()()
 
 CellI& Color::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.Color;
     }
     if (&role == &kb.colors.red) {
@@ -1542,7 +1542,7 @@ Pixel::Pixel(brain::Brain& kb, int x, int y, const input::Color& inputColor) :
 
 bool Pixel::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.directions.up && m_up) {
@@ -1582,7 +1582,7 @@ void Pixel::operator()()
 
 CellI& Pixel::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.Pixel;
     }
     if (&role == &kb.directions.up && m_up) {
@@ -1659,7 +1659,7 @@ Picture::Picture(brain::Brain& kb, input::Picture& picture) :
 
 bool Picture::has(CellI& role)
 {
-    if (&role == &kb.cells.type || &role == &kb.dimensions.width || &role == &kb.dimensions.height || &role == &kb.visualization.pixels) {
+    if (&role == &kb.coding.type || &role == &kb.dimensions.width || &role == &kb.dimensions.height || &role == &kb.visualization.pixels) {
         return true;
     }
 
@@ -1677,7 +1677,7 @@ void Picture::operator()()
 
 CellI& Picture::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.Picture;
     }
     if (&role == &kb.dimensions.width) {
@@ -1810,7 +1810,7 @@ Block::Block(brain::Brain& kb, List& list, const std::string& label) :
 
 bool Block::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.value) {
@@ -1834,7 +1834,7 @@ void Block::operator()()
 
 CellI& Block::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Block;
     }
     if (&role == &kb.coding.value) {
@@ -1859,7 +1859,7 @@ Function::Function(brain::Brain& kb, const std::string& label) :
 
 bool Function::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.input) {
@@ -1896,7 +1896,7 @@ void Function::operator()()
 
 CellI& Function::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Function;
     }
     if (&role == &kb.coding.input && m_inputs) {
@@ -1946,7 +1946,7 @@ Delete::Delete(brain::Brain& kb, CellI& cell, const std::string& label) :
 
 bool Delete::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.input) {
@@ -1969,7 +1969,7 @@ void Delete::operator()()
 
 CellI& Delete::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Delete;
     }
     if (&role == &kb.coding.input && m_cell) {
@@ -1996,7 +1996,7 @@ Set::Set(brain::Brain& kb, CellI& cell, CellI& role, CellI& value) :
 
 bool Set::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.cell) {
@@ -2031,7 +2031,7 @@ void Set::operator()()
 
 CellI& Set::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Set;
     }
     if (&role == &kb.coding.cell) {
@@ -2071,7 +2071,7 @@ If::If(brain::Brain& kb, CellI& condition, CellI& thenBranch, CellI& elseBranch,
 
 bool If::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.condition) {
@@ -2106,7 +2106,7 @@ void If::operator()()
 
 CellI& If::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.If;
     }
     if (&role == &kb.coding.condition && m_condition) {
@@ -2151,7 +2151,7 @@ Do::Do(brain::Brain& kb, CellI& condition, CellI& statement, const std::string& 
 
 bool Do::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.condition) {
@@ -2180,7 +2180,7 @@ void Do::operator()()
 
 CellI& Do::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Do;
     }
     if (&role == &kb.coding.condition && m_condition) {
@@ -2207,7 +2207,7 @@ While::While(brain::Brain& kb, CellI& condition, CellI& statement, const std::st
 
 bool While::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.condition) {
@@ -2238,7 +2238,7 @@ void While::operator()()
 
 CellI& While::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.While;
     }
     if (&role == &kb.coding.condition && m_condition) {
@@ -2273,7 +2273,7 @@ ConstVar::ConstVar(brain::Brain& kb, CellI& value, const std::string& label) :
 
 bool ConstVar::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2293,7 +2293,7 @@ void ConstVar::operator()()
 
 CellI& ConstVar::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.ConstVar;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2325,7 +2325,7 @@ Var::Var(brain::Brain& kb, CellI& type, const std::string& label) :
 
 bool Var::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2348,7 +2348,7 @@ void Var::operator()()
 
 CellI& Var::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Var;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2373,7 +2373,7 @@ New::New(brain::Brain& kb, CellI& objectType, const std::string& label) :
 
 bool New::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2412,7 +2412,7 @@ void New::operator()()
 
 CellI& New::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.New;
     }
     if (&role == &kb.coding.value && m_value) {
@@ -2441,7 +2441,7 @@ Same::Same(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool Same::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -2473,7 +2473,7 @@ void Same::operator()()
 
 CellI& Same::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Same;
     }
     if (&role == &kb.coding.lhs) {
@@ -2505,7 +2505,7 @@ NotSame::NotSame(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool NotSame::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -2537,7 +2537,7 @@ void NotSame::operator()()
 
 CellI& NotSame::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.NotSame;
     }
     if (&role == &kb.coding.lhs) {
@@ -2569,7 +2569,7 @@ Equal::Equal(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool Equal::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -2601,7 +2601,7 @@ void Equal::operator()()
 
 CellI& Equal::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Equal;
     }
     if (&role == &kb.coding.lhs) {
@@ -2633,7 +2633,7 @@ NotEqual::NotEqual(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool NotEqual::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -2665,7 +2665,7 @@ void NotEqual::operator()()
 
 CellI& NotEqual::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.NotEqual;
     }
     if (&role == &kb.coding.lhs) {
@@ -2697,7 +2697,7 @@ Has::Has(brain::Brain& kb, CellI& cell, CellI& role) :
 
 bool Has::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.cell) {
@@ -2729,7 +2729,7 @@ void Has::operator()()
 
 CellI& Has::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Has;
     }
     if (&role == &kb.coding.cell) {
@@ -2761,7 +2761,7 @@ Get::Get(brain::Brain& kb, CellI& cell, CellI& role) :
 
 bool Get::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.cell) {
@@ -2793,7 +2793,7 @@ void Get::operator()()
 
 CellI& Get::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Get;
     }
     if (&role == &kb.coding.cell) {
@@ -2825,7 +2825,7 @@ And::And(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool And::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -2857,7 +2857,7 @@ void And::operator()()
 
 CellI& And::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.And;
     }
     if (&role == &kb.coding.lhs) {
@@ -2889,7 +2889,7 @@ Or::Or(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool Or::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -2921,7 +2921,7 @@ void Or::operator()()
 
 CellI& Or::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Or;
     }
     if (&role == &kb.coding.lhs) {
@@ -2952,7 +2952,7 @@ Not::Not(brain::Brain& kb, CellI& input) :
 
 bool Not::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.input) {
@@ -2979,7 +2979,7 @@ void Not::operator()()
 
 CellI& Not::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Not;
     }
     if (&role == &kb.coding.input) {
@@ -3008,7 +3008,7 @@ Add::Add(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool Add::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -3039,7 +3039,7 @@ void Add::operator()()
 
 CellI& Add::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Add;
     }
     if (&role == &kb.coding.lhs) {
@@ -3071,7 +3071,7 @@ Subtract::Subtract(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool Subtract::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -3103,7 +3103,7 @@ void Subtract::operator()()
 
 CellI& Subtract::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Subtract;
     }
     if (&role == &kb.coding.lhs) {
@@ -3135,7 +3135,7 @@ Multiply::Multiply(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool Multiply::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -3167,7 +3167,7 @@ void Multiply::operator()()
 
 CellI& Multiply::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Multiply;
     }
     if (&role == &kb.coding.lhs) {
@@ -3199,7 +3199,7 @@ Divide::Divide(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool Divide::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -3231,7 +3231,7 @@ void Divide::operator()()
 
 CellI& Divide::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.Divide;
     }
     if (&role == &kb.coding.lhs) {
@@ -3263,7 +3263,7 @@ LessThan::LessThan(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool LessThan::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -3295,7 +3295,7 @@ void LessThan::operator()()
 
 CellI& LessThan::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.LessThan;
     }
     if (&role == &kb.coding.lhs) {
@@ -3327,7 +3327,7 @@ GreaterThan::GreaterThan(brain::Brain& kb, CellI& lhs, CellI& rhs) :
 
 bool GreaterThan::has(CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return true;
     }
     if (&role == &kb.coding.lhs) {
@@ -3359,7 +3359,7 @@ void GreaterThan::operator()()
 
 CellI& GreaterThan::operator[](CellI& role)
 {
-    if (&role == &kb.cells.type) {
+    if (&role == &kb.coding.type) {
         return kb.type.op.GreaterThan;
     }
     if (&role == &kb.coding.lhs) {

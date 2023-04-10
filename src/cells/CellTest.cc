@@ -80,7 +80,7 @@ protected:
 
     static std::unique_ptr<brain::Brain> m_kb;
     brain::Brain& kb;
-    brain::Cells& cells = kb.cells;
+    brain::Coding& coding = kb.coding;
     PrintAs printAs;
     CellI& _0_    = kb._0_;
     CellI& _1_    = kb._1_;
@@ -187,13 +187,13 @@ TEST_F(CellTest, CreatedTypeWithConstructor)
 {
     Map emptyMap(kb, kb.type.Cell);
     Object newType(kb, kb.type.Type_,
-                   { cells.slots, kb.map(kb.dimensions.size, kb.cells.slot(kb.dimensions.size, kb.type.Number)) },
-                   { cells.subTypes, emptyMap },
-                   { cells.memberOf, kb.map(kb.type.List, kb.type.List) },
-                   { cells.methods, emptyMap });
-    printAs.value(newType[cells.slots]);
-    printAs.value(newType[cells.slots][cells.list], "newType[cells.slots][cells.list]");
-    printAs.value(newType[cells.memberOf][cells.list], "newType[cells.memberOf][cells.list]");
+                   { coding.slots, kb.map(kb.dimensions.size, kb.coding.slot(kb.dimensions.size, kb.type.Number)) },
+                   { coding.subTypes, emptyMap },
+                   { coding.memberOf, kb.map(kb.type.List, kb.type.List) },
+                   { coding.methods, emptyMap });
+    printAs.value(newType[coding.slots]);
+    printAs.value(newType[coding.slots][coding.list], "newType[coding.slots][coding.list]");
+    printAs.value(newType[coding.memberOf][coding.list], "newType[coding.memberOf][coding.list]");
     Object newObject(kb, newType);
     printAs.cell(newObject, "Empty newObject");
     EXPECT_ANY_THROW(newObject.set(kb.dimensions.height, _1_));
@@ -211,18 +211,18 @@ TEST_F(CellTest, HybridPicture)
     printAs.svg(picture[kb.visualization.pixels]);
     printAs.value(picture[kb.visualization.pixels]);
 
-    EXPECT_EQ(&picture[kb.cells.type], &kb.type.Picture);
+    EXPECT_EQ(&picture[kb.coding.type], &kb.type.Picture);
     EXPECT_EQ(&picture[kb.dimensions.width], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[kb.dimensions.height], &kb.pools.numbers.get(3));
-    EXPECT_EQ(&picture[kb.visualization.pixels][kb.cells.type], &kb.type.ListOf(kb.type.Pixel));
+    EXPECT_EQ(&picture[kb.visualization.pixels][kb.coding.type], &kb.type.ListOf(kb.type.Pixel));
 }
 
 TEST_F(CellTest, BasicObjectTest)
 {
     Type testType(kb, "Test");
     testType.addSlots(
-        cells.slot(kb.coding.result, kb.type.Digit),
-        cells.slot(kb.coding.value, kb.type.Number)); // TODO implement type checking
+        coding.slot(kb.coding.result, kb.type.Digit),
+        coding.slot(kb.coding.value, kb.type.Number)); // TODO implement type checking
 
     Object object(kb, testType, "testObject");
 
@@ -271,9 +271,9 @@ TEST_F(CellTest, CreatingCustomType)
 
     Type colorClass(kb, "Color");
     colorClass.addSlots(
-        cells.slot(colorRed, kb.type.Number),
-        cells.slot(colorGreen, kb.type.Number),
-        cells.slot(colorBlue, kb.type.Number));
+        coding.slot(colorRed, kb.type.Number),
+        coding.slot(colorGreen, kb.type.Number),
+        coding.slot(colorBlue, kb.type.Number));
 
     Object redColor(kb, colorClass, "redColor");
     redColor.set(colorRed, kb.pools.numbers.get(255));
@@ -281,38 +281,38 @@ TEST_F(CellTest, CreatingCustomType)
     redColor.set(colorBlue, kb.pools.numbers.get(0));
 
     printAs.value(colorClass, "colorClass:");
-    printAs.value(colorClass[kb.cells.slots][kb.cells.list], "colorClass::slots");
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
-    EXPECT_TRUE(colorClass[kb.cells.slots][kb.cells.index].has(colorRed));
-    EXPECT_TRUE(colorClass[kb.cells.slots][kb.cells.index].has(colorGreen));
-    EXPECT_TRUE(colorClass[kb.cells.slots][kb.cells.index].has(colorBlue));
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][colorRed][kb.cells.type], "colorClass slot of colorRed");
-    EXPECT_EQ(&colorClass[kb.cells.slots][kb.cells.index][colorRed][kb.cells.type], &kb.type.Slot);
-    EXPECT_EQ(&colorClass[kb.cells.slots][kb.cells.index][colorRed][kb.cells.type], &kb.type.Slot);
-    EXPECT_EQ(&colorClass[kb.cells.slots][kb.cells.index][colorGreen][kb.cells.type], &kb.type.Slot);
-    EXPECT_EQ(&colorClass[kb.cells.slots][kb.cells.index][colorBlue][kb.cells.type], &kb.type.Slot);
+    printAs.value(colorClass[kb.coding.slots][kb.coding.list], "colorClass::slots");
+    printAs.value(colorClass[kb.coding.slots][kb.coding.index][colorRed]);
+    EXPECT_TRUE(colorClass[kb.coding.slots][kb.coding.index].has(colorRed));
+    EXPECT_TRUE(colorClass[kb.coding.slots][kb.coding.index].has(colorGreen));
+    EXPECT_TRUE(colorClass[kb.coding.slots][kb.coding.index].has(colorBlue));
+    printAs.value(colorClass[kb.coding.slots][kb.coding.index][colorRed][kb.coding.type], "colorClass slot of colorRed");
+    EXPECT_EQ(&colorClass[kb.coding.slots][kb.coding.index][colorRed][kb.coding.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.coding.slots][kb.coding.index][colorRed][kb.coding.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.coding.slots][kb.coding.index][colorGreen][kb.coding.type], &kb.type.Slot);
+    EXPECT_EQ(&colorClass[kb.coding.slots][kb.coding.index][colorBlue][kb.coding.type], &kb.type.Slot);
     printAs.value(redColor);
 
     printAs.cell(redColor);
-    printAs.cell(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
-    printAs.cell(colorClass[kb.cells.slots][kb.cells.index]);
+    printAs.cell(colorClass[kb.coding.slots][kb.coding.index][colorRed]);
+    printAs.cell(colorClass[kb.coding.slots][kb.coding.index]);
 
     printAs.svgStruct(redColor, "redColor");
     printAs.svgStruct(colorRed, "colorRed");
     printAs.svgStruct(colorClass, "Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.index], "SlotIndex of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list], "SlotList of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first], "SlotListItem1 of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.coding.value], "Slot1 of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
-    printAs.svgStruct(colorClass[kb.cells.slots][kb.cells.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index], "colorClass[kb.cells.slots][kb.cells.index]");
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type], "colorClass[kb.cells.slots][kb.cells.index][kb.cells.type]");
-    printAs.value(colorClass[kb.cells.slots][kb.cells.index][kb.cells.type][kb.cells.slots][kb.cells.index], "colorClass[kb.cells.slots][kb.cells.index][kb.cells.type][kb.cells.slots][kb.cells.index]");
+    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.index], "SlotIndex of Color");
+    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list], "SlotList of Color");
+    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first], "SlotListItem1 of Color");
+    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.coding.value], "Slot1 of Color");
+    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.sequence.next], "SlotListItem2 of Color");
+    printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
+    printAs.value(colorClass[kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index]");
+    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type]");
+    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index]");
     printAs.cell(colorClass);
 
     printAs.svg(redColor);
-    printAs.svg(colorClass[kb.cells.slots][kb.cells.index][colorRed]);
+    printAs.svg(colorClass[kb.coding.slots][kb.coding.index][colorRed]);
     printAs.svg(colorClass);
 }
 
@@ -324,7 +324,7 @@ TEST_F(CellTest, CreatingNumber)
     printAs.value(number_255);
     printAs.value(number_255[kb.coding.value][kb.sequence.first][kb.coding.value]);
 
-    printAs.svgStruct(kb.cells.emptyObject, "emptyObject");
+    printAs.svgStruct(kb.coding.emptyObject, "emptyObject");
 
     printAs.cell(number_255);
     printAs.cell(number_255[kb.numbers.sign]);

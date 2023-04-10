@@ -5,32 +5,6 @@ namespace synth {
 namespace cells {
 namespace brain {
 
-class Cells
-{
-public:
-    Cells(brain::Brain& kb);
-    cells::CellI& slot(cells::CellI& role, cells::CellI& type);
-
-    brain::Brain& kb;
-    Object type;
-    Object eval;
-    Object constructor0;
-    Object constructor1;
-    Object constructor2;
-    Object constructor3;
-    Object constructor4;
-    Object destructor;
-    Object slots;
-    Object slotType;
-    Object slotRole;
-    Object subTypes;
-    Object index;
-    Object list;
-    Object memberOf;
-    Object methods;
-    Object emptyObject;
-};
-
 class Sequence
 {
 public:
@@ -55,21 +29,37 @@ public:
 
 class Coding
 {
+    brain::Brain& kb;
 public:
     Coding(brain::Brain& kb);
+    cells::CellI& slot(cells::CellI& role, cells::CellI& type);
+
     Object argument;
     Object ast;
     Object branch;
     Object cell;
     Object condition;
+    Object constructor0;
+    Object constructor1;
+    Object constructor2;
+    Object constructor3;
+    Object constructor4;
     Object container;
+    Object destructor;
     Object else_;
+    Object emptyObject;
+    Object eval;
+    Object index;
     Object input;
     Object item;
     Object key;
     Object keyType;
     Object label;
     Object lhs;
+    Object list;
+    Object memberOf;
+    Object method;
+    Object methods;
     Object objectType;
     Object op;
     Object output;
@@ -79,9 +69,14 @@ public:
     Object rhs;
     Object role;
     Object self;
+    Object slotRole;
+    Object slots;
+    Object slotType;
     Object statement;
+    Object subTypes;
     Object template_;
     Object then;
+    Object type;
     Object value;
 };
 
@@ -608,7 +603,6 @@ protected:
 public:
     Brain();
     ~Brain();
-    Cells cells;
     Sequence sequence;
     Dimensions dimensions;
     Coding coding;
