@@ -63,18 +63,16 @@ class Object : public CellI
 {
 public:
     Object(brain::Brain& kb, CellI& type, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, Param param1, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, Param param1, Param param2, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, const std::string& label = "");
+    Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, Param param4, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
-
-    void constructor();
-    void constructor(Param param1);
-    void constructor(Param param1, Param param2);
-    void constructor(Param param1, Param param2, Param param3);
-    void constructor(Param param1, Param param2, Param param3, Param param4);
 
     void destructor();
 
@@ -85,7 +83,13 @@ public:
     CellI& method(CellI& role, Param param1, Param param2, Param param3, Param param4);
 
 protected:
-    CellI& getConstructor();
+    void constructor();
+    void constructor(Param param1);
+    void constructor(Param param1, Param param2);
+    void constructor(Param param1, Param param2, Param param3);
+    void constructor(Param param1, Param param2, Param param3, Param param4);
+
+    bool hasMethod(CellI& role);
     CellI& getMethod(CellI& role);
     CellI& getFnValue(CellI& fn);
 

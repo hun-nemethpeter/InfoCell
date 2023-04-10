@@ -99,9 +99,8 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
 TEST_F(CellTest, List)
 {
-    Object list(kb, kb.type.List);
+    Object list(kb, kb.type.List, { kb.coding.objectType, kb.type.Cell });
 
-    list.constructor();
     printAs.value(list);
     EXPECT_EQ(&list[kb.dimensions.size], &_0_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_0_);
@@ -166,9 +165,8 @@ TEST_F(CellTest, List)
 
 TEST_F(CellTest, Map)
 {
-    Object map(kb, kb.type.Map);
+    Object map(kb, kb.type.Map, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
 
-    map.constructor({ kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[kb.dimensions.size], &_0_);
@@ -188,12 +186,11 @@ TEST_F(CellTest, Map)
 TEST_F(CellTest, CreatedTypeWithConstructor)
 {
     Map emptyMap(kb, kb.type.Cell);
-    Object newType(kb, kb.type.Type_);
-    newType.constructor({ cells.slots, kb.map(kb.dimensions.size, kb.cells.slot(kb.dimensions.size, kb.type.Number)) },
-                        { cells.subTypes, emptyMap },
-                        { cells.memberOf, kb.map(kb.type.List, kb.type.List) },
-                        { cells.methods, emptyMap });
-    //    newType.constructor({ cells.slots, kb.list(kb.cells.slot(kb.sequence.previous, kb.type.ListItem)) });
+    Object newType(kb, kb.type.Type_,
+                   { cells.slots, kb.map(kb.dimensions.size, kb.cells.slot(kb.dimensions.size, kb.type.Number)) },
+                   { cells.subTypes, emptyMap },
+                   { cells.memberOf, kb.map(kb.type.List, kb.type.List) },
+                   { cells.methods, emptyMap });
     printAs.value(newType[cells.slots]);
     printAs.value(newType[cells.slots][cells.list], "newType[cells.slots][cells.list]");
     printAs.value(newType[cells.memberOf][cells.list], "newType[cells.memberOf][cells.list]");

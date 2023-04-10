@@ -103,6 +103,58 @@ Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     m_type(type)
 {
     m_slots[&kb.cells.type] = &type;
+    if (kb.initPhase() == InitPhase::Init) {
+        return;
+    }
+    if (!hasMethod(kb.cells.constructor0)) {
+        return;
+    }
+    constructor();
+}
+
+Object::Object(brain::Brain& kb, CellI& type, Param param1, const std::string& label) :
+    CellI(kb, label),
+    m_type(type)
+{
+    m_slots[&kb.cells.type] = &type;
+    if (!hasMethod(kb.cells.constructor1)) {
+        return;
+    }
+    constructor(param1);
+}
+
+Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, const std::string& label) :
+    CellI(kb, label),
+    m_type(type)
+{
+    m_slots[&kb.cells.type] = &type;
+    if (!hasMethod(kb.cells.constructor2)) {
+        return;
+    }
+    constructor(param1, param2);
+}
+
+Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, const std::string& label) :
+    CellI(kb, label),
+    m_type(type)
+{
+    m_slots[&kb.cells.type] = &type;
+    if (!hasMethod(kb.cells.constructor3)) {
+        return;
+    }
+    constructor(param1, param2, param3);
+}
+
+
+Object::Object(brain::Brain& kb, CellI& type, Param param1, Param param2, Param param3, Param param4, const std::string& label) :
+    CellI(kb, label),
+    m_type(type)
+{
+    m_slots[&kb.cells.type] = &type;
+    if (!hasMethod(kb.cells.constructor4)) {
+        return;
+    }
+    constructor(param1, param2, param3, param4);
 }
 
 bool Object::has(CellI& role)
@@ -375,19 +427,19 @@ void Object::accept(Visitor& visitor)
 
 void Object::constructor()
 {
-    getConstructor()();
+    getMethod(kb.cells.constructor0)();
 }
 
 void Object::constructor(Param param1)
 {
-    CellI& method = getConstructor();
+    CellI& method = getMethod(kb.cells.constructor1);
     setFnParam(method, param1);
     method();
 }
 
 void Object::constructor(Param param1, Param param2)
 {
-    CellI& method = getConstructor();
+    CellI& method = getMethod(kb.cells.constructor2);
     setFnParam(method, param1);
     setFnParam(method, param2);
     method();
@@ -395,7 +447,7 @@ void Object::constructor(Param param1, Param param2)
 
 void Object::constructor(Param param1, Param param2, Param param3)
 {
-    CellI& method = getConstructor();
+    CellI& method = getMethod(kb.cells.constructor3);
     setFnParam(method, param1);
     setFnParam(method, param2);
     setFnParam(method, param3);
@@ -404,7 +456,7 @@ void Object::constructor(Param param1, Param param2, Param param3)
 
 void Object::constructor(Param param1, Param param2, Param param3, Param param4)
 {
-    CellI& method = getConstructor();
+    CellI& method = getMethod(kb.cells.constructor4);
     setFnParam(method, param1);
     setFnParam(method, param2);
     setFnParam(method, param3);
@@ -467,9 +519,9 @@ CellI& Object::method(CellI& role, Param param1, Param param2, Param param3, Par
     return getFnValue(method);
 }
 
-CellI& Object::getConstructor()
+bool Object::hasMethod(CellI& role)
 {
-    return getMethod(kb.cells.constructor);
+    return type().has(kb.cells.methods) && type()[kb.cells.methods][kb.cells.index].has(role);
 }
 
 CellI& Object::getMethod(CellI& role)

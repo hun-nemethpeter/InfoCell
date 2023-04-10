@@ -11,7 +11,11 @@ Cells::Cells(brain::Brain& kb) :
     kb(kb),
     type(kb, kb.type.Cell, "type"),
     eval(kb, kb.type.Cell, "eval"),
-    constructor(kb, kb.type.Cell, "constructor"),
+    constructor0(kb, kb.type.Cell, "constructor0"),
+    constructor1(kb, kb.type.Cell, "constructor1"),
+    constructor2(kb, kb.type.Cell, "constructor2"),
+    constructor3(kb, kb.type.Cell, "constructor3"),
+    constructor4(kb, kb.type.Cell, "constructor4"),
     destructor(kb, kb.type.Cell, "destructor"),
     slots(kb, kb.type.Cell, "slots"),
     slotType(kb, kb.type.Cell, "slotType"),
@@ -1350,7 +1354,7 @@ Brain::Brain() :
         ast.setMember(ast.cell(dimensions.size), ast.cell(_0_)),
         ast.setMember(ast.cell(coding.keyType), ast.parameter(coding.keyType)),
         ast.setMember(ast.cell(coding.objectType), ast.parameter(coding.objectType))));
-    type.Map.addMethod(cells.constructor, mapCtor);
+    type.Map.addMethod(cells.constructor2, mapCtor);
 
     Ast::Function& mapAdd  = *new Ast::Function(*this, "Map::Add");
     mapAdd.addInputs(list(
@@ -1360,7 +1364,7 @@ Brain::Brain() :
         ast.if_(ast.equal(ast.getMember(ast.cell(dimensions.size)), ast.cell(_0_)),
                 ast.block(ast.setMember(ast.cell(cells.list), ast.new_(ast.cell(type.List))),
                           ast.setMember(ast.cell(cells.index), ast.new_(ast.cell(type.Index))),
-                          ast.call(ast.getMember(ast.cell(cells.list)), ast.cell(cells.constructor), ast.slot(ast.cell(coding.objectType), ast.getMember(ast.cell(coding.objectType)))))),
+                          ast.call(ast.getMember(ast.cell(cells.list)), ast.cell(cells.constructor1), ast.slot(ast.cell(coding.objectType), ast.getMember(ast.cell(coding.objectType)))))),
         ast.call(ast.getMember(ast.cell(cells.list)), ast.cell(sequence.add), ast.slot(ast.cell(coding.value), ast.parameter(coding.value))),
         ast.set(ast.getMember(ast.cell(cells.index)), ast.parameter(coding.value), ast.get(ast.getMember(ast.cell(cells.list)), ast.cell(sequence.last))),
         ast.setMember(ast.cell(dimensions.size), ast.add(ast.getMember(ast.cell(dimensions.size)), ast.cell(_1_)))));
@@ -1391,14 +1395,16 @@ Brain::Brain() :
         ast.setMember(ast.cell(cells.subTypes), ast.parameter(cells.subTypes)),
         ast.setMember(ast.cell(cells.memberOf), ast.parameter(cells.memberOf)),
         ast.setMember(ast.cell(cells.methods), ast.parameter(cells.methods))));
-    type.Type_.addMethod(cells.constructor, typeCtor);
+    type.Type_.addMethod(cells.constructor4, typeCtor);
 
 
     Ast::Function& listCtor = *new Ast::Function(*this, "List::Ctor");
+    listCtor.addInputs(list(
+        ast.slot(coding.objectType, type.Type_)));
     listCtor.addAsts(ast.block(
         ast.setMember(ast.cell(dimensions.size), ast.cell(_0_)),
-        ast.setMember(ast.cell(coding.objectType), ast.cell(type.Cell))));
-    type.List.addMethod(cells.constructor, listCtor);
+        ast.setMember(ast.cell(coding.objectType), ast.parameter(coding.objectType))));
+    type.List.addMethod(cells.constructor1, listCtor);
 
     Ast::Function& listAdd = *new Ast::Function(*this, "List::Add");
     listAdd.addInputs(list(

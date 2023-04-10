@@ -14,7 +14,11 @@ public:
     brain::Brain& kb;
     Object type;
     Object eval;
-    Object constructor;
+    Object constructor0;
+    Object constructor1;
+    Object constructor2;
+    Object constructor3;
+    Object constructor4;
     Object destructor;
     Object slots;
     Object slotType;
