@@ -205,6 +205,10 @@ void Object::operator()()
             op();
         });
     }
+    if (&m_type == &kb.type.op.EvalVar) {
+        CellI& value = get(kb.coding.value)[kb.coding.value];
+        value();
+    }
     if (&m_type == &kb.type.op.Function) {
         if (has(kb.coding.input)) {
             CellI& inputs = get(kb.coding.input);
@@ -544,8 +548,7 @@ CellI& Object::getMethod(CellI& role)
     if (type().has(kb.coding.methods)) {
         CellI& methodsIndex = type()[kb.coding.methods][kb.coding.index];
         if (methodsIndex.has(role)) {
-            brain::Ast::Function& ast = static_cast<brain::Ast::Function&>(methodsIndex[role]);
-            CellI& method = ast.compile(type()); // TODO: memory leak
+            CellI& method = methodsIndex[role];
             setSelf(method);
             return method;
         }
@@ -970,8 +973,10 @@ Map::Index::Type::Slots::Slots(brain::Brain& kb, IndexedValues& indexedValues, O
 {
     if (&valueType == &kb.type.Slot) {
         label("Index<Slot>::Map");
-    }else if (&valueType == &kb.type.op.Function) {
-        label("Index<Method>::Map");
+    } else if (&valueType == &kb.type.ast.Function) {
+        label("Index<Ast::Function>::Map");
+    } else if (&valueType == &kb.type.op.Function) {
+        label("Index<Op::Function>::Map");
     } else {
         label(std::format("Index<{}>::Map", valueType.label()));
     }
@@ -1024,8 +1029,10 @@ Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedVa
 {
     if (&valueType == &kb.type.Slot) {
         label("Index<Slot>");
+    } else if (&valueType == &kb.type.ast.Function) {
+        label("Index<Ast::Function>");
     } else if (&valueType == &kb.type.op.Function) {
-        label("Index<Method>");
+        label("Index<Op::Function>");
     } else {
         label(std::format("Index<{}>", valueType.label()));
     }
@@ -1238,6 +1245,7 @@ Type::Type(brain::Brain& kb, const std::string& label) :
     m_slots(kb, kb.type.Slot),
     m_subTypes(kb, kb.type.Type_),
     m_memberOf(kb, kb.type.Type_),
+    m_asts(kb, kb.type.ast.Function),
     m_methods(kb, kb.type.op.Function)
 {
 }
@@ -1327,7 +1335,8 @@ void Type::addMembership(CellI& type)
 
 void Type::addMethod(CellI& role, CellI& method)
 {
-    m_methods.add(role, method);
+    m_asts.add(role, method);
+    m_methods.add(role, static_cast<brain::Ast::Function&>(method).compile(*this));
 }
 #pragma endregion
 #pragma region Number
@@ -1849,6 +1858,56 @@ CellI& Block::operator[](CellI& role)
 }
 
 void Block::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+#pragma endregion
+#pragma region EvalVar
+// ============================================================================
+EvalVar::EvalVar(brain::Brain& kb, CellI& var, const std::string& label) :
+    Base(kb, label),
+    m_var(&var)
+{
+}
+
+bool EvalVar::has(CellI& role)
+{
+    if (&role == &kb.coding.type) {
+        return true;
+    }
+    if (&role == &kb.coding.value) {
+        return true;
+    }
+
+    return false;
+}
+
+void EvalVar::set(CellI& role, CellI& value)
+{
+    if (&role == &kb.coding.value) {
+        m_var = &value;
+    }
+}
+
+void EvalVar::operator()()
+{
+    CellI& value = m_var->get(kb.coding.value);
+    value();
+}
+
+CellI& EvalVar::operator[](CellI& role)
+{
+    if (&role == &kb.coding.type) {
+        return kb.type.op.EvalVar;
+    }
+    if (&role == &kb.coding.value) {
+        return *m_var;
+    }
+
+    throw "No such role!";
+}
+
+void EvalVar::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }

@@ -36,6 +36,7 @@ public:
 
     Object argument;
     Object ast;
+    Object asts;
     Object branch;
     Object cell;
     Object condition;
@@ -100,6 +101,7 @@ public:
 
     Type Base;
     Type Block;
+    Type EvalVar;
     Type Function;
     Type Delete;
     Type Set;

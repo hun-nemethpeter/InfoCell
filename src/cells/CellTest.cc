@@ -175,12 +175,15 @@ TEST_F(CellTest, Map)
     EXPECT_EQ(&map[kb.coding.keyType], &kb.type.Number);
     EXPECT_EQ(&map[kb.coding.objectType], &kb.type.Color);
 
-#if 0
-    map.method(kb.sequence.add, { _1_, kb.colors.blue });
+    map.method(kb.sequence.add, { coding.key, _1_}, { coding.value, kb.colors.blue });
+    printAs.value(map);
+    printAs.cell(map);
     EXPECT_EQ(&map[kb.dimensions.size], &_1_);
     EXPECT_EQ(&map.method(kb.dimensions.size), &_1_);
+    EXPECT_EQ(&map[coding.list][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[coding.list][kb.sequence.first][kb.coding.value], &kb.colors.blue);
+    EXPECT_EQ(&map[coding.list][kb.sequence.first], &map[coding.list][kb.sequence.last]);
     EXPECT_EQ(&map.method(kb.sequence.empty), &false_);
-#endif
 }
 
 TEST_F(CellTest, CreatedTypeWithConstructor)
