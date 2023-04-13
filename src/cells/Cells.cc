@@ -2465,11 +2465,6 @@ void New::operator()()
 {
     m_objectType();
     CellI& objectType = m_objectType[kb.coding.value];
-
-    if (&objectType == &kb.type.Type_) {
-        m_value = new Type(kb);
-        return;
-    }
     if (&objectType == &kb.type.Number) {
         m_value = new Number(kb);
         return;

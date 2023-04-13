@@ -1409,7 +1409,8 @@ Brain::Brain() :
         coding.slot(sequence.first, type.ListItem),
         coding.slot(sequence.last, type.ListItem),
         coding.slot(dimensions.size, type.Number),
-        coding.slot(coding.objectType, type.Cell));
+        coding.slot(coding.objectType, type.Cell),
+        coding.slot(coding.item, type.Type_));
     type.List.addSubType(
         coding.objectType, type.ListItem);
     type.List.addMembership(
@@ -1479,19 +1480,26 @@ Brain::Brain() :
     listCtor.addAsts(ast.block(
         m_(dimensions.size)   = _(_0_),
         m_(coding.objectType) = p_(coding.objectType)));
+#if 0
+    m_(coding.item)       = ast.new_(_(type.Type_), _(coding.constructor4),
+                                         ast.slot(_(coding.slots), _(list(coding.slot(sequence.previous, type.ListItem), coding.slot(sequence.next, type.ListItem), coding.slot(coding.value, p_(coding.objectType))))),
+                                         ast.slot(_(coding.subTypes), _(*new List(*this, type.Type_))),
+                                         ast.slot(_(coding.memberOf), _(list(type.ListItem))),
+                                         ast.slot(_(coding.methods), _(*new List(*this, type.ast.Function))))));
+#endif
     type.List.addMethod(coding.constructor1, listCtor);
 
     Ast::Function& listAdd = *new Ast::Function(*this, "List::Add");
     listAdd.addInputs(list(
         ast.slot(coding.value, type.Cell)));
     listAdd.addAsts(ast.block(
-        var(_1_) = ast.new_(m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.objectType)),
-        ast.set(*var(_1_), _(coding.value), p_(coding.value)),
+        var(coding.item) = ast.new_(m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.objectType)),
+        ast.set(*var(coding.item), _(coding.value), p_(coding.value)),
         ast.if_(ast.not_(m_(sequence.first).exist()),
-                m_(sequence.first) = *var(_1_),                                    // then
-                ast.block(ast.set(m_(sequence.last), _(sequence.next), *var(_1_)), // else
-                          ast.set(*var(_1_), _(sequence.previous), m_(sequence.last)))),
-        m_(sequence.last)   = *var(_1_),
+                m_(sequence.first) = *var(coding.item),                                    // then
+                ast.block(ast.set(m_(sequence.last), _(sequence.next), *var(coding.item)), // else
+                          ast.set(*var(coding.item), _(sequence.previous), m_(sequence.last)))),
+        m_(sequence.last)   = *var(coding.item),
         m_(dimensions.size) = ast.add(m_(dimensions.size), _(_1_))));
     type.List.addMethod(sequence.add, listAdd);
 
