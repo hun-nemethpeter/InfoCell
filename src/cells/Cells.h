@@ -562,7 +562,7 @@ public:
 class Block : public Base
 {
 public:
-    Block(brain::Brain& kb, List& list, const std::string& label = "Block");
+    Block(brain::Brain& kb, List& ops, const std::string& label = "Block");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -571,8 +571,8 @@ public:
     void accept(Visitor& visitor) override;
 
 protected:
-    CellI* m_current = nullptr;
-    List& m_list;
+    List& m_ops;
+    CellI* m_value = nullptr;
 };
 
 // ============================================================================

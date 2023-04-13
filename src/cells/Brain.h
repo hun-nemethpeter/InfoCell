@@ -64,6 +64,7 @@ public:
     Object methods;
     Object objectType;
     Object op;
+    Object ops;
     Object output;
     Object parameter;
     Object parameters;
