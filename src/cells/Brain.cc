@@ -838,6 +838,11 @@ Ast::Get& Ast::Member::operator/(Base& role)
     return Get::New(kb, *this, role);
 }
 
+Ast::Has& Ast::Member::exist()
+{
+    return Has::New(kb, Self::New(kb), static_cast<Ast::Base&>(get(kb.coding.role)));
+}
+
 Ast::Call& Ast::Member::call(CellI& method)
 {
     return Call::New(kb, *this, method);
@@ -1070,11 +1075,6 @@ Ast::Call& Ast::call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot&
 Ast::Call& Ast::call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4)
 {
     return Call::New(kb, cell, method, slot1, slot2, slot3, slot4);
-}
-
-Ast::Has& Ast::hasMember(Base& role)
-{
-    return kb.ast.has(kb.ast.self(), role);
 }
 
 Ast::Delete& Ast::delete_(Base& ast)
@@ -1487,7 +1487,7 @@ Brain::Brain() :
     listAdd.addAsts(ast.block(
         var(_1_) = ast.new_(m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.objectType)),
         ast.set(*var(_1_), _(coding.value), p_(coding.value)),
-        ast.if_(ast.not_(ast.hasMember(_(sequence.first))),
+        ast.if_(ast.not_(m_(sequence.first).exist()),
                 m_(sequence.first) = *var(_1_),                                    // then
                 ast.block(ast.set(m_(sequence.last), _(sequence.next), *var(_1_)), // else
                           ast.set(*var(_1_), _(sequence.previous), m_(sequence.last)))),

@@ -343,6 +343,7 @@ public:
         Set& operator=(Base& value);
         Get& operator*();
     };
+    class Has;
     class Member : public BaseT<Member>
     {
     public:
@@ -350,6 +351,7 @@ public:
         Member(brain::Brain& kb, CellI& role);
         Set& operator=(Base& value);
         Get& operator/(Base& role);
+        Has& exist();
         Call& call(CellI& method);
         Call& call(CellI& method, Slot& slot1);
         Call& call(CellI& method, Slot& slot1, Slot& slot2);
@@ -455,7 +457,6 @@ public:
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
-    Has& hasMember(Base& role);
 
     template <typename... Args>
     Block& block(Args&&... args);
