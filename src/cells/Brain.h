@@ -217,6 +217,7 @@ class Ast
 public:
     class Base : public Object
     {
+        Base(const Base&) = delete;
     public:
         Base(brain::Brain& kb, CellI& classCell, const std::string& label = "");
     };
@@ -468,6 +469,7 @@ public:
     Var& var(CellI& role);
     Member& member(CellI& role);
     New& new_(Base& objectType);
+    New& new_(Base& objectType, Base& constructor);
     New& new_(Base& objectType, Base& constructor, Slot& slot1);
     New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2);
     New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3);

@@ -102,6 +102,8 @@ TEST_F(CellTest, List)
     Object list(kb, kb.type.List, kb.coding.constructor, { kb.coding.objectType, kb.type.Cell });
 
     printAs.value(list);
+    printAs.cell(list);
+    printAs.cell(list[coding.item]);
     EXPECT_EQ(&list[kb.dimensions.size], &_0_);
     EXPECT_EQ(&list.method(kb.dimensions.size), &_0_);
     EXPECT_EQ(&list.method(kb.sequence.empty), &true_);
@@ -183,7 +185,29 @@ TEST_F(CellTest, Map)
     EXPECT_EQ(&map[coding.list][kb.dimensions.size], &_1_);
     EXPECT_EQ(&map[coding.list][kb.sequence.first][kb.coding.value], &kb.colors.blue);
     EXPECT_EQ(&map[coding.list][kb.sequence.first], &map[coding.list][kb.sequence.last]);
+    EXPECT_TRUE(map[coding.index].has(_1_));
+    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.blue);
     EXPECT_EQ(&map.method(kb.sequence.empty), &false_);
+}
+
+TEST_F(CellTest, ListItemTemplate)
+{
+    Object listItemType(kb, kb.type.Type_, "listItemType");
+    listItemType.set(kb.coding.slots, kb.type.ListItem[kb.coding.slots]);
+    listItemType.set(coding.subTypes, kb.type.ListItem[coding.subTypes]);
+    listItemType.set(coding.memberOf, kb.type.ListItem[coding.memberOf]);
+    listItemType.set(coding.methods, kb.type.ListItem[coding.methods]);
+
+    Object listItemTypeObj(kb, listItemType, "listItem");
+    CellI& listItemNumber = listItemTypeObj.method(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    printAs.value(kb.type.ListItem[kb.coding.slots][kb.coding.list], "type.ListItem[slots]");
+    printAs.value(listItemNumber[kb.coding.slots][kb.coding.list], "listItemNumber[slots]");
+    printAs.value(listItemNumber);
+    printAs.cell(listItemNumber);
+
+    Object listItem(kb, listItemNumber, kb.coding.constructor, { kb.coding.value, _1_ }, "ListItem<Number>");
+    printAs.value(listItem);
+    printAs.cell(listItem);
 }
 
 TEST_F(CellTest, CreatedTypeWithConstructor)
