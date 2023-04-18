@@ -114,6 +114,8 @@ TEST_F(CellTest, PrintMethod)
     // convert op:: classes to simple Objects
     // convert Type to object
     // maybe create a Set?
+    // type checking
+    // Map<key, type>
 }
 
 TEST_F(CellTest, List)

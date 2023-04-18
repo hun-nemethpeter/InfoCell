@@ -197,6 +197,7 @@ Op::Op(brain::Brain& kb) :
         coding.slot(coding.value, type.Cell));
 
     Var.addSlots(
+        coding.slot(coding.objectType, type.Type_),
         coding.slot(coding.value, type.Cell));
 
     New.addSlots(
@@ -647,7 +648,9 @@ void Ast::Function::compileParams(cells::op::Function& function, CellI* type)
     if (m_inputs || type) {
         Map& params = *new Map(kb, kb.type.op.Var);
         if (type) {
-            params.add(kb.coding.self, *new cells::op::Var(kb, *type, "self"));
+            Object& var = *new Object(kb, kb.type.op.Var, "self");
+            var.set(kb.coding.objectType, *type);
+            params.add(kb.coding.self, var);
             iss << kb.coding.self.label() << ": " << (*type).label();
         }
         if (m_inputs) {
@@ -656,7 +659,9 @@ void Ast::Function::compileParams(cells::op::Function& function, CellI* type)
                     iss << ", ";
                 }
                 iss << "p_" << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
-                params.add(slot[kb.coding.slotRole], *new cells::op::Var(kb, slot[kb.coding.slotType], std::format("p_{}", slot[kb.coding.slotRole].label())));
+                Object& var = *new Object(kb, kb.type.op.Var, std::format("p_{}", slot[kb.coding.slotRole].label()));
+                var.set(kb.coding.objectType, slot[kb.coding.slotType]);
+                params.add(slot[kb.coding.slotRole], var);
             });
         }
         function.addInputs(params);
@@ -667,8 +672,10 @@ void Ast::Function::compileParams(cells::op::Function& function, CellI* type)
             if (!params.empty()) {
                 oss << ", ";
             }
-            oss << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
-            params.add(slot[kb.coding.slotRole], *new cells::op::Var(kb, slot[kb.coding.slotType]));
+            oss << "o_" << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
+            Object& var = *new Object(kb, kb.type.op.Var, std::format("o_{}", slot[kb.coding.slotRole].label()));
+            var.set(kb.coding.objectType, slot[kb.coding.slotType]);
+            params.add(slot[kb.coding.slotRole], var);
         });
         function.addOutputs(params);
     }
@@ -732,7 +739,8 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         auto& compiledAsts  = *new cells::List(kb, kb.type.op.Base);
         CellI& block        = *new op::Block(kb, compiledAsts, "Call { ... }");
         Ast::Get& getMethod = kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.get(static_cast<Ast::Base&>(ast[kb.coding.cell]), kb.ast.cell(kb.coding.type)), kb.ast.cell(kb.coding.methods)), kb.ast.cell(kb.coding.index)), static_cast<Ast::Base&>(ast[kb.coding.method]));
-        op::Var& varMethod  = *new op::Var(kb, kb.type.Cell, "Call { var method; }");
+        Object& varMethod   = *new Object(kb, kb.type.op.Var, "Call { var method; }");
+        varMethod.set(kb.coding.objectType, kb.type.op.Function);
         CellI& storeMethod  = compile(kb.ast.set(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value), getMethod));
         CellI& setSelf      = compile(kb.ast.set(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.input)), kb.ast.cell(kb.coding.index)), kb.ast.cell(kb.coding.self)), kb.ast.cell(kb.coding.value), static_cast<Ast::Base&>(ast[kb.coding.cell])));
         compiledAsts.add(storeMethod);
@@ -756,8 +764,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         auto& compiledAsts  = *new cells::List(kb, kb.type.op.Base);
         CellI& block        = *new op::Block(kb, compiledAsts, "Call { ... }");
         Ast::Get& getMethod = kb.ast.get(kb.ast.get(kb.ast.get(static_cast<Ast::Base&>(ast[kb.coding.cell]), kb.ast.cell(kb.coding.methods)), kb.ast.cell(kb.coding.index)), static_cast<Ast::Base&>(ast[kb.coding.method]));
-        op::Var& varMethod  = *new op::Var(kb, kb.type.Cell, "Call { var method; }");
-        CellI& storeMethod  = compile(kb.ast.set(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value), getMethod));
+        Object& varMethod   = *new Object(kb, kb.type.op.Var, "Call { var method; }");
+        varMethod.set(kb.coding.objectType, kb.type.op.Function);
+        CellI& storeMethod = compile(kb.ast.set(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value), getMethod));
         CellI& setSelf      = compile(kb.ast.set(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.input)), kb.ast.cell(kb.coding.index)), kb.ast.cell(kb.coding.self)), kb.ast.cell(kb.coding.value), static_cast<Ast::Base&>(ast[kb.coding.cell])));
         compiledAsts.add(storeMethod);
         compiledAsts.add(setSelf);

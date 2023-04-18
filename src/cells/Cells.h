@@ -737,22 +737,6 @@ public:
 };
 
 // ============================================================================
-class Var : public Expression
-{
-public:
-    Var(brain::Brain& kb, CellI& m_type, const std::string& label = "Var");
-    Var(brain::Brain& kb, CellI& m_type, CellI& value, const std::string& label = "Var");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    CellI& m_type;
-};
-
-// ============================================================================
 class New : public Expression
 {
 public:
@@ -1058,7 +1042,6 @@ public:
     virtual void visit(op::Do&) { }
     virtual void visit(op::While&) { }
     virtual void visit(op::ConstVar&) { }
-    virtual void visit(op::Var&) { }
     virtual void visit(op::New&) { }
     virtual void visit(op::Same&) { }
     virtual void visit(op::NotSame&) { }

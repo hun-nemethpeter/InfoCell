@@ -276,10 +276,6 @@ void Object::operator()()
             condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         };
     }
-    if (&m_type == &kb.type.op.ConstVar) {
-    }
-    if (&m_type == &kb.type.op.Var) {
-    }
     if (&m_type == &kb.type.op.New) {
         CellI& inputObjectType = get(kb.coding.objectType);
         inputObjectType();
@@ -2024,7 +2020,9 @@ void Function::addOutputs(Map& output)
 CellI& Function::getOrCreateVar(CellI& role, CellI& type)
 {
     if (!m_localVars.m_index.has(role)) {
-        m_localVars.add(role, *new Var(kb, type));
+        Object& var = *new Object(kb, kb.type.op.Var);
+        var.set(kb.coding.objectType, type);
+        m_localVars.add(role, var);
     }
     return m_localVars.m_index[role];
 }
@@ -2398,61 +2396,6 @@ CellI& ConstVar::operator[](CellI& role)
 }
 
 void ConstVar::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Var
-// ============================================================================
-Var::Var(brain::Brain& kb, CellI& type, CellI& value, const std::string& label) :
-    Expression(kb, label),
-    m_type(type)
-{
-    m_value = &value;
-}
-
-Var::Var(brain::Brain& kb, CellI& type, const std::string& label) :
-    Expression(kb, label),
-    m_type(type)
-{
-}
-
-bool Var::has(CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return true;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return true;
-    }
-
-    return false;
-}
-
-void Var::set(CellI& role, CellI& value)
-{
-    if (&role == &kb.coding.value) {
-        m_value = &value;
-    }
-}
-
-void Var::operator()()
-{
-}
-
-CellI& Var::operator[](CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return kb.type.op.Var;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return *m_value;
-    }
-
-    throw "No such role!";
-}
-
-void Var::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
