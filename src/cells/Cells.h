@@ -585,24 +585,6 @@ protected:
 };
 
 // ============================================================================
-class Set : public Base
-{
-public:
-    Set(brain::Brain& kb, CellI& cell, CellI& role, CellI& value);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_cell;
-    CellI& m_role;
-    CellI& m_value;
-};
-
-// ============================================================================
 class If : public Base
 {
 public:
@@ -985,7 +967,6 @@ public:
     virtual void visit(hybrid::Picture&) = 0;
 
     virtual void visit(op::Function&) = 0;
-    virtual void visit(op::Set&) { }
     virtual void visit(op::If&) { }
     virtual void visit(op::Do&) { }
     virtual void visit(op::While&) { }

@@ -712,7 +712,11 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         opDelete.set(kb.coding.input, compile(ast[kb.coding.cell]));
         return opDelete;
     } else if (&ast.type() == &kb.type.ast.Set) {
-        return *new op::Set(kb, compile(ast[kb.coding.cell]), compile(ast[kb.coding.role]), compile(ast[kb.coding.value]));
+        Object& opSet = *new Object(kb, kb.type.op.Set);
+        opSet.set(kb.coding.cell, compile(ast[kb.coding.cell]));
+        opSet.set(kb.coding.role, compile(ast[kb.coding.role]));
+        opSet.set(kb.coding.value, compile(ast[kb.coding.value]));
+        return opSet;
     } else if (&ast.type() == &kb.type.ast.If) {
         if (ast.has(kb.coding.else_)) {
             return *new op::If(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.then]), compile(ast[kb.coding.else_]));
@@ -732,7 +736,12 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
 
         Object& block = *new Object(kb, kb.type.op.Block);
         block.set(kb.coding.ops, compiledAsts);
-        compiledAsts.add(*new op::Set(kb, compile(kb.ast.cell(block)), compile(kb.ast.cell(kb.coding.value)), *new op::New(kb, compile(ast[kb.coding.objectType]))));
+        Object& opSet = *new Object(kb, kb.type.op.Set, "block.value = new objectType()");
+        opSet.set(kb.coding.cell, compile(kb.ast.cell(block)));
+        opSet.set(kb.coding.role, compile(kb.ast.cell(kb.coding.value)));
+        opSet.set(kb.coding.value, *new op::New(kb, compile(ast[kb.coding.objectType])));
+
+        compiledAsts.add(opSet);
         if (ast.has(kb.coding.constructor)) {
             Object callAst(kb, kb.type.ast.Call);
             callAst.set(kb.coding.cell, kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.coding.value)));
