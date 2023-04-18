@@ -606,22 +606,6 @@ public:
     void accept(Visitor& visitor) override;
 };
 
-// ============================================================================
-class New : public Expression
-{
-public:
-    New(brain::Brain& kb, CellI& objectType, const std::string& label = "New");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_objectType;
-};
-
 } // namespace control
 
 // ============================================================================
@@ -651,7 +635,6 @@ public:
 
     virtual void visit(op::Function&) = 0;
     virtual void visit(op::ConstVar&) { }
-    virtual void visit(op::New&) { }
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };

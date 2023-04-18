@@ -281,9 +281,7 @@ void Object::operator()()
         inputObjectType();
         CellI& objectType = inputObjectType[kb.coding.value];
 
-        if (&objectType == &kb.type.Type_) {
-            set(kb.coding.value, *new Type(kb));
-        } else if (&objectType == &kb.type.Number) {
+        if (&objectType == &kb.type.Number) {
             set(kb.coding.value, *new Number(kb));
         } else if (&objectType == &kb.type.String) {
             set(kb.coding.value, *new String(kb));
@@ -1966,68 +1964,6 @@ CellI& ConstVar::operator[](CellI& role)
 }
 
 void ConstVar::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region New
-// ============================================================================
-New::New(brain::Brain& kb, CellI& objectType, const std::string& label) :
-    Expression(kb, label),
-    m_objectType(objectType)
-{
-}
-
-bool New::has(CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return true;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return m_value;
-    }
-    if (&role == &kb.coding.objectType) {
-        return true;
-    }
-
-    return false;
-}
-
-void New::set(CellI& role, CellI& value)
-{
-}
-
-void New::operator()()
-{
-    m_objectType();
-    CellI& objectType = m_objectType[kb.coding.value];
-    if (&objectType == &kb.type.Number) {
-        m_value = new Number(kb);
-        return;
-    }
-    if (&objectType == &kb.type.String) {
-        m_value = new String(kb);
-        return;
-    }
-    m_value = new Object(kb, objectType);
-}
-
-CellI& New::operator[](CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return kb.type.op.New;
-    }
-    if (&role == &kb.coding.value && m_value) {
-        return *m_value;
-    }
-    if (&role == &kb.coding.objectType) {
-        return m_objectType;
-    }
-
-    throw "No such role!";
-}
-
-void New::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }

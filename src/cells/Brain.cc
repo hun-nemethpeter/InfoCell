@@ -749,7 +749,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         Object& opSet = *new Object(kb, kb.type.op.Set, "block.value = new objectType()");
         opSet.set(kb.coding.cell, compile(kb.ast.cell(block)));
         opSet.set(kb.coding.role, compile(kb.ast.cell(kb.coding.value)));
-        opSet.set(kb.coding.value, *new op::New(kb, compile(ast[kb.coding.objectType])));
+        Object& opNew = *new Object(kb, kb.type.op.New);
+        opNew.set(kb.coding.objectType, compile(ast[kb.coding.objectType]));
+        opSet.set(kb.coding.value, opNew);
 
         compiledAsts.add(opSet);
         if (ast.has(kb.coding.constructor)) {
