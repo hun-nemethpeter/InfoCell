@@ -103,6 +103,18 @@ TEST_F(CellTest, PrintMethod)
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.dimensions.size]);
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.add]);
     printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.empty]);
+
+    printAs.value(kb.type.Type_[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
+
+    printAs.value(kb.type.ListItem[kb.coding.methods][kb.coding.index][kb.coding.template_]);
+    printAs.value(kb.type.ListItem[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
+
+    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.coding.template_]);
+    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
+    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.sequence.add]);
+    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.dimensions.size]);
+    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.sequence.empty]);
+
     // TODO
     // static method call, maybe scall and show it as cell::method()
     // add the id to the Op node exp. to Var
