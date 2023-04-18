@@ -1894,56 +1894,6 @@ void Block::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 #pragma endregion
-#pragma region EvalVar
-// ============================================================================
-EvalVar::EvalVar(brain::Brain& kb, CellI& var, const std::string& label) :
-    Base(kb, label),
-    m_var(&var)
-{
-}
-
-bool EvalVar::has(CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return true;
-    }
-    if (&role == &kb.coding.value) {
-        return true;
-    }
-
-    return false;
-}
-
-void EvalVar::set(CellI& role, CellI& value)
-{
-    if (&role == &kb.coding.value) {
-        m_var = &value;
-    }
-}
-
-void EvalVar::operator()()
-{
-    CellI& value = m_var->get(kb.coding.value);
-    value();
-}
-
-CellI& EvalVar::operator[](CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return kb.type.op.EvalVar;
-    }
-    if (&role == &kb.coding.value) {
-        return *m_var;
-    }
-
-    throw "No such role!";
-}
-
-void EvalVar::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
 #pragma region Function
 // ============================================================================
 Function::Function(brain::Brain& kb, const std::string& label) :

@@ -579,22 +579,6 @@ protected:
 };
 
 // ============================================================================
-class EvalVar : public Base
-{
-public:
-    EvalVar(brain::Brain& kb, CellI& var, const std::string& label = "EvalVar");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI* m_var;
-};
-
-// ============================================================================
 class Function : public Base
 {
 public:
@@ -1034,7 +1018,6 @@ public:
     virtual void visit(hybrid::Picture&) = 0;
 
     virtual void visit(op::Block&) { }
-    virtual void visit(op::EvalVar&) { }
     virtual void visit(op::Function&) = 0;
     virtual void visit(op::Delete&) { }
     virtual void visit(op::Set&) { }

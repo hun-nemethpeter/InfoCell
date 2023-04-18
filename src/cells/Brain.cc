@@ -752,7 +752,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
             setParam.label("Call { setParam; }");
             compiledAsts.add(setParam);
         });
-        compiledAsts.add(*new op::EvalVar(kb, varMethod, std::format("{}::Call {{ evalVar; }}", function.label())));
+        CellI& evalMethod = *new Object(kb, kb.type.op.EvalVar, std::format("{}::Call {{ evalVar; }}", function.label()));
+        evalMethod.set(kb.coding.value, varMethod);
+        compiledAsts.add(evalMethod);
         CellI& getResult = compile(kb.ast.if_(kb.ast.has(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.output)),
                                               kb.ast.if_(kb.ast.has(kb.ast.get(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.output)) / kb.ast.cell(kb.coding.index), kb.ast.cell(kb.coding.value)),
                                                          kb.ast.set(kb.ast.cell(block), kb.ast.cell(kb.coding.value), kb.ast.get(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.output)) / kb.ast.cell(kb.coding.index) / kb.ast.cell(kb.coding.value) / kb.ast.cell(kb.coding.value)))));
@@ -777,7 +779,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
             setParam.label("Call { setParam; }");
             compiledAsts.add(setParam);
         });
-        compiledAsts.add(*new op::EvalVar(kb, varMethod, std::format("{}::Call {{ evalVar; }}", function.label())));
+        CellI& evalMethod = *new Object(kb, kb.type.op.EvalVar, std::format("{}::Call {{ evalVar; }}", function.label()));
+        evalMethod.set(kb.coding.value, varMethod);
+        compiledAsts.add(evalMethod);
         CellI& getResult = compile(kb.ast.if_(kb.ast.has(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.output)),
                                               kb.ast.if_(kb.ast.has(kb.ast.get(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.output)) / kb.ast.cell(kb.coding.index), kb.ast.cell(kb.coding.value)),
                                                          kb.ast.set(kb.ast.cell(block), kb.ast.cell(kb.coding.value), kb.ast.get(kb.ast.get(kb.ast.cell(varMethod), kb.ast.cell(kb.coding.value)), kb.ast.cell(kb.coding.output)) / kb.ast.cell(kb.coding.index) / kb.ast.cell(kb.coding.value) / kb.ast.cell(kb.coding.value)))));
