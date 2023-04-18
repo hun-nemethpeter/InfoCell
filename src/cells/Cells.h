@@ -774,108 +774,6 @@ protected:
     CellI& m_input;
 };
 
-// ============================================================================
-class Add : public Expression
-{
-public:
-    Add(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class Subtract : public Expression
-{
-public:
-    Subtract(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class Multiply : public Expression
-{
-public:
-    Multiply(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class Divide : public Expression
-{
-public:
-    Divide(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class LessThan : public Expression
-{
-public:
-    LessThan(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class GreaterThan : public Expression
-{
-public:
-    GreaterThan(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
 } // namespace control
 
 // ============================================================================
@@ -915,12 +813,6 @@ public:
     virtual void visit(op::And&) { }
     virtual void visit(op::Or&) { }
     virtual void visit(op::Not&) { }
-    virtual void visit(op::Add&) { }
-    virtual void visit(op::Subtract&) { }
-    virtual void visit(op::Multiply&) { }
-    virtual void visit(op::Divide&) { }
-    virtual void visit(op::LessThan&) { }
-    virtual void visit(op::GreaterThan&) { }
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };

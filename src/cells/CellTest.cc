@@ -362,7 +362,9 @@ TEST_F(CellTest, BasicControlAddTest)
 {
     ConstVar start(kb, kb.pools.numbers.get(42));
     ConstVar value10(kb, kb.pools.numbers.get(10));
-    Add add10(kb, start, value10);
+    Object add10(kb, kb.type.op.Add, "add10");
+    add10.set(kb.coding.lhs, start);
+    add10.set(kb.coding.rhs, value10);
     add10();
     std::cout << "42 + 10 = ";
     printAs.value(add10[kb.coding.value]);

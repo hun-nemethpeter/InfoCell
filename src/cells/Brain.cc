@@ -823,17 +823,35 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
     } else if (&ast.type() == &kb.type.ast.Not) {
         return *new op::Not(kb, compile(ast[kb.coding.value]));
     } else if (&ast.type() == &kb.type.ast.Add) {
-        return *new op::Add(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
+        Object& opAdd = *new Object(kb, kb.type.op.Add);
+        opAdd.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
+        opAdd.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
+        return opAdd;
     } else if (&ast.type() == &kb.type.ast.Subtract) {
-        return *new op::Subtract(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
+        Object& opSubtract = *new Object(kb, kb.type.op.Subtract);
+        opSubtract.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
+        opSubtract.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
+        return opSubtract;
     } else if (&ast.type() == &kb.type.ast.Multiply) {
-        return *new op::Multiply(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
+        Object& opMultiply = *new Object(kb, kb.type.op.Multiply);
+        opMultiply.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
+        opMultiply.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
+        return opMultiply;
     } else if (&ast.type() == &kb.type.ast.Divide) {
-        return *new op::Divide(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
+        Object& opDivide = *new Object(kb, kb.type.op.Divide);
+        opDivide.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
+        opDivide.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
+        return opDivide;
     } else if (&ast.type() == &kb.type.ast.LessThan) {
-        return *new op::LessThan(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
+        Object& opLessThan = *new Object(kb, kb.type.op.LessThan);
+        opLessThan.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
+        opLessThan.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
+        return opLessThan;
     } else if (&ast.type() == &kb.type.ast.GreaterThan) {
-        return *new op::GreaterThan(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
+        Object& opGreaterThan = *new Object(kb, kb.type.op.GreaterThan);
+        opGreaterThan.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
+        opGreaterThan.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
+        return opGreaterThan;
     } else if (&ast.type() == &kb.type.ast.Same) {
         return *new op::Same(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
     } else if (&ast.type() == &kb.type.ast.NotSame) {
