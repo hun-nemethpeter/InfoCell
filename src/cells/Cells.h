@@ -622,90 +622,6 @@ protected:
     CellI& m_objectType;
 };
 
-// ============================================================================
-class Has : public Expression
-{
-public:
-    Has(brain::Brain& kb, CellI& cell, CellI& role);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_cell;
-    CellI& m_role;
-};
-
-// ============================================================================
-class Get : public Expression
-{
-public:
-    Get(brain::Brain& kb, CellI& cell, CellI& role);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_cell;
-    CellI& m_role;
-};
-
-// ============================================================================
-class And : public Expression
-{
-public:
-    And(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class Or : public Expression
-{
-public:
-    Or(brain::Brain& kb, CellI& lhs, CellI& rhs);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_lhs;
-    CellI& m_rhs;
-};
-
-// ============================================================================
-class Not : public Expression
-{
-public:
-    Not(brain::Brain& kb, CellI& input);
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-protected:
-    CellI& m_input;
-};
-
 } // namespace control
 
 // ============================================================================
@@ -736,11 +652,6 @@ public:
     virtual void visit(op::Function&) = 0;
     virtual void visit(op::ConstVar&) { }
     virtual void visit(op::New&) { }
-    virtual void visit(op::Has&) { }
-    virtual void visit(op::Get&) { }
-    virtual void visit(op::And&) { }
-    virtual void visit(op::Or&) { }
-    virtual void visit(op::Not&) { }
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };

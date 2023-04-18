@@ -314,7 +314,7 @@ Ast::Ast(brain::Brain& kb) :
         coding.slot(coding.rhs, Base));
 
     Not.addSlots(
-        coding.slot(coding.value, Base));
+        coding.slot(coding.input, Base));
 
     Add.addSlots(
         coding.slot(coding.lhs, Base),
@@ -817,11 +817,19 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
 
         return block;
     } else if (&ast.type() == &kb.type.ast.And) {
-        return *new op::And(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
+        Object& opAnd = *new Object(kb, kb.type.op.And);
+        opAnd.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
+        opAnd.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
+        return opAnd;
     } else if (&ast.type() == &kb.type.ast.Or) {
-        return *new op::Or(kb, compile(ast[kb.coding.lhs]), compile(ast[kb.coding.rhs]));
+        Object& opOr = *new Object(kb, kb.type.op.Or);
+        opOr.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
+        opOr.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
+        return opOr;
     } else if (&ast.type() == &kb.type.ast.Not) {
-        return *new op::Not(kb, compile(ast[kb.coding.value]));
+        Object& opNot = *new Object(kb, kb.type.op.Not);
+        opNot.set(kb.coding.input, compile(ast[kb.coding.input]));
+        return opNot;
     } else if (&ast.type() == &kb.type.ast.Add) {
         Object& opAdd = *new Object(kb, kb.type.op.Add);
         opAdd.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
@@ -873,9 +881,15 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         opNotEqual.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
         return opNotEqual;
     } else if (&ast.type() == &kb.type.ast.Has) {
-        return *new op::Has(kb, compile(ast[kb.coding.cell]), compile(ast[kb.coding.role]));
+        Object& opHas = *new Object(kb, kb.type.op.Has);
+        opHas.set(kb.coding.cell, compile(ast[kb.coding.cell]));
+        opHas.set(kb.coding.role, compile(ast[kb.coding.role]));
+        return opHas;
     } else if (&ast.type() == &kb.type.ast.Get) {
-        return *new op::Get(kb, compile(ast[kb.coding.cell]), compile(ast[kb.coding.role]));
+        Object& opGet = *new Object(kb, kb.type.op.Get);
+        opGet.set(kb.coding.cell, compile(ast[kb.coding.cell]));
+        opGet.set(kb.coding.role, compile(ast[kb.coding.role]));
+        return opGet;
     } else if (&ast.type() == &kb.type.ast.Member) {
         return compile(kb.ast.get(kb.ast.self(), static_cast<Ast::Base&>(ast[kb.coding.role])));
     }
@@ -1120,10 +1134,10 @@ Ast::Or::Or(brain::Brain& kb, Base& lhs, Base& rhs) :
     set(kb.coding.rhs, rhs);
 }
 
-Ast::Not::Not(brain::Brain& kb, Base& value) :
+Ast::Not::Not(brain::Brain& kb, Base& input) :
     BaseT<Not>(kb, kb.type.ast.Not)
 {
-    set(kb.coding.value, value);
+    set(kb.coding.input, input);
 }
 
 Ast::Add::Add(brain::Brain& kb, Base& lhs, Base& rhs) :

@@ -419,7 +419,7 @@ public:
     class Not : public BaseT<Not>
     {
     public:
-        Not(brain::Brain& kb, Base& value);
+        Not(brain::Brain& kb, Base& input);
     };
     class Add : public BaseT<Add>
     {
@@ -499,7 +499,7 @@ public:
     Get& get(Base& cell, Base& role);
     And& and_(Base& lhs, Base& rhs);
     Or& or_(Base& lhs, Base& rhs);
-    Not& not_(Base& value);
+    Not& not_(Base& input);
     Add& add(Base& lhs, Base& rhs);
     Subtract& subtract(Base& lhs, Base& rhs);
     Multiply& multiply(Base& lhs, Base& rhs);
