@@ -718,15 +718,25 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::op::Function& function, Cell
         opSet.set(kb.coding.value, compile(ast[kb.coding.value]));
         return opSet;
     } else if (&ast.type() == &kb.type.ast.If) {
+        Object& opIf = *new Object(kb, kb.type.op.If);
+        opIf.set(kb.coding.condition, compile(ast[kb.coding.condition]));
+        opIf.set(kb.coding.then, compile(ast[kb.coding.then]));
         if (ast.has(kb.coding.else_)) {
-            return *new op::If(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.then]), compile(ast[kb.coding.else_]));
+            opIf.set(kb.coding.else_, compile(ast[kb.coding.else_]));
+            return opIf;
         } else {
-            return *new op::If(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.then]));
+            return opIf;
         }
     } else if (&ast.type() == &kb.type.ast.Do) {
-        return *new op::Do(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.statement]));
+        Object& opDo = *new Object(kb, kb.type.op.Do);
+        opDo.set(kb.coding.condition, compile(ast[kb.coding.condition]));
+        opDo.set(kb.coding.condition, compile(ast[kb.coding.statement]));
+        return opDo;
     } else if (&ast.type() == &kb.type.ast.While) {
-        return *new op::While(kb, compile(ast[kb.coding.condition]), compile(ast[kb.coding.statement]));
+        Object& opWhile = *new Object(kb, kb.type.op.While);
+        opWhile.set(kb.coding.condition, compile(ast[kb.coding.condition]));
+        opWhile.set(kb.coding.condition, compile(ast[kb.coding.statement]));
+        return opWhile;
     } else if (&ast.type() == &kb.type.ast.ConstVar) {
         return *new op::ConstVar(kb, compile(ast[kb.coding.value]));
     } else if (&ast.type() == &kb.type.ast.Var) {

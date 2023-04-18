@@ -585,69 +585,6 @@ protected:
 };
 
 // ============================================================================
-class If : public Base
-{
-public:
-    If(brain::Brain& kb, CellI& condition, CellI& thenBranch, const std::string& label = "If");
-    If(brain::Brain& kb, CellI& condition, CellI& thenBranch, CellI& elseBranch, const std::string& label = "If");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void addCondition(Base& cell);
-    void addThenBranch(Base& cell);
-    void addElseBranch(Base& cell);
-
-protected:
-    CellI* m_condition = nullptr;
-    CellI* m_thenBranch = nullptr;
-    CellI* m_elseBranch = nullptr;
-};
-
-// ============================================================================
-class Do : public Base
-{
-public:
-    Do(brain::Brain& kb, CellI& condition, CellI& statement, const std::string& label = "Do");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void addCondition(Base& cell);
-    void addStatement(Base& cell);
-
-protected:
-    CellI* m_condition = nullptr;
-    CellI* m_statement = nullptr;
-};
-
-// ============================================================================
-class While : public Base
-{
-public:
-    While(brain::Brain& kb, CellI& condition, CellI& statement, const std::string& label = "While");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void addCondition(Base& cell);
-    void addStatement(Base& cell);
-
-protected:
-    CellI* m_condition = nullptr;
-    CellI* m_statement = nullptr;
-};
-
-// ============================================================================
 class Expression : public Base
 {
 public:
@@ -967,9 +904,6 @@ public:
     virtual void visit(hybrid::Picture&) = 0;
 
     virtual void visit(op::Function&) = 0;
-    virtual void visit(op::If&) { }
-    virtual void visit(op::Do&) { }
-    virtual void visit(op::While&) { }
     virtual void visit(op::ConstVar&) { }
     virtual void visit(op::New&) { }
     virtual void visit(op::Same&) { }
