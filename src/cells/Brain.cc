@@ -1705,7 +1705,7 @@ Brain::Brain() :
     mapOfType.addMethod(sequence.add, mapAdd);
     mapOfType.addMethod(sequence.empty, mapEmpty);
 
-    Ast::Function& listItemTemplate = *new Ast::Function(*this, "ListItem<T>::Ctor");
+    Ast::Function& listItemTemplate = *new Ast::Function(*this, "static fn ListItem::template(objectType) -> ListItem");
     listItemTemplate.addInputs(list(
         ast.slot(coding.objectType, type.Type_)));
     listItemTemplate.addOutputs(list(
@@ -1741,7 +1741,7 @@ Brain::Brain() :
         m_(coding.value) = p_(coding.value)));
     type.ListItem.addMethod(coding.constructor, listItemCtor);
 
-    Ast::Function& listTemplate = *new Ast::Function(*this, "List<T>::Ctor");
+    Ast::Function& listTemplate = *new Ast::Function(*this, "static fn List::template(objectType) -> List");
     listTemplate.addInputs(list(
         ast.slot(coding.objectType, type.Type_)));
     listTemplate.addOutputs(list(
@@ -1823,19 +1823,6 @@ Brain::Brain() :
     listEmpty.addAsts(ast.block(
         ast.if_(ast.equal(m_(dimensions.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
     type.List.addMethod(sequence.empty, listEmpty);
-#if 0
-    listAdd.addAsts(list(
-        ListItem* newListItem = new ListItem();
-        newListItem->value    = param[coding.value];
-        if (!param[coding.self].has(sequence.first)) {
-            param[coding.self].set(sequence.first, newListItem);
-        } else {
-            param[coding.self][sequence.last].set(sequence.next, newListItem);
-            newListItem.set(sequence.previous, param[coding.self][sequence.last]);
-        }
-        param[coding.self].set(sequence.last, newListItem);
-    ));
-#endif
 
 #if 0
     Object methodData(*this, type.Cell);
