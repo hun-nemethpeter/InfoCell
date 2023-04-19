@@ -58,6 +58,12 @@ protected:
     void printOpDivide(CellI& cell);
     void printOpLessThan(CellI& cell);
     void printOpGreaterThan(CellI& cell);
+    void printAstCell(CellI& cell);
+    void printAstGet(CellI& cell);
+    void printAstInput(CellI& cell);
+    void printAstOutput(CellI& cell);
+    void printAstVar(CellI& cell);
+    void printAstMember(CellI& cell);
     void printIndent();
 
     std::stringstream m_ss;

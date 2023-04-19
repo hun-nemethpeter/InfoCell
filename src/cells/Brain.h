@@ -137,7 +137,8 @@ protected:
 public:
     Type Base;
 
-    Type Parameter;
+    Type Input;
+    Type Output;
     Type Slot;
     Type Call;
     Type StaticCall;
@@ -249,10 +250,15 @@ public:
     public:
         SelfFn(brain::Brain& kb);
     };
-    class Parameter : public BaseT<Parameter>
+    class Input : public BaseT<Input>
     {
     public:
-        Parameter(brain::Brain& kb, CellI& role);
+        Input(brain::Brain& kb, CellI& role);
+    };
+    class Output : public BaseT<Output>
+    {
+    public:
+        Output(brain::Brain& kb, CellI& role);
     };
     class Slot : public BaseT<Slot>
     {
@@ -452,7 +458,8 @@ public:
     Self& self();
     SelfFn& selfFn();
     Set& return_(Base& value);
-    Parameter& parameter(CellI& role);
+    Input& input(CellI& role);
+    Output& output(CellI& role);
     Slot& slot(CellI& role, CellI& type);
     Call& call(CellI& cell, CellI& method);
     Call& call(CellI& cell, CellI& method, Slot& slot1);

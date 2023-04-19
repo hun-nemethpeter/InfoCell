@@ -65,14 +65,14 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Get) {
             m_ss << "(*var_" << ast[kb.coding.cell][kb.coding.cell][kb.coding.cell][kb.coding.role].label() << ")";
         }
-        if (&ast[kb.coding.cell].type() == &kb.type.ast.Parameter) {
-            m_ss << "p_" << ast[kb.coding.cell][kb.coding.role].label();
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Input) {
+            m_ss << "in_" << ast[kb.coding.cell][kb.coding.role].label();
         }
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Cell) {
             m_ss << ast[kb.coding.cell][kb.coding.value].label();
         }
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Member) {
-            m_ss << "self." << ast[kb.coding.cell][kb.coding.role][kb.coding.value].label();
+            m_ss << "self." << ast[kb.coding.cell][kb.coding.role].label();
         }
         if (ast.has(kb.coding.method)) {
             m_ss << ".";
@@ -83,17 +83,9 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                     if (i != 0) {
                         m_ss << ", ";
                     }
-                    m_ss << "." << slot[kb.coding.slotRole][kb.coding.value].label();
+                    m_ss << slot[kb.coding.slotRole][kb.coding.value].label();
                     m_ss << " = ";
-                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Cell) {
-                        m_ss << slot[kb.coding.slotType][kb.coding.value].label();
-                    }
-                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Member) {
-                        m_ss << "self." << slot[kb.coding.slotType][kb.coding.role][kb.coding.value].label();
-                    }
-                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Parameter) {
-                        m_ss << "p_" << slot[kb.coding.slotType][kb.coding.role].label();
-                    }
+                    printImpl(slot[kb.coding.slotType]);
                 });
             }
             m_ss << ")";
@@ -116,17 +108,9 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                     if (i != 0) {
                         m_ss << ", ";
                     }
-                    m_ss << "." << slot[kb.coding.slotRole][kb.coding.value].label();
+                    m_ss << slot[kb.coding.slotRole][kb.coding.value].label();
                     m_ss << " = ";
-                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Cell) {
-                        m_ss << slot[kb.coding.slotType][kb.coding.value].label();
-                    }
-                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Member) {
-                        m_ss << "self." << slot[kb.coding.slotType][kb.coding.role][kb.coding.value].label();
-                    }
-                    if (&slot[kb.coding.slotType].type() == &kb.type.ast.Parameter) {
-                        m_ss << "p_" << slot[kb.coding.slotType][kb.coding.role].label();
-                    }
+                    printImpl(slot[kb.coding.slotType]);
                 });
             }
             m_ss << ")";
@@ -139,7 +123,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
             m_ss << ast[kb.coding.objectType][kb.coding.value].label();
         }
         if (&ast[kb.coding.objectType].type() == &kb.type.ast.Member) {
-            m_ss << "self." << ast[kb.coding.objectType][kb.coding.role][kb.coding.value].label();
+            m_ss << "self." << ast[kb.coding.objectType][kb.coding.role].label();
         }
         if (ast.has(kb.coding.constructor)) {
             m_ss << ".";
@@ -151,6 +135,8 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                         m_ss << ", ";
                     }
                     m_ss << slot[kb.coding.slotRole][kb.coding.value].label();
+                    m_ss << " = ";
+                    printImpl(slot[kb.coding.slotType]);
                 });
 
             }
@@ -217,7 +203,7 @@ void CellValuePrinter::printOpIf(CellI& cell)
     }
     printImpl(cell[kb.coding.then]);
     if (&cell[kb.coding.then].type() != &kb.type.op.Block) {
-        m_ss << "\n";
+        m_ss << ";\n";
         printIndent();
     }
     if (cell.has(kb.coding.else_)) {
@@ -229,9 +215,6 @@ void CellValuePrinter::printOpIf(CellI& cell)
             m_indent--;
         }
         printImpl(cell[kb.coding.else_]);
-        if (&cell[kb.coding.else_].type() != &kb.type.op.Block) {
-            m_ss << "\n";
-        }
     }
 }
 
@@ -413,6 +396,45 @@ void CellValuePrinter::printOpGreaterThan(CellI& cell)
     printImpl(cell[kb.coding.rhs]);
 }
 
+void CellValuePrinter::printAstCell(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << cell[kb.coding.value].label();
+}
+
+void CellValuePrinter::printAstGet(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.cell]);
+    m_ss << ".";
+    printImpl(cell[kb.coding.role]);
+}
+
+void CellValuePrinter::printAstInput(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "in_" << cell[kb.coding.role].label();
+}
+
+void CellValuePrinter::printAstOutput(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "out_" << cell[kb.coding.role].label();
+}
+
+void CellValuePrinter::printAstVar(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "var_" << cell[kb.coding.role].label();
+}
+
+void CellValuePrinter::printAstMember(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "m_" << cell[kb.coding.role].label();
+}
+
+
 void CellValuePrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
@@ -550,6 +572,24 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     } else if (is(kb.type.op.GreaterThan)) {
         printOpGreaterThan(cell);
+        return;
+    } else if (is(kb.type.ast.Cell)) {
+        printAstCell(cell);
+        return;
+    } else if (is(kb.type.ast.Get)) {
+        printAstGet(cell);
+        return;
+    } else if (is(kb.type.ast.Input)) {
+        printAstInput(cell);
+        return;
+    } else if (is(kb.type.ast.Output)) {
+        printAstOutput(cell);
+        return;
+    } else if (is(kb.type.ast.Var)) {
+        printAstVar(cell);
+        return;
+    } else if (is(kb.type.ast.Member)) {
+        printAstMember(cell);
         return;
     }
 
