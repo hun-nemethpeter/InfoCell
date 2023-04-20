@@ -67,8 +67,6 @@ public:
     svg::StructPrinter m_svgStructPrinter;
 };
 
-using namespace op;
-
 class CellTest : public ::testing::Test
 {
 protected:
@@ -99,22 +97,24 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
 TEST_F(CellTest, PrintMethod)
 {
-    printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
-    printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.dimensions.size]);
+    const auto printOp = [this](CellI& type, CellI& method) { printAs.value(type[kb.coding.methods][kb.coding.index][method]); };
+
+    printOp(kb.type.Map, kb.coding.constructor);
+    printOp(kb.type.Map, kb.dimensions.size);
 #if 1
-    printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.add]);
-    printAs.value(kb.type.Map[kb.coding.methods][kb.coding.index][kb.sequence.empty]);
+    printOp(kb.type.Map, kb.sequence.add);
+    printOp(kb.type.Map, kb.sequence.empty);
 
-    printAs.value(kb.type.Type_[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
+    printOp(kb.type.Type_, kb.coding.constructor);
 
-    printAs.value(kb.type.ListItem[kb.coding.methods][kb.coding.index][kb.coding.template_]);
-    printAs.value(kb.type.ListItem[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
+    printOp(kb.type.ListItem, kb.coding.template_);
+    printOp(kb.type.ListItem, kb.coding.constructor);
 
-    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.coding.template_]);
-    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.coding.constructor]);
-    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.sequence.add]);
-    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.dimensions.size]);
-    printAs.value(kb.type.List[kb.coding.methods][kb.coding.index][kb.sequence.empty]);
+    printOp(kb.type.List, kb.coding.template_);
+    printOp(kb.type.List, kb.coding.constructor);
+    printOp(kb.type.List, kb.sequence.add);
+    printOp(kb.type.List, kb.dimensions.size);
+    printOp(kb.type.List, kb.sequence.empty);
 #endif
 
     // TODO
@@ -122,7 +122,6 @@ TEST_F(CellTest, PrintMethod)
     // print function for AST nodes
     // inline methods
     // somehow restore input variables after a run
-    // convert op::Function class to simple Objects
     // convert Type to object
     // maybe create a Set<type>?
     // Map(key, type)

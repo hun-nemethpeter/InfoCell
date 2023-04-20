@@ -54,6 +54,7 @@ public:
     Object label;
     Object lhs;
     Object list;
+    Object localVars;
     Object memberOf;
     Object method;
     Object methods;
@@ -304,8 +305,8 @@ public:
 
     protected:
         CellI& compileImpl(CellI* type);
-        void compileParams(cells::op::Function& function, CellI* type);
-        CellI& compileAst(CellI& ast, cells::op::Function& function, CellI* type);
+        void compileParams(cells::Object& function, CellI* type);
+        CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
         List& inputs();
         List& outputs();
         Block& asts();

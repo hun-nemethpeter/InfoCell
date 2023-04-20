@@ -667,11 +667,6 @@ void CellValuePrinter::visit(hybrid::Picture& cell)
     m_ss << "(Picture)" << cell.label() << "[" << cell.width() << ", " << cell.height() << "]";
 }
 
-void CellValuePrinter::visit(op::Function& cell)
-{
-    printImpl(cell);
-}
-
 void CellValuePrinter::printIndent()
 {
     for (int i = 0; i < m_indent; ++i) {

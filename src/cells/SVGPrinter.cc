@@ -162,11 +162,6 @@ void Printer::visit(hybrid::Picture& picture)
     m_stack.push(vbox(columns) | center | borderWidth(20));
 }
 
-void Printer::visit(op::Function&)
-{
-    m_stack.push(text("Function"));
-}
-
 void Printer::showcaseLastResult(const std::string& caseName)
 {
     m_showcaseItems.push_back(

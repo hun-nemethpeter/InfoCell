@@ -553,33 +553,6 @@ protected:
 
 } // namespace hybrid
 
-namespace op {
-
-// ============================================================================
-class Function : public CellI
-{
-public:
-    explicit Function(brain::Brain& kb, const std::string& label = "Function");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void addInputs(Map& input);
-    void addOutputs(Map& output);
-    CellI& getOrCreateVar(CellI& role, CellI& type);
-
-protected:
-    Map* m_inputs  = nullptr;
-    Map* m_outputs = nullptr;
-    CellI* m_op     = nullptr;
-    Map m_localVars;
-};
-
-} // namespace control
-
 // ============================================================================
 class Visitor
 {
@@ -605,8 +578,6 @@ public:
     virtual void visit(hybrid::Color&)   = 0;
     virtual void visit(hybrid::Pixel&)   = 0;
     virtual void visit(hybrid::Picture&) = 0;
-
-    virtual void visit(op::Function&) = 0;
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i)> fn);
 };

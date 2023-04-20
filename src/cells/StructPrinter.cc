@@ -107,11 +107,6 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(op::Function& cell)
-{
-    printImpl(cell);
-}
-
 void CellStructPrinter::printImpl(CellI& cell)
 {
     const bool needId = false;
