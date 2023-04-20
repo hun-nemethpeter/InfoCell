@@ -119,12 +119,9 @@ TEST_F(CellTest, PrintMethod)
 
     // TODO
     // static method call, maybe scall and show it as cell::method()
-    // add the id to the Op node exp. to Var
     // print function for AST nodes
-    // link the AST nodes to the Op ones
     // inline methods
     // somehow restore input variables after a run
-    // recognize self parameter in a function
     // convert op::Function class to simple Objects
     // convert Type to object
     // maybe create a Set<type>?

@@ -84,7 +84,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                         m_ss << ", ";
                     }
                     m_ss << slot[kb.coding.slotRole][kb.coding.value].label();
-                    m_ss << " = ";
+                    m_ss << ": ";
                     printImpl(slot[kb.coding.slotType]);
                 });
             }
@@ -109,7 +109,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                         m_ss << ", ";
                     }
                     m_ss << slot[kb.coding.slotRole][kb.coding.value].label();
-                    m_ss << " = ";
+                    m_ss << ": ";
                     printImpl(slot[kb.coding.slotType]);
                 });
             }
@@ -135,7 +135,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                         m_ss << ", ";
                     }
                     m_ss << slot[kb.coding.slotRole][kb.coding.value].label();
-                    m_ss << " = ";
+                    m_ss << ": ";
                     printImpl(slot[kb.coding.slotType]);
                 });
 
@@ -405,6 +405,15 @@ void CellValuePrinter::printAstCell(CellI& cell)
 void CellValuePrinter::printAstGet(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
+    if (&cell[kb.coding.cell].type() == &kb.type.ast.Var) {
+        if (&cell[kb.coding.role].type() == &kb.type.ast.Cell) {
+            if (&cell[kb.coding.role][kb.coding.value] == &kb.coding.value) {
+                m_ss << "*";
+                printImpl(cell[kb.coding.cell]);
+                return;
+            }
+        }
+    }
     printImpl(cell[kb.coding.cell]);
     m_ss << ".";
     printImpl(cell[kb.coding.role]);
