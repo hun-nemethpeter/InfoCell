@@ -18,11 +18,6 @@ StructPrinter::StructPrinter(int width, int height) :
     m_fontName = "Times New Roman";
 }
 
-void StructPrinter::visit(Type& cell)
-{
-    printStruct(cell);
-}
-
 void StructPrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
     printStruct(cell);
@@ -134,24 +129,26 @@ void StructPrinter::printStruct(CellI& cell)
                       filler() | size(WIDTH, EQUAL, 10),
                       text(std::format("{}", (void*)&cell[kb.coding.type]))->fontSize(14)->fontColor(typeColor) });
 
-    CellI& slotList = type[kb.coding.slots][kb.coding.list];
-    visitList(slotList, [this, &kb, &cell, &roleColor, &typeColor, &lines, &flexConfig](CellI& slot, int i) {
-        CellI& role = slot[kb.coding.slotRole];
-        if (!cell.has(role)) {
-            return;
-        }
+    if (type.has(kb.coding.slots)) {
+        CellI& slotList = type[kb.coding.slots][kb.coding.list];
+        visitList(slotList, [this, &kb, &cell, &roleColor, &typeColor, &lines, &flexConfig](CellI& slot, int i) {
+            CellI& role = slot[kb.coding.slotRole];
+            if (!cell.has(role)) {
+                return;
+            }
 
-        CellI& slotType = slot[kb.coding.slotType];
-        CellI& connectedCell           = cell[role];
-        std::string connectedCellLabel = connectedCell.label().empty() ? std::format("A {}", connectedCell.type().label()) : connectedCell.label();
+            CellI& slotType                = slot[kb.coding.slotType];
+            CellI& connectedCell           = cell[role];
+            std::string connectedCellLabel = connectedCell.label().empty() ? std::format("A {}", connectedCell.type().label()) : connectedCell.label();
 
-        lines.push_back({ filler() | size(HEIGHT, EQUAL, 2), filler() | size(WIDTH, EQUAL, 10), filler() | size(HEIGHT, EQUAL, 2) });
-        lines.push_back({ flexbox({ text(role.label())->fontSize(14)->fontColor(roleColor) }, flexConfig),
-                          filler() | size(WIDTH, EQUAL, 10),
-                          text(connectedCellLabel)->fontSize(14)->fontColor(typeColor),
-                          filler() | size(WIDTH, EQUAL, 10),
-                          text(std::format("{}", (void*)&cell[role]))->fontSize(14)->fontColor(typeColor) });
-    });
+            lines.push_back({ filler() | size(HEIGHT, EQUAL, 2), filler() | size(WIDTH, EQUAL, 10), filler() | size(HEIGHT, EQUAL, 2) });
+            lines.push_back({ flexbox({ text(role.label())->fontSize(14)->fontColor(roleColor) }, flexConfig),
+                              filler() | size(WIDTH, EQUAL, 10),
+                              text(connectedCellLabel)->fontSize(14)->fontColor(typeColor),
+                              filler() | size(WIDTH, EQUAL, 10),
+                              text(std::format("{}", (void*)&cell[role]))->fontSize(14)->fontColor(typeColor) });
+        });
+    }
     m_stack.push(vbox(svgTypeName | center,
                       filler() | size(HEIGHT, EQUAL, 8),
                       gridbox(lines)));

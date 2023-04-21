@@ -18,11 +18,6 @@ Printer::Printer(int width, int height) :
     m_fontName = "Times New Roman";
 }
 
-void Printer::visit(Type& cell)
-{
-    m_stack.push(text("Type"));
-}
-
 void Printer::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
     m_stack.push(text("Map::Index::Type::Slots::SlotList::Item"));

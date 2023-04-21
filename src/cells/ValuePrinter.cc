@@ -6,11 +6,6 @@
 namespace synth {
 namespace cells {
 
-void CellValuePrinter::visit(Type& cell)
-{
-    printImpl(cell);
-}
-
 void CellValuePrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
     printImpl(cell);
@@ -447,12 +442,12 @@ void CellValuePrinter::printAstMember(CellI& cell)
 void CellValuePrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    auto is          = [this, &cell, &kb](CellI& type) -> bool { return cell.type()[kb.coding.memberOf][kb.coding.index].has(type) || &cell.type() == &type; };
+    auto is          = [this, &cell, &kb](CellI& type) -> bool { return &cell.type() == &type || (cell.type().has(kb.coding.memberOf) && cell.type()[kb.coding.memberOf][kb.coding.index].has(type)); };
 
     if (is(kb.type.Slot)) {
         CellI& cellType = cell[kb.coding.slotType];
         m_ss << cell[kb.coding.slotRole].label() << ": ";
-        if (cellType.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem)) {
+        if (cellType.type().has(kb.coding.memberOf) && cellType.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem)) {
             m_ss << "ListItem<" << cellType.type()[kb.coding.slots][kb.coding.index][kb.coding.value][kb.coding.slotType].label() << ">";
         } else {
             m_ss << cellType.label();
@@ -461,21 +456,25 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (is(kb.type.Type_)) {
         CellI& type = cell;
         m_ss << "Type " << type.label();
-        visitList(type[kb.coding.memberOf][kb.coding.list], [this, &kb](CellI& member, int i) {
-            if (i != 0) {
-                m_ss << ", ";
-            } else {
-                m_ss << " : ";
-            }
-            m_ss << member.label();
-        });
+        if (type.has(kb.coding.memberOf)) {
+            visitList(type[kb.coding.memberOf][kb.coding.list], [this, &kb](CellI& member, int i) {
+                if (i != 0) {
+                    m_ss << ", ";
+                } else {
+                    m_ss << " : ";
+                }
+                m_ss << member.label();
+            });
+        }
         m_ss << " { ";
-        visitList(type[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i) {
-            if (i != 0) {
-                m_ss << ", ";
-            }
-            m_ss << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
-        });
+        if (type.has(kb.coding.slots)) {
+            visitList(type[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i) {
+                if (i != 0) {
+                    m_ss << ", ";
+                }
+                m_ss << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
+            });
+        }
         m_ss << " }";
         return;
     } else if (is(kb.type.List)) {
@@ -607,13 +606,15 @@ void CellValuePrinter::printImpl(CellI& cell)
     }
     m_ss << cell.type().label() << " { ";
 
-    visitList(cell.type()[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i) {
-        if (i != 0) {
-            m_ss << ", ";
-        }
-        m_ss << ".";
-        slot.accept(*this);
-    });
+    if (cell.type().has(kb.coding.slots)) {
+        visitList(cell.type()[kb.coding.slots][kb.coding.list], [this, &kb](CellI& slot, int i) {
+            if (i != 0) {
+                m_ss << ", ";
+            }
+            m_ss << ".";
+            slot.accept(*this);
+        });
+    }
 
     m_ss << " }";
 }

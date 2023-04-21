@@ -20,7 +20,6 @@ class Printer : public cells::Visitor
 public:
     Printer(int width, int height);
 
-    void visit(Type& cell) override;
     void visit(Map::Index::Type::Slots::SlotList::Item& cell) override;
     void visit(Map::Index::Type::Slots::SlotList& cell) override;
     void visit(Map::Index::Type::Slots::SlotIndex& cell) override;

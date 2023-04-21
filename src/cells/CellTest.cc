@@ -99,9 +99,9 @@ TEST_F(CellTest, PrintMethod)
 {
     const auto printOp = [this](CellI& type, CellI& method) { printAs.value(type[kb.coding.methods][kb.coding.index][method]); };
 
+#if 1
     printOp(kb.type.Map, kb.coding.constructor);
     printOp(kb.type.Map, kb.dimensions.size);
-#if 1
     printOp(kb.type.Map, kb.sequence.add);
     printOp(kb.type.Map, kb.sequence.empty);
 
@@ -227,7 +227,6 @@ TEST_F(CellTest, ListItemTemplate)
 {
     Object listItemType(kb, kb.type.Type_);
     listItemType.set(kb.coding.slots, kb.type.ListItem[kb.coding.slots]);
-    listItemType.set(coding.subTypes, kb.type.ListItem[coding.subTypes]);
     listItemType.set(coding.memberOf, kb.type.ListItem[coding.memberOf]);
     listItemType.set(coding.methods, kb.type.ListItem[coding.methods]);
 
@@ -305,9 +304,9 @@ TEST_F(CellTest, ListTemplate)
 
 TEST_F(CellTest, CreatedTypeWithConstructor)
 {
-    Map emptyMap(kb, kb.type.Cell);
+    Map emptyMap(kb, kb.type.Cell, kb.type.Cell);
     Object newType(kb, kb.type.Type_, kb.coding.constructor,
-                   { coding.slots, kb.map(kb.dimensions.size, kb.coding.slot(kb.dimensions.size, kb.type.Number)) },
+                   { coding.slots, kb.map(kb.type.Cell, kb.type.Slot, kb.dimensions.size, kb.coding.slot(kb.dimensions.size, kb.type.Number)) },
                    { coding.subTypes, emptyMap },
                    { coding.memberOf, kb.map(kb.type.Cell, kb.type.Cell) },
                    { coding.methods, emptyMap });
@@ -339,10 +338,18 @@ TEST_F(CellTest, HybridPicture)
 
 TEST_F(CellTest, BasicObjectTest)
 {
-    Type testType(kb, "Test");
-    testType.addSlots(
+    Object testType(kb, kb.type.Type_, "Test");
+#if 1 // TODO
+    Object* slotMapPtr = new Object(kb, kb.type.MapCellToSlot);
+    slotMapPtr->set(kb.dimensions.size, _0_);
+    slotMapPtr->set(kb.coding.keyType, kb.type.Cell);
+    slotMapPtr->set(kb.coding.objectType, kb.type.Slot);
+    testType.set(coding.slots, *slotMapPtr);
+#endif
+
+    testType.method(kb.methods.addSlots, { kb.coding.list, kb.list(
         coding.slot(kb.coding.result, kb.type.Digit),
-        coding.slot(kb.coding.value, kb.type.Number)); // TODO implement type checking
+        coding.slot(kb.coding.value, kb.type.Number))}); // TODO implement type checking
 
     Object object(kb, testType, "testObject");
 
@@ -405,11 +412,16 @@ TEST_F(CellTest, CreatingCustomType)
     Object colorGreen(kb, kb.type.Cell, "green");
     Object colorBlue(kb, kb.type.Cell, "blue");
 
-    Type colorClass(kb, "Color");
-    colorClass.addSlots(
-        coding.slot(colorRed, kb.type.Number),
-        coding.slot(colorGreen, kb.type.Number),
-        coding.slot(colorBlue, kb.type.Number));
+    Object colorClass(kb, kb.type.Type_, "Color");
+#if 1 // TODO
+    Object* slotMapPtr = new Object(kb, kb.type.MapCellToSlot);
+    slotMapPtr->set(kb.dimensions.size, _0_);
+    slotMapPtr->set(kb.coding.keyType, kb.type.Cell);
+    slotMapPtr->set(kb.coding.objectType, kb.type.Slot);
+    colorClass.set(coding.slots, *slotMapPtr);
+#endif
+
+    colorClass.method(kb.methods.addSlots, { kb.coding.list, kb.list(coding.slot(colorRed, kb.type.Number), coding.slot(colorGreen, kb.type.Number), coding.slot(colorBlue, kb.type.Number)) });
 
     Object redColor(kb, colorClass, "redColor");
     redColor.set(colorRed, kb.pools.numbers.get(255));
@@ -444,7 +456,8 @@ TEST_F(CellTest, CreatingCustomType)
     printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
     printAs.value(colorClass[kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index]");
     printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type]");
-    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index]");
+    // TODO implement dynamic type for index
+    //    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index]");
     printAs.cell(colorClass);
 
     printAs.svg(redColor);

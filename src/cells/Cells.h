@@ -361,7 +361,7 @@ public:
         Index::Type::Slot m_indexTypeSlot;
     };
 
-    Map(brain::Brain& kb, CellI& valueType, const std::string& label = "");
+    Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -382,6 +382,7 @@ public:
     bool empty() const;
 
 protected:
+    CellI& m_keyType;
     CellI& m_valueType;
 
     IndexedValues m_indexedValues;
@@ -390,39 +391,6 @@ protected:
 public:
     List m_list;
     Index m_index;
-};
-
-// ============================================================================
-class Type : public CellI
-{
-public:
-    explicit Type(brain::Brain& kb, const std::string& label = "Type");
-
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void operator()() override;
-    CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
-
-    void addSlot(CellI& role, CellI& type);
-
-    void addSlots(CellI& slot);
-    template <typename... Args>
-    void addSlots(CellI& slot, Args&&... args)
-    {
-        addSlots(slot);
-        addSlots(std::forward<Args>(args)...);
-    }
-    void addSubType(CellI& role, Type& type);
-    void addMembership(CellI& type);
-    void addMethod(CellI& role, CellI& method);
-
-protected:
-    Map m_slots;
-    Map m_subTypes;
-    Map m_memberOf;
-    Map m_asts;
-    Map m_methods;
 };
 
 // ============================================================================
@@ -559,7 +527,6 @@ class Visitor
 public:
     virtual void visit(Object&) = 0;
 
-    virtual void visit(Type&)   = 0;
     virtual void visit(Number&) = 0;
     virtual void visit(String&) = 0;
 

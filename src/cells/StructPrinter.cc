@@ -5,14 +5,6 @@
 namespace synth {
 namespace cells {
 
-void CellStructPrinter::visit(Type& cell)
-{
-    if (!cell.label().empty()) {
-        m_ss << cell.label() << ": ";
-    }
-    printImpl(cell);
-}
-
 void CellStructPrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
 {
     printImpl(cell);
@@ -111,7 +103,14 @@ void CellStructPrinter::printImpl(CellI& cell)
 {
     const bool needId = false;
     brain::Brain& kb = cell.kb;
+    auto is           = [this, &cell, &kb](CellI& type) -> bool { return &cell.type() == &type || (cell.type().has(kb.coding.memberOf) && cell.type()[kb.coding.memberOf][kb.coding.index].has(type)); };
+
     CellI& type   = cell.type();
+    if (&type == &kb.type.Type_) {
+        if (!cell.label().empty()) {
+            m_ss << cell.label() << ": ";
+        }
+    }
     if (&type == &kb.type.Slot) {
         if (cell.label().empty()) {
             m_ss << cell[kb.coding.slotRole].label() << ": ";
@@ -119,11 +118,12 @@ void CellStructPrinter::printImpl(CellI& cell)
             m_ss << cell.label() << ": ";
         }
     }
-    if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.List) || &cell.type() == &kb.type.List) {
+
+    if (is(kb.type.List)) {
         m_ss << "List<" << cell[kb.coding.objectType].label() << ">";
-    } else if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem) || &cell.type() == &kb.type.ListItem) {
+    } else if (is(kb.type.ListItem)) {
         m_ss << "ListItem<" << cell.type()[kb.coding.slots][kb.coding.index][kb.coding.value][kb.coding.slotType].label() << ">";
-    } else if (cell.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.Map) || &cell.type() == &kb.type.Map) {
+    } else if (is(kb.type.Map)) {
         m_ss << "Map<" << cell[kb.coding.keyType].label() << ", " << cell[kb.coding.objectType].label() << ">";
     } else {
         m_ss << "(" << type.label() << ")";
@@ -137,21 +137,23 @@ void CellStructPrinter::printImpl(CellI& cell)
     if (needId)
         m_ss << " ID" << &type;
     m_ss << " // " << typePrinter.print() << std::endl;
-    CellI& slotList = type[kb.coding.slots][kb.coding.list];
-    visitList(slotList, [this, &kb, &cell](CellI& slot, int i) {
-        CellI& role = slot[kb.coding.slotRole];
-        if (!cell.has(role)) {
-            return;
-        }
-        CellValuePrinter valuePrinter;
-        CellI& slotType      = slot[kb.coding.slotType];
-        CellI& connectedCell = cell[role];
-        connectedCell.accept(valuePrinter);
-        m_ss << "    +--(" << role.label() << ")--> (" << slotType.label() << ")";
-        if (needId)
-            m_ss << " ID " << &connectedCell;
-        m_ss << " // " << valuePrinter.print() << std::endl;
-    });
+    if (type.has(kb.coding.slots)) {
+        CellI& slotList = type[kb.coding.slots][kb.coding.list];
+        visitList(slotList, [this, &kb, &cell](CellI& slot, int i) {
+            CellI& role = slot[kb.coding.slotRole];
+            if (!cell.has(role)) {
+                return;
+            }
+            CellValuePrinter valuePrinter;
+            CellI& slotType      = slot[kb.coding.slotType];
+            CellI& connectedCell = cell[role];
+            connectedCell.accept(valuePrinter);
+            m_ss << "    +--(" << role.label() << ")--> (" << slotType.label() << ")";
+            if (needId)
+                m_ss << " ID " << &connectedCell;
+            m_ss << " // " << valuePrinter.print() << std::endl;
+        });
+    }
 }
 
 std::string CellStructPrinter::print() const

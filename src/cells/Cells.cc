@@ -197,7 +197,7 @@ void Object::set(CellI& role, CellI& value)
         return;
     }
 
-    if (type()[kb.coding.slots][kb.coding.index].has(role) || &type() == &kb.type.Index) { // TODO Index is a hack
+    if (&type() == &kb.type.Index || type()[kb.coding.slots][kb.coding.index].has(role)) { // TODO Index is a hack
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
@@ -1023,7 +1023,7 @@ void Map::Index::Type::Slots::operator()()
 CellI& Map::Index::Type::Slots::operator[](CellI& role)
 {
     if (&role == &kb.coding.type) {
-        return kb.type.MapOf(kb.type.Slot);
+        return kb.type.MapCellToSlot;
     }
     if (&role == &kb.coding.index) {
         return m_slotIndex;
@@ -1087,7 +1087,7 @@ CellI& Map::Index::Type::operator[](CellI& role)
     if (&role == &kb.coding.memberOf) {
         static std::unique_ptr<Map> s_memberOfList;
         if (!s_memberOfList) {
-            s_memberOfList = std::make_unique<Map>(kb, kb.coding.type);
+            s_memberOfList = std::make_unique<Map>(kb, kb.type.Cell, kb.coding.type);
             s_memberOfList->add(kb.type.Index, kb.type.Index);
         }
         return *s_memberOfList;
@@ -1174,8 +1174,9 @@ Map::Value* Map::Value::next()
 #pragma endregion
 #pragma region Map
 // ============================================================================
-Map::Map(brain::Brain& kb, CellI& valueType, const std::string& label) :
+Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
     CellI(kb, label),
+    m_keyType(keyType),
     m_valueType(valueType),
     m_list(kb, valueType),
     m_index(kb, m_indexedValues, m_orderedValues, valueType)
@@ -1210,7 +1211,7 @@ void Map::operator()()
 CellI& Map::operator[](CellI& role)
 {
     if (&role == &kb.coding.type) {
-        return kb.type.MapOf(m_valueType);
+        return kb.type.MapOf(m_keyType, m_valueType);
     }
     if (&role == &kb.coding.index) {
         return m_index;
@@ -1255,107 +1256,6 @@ void Map::add(CellI& key, CellI& value)
 bool Map::empty() const
 {
     return m_indexedValues.empty();
-}
-#pragma endregion
-#pragma region Type
-// ============================================================================
-Type::Type(brain::Brain& kb, const std::string& label) :
-    CellI(kb, label),
-    m_slots(kb, kb.type.Slot),
-    m_subTypes(kb, kb.type.Type_),
-    m_memberOf(kb, kb.type.Type_),
-    m_asts(kb, kb.type.ast.Function),
-    m_methods(kb, kb.type.op.Function)
-{
-}
-
-bool Type::has(CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return true;
-    }
-    if (&role == &kb.coding.slots && !m_slots.empty()) {
-        return true;
-    }
-    if (&role == &kb.coding.subTypes && !m_subTypes.empty()) {
-        return true;
-    }
-    if (&role == &kb.coding.memberOf && !m_memberOf.empty()) {
-        return true;
-    }
-    if (&role == &kb.coding.methods && !m_methods.empty()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Type::set(CellI& role, CellI& value)
-{
-    throw "Not supported";
-}
-
-void Type::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Type::operator[](CellI& role)
-{
-    if (&role == &kb.coding.type) {
-        return kb.type.Type_;
-    }
-    if (&role == &kb.coding.slots) {
-        return m_slots;
-    }
-    if (&role == &kb.coding.subTypes) {
-        return m_subTypes;
-    }
-    if (&role == &kb.coding.memberOf) {
-        return m_memberOf;
-    }
-    if (&role == &kb.coding.methods) {
-        return m_methods;
-    }
-
-    throw "No such role!";
-}
-
-void Type::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-void Type::addSlot(CellI& role, CellI& type)
-{
-    CellI& slot = *new Object(kb, kb.type.Slot);
-    slot.set(kb.coding.slotRole, role);
-    slot.set(kb.coding.slotType, type);
-    slot.label(std::format("Slot of {}.{}", label(), role.label()));
-    m_slots.add(role, slot);
-}
-
-void Type::addSlots(CellI& slot)
-{
-    CellI& role = slot[kb.coding.slotRole];
-    slot.label(std::format("Slot of {}.{}", label(), role.label()));
-    m_slots.add(role, slot);
-}
-
-void Type::addSubType(CellI& role, Type& type)
-{
-    m_subTypes.add(role, type);
-}
-
-void Type::addMembership(CellI& type)
-{
-    m_memberOf.add(type, type);
-}
-
-void Type::addMethod(CellI& role, CellI& method)
-{
-    m_asts.add(role, method);
-    m_methods.add(role, static_cast<brain::Ast::Function&>(method).compile(*this));
 }
 #pragma endregion
 #pragma region Number
@@ -1845,10 +1745,6 @@ bool tryVisitWith(CellI& cell, Visitor& visitor)
 {
     brain::Brain& kb = cell.kb;
 
-    if (&cell.type() == &kb.type.Type_) {
-        visitor.visit(static_cast<Type&>(cell));
-        return true;
-    }
     if (&cell.type() == &kb.type.Number) {
         visitor.visit(static_cast<Number&>(cell));
         return true;

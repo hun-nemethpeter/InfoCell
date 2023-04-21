@@ -79,6 +79,19 @@ public:
     Object value;
 };
 
+class Methods
+{
+    brain::Brain& kb;
+
+public:
+    Methods(brain::Brain& kb);
+
+    Object addMembership;
+    Object addMethod;
+    Object addSlots;
+    Object addSubType;
+};
+
 template <typename T>
 class NewT
 {
@@ -97,34 +110,34 @@ class Op
 public:
     Op(brain::Brain& kb);
 
-    Type Base;
-    Type Block;
-    Type EvalVar;
-    Type Function;
-    Type Delete;
-    Type Set;
-    Type If;
-    Type Do;
-    Type While;
-    Type Expression;
-    Type ConstVar;
-    Type Var;
-    Type New;
-    Type Same;
-    Type NotSame;
-    Type Equal;
-    Type NotEqual;
-    Type Has;
-    Type Get;
-    Type And;
-    Type Or;
-    Type Not;
-    Type Add;
-    Type Subtract;
-    Type Multiply;
-    Type Divide;
-    Type LessThan;
-    Type GreaterThan;
+    Object Base;
+    Object Block;
+    Object EvalVar;
+    Object Function;
+    Object Delete;
+    Object Set;
+    Object If;
+    Object Do;
+    Object While;
+    Object Expression;
+    Object ConstVar;
+    Object Var;
+    Object New;
+    Object Same;
+    Object NotSame;
+    Object Equal;
+    Object NotEqual;
+    Object Has;
+    Object Get;
+    Object And;
+    Object Or;
+    Object Not;
+    Object Add;
+    Object Subtract;
+    Object Multiply;
+    Object Divide;
+    Object LessThan;
+    Object GreaterThan;
 };
 
 class Ast
@@ -136,43 +149,44 @@ protected:
     brain::Brain& kb;
 
 public:
-    Type Base;
+    Object Base;
 
-    Type Input;
-    Type Output;
-    Type Slot;
-    Type Call;
-    Type StaticCall;
-    Type Cell;
-    Type Self;
-    Type SelfFn;
+    Object Input;
+    Object Output;
+    Object Slot;
+    Object Call;
+    Object StaticCall;
+    Object Cell;
+    Object Self;
+    Object SelfFn;
+    Object Return;
 
-    Type Block;
-    Type Function;
-    Type Delete;
-    Type Set;
-    Type If;
-    Type Do;
-    Type While;
-    Type Expression;
-    Type Var;
-    Type Member;
-    Type New;
-    Type Same;
-    Type NotSame;
-    Type Equal;
-    Type NotEqual;
-    Type Has;
-    Type Get;
-    Type And;
-    Type Or;
-    Type Not;
-    Type Add;
-    Type Subtract;
-    Type Multiply;
-    Type Divide;
-    Type LessThan;
-    Type GreaterThan;
+    Object Block;
+    Object Function;
+    Object Delete;
+    Object Set;
+    Object If;
+    Object Do;
+    Object While;
+    Object Expression;
+    Object Var;
+    Object Member;
+    Object New;
+    Object Same;
+    Object NotSame;
+    Object Equal;
+    Object NotEqual;
+    Object Has;
+    Object Get;
+    Object And;
+    Object Or;
+    Object Not;
+    Object Add;
+    Object Subtract;
+    Object Multiply;
+    Object Divide;
+    Object LessThan;
+    Object GreaterThan;
 };
 
 } // namespace type
@@ -182,33 +196,40 @@ class Types
 public:
     Types(brain::Brain& kb);
 
-    Type& ListOf(CellI& type);
-    Type& MapOf(CellI& type);
+    Object& ListOf(CellI& type);
+    Object& MapOf(CellI& keyType, CellI& valueType);
 
 protected:
     brain::Brain& kb;
-    std::map<CellI*, Type> m_listTypes;
-    std::map<CellI*, Type> m_mapTypes;
+    std::map<CellI*, Object> m_listTypes;
+    std::map<CellI*, std::map<CellI*, Object>> m_mapTypes;
     friend class TypeInit;
 
 public:
-    Type Type_;
-    Type Cell;
-    Type Slot;
-    Type Container;
-    Type Iterator;
-    Type List;
-    Type ListItem;
-    Type Map;
-    Type Index;
-    Type Boolean;
-    Type Char;
-    Type Digit;
-    Type Number;
-    Type String;
-    Type Color;
-    Type Pixel;
-    Type Picture;
+    Object Type_;
+    Object Cell;
+    Object Slot;
+    Object Container;
+    Object Iterator;
+    Object List;
+    Object ListItem;
+    Object Map;
+    Object MapCellToSlot;
+    Object MapCellToType;
+    Object MapCellToAstFunction;
+    Object MapCellToOpFunction;
+    Object MapCellToOpVar;
+    Object MapCellToOpBase;
+    Object MapTypeToType;
+    Object Index;
+    Object Boolean;
+    Object Char;
+    Object Digit;
+    Object Number;
+    Object String;
+    Object Color;
+    Object Pixel;
+    Object Picture;
 
     type::Op op;
     type::Ast ast;
@@ -251,10 +272,16 @@ public:
     public:
         SelfFn(brain::Brain& kb);
     };
+    class Return : public BaseT<Return>
+    {
+    public:
+        Return(brain::Brain& kb);
+    };
     class Input : public BaseT<Input>
     {
     public:
         Input(brain::Brain& kb, CellI& role);
+        Get& operator/(Base& role);
     };
     class Output : public BaseT<Output>
     {
@@ -299,7 +326,7 @@ public:
         void addInputs(List& input);
         void addOutputs(List& output);
         void addAsts(Block& ast);
-        void toMethod(Type& type);
+        void toMethod(Object& type);
         CellI& compile();
         CellI& compile(CellI& type);
 
@@ -315,8 +342,8 @@ public:
         List* m_outputs = nullptr;
         Block* m_asts   = nullptr;
 
-        std::unique_ptr<Type> m_inputType;
-        std::unique_ptr<Type> m_outputType;
+        std::unique_ptr<Object> m_inputType;
+        std::unique_ptr<Object> m_outputType;
     };
     class Delete : public BaseT<Delete>
     {
@@ -337,7 +364,7 @@ public:
     class Do : public BaseT<Do>
     {
     public:
-        Do(brain::Brain& kb, Base& condition, Base& statement);
+        Do(brain::Brain& kb, Base& statement, Base& condition);
     };
     class While : public BaseT<While>
     {
@@ -458,6 +485,7 @@ public:
     Cell& cell(CellI& value);
     Self& self();
     SelfFn& selfFn();
+    Return& return_();
     Set& return_(Base& value);
     Input& input(CellI& role);
     Output& output(CellI& role);
@@ -615,8 +643,8 @@ class Arc
 public:
     Arc(brain::Brain& kb);
 
-    Type Demonstration;
-    Type Task;
+    Object Demonstration;
+    Object Task;
     Object examples;
 };
 
@@ -641,6 +669,7 @@ public:
     Sequence sequence;
     Dimensions dimensions;
     Coding coding;
+    Methods methods;
     Types type;
     Pools pools;
     Ast ast;
@@ -680,8 +709,7 @@ public:
     template <typename... Args>
     Map& map(CellI& key, CellI& value, Args&&... args)
     {
-        Map& ret = *new Map(*this, value.type());
-        ret.add(key, value);
+        Map& ret = *new Map(*this, key.type(), value.type());
         if constexpr (sizeof...(Args) > 0) {
             ret.add(std::forward<Args>(args)...);
         }
