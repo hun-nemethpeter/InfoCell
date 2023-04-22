@@ -106,6 +106,7 @@ TEST_F(CellTest, PrintMethod)
     printOp(kb.type.Map, kb.sequence.empty);
 
     printOp(kb.type.Type_, kb.coding.constructor);
+    printOp(kb.type.Type_, kb.methods.addSlot);
     printOp(kb.type.Type_, kb.methods.addSlots);
 
     printOp(kb.type.ListItem, kb.coding.template_);
@@ -120,16 +121,11 @@ TEST_F(CellTest, PrintMethod)
 #endif
 
     // TODO
-    // static method call, maybe scall and show it as cell::method()
     // print function for AST nodes
     // inline methods
-    // somehow restore input variables after a run
-    // convert Type to object
     // maybe create a Set<type>?
-    // Map(key, type)
     // type checking
     // create an own type for every function to able to save return values to the fn object
-    // Implement dynamic type for Map.index in Map::add
     // remove .label() from CellI
 }
 
@@ -212,17 +208,25 @@ TEST_F(CellTest, Map)
     EXPECT_EQ(&map[kb.coding.keyType], &kb.type.Number);
     EXPECT_EQ(&map[kb.coding.objectType], &kb.type.Color);
 
-    map.method(kb.sequence.add, { coding.key, _1_}, { coding.value, kb.colors.blue });
+    map.method(kb.sequence.add, { coding.key, _1_}, { coding.value, kb.colors.red });
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[kb.dimensions.size], &_1_);
     EXPECT_EQ(&map.method(kb.dimensions.size), &_1_);
     EXPECT_EQ(&map[coding.list][kb.dimensions.size], &_1_);
-    EXPECT_EQ(&map[coding.list][kb.sequence.first][kb.coding.value], &kb.colors.blue);
+    EXPECT_EQ(&map[coding.list][kb.sequence.first][kb.coding.value], &kb.colors.red);
     EXPECT_EQ(&map[coding.list][kb.sequence.first], &map[coding.list][kb.sequence.last]);
     EXPECT_TRUE(map[coding.index].has(_1_));
-    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.blue);
+    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
     EXPECT_EQ(&map.method(kb.sequence.empty), &false_);
+
+    map.method(kb.sequence.add, { coding.key, _2_ }, { coding.value, kb.colors.green });
+    map.method(kb.sequence.add, { coding.key, _3_ }, { coding.value, kb.colors.blue });
+    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
+    EXPECT_EQ(&map[coding.index][_2_], &kb.colors.green);
+    EXPECT_EQ(&map[coding.index][_3_], &kb.colors.blue);
+    printAs.value(map);
+    printAs.cell(map);
 }
 
 TEST_F(CellTest, ListItemTemplate)
@@ -409,10 +413,7 @@ TEST_F(CellTest, CreatingCustomType)
 
     Object colorClass(kb, kb.type.Type_, "Color");
 #if 1 // TODO
-    Object* slotMapPtr = new Object(kb, kb.type.MapCellToSlot);
-    slotMapPtr->set(kb.dimensions.size, _0_);
-    slotMapPtr->set(kb.coding.keyType, kb.type.Cell);
-    slotMapPtr->set(kb.coding.objectType, kb.type.Slot);
+    Object* slotMapPtr = new Object(kb, kb.type.MapCellToSlot, kb.coding.constructor);
     colorClass.set(coding.slots, *slotMapPtr);
 #endif
 

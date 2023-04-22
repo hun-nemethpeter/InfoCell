@@ -47,6 +47,7 @@ public:
     Object emptyObject;
     Object eval;
     Object index;
+    Object indexType;
     Object input;
     Object item;
     Object key;
@@ -88,6 +89,7 @@ public:
 
     Object addMembership;
     Object addMethod;
+    Object addSlot;
     Object addSlots;
     Object addSubType;
 };
