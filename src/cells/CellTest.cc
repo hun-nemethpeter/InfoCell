@@ -106,6 +106,7 @@ TEST_F(CellTest, PrintMethod)
     printOp(kb.type.Map, kb.sequence.empty);
 
     printOp(kb.type.Type_, kb.coding.constructor);
+    printOp(kb.type.Type_, kb.methods.addSlots);
 
     printOp(kb.type.ListItem, kb.coding.template_);
     printOp(kb.type.ListItem, kb.coding.constructor);
@@ -115,6 +116,7 @@ TEST_F(CellTest, PrintMethod)
     printOp(kb.type.List, kb.sequence.add);
     printOp(kb.type.List, kb.dimensions.size);
     printOp(kb.type.List, kb.sequence.empty);
+
 #endif
 
     // TODO
@@ -200,7 +202,7 @@ TEST_F(CellTest, List)
 
 TEST_F(CellTest, Map)
 {
-    Object map(kb, kb.type.Map, kb.coding.constructor, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
+    Object map(kb, kb.type.MapOf(kb.type.Number, kb.type.Color), kb.coding.constructor);
 
     printAs.value(map);
     printAs.cell(map);
@@ -339,13 +341,6 @@ TEST_F(CellTest, HybridPicture)
 TEST_F(CellTest, BasicObjectTest)
 {
     Object testType(kb, kb.type.Type_, "Test");
-#if 1 // TODO
-    Object* slotMapPtr = new Object(kb, kb.type.MapCellToSlot);
-    slotMapPtr->set(kb.dimensions.size, _0_);
-    slotMapPtr->set(kb.coding.keyType, kb.type.Cell);
-    slotMapPtr->set(kb.coding.objectType, kb.type.Slot);
-    testType.set(coding.slots, *slotMapPtr);
-#endif
 
     testType.method(kb.methods.addSlots, { kb.coding.list, kb.list(
         coding.slot(kb.coding.result, kb.type.Digit),

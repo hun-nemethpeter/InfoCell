@@ -379,6 +379,7 @@ public:
         Get& operator*();
     };
     class Has;
+    class Not;
     class Member : public BaseT<Member>
     {
     public:
@@ -387,6 +388,7 @@ public:
         Set& operator=(Base& value);
         Get& operator/(Base& role);
         Has& exist();
+        Not& missing();
         Call& call(CellI& method);
         Call& call(CellI& method, Slot& slot1);
         Call& call(CellI& method, Slot& slot1, Slot& slot2);

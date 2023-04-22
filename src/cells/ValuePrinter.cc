@@ -256,13 +256,7 @@ void CellValuePrinter::printOpConstVar(CellI& cell)
 void CellValuePrinter::printOpVar(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    if (cell.has(kb.coding.value)) {
-        CellI* value = &cell[kb.coding.value];
-        m_ss << value << std::endl;
-        printImpl(*value);
-    } else {
-        cell.label().empty() ? (m_ss << "empty") : (m_ss << cell.label());
-    }
+    cell.label().empty() ? (m_ss << "<empty>") : (m_ss << cell.label());
 }
 
 void CellValuePrinter::printOpNew(CellI& cell)
@@ -276,7 +270,7 @@ void CellValuePrinter::printOpSame(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     printImpl(cell[kb.coding.lhs]);
-    m_ss << " same ";
+    m_ss << " is ";
     printImpl(cell[kb.coding.rhs]);
 }
 
@@ -284,7 +278,7 @@ void CellValuePrinter::printOpNotSame(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     printImpl(cell[kb.coding.lhs]);
-    m_ss << " not same ";
+    m_ss << " is not ";
     printImpl(cell[kb.coding.rhs]);
 }
 
@@ -339,8 +333,9 @@ void CellValuePrinter::printOpOr(CellI& cell)
 void CellValuePrinter::printOpNot(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << "not ";
+    m_ss << "not(";
     printImpl(cell[kb.coding.input]);
+    m_ss << ")";
 }
 
 void CellValuePrinter::printOpAdd(CellI& cell)
