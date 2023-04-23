@@ -101,12 +101,15 @@ TEST_F(CellTest, PrintMethod)
 
 #if 1
     printOp(kb.type.Map, kb.coding.constructor);
+    printOp(kb.type.Map, kb.coding.template_);
     printOp(kb.type.Map, kb.dimensions.size);
     printOp(kb.type.Map, kb.sequence.add);
     printOp(kb.type.Map, kb.sequence.empty);
 
     printOp(kb.type.Type_, kb.coding.constructor);
     printOp(kb.type.Type_, kb.methods.addSlot);
+    printOp(kb.type.Type_, kb.methods.addSubType);
+    printOp(kb.type.Type_, kb.methods.addMembership);
     printOp(kb.type.Type_, kb.methods.addSlots);
 
     printOp(kb.type.ListItem, kb.coding.template_);
