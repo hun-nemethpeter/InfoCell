@@ -441,8 +441,8 @@ TEST_F(CellTest, CreatingCustomType)
     printAs.value(redColor);
 
     printAs.cell(redColor);
-    printAs.cell(colorClass[kb.coding.slots][kb.coding.index][colorRed]);
-    printAs.cell(colorClass[kb.coding.slots][kb.coding.index]);
+    printAs.cell(colorClass[kb.coding.slots][kb.coding.index][colorRed], "colorClass[kb.coding.slots][kb.coding.index][colorRed]");
+    printAs.cell(colorClass[kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index]");
 
     printAs.svgStruct(redColor, "redColor");
     printAs.svgStruct(colorRed, "colorRed");
@@ -455,8 +455,7 @@ TEST_F(CellTest, CreatingCustomType)
     printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
     printAs.value(colorClass[kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index]");
     printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type]");
-    // TODO implement dynamic type for index
-    //    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index]");
+    printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index]");
     printAs.cell(colorClass);
 
     printAs.svg(redColor);

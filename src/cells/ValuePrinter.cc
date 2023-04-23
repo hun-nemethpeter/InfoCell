@@ -58,7 +58,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
     CellI& ast       = cell[kb.coding.ast];
     if (&ast.type() == &kb.type.ast.Call) {
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Get) {
-            m_ss << "(*var_" << ast[kb.coding.cell][kb.coding.cell][kb.coding.cell][kb.coding.role].label() << ")";
+            printImpl(ast[kb.coding.cell]);
         }
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Input) {
             m_ss << "in_" << ast[kb.coding.cell][kb.coding.role].label();
