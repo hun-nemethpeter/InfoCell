@@ -345,6 +345,9 @@ TEST_F(CellTest, HybridPicture)
 TEST_F(CellTest, BasicObjectTest)
 {
     Object testType(kb, kb.type.Type_, "Test");
+    Object emptyList(kb, kb.type.List, kb.coding.constructor);
+
+//    testType.method(kb.methods.addSlots, { kb.coding.list, emptyList }); TODO
 
     testType.method(kb.methods.addSlots, { kb.coding.list, kb.list(
         coding.slot(kb.coding.result, kb.type.Digit),

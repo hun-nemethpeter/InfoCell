@@ -46,6 +46,7 @@ protected:
     void printOpEqual(CellI& cell);
     void printOpNotEqual(CellI& cell);
     void printOpHas(CellI& cell);
+    void printOpMissing(CellI& cell);
     void printOpGet(CellI& cell);
     void printOpAnd(CellI& cell);
     void printOpOr(CellI& cell);
@@ -56,6 +57,7 @@ protected:
     void printOpDivide(CellI& cell);
     void printOpLessThan(CellI& cell);
     void printOpGreaterThan(CellI& cell);
+    void printOpReturn(CellI& cell);
     void printAstCell(CellI& cell);
     void printAstGet(CellI& cell);
     void printAstInput(CellI& cell);

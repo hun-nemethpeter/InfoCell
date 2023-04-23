@@ -112,34 +112,35 @@ class Op
 public:
     Op(brain::Brain& kb);
 
+    Object Add;
+    Object And;
     Object Base;
     Object Block;
+    Object ConstVar;
+    Object Delete;
+    Object Divide;
+    Object Do;
+    Object Equal;
     Object EvalVar;
     Object Function;
-    Object Delete;
-    Object Set;
-    Object If;
-    Object Do;
-    Object While;
-    Object Expression;
-    Object ConstVar;
-    Object Var;
-    Object New;
-    Object Same;
-    Object NotSame;
-    Object Equal;
-    Object NotEqual;
-    Object Has;
     Object Get;
-    Object And;
-    Object Or;
-    Object Not;
-    Object Add;
-    Object Subtract;
-    Object Multiply;
-    Object Divide;
-    Object LessThan;
     Object GreaterThan;
+    Object Has;
+    Object If;
+    Object LessThan;
+    Object Missing;
+    Object Multiply;
+    Object New;
+    Object Not;
+    Object NotEqual;
+    Object NotSame;
+    Object Or;
+    Object Return;
+    Object Same;
+    Object Set;
+    Object Subtract;
+    Object Var;
+    Object While;
 };
 
 class Ast
@@ -151,44 +152,42 @@ protected:
     brain::Brain& kb;
 
 public:
+    Object Add;
+    Object And;
     Object Base;
-
-    Object Input;
-    Object Output;
-    Object Slot;
+    Object Block;
     Object Call;
-    Object StaticCall;
     Object Cell;
+    Object Delete;
+    Object Divide;
+    Object Do;
+    Object Equal;
+    Object Function;
+    Object Get;
+    Object GreaterThan;
+    Object Has;
+    Object If;
+    Object Input;
+    Object LessThan;
+    Object Member;
+    Object Missing;
+    Object Multiply;
+    Object New;
+    Object Not;
+    Object NotEqual;
+    Object NotSame;
+    Object Or;
+    Object Output;
+    Object Return;
+    Object Same;
     Object Self;
     Object SelfFn;
-    Object Return;
-
-    Object Block;
-    Object Function;
-    Object Delete;
     Object Set;
-    Object If;
-    Object Do;
-    Object While;
-    Object Expression;
-    Object Var;
-    Object Member;
-    Object New;
-    Object Same;
-    Object NotSame;
-    Object Equal;
-    Object NotEqual;
-    Object Has;
-    Object Get;
-    Object And;
-    Object Or;
-    Object Not;
-    Object Add;
+    Object Slot;
+    Object StaticCall;
     Object Subtract;
-    Object Multiply;
-    Object Divide;
-    Object LessThan;
-    Object GreaterThan;
+    Object Var;
+    Object While;
 };
 
 } // namespace type
@@ -381,7 +380,7 @@ public:
         Get& operator*();
     };
     class Has;
-    class Not;
+    class Missing;
     class Member : public BaseT<Member>
     {
     public:
@@ -390,7 +389,7 @@ public:
         Set& operator=(Base& value);
         Get& operator/(Base& role);
         Has& exist();
-        Not& missing();
+        Missing& missing();
         Call& call(CellI& method);
         Call& call(CellI& method, Slot& slot1);
         Call& call(CellI& method, Slot& slot1, Slot& slot2);
@@ -431,6 +430,11 @@ public:
     {
     public:
         Has(brain::Brain& kb, Base& cell, Base& role);
+    };
+    class Missing : public BaseT<Missing>
+    {
+    public:
+        Missing(brain::Brain& kb, Base& cell, Base& role);
     };
     class Get : public BaseT<Get>
     {
@@ -529,6 +533,7 @@ public:
     Equal& equal(Base& lhs, Base& rhs);
     NotEqual& notEqual(Base& lhs, Base& rhs);
     Has& has(Base& cell, Base& role);
+    Missing& missing(Base& cell, Base& role);
     Get& get(Base& cell, Base& role);
     And& and_(Base& lhs, Base& rhs);
     Or& or_(Base& lhs, Base& rhs);

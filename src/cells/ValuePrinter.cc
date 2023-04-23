@@ -162,7 +162,7 @@ void CellValuePrinter::printOpEvalVar(CellI& cell)
 void CellValuePrinter::printOpFunction(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << cell.label() << " ";
+    m_ss << cell.label() << "\n";
     printImpl(cell[kb.coding.op]);
 }
 
@@ -197,11 +197,11 @@ void CellValuePrinter::printOpIf(CellI& cell)
         m_indent--;
     }
     printImpl(cell[kb.coding.then]);
-    if (&cell[kb.coding.then].type() != &kb.type.op.Block) {
-        m_ss << ";\n";
-        printIndent();
-    }
     if (cell.has(kb.coding.else_)) {
+        if (&cell[kb.coding.then].type() != &kb.type.op.Block) {
+            m_ss << ";\n";
+            printIndent();
+        }
         m_ss << " else ";
         if (&cell[kb.coding.else_].type() != &kb.type.op.Block) {
             m_ss << "\n";
@@ -303,6 +303,14 @@ void CellValuePrinter::printOpHas(CellI& cell)
     brain::Brain& kb = cell.kb;
     printImpl(cell[kb.coding.cell]);
     m_ss << " has ";
+    printImpl(cell[kb.coding.role]);
+}
+
+void CellValuePrinter::printOpMissing(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    printImpl(cell[kb.coding.cell]);
+    m_ss << " missing ";
     printImpl(cell[kb.coding.role]);
 }
 
@@ -433,6 +441,11 @@ void CellValuePrinter::printAstMember(CellI& cell)
     m_ss << "m_" << cell[kb.coding.role].label();
 }
 
+void CellValuePrinter::printOpReturn(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    m_ss << "return";
+}
 
 void CellValuePrinter::printImpl(CellI& cell)
 {
@@ -546,6 +559,9 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (is(kb.type.op.Has)) {
         printOpHas(cell);
         return;
+    } else if (is(kb.type.op.Missing)) {
+        printOpMissing(cell);
+        return;
     } else if (is(kb.type.op.Get)) {
         printOpGet(cell);
         return;
@@ -575,6 +591,9 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     } else if (is(kb.type.op.GreaterThan)) {
         printOpGreaterThan(cell);
+        return;
+    } else if (is(kb.type.op.Return)) {
+        printOpReturn(cell);
         return;
     } else if (is(kb.type.ast.Cell)) {
         printAstCell(cell);

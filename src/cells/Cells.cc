@@ -40,6 +40,11 @@ CellI::~CellI()
     s_destructed += 1;
 }
 
+bool CellI::missing(CellI& role)
+{
+    return !has(role);
+}
+
 CellI& CellI::get(CellI& role)
 {
     return (*this)[role];
@@ -208,6 +213,9 @@ void Object::operator()()
 {
     if (&m_type == &kb.type.op.Block) {
         Visitor::visitList(get(kb.coding.ops), [this](CellI& op, int) {
+            if (&op.type() == &kb.type.op.Return) {
+                return;
+            }
             op();
         });
     }
@@ -333,6 +341,15 @@ void Object::operator()()
         CellI& cell = inputCell[kb.coding.value];
         CellI& role = inputRole[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(cell.has(role)));
+    }
+    if (&m_type == &kb.type.op.Missing) {
+        CellI& inputCell = get(kb.coding.cell);
+        CellI& inputRole = get(kb.coding.role);
+        inputCell();
+        inputRole();
+        CellI& cell = inputCell[kb.coding.value];
+        CellI& role = inputRole[kb.coding.value];
+        set(kb.coding.value, kb.toKbBool(cell.missing(role)));
     }
     if (&m_type == &kb.type.op.Get) {
         CellI& inputCell = get(kb.coding.cell);

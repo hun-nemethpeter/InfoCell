@@ -94,109 +94,41 @@ Methods::Methods(brain::Brain& kb) :
 
 namespace type {
 Op::Op(brain::Brain& kb) :
+    Add(kb, kb.type.Type_, "op::Add"),
+    And(kb, kb.type.Type_, "op::And"),
     Base(kb, kb.type.Type_, "op::Base"),
     Block(kb, kb.type.Type_, "op::Block"),
+    ConstVar(kb, kb.type.Type_, "op::ConstVar"),
+    Delete(kb, kb.type.Type_, "op::Delete"),
+    Divide(kb, kb.type.Type_, "op::Divide"),
+    Do(kb, kb.type.Type_, "op::Do"),
+    Equal(kb, kb.type.Type_, "op::Equal"),
     EvalVar(kb, kb.type.Type_, "op::EvalVar"),
     Function(kb, kb.type.Type_, "op::Function"),
-    Delete(kb, kb.type.Type_, "op::Delete"),
-    Set(kb, kb.type.Type_, "op::Set"),
-    If(kb, kb.type.Type_, "op::If"),
-    Do(kb, kb.type.Type_, "op::Do"),
-    While(kb, kb.type.Type_, "op::While"),
-    Expression(kb, kb.type.Type_, "op::Expression"),
-    ConstVar(kb, kb.type.Type_, "op::ConstVar"),
-    Var(kb, kb.type.Type_, "op::Var"),
-    New(kb, kb.type.Type_, "op::New"),
-    Same(kb, kb.type.Type_, "op::Same"),
-    NotSame(kb, kb.type.Type_, "op::NotSame"),
-    Equal(kb, kb.type.Type_, "op::Equal"),
-    NotEqual(kb, kb.type.Type_, "op::NotEqual"),
-    Has(kb, kb.type.Type_, "op::Has"),
     Get(kb, kb.type.Type_, "op::Get"),
-    And(kb, kb.type.Type_, "op::And"),
-    Or(kb, kb.type.Type_, "op::Or"),
-    Not(kb, kb.type.Type_, "op::Not"),
-    Add(kb, kb.type.Type_, "op::Add"),
-    Subtract(kb, kb.type.Type_, "op::Subtract"),
-    Multiply(kb, kb.type.Type_, "op::Multiply"),
-    Divide(kb, kb.type.Type_, "op::Divide"),
+    GreaterThan(kb, kb.type.Type_, "op::GreaterThan"),
+    Has(kb, kb.type.Type_, "op::Has"),
+    If(kb, kb.type.Type_, "op::If"),
     LessThan(kb, kb.type.Type_, "op::LessThan"),
-    GreaterThan(kb, kb.type.Type_, "op::GreaterThan")
+    Missing(kb, kb.type.Type_, "op::Missing"),
+    Multiply(kb, kb.type.Type_, "op::Multiply"),
+    New(kb, kb.type.Type_, "op::New"),
+    Not(kb, kb.type.Type_, "op::Not"),
+    NotEqual(kb, kb.type.Type_, "op::NotEqual"),
+    NotSame(kb, kb.type.Type_, "op::NotSame"),
+    Or(kb, kb.type.Type_, "op::Or"),
+    Return(kb, kb.type.Type_, "op::Return"),
+    Same(kb, kb.type.Type_, "op::Same"),
+    Set(kb, kb.type.Type_, "op::Set"),
+    Subtract(kb, kb.type.Type_, "op::Subtract"),
+    Var(kb, kb.type.Type_, "op::Var"),
+    While(kb, kb.type.Type_, "op::While")
 {
     auto& coding = kb.coding;
     auto& type   = kb.type;
     auto& ast    = kb.type.ast;
 
     CellI* map = nullptr;
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Same.set(kb.coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    NotSame.set(kb.coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Equal.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    NotEqual.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Has.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base),
-                  coding.value, coding.slot(coding.value, type.Cell));
-    Get.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base),
-                  coding.value, coding.slot(coding.value, Base));
-    Set.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    And.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Or.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.input, coding.slot(coding.input, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Not.set(coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
@@ -209,15 +141,24 @@ Op::Op(brain::Brain& kb) :
                   coding.ast, coding.slot(coding.ast, ast.Base),
                   coding.lhs, coding.slot(coding.lhs, Base),
                   coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Number));
-    Subtract.set(coding.slots, *map);
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    And.set(coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Number));
-    Multiply.set(coding.slots, *map);
+                  coding.ops, coding.slot(coding.ops, type.Cell),
+                  coding.value, coding.slot(coding.value, type.Cell));
+    Block.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.value, coding.slot(coding.value, type.Cell));
+    ConstVar.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.input, coding.slot(coding.input, Base));
+    Delete.set(coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
@@ -228,64 +169,16 @@ Op::Op(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    LessThan.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    GreaterThan.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.value, coding.slot(coding.value, type.Cell));
-    ConstVar.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.objectType, coding.slot(coding.objectType, type.Type_),
-                  coding.value, coding.slot(coding.value, type.Cell));
-    Var.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.value, coding.slot(coding.value, type.Cell),
-                  coding.objectType, coding.slot(coding.objectType, Base));
-    New.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.input, coding.slot(coding.input, Base));
-    Delete.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.condition, coding.slot(coding.condition, Base),
-                  coding.then, coding.slot(coding.then, Base),
-                  coding.else_, coding.slot(coding.else_, Base));
-    If.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
                   coding.condition, coding.slot(coding.condition, Base),
                   coding.statement, coding.slot(coding.statement, Base));
     Do.set(coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.condition, coding.slot(coding.condition, Base),
-                  coding.statement, coding.slot(coding.statement, Base));
-    While.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.ops, coding.slot(coding.ops, type.Cell),
-                  coding.value, coding.slot(coding.value, type.Cell));
-    Block.set(coding.slots, *map);
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    Equal.set(coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
@@ -299,98 +192,169 @@ Op::Op(brain::Brain& kb) :
                   coding.op, coding.slot(coding.op, type.ListOf(Base)),
                   coding.output, coding.slot(coding.output, type.MapCellToOpBase));
     Function.set(coding.slots, *map);
-}
 
-Ast::Ast(brain::Brain& kb) :
-    kb(kb),
-    Base(kb, kb.type.Type_, "ast::Base"),
-    Input(kb, kb.type.Type_, "ast::Input"),
-    Output(kb, kb.type.Type_, "ast::Output"),
-    Slot(kb, kb.type.Type_, "ast::Slot"),
-    Call(kb, kb.type.Type_, "ast::Call"),
-    StaticCall(kb, kb.type.Type_, "ast::StaticCall"),
-    Cell(kb, kb.type.Type_, "ast::Cell"),
-    Self(kb, kb.type.Type_, "ast::Self"),
-    SelfFn(kb, kb.type.Type_, "ast::SelfFn"),
-    Return(kb, kb.type.Type_, "ast::Return"),
-    Block(kb, kb.type.Type_, "ast::Block"),
-    Function(kb, kb.type.Type_, "ast::Function"),
-    Delete(kb, kb.type.Type_, "ast::Delete"),
-    Set(kb, kb.type.Type_, "ast::Set"),
-    If(kb, kb.type.Type_, "ast::If"),
-    Do(kb, kb.type.Type_, "ast::Do"),
-    While(kb, kb.type.Type_, "ast::While"),
-    Expression(kb, kb.type.Type_, "ast::Expression"),
-    Var(kb, kb.type.Type_, "ast::Var"),
-    Member(kb, kb.type.Type_, "ast::Member"),
-    New(kb, kb.type.Type_, "ast::New"),
-    Same(kb, kb.type.Type_, "ast::Same"),
-    NotSame(kb, kb.type.Type_, "ast::NotSame"),
-    Equal(kb, kb.type.Type_, "ast::Equal"),
-    NotEqual(kb, kb.type.Type_, "ast::NotEqual"),
-    Has(kb, kb.type.Type_, "ast::Has"),
-    Get(kb, kb.type.Type_, "ast::Get"),
-    And(kb, kb.type.Type_, "ast::And"),
-    Or(kb, kb.type.Type_, "ast::Or"),
-    Not(kb, kb.type.Type_, "ast::Not"),
-    Add(kb, kb.type.Type_, "ast::Add"),
-    Subtract(kb, kb.type.Type_, "ast::Subtract"),
-    Multiply(kb, kb.type.Type_, "ast::Multiply"),
-    Divide(kb, kb.type.Type_, "ast::Divide"),
-    LessThan(kb, kb.type.Type_, "ast::LessThan"),
-    GreaterThan(kb, kb.type.Type_, "ast::GreaterThan")
-{
-    auto& coding = kb.coding;
-    auto& type   = kb.type;
-    CellI* map   = nullptr;
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.cell, coding.slot(coding.cell, Base),
+                  coding.role, coding.slot(coding.role, Base),
+                  coding.value, coding.slot(coding.value, type.Cell));
+    Get.set(coding.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.role, coding.slot(coding.role, Base));
-    Var.set(coding.slots, *map);
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    GreaterThan.set(coding.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.role, coding.slot(coding.role, Base));
-    Member.set(coding.slots, *map);
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.cell, coding.slot(coding.cell, Base),
+                  coding.role, coding.slot(coding.role, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    Has.set(coding.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.objectType, coding.slot(coding.objectType, Base),
-                  coding.constructor, coding.slot(coding.constructor, Base),
-                  coding.parameters, coding.slot(coding.parameters, type.ListOf(type.ast.Slot)));
-    New.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.cell, coding.slot(coding.cell, Base));
-    Delete.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
                   coding.condition, coding.slot(coding.condition, Base),
                   coding.then, coding.slot(coding.then, Base),
                   coding.else_, coding.slot(coding.else_, Base));
     If.set(coding.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.condition, coding.slot(coding.condition, Base),
-                  coding.statement, coding.slot(coding.statement, Base));
-    Do.set(coding.slots, *map);
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    LessThan.set(coding.slots, *map);
 
-    map = &kb.map(type.Cell, type.Slot,
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.cell, coding.slot(coding.cell, Base),
+                  coding.role, coding.slot(coding.role, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    Missing.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Number));
+    Multiply.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.value, coding.slot(coding.value, type.Cell),
+                  coding.objectType, coding.slot(coding.objectType, Base));
+    New.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.input, coding.slot(coding.input, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    Not.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    NotEqual.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    NotSame.set(kb.coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    Or.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base));
+    Return.set(kb.coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Boolean));
+    Same.set(kb.coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.cell, coding.slot(coding.cell, Base),
+                  coding.role, coding.slot(coding.role, Base),
+                  coding.value, coding.slot(coding.value, Base));
+    Set.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base),
+                  coding.value, coding.slot(coding.value, type.Number));
+    Subtract.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.objectType, coding.slot(coding.objectType, type.Type_),
+                  coding.value, coding.slot(coding.value, type.Cell));
+    Var.set(coding.slots, *map);
+
+    map = &kb.map(kb.type.Cell, kb.type.Slot,
+                  coding.ast, coding.slot(coding.ast, ast.Base),
                   coding.condition, coding.slot(coding.condition, Base),
                   coding.statement, coding.slot(coding.statement, Base));
     While.set(coding.slots, *map);
+}
 
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base));
-    And.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base));
-    Or.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.input, coding.slot(coding.input, Base));
-    Not.set(coding.slots, *map);
+Ast::Ast(brain::Brain& kb) :
+    kb(kb),
+    Add(kb, kb.type.Type_, "ast::Add"),
+    And(kb, kb.type.Type_, "ast::And"),
+    Base(kb, kb.type.Type_, "ast::Base"),
+    Block(kb, kb.type.Type_, "ast::Block"),
+    Call(kb, kb.type.Type_, "ast::Call"),
+    Cell(kb, kb.type.Type_, "ast::Cell"),
+    Delete(kb, kb.type.Type_, "ast::Delete"),
+    Divide(kb, kb.type.Type_, "ast::Divide"),
+    Do(kb, kb.type.Type_, "ast::Do"),
+    Equal(kb, kb.type.Type_, "ast::Equal"),
+    Function(kb, kb.type.Type_, "ast::Function"),
+    Get(kb, kb.type.Type_, "ast::Get"),
+    GreaterThan(kb, kb.type.Type_, "ast::GreaterThan"),
+    Has(kb, kb.type.Type_, "ast::Has"),
+    If(kb, kb.type.Type_, "ast::If"),
+    Input(kb, kb.type.Type_, "ast::Input"),
+    LessThan(kb, kb.type.Type_, "ast::LessThan"),
+    Member(kb, kb.type.Type_, "ast::Member"),
+    Missing(kb, kb.type.Type_, "ast::Missing"),
+    Multiply(kb, kb.type.Type_, "ast::Multiply"),
+    New(kb, kb.type.Type_, "ast::New"),
+    Not(kb, kb.type.Type_, "ast::Not"),
+    NotEqual(kb, kb.type.Type_, "ast::NotEqual"),
+    NotSame(kb, kb.type.Type_, "ast::NotSame"),
+    Or(kb, kb.type.Type_, "ast::Or"),
+    Output(kb, kb.type.Type_, "ast::Output"),
+    Return(kb, kb.type.Type_, "ast::Return"),
+    Same(kb, kb.type.Type_, "ast::Same"),
+    Self(kb, kb.type.Type_, "ast::Self"),
+    SelfFn(kb, kb.type.Type_, "ast::SelfFn"),
+    Set(kb, kb.type.Type_, "ast::Set"),
+    Slot(kb, kb.type.Type_, "ast::Slot"),
+    StaticCall(kb, kb.type.Type_, "ast::StaticCall"),
+    Subtract(kb, kb.type.Type_, "ast::Subtract"),
+    Var(kb, kb.type.Type_, "ast::Var"),
+    While(kb, kb.type.Type_, "ast::While")
+{
+    auto& coding = kb.coding;
+    auto& type   = kb.type;
+    CellI* map   = nullptr;
 
     map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
@@ -400,12 +364,25 @@ Ast::Ast(brain::Brain& kb) :
     map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
                   coding.rhs, coding.slot(coding.rhs, Base));
-    Subtract.set(coding.slots, *map);
+    And.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base));
-    Multiply.set(coding.slots, *map);
+                  coding.asts, coding.slot(coding.asts, type.Cell));
+    Block.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.cell, coding.slot(coding.cell, Base),
+                  coding.method, coding.slot(coding.method, Base),
+                  coding.parameters, coding.slot(coding.parameters, type.ListOf(Slot)));
+    Call.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.value, coding.slot(coding.value, type.Cell));
+    Cell.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.cell, coding.slot(coding.cell, Base));
+    Delete.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
@@ -413,9 +390,25 @@ Ast::Ast(brain::Brain& kb) :
     Divide.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
+                  coding.condition, coding.slot(coding.condition, Base),
+                  coding.statement, coding.slot(coding.statement, Base));
+    Do.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
                   coding.rhs, coding.slot(coding.rhs, Base));
-    LessThan.set(coding.slots, *map);
+    Equal.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.input, coding.slot(coding.input, type.ListOf(Slot)),
+                  coding.ast, coding.slot(coding.ast, type.ListOf(Base)),
+                  coding.output, coding.slot(coding.output, type.ListOf(Slot)));
+    Function.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.cell, coding.slot(coding.cell, Base),
+                  coding.role, coding.slot(coding.role, Base));
+    Get.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
@@ -423,9 +416,54 @@ Ast::Ast(brain::Brain& kb) :
     GreaterThan.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
+                  coding.cell, coding.slot(coding.cell, Base),
+                  coding.role, coding.slot(coding.role, Base));
+    Has.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.condition, coding.slot(coding.condition, Base),
+                  coding.then, coding.slot(coding.then, Base),
+                  coding.else_, coding.slot(coding.else_, Base));
+    If.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.role, coding.slot(coding.role, type.Cell));
+    Input.set(coding.slots, *map);
+
+    LessThan.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
                   coding.rhs, coding.slot(coding.rhs, Base));
-    Same.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.role, coding.slot(coding.role, Base));
+    Member.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.cell, coding.slot(coding.cell, Base),
+                  coding.role, coding.slot(coding.role, Base));
+    Missing.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base));
+    Multiply.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.objectType, coding.slot(coding.objectType, Base),
+                  coding.constructor, coding.slot(coding.constructor, Base),
+                  coding.parameters, coding.slot(coding.parameters, type.ListOf(type.ast.Slot)));
+    New.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.input, coding.slot(coding.input, Base));
+    Not.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base));
+    NotEqual.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
@@ -435,22 +473,16 @@ Ast::Ast(brain::Brain& kb) :
     map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
                   coding.rhs, coding.slot(coding.rhs, Base));
-    Equal.set(coding.slots, *map);
+    Or.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.role, coding.slot(coding.role, type.Cell));
+    Output.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
                   coding.lhs, coding.slot(coding.lhs, Base),
                   coding.rhs, coding.slot(coding.rhs, Base));
-    NotEqual.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base));
-    Has.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base));
-    Get.set(coding.slots, *map);
+    Same.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
                   coding.cell, coding.slot(coding.cell, Base),
@@ -459,27 +491,9 @@ Ast::Ast(brain::Brain& kb) :
     Set.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
-                  coding.role, coding.slot(coding.role, type.Cell));
-    Input.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.role, coding.slot(coding.role, type.Cell));
-    Output.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
                   coding.slotRole, coding.slot(coding.slotRole, Base),
                   coding.slotType, coding.slot(coding.slotType, Base));
     Slot.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.value, coding.slot(coding.value, type.Cell));
-    Cell.set(coding.slots, *map);
-
-    map = &kb.map(type.Cell, type.Slot,
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.method, coding.slot(coding.method, Base),
-                  coding.parameters, coding.slot(coding.parameters, type.ListOf(Slot)));
-    Call.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
                   coding.cell, coding.slot(coding.cell, Base),
@@ -488,14 +502,18 @@ Ast::Ast(brain::Brain& kb) :
     StaticCall.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
-                  coding.asts, coding.slot(coding.asts, type.Cell));
-    Block.set(coding.slots, *map);
+                  coding.lhs, coding.slot(coding.lhs, Base),
+                  coding.rhs, coding.slot(coding.rhs, Base));
+    Subtract.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
-                  coding.input, coding.slot(coding.input, type.ListOf(Slot)),
-                  coding.ast, coding.slot(coding.ast, type.ListOf(Base)),
-                  coding.output, coding.slot(coding.output, type.ListOf(Slot)));
-    Function.set(coding.slots, *map);
+                  coding.role, coding.slot(coding.role, Base));
+    Var.set(coding.slots, *map);
+
+    map = &kb.map(type.Cell, type.Slot,
+                  coding.condition, coding.slot(coding.condition, Base),
+                  coding.statement, coding.slot(coding.statement, Base));
+    While.set(coding.slots, *map);
 }
 
 } // namespace type
@@ -1096,6 +1114,12 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         opHas.set(kb.coding.cell, compile(ast[kb.coding.cell]));
         opHas.set(kb.coding.role, compile(ast[kb.coding.role]));
         return opHas;
+    } else if (&ast.type() == &kb.type.ast.Missing) {
+        Object& opMissing = *new Object(kb, kb.type.op.Missing);
+        opMissing.set(kb.coding.ast, ast);
+        opMissing.set(kb.coding.cell, compile(ast[kb.coding.cell]));
+        opMissing.set(kb.coding.role, compile(ast[kb.coding.role]));
+        return opMissing;
     } else if (&ast.type() == &kb.type.ast.Get) {
         Object& opGet = *new Object(kb, kb.type.op.Get);
         opGet.set(kb.coding.ast, ast);
@@ -1107,8 +1131,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         member.set(kb.coding.ast, ast);
         return member;
     } else if (&ast.type() == &kb.type.ast.Return) {
-        // TODO
-        return ast;
+        Object& retOp = *new Object(kb, kb.type.op.Return);
+        retOp.set(kb.coding.ast, ast);
+        return retOp;
     }
 
     throw "Unknown function AST!";
@@ -1210,9 +1235,9 @@ Ast::Has& Ast::Member::exist()
     return Has::New(kb, Self::New(kb), Cell::New(kb, get(kb.coding.role)));
 }
 
-Ast::Not& Ast::Member::missing()
+Ast::Missing& Ast::Member::missing()
 {
-    return Not::New(kb, Has::New(kb, Self::New(kb), Cell::New(kb, get(kb.coding.role))));
+    return Missing::New(kb, Self::New(kb), Cell::New(kb, get(kb.coding.role)));
 }
 
 Ast::Call& Ast::Member::call(CellI& method)
@@ -1315,6 +1340,13 @@ Ast::NotEqual::NotEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
 
 Ast::Has::Has(brain::Brain& kb, Base& cell, Base& role) :
     BaseT<Has>(kb, kb.type.ast.Has)
+{
+    set(kb.coding.cell, cell);
+    set(kb.coding.role, role);
+}
+
+Ast::Missing::Missing(brain::Brain& kb, Base& cell, Base& role) :
+    BaseT<Missing>(kb, kb.type.ast.Missing)
 {
     set(kb.coding.cell, cell);
     set(kb.coding.role, role);
@@ -1585,6 +1617,11 @@ Ast::NotEqual& Ast::notEqual(Base& lhs, Base& rhs)
 Ast::Has& Ast::has(Base& cell, Base& role)
 {
     return Has::New(kb, cell, role);
+}
+
+Ast::Missing& Ast::missing(Base& cell, Base& role)
+{
+    return Missing::New(kb, cell, role);
 }
 
 Ast::Get& Ast::get(Base& cell, Base& role)
@@ -2060,7 +2097,7 @@ Brain::Brain() :
     typeAddSlots.addInputs(list(
         ast.slot(coding.list, type.ListOf(type.Slot))));
     typeAddSlots.addAsts(ast.block(
-        // ast.if_(in_(coding.list) / _(dimensions.size), ast.return_()),
+        ast.if_(ast.equal(in_(coding.list) / _(dimensions.size), _(_0_)), ast.return_()),
         var(coding.item) = in_(coding.list) / _(sequence.first),
         ast.if_(m_(coding.slots).missing(), m_(coding.slots) = ast.new_(_(type.MapCellToSlot), _(coding.constructor))),
         ast.do_(ast.block(

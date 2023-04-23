@@ -32,6 +32,7 @@ public:
     CellI& call(CellI& method);
     CellI& call(CellI& method, CellI& param1Role, CellI& param1Value);
 
+    bool missing(CellI& role);
     CellI& get(CellI& role);
     CellI& type();
     void eval();
