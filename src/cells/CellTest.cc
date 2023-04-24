@@ -232,14 +232,23 @@ TEST_F(CellTest, Map)
     printAs.cell(map);
 }
 
+TEST_F(CellTest, MapTemplate)
+{
+    CellI& mapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
+    printAs.value(kb.type.Map, "type.Map");
+    printAs.value(mapNumberToColor, "mapNumberToColor");
+
+    EXPECT_EQ(&mapNumberToColor[kb.coding.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(mapNumberToColor[kb.coding.memberOf][kb.coding.index].has(kb.type.Map));
+
+    EXPECT_EQ(&mapNumberToColor[kb.coding.methods], &kb.type.Map[kb.coding.methods]);
+}
+
 TEST_F(CellTest, ListItemTemplate)
 {
-    Object listItemType(kb, kb.type.Type_);
-    listItemType.set(kb.coding.slots, kb.type.ListItem[kb.coding.slots]);
-    listItemType.set(coding.memberOf, kb.type.ListItem[coding.memberOf]);
-    listItemType.set(coding.methods, kb.type.ListItem[coding.methods]);
-
-    CellI& listItemNumber = listItemType.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    CellI& listItemNumber = kb.type.ListItem.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    printAs.value(kb.type.ListItem, "type.ListItem");
+    printAs.value(listItemNumber, "listItemNumber");
     printAs.value(kb.type.ListItem[kb.coding.slots][kb.coding.list], "type.ListItem[slots]");
     printAs.value(listItemNumber[kb.coding.slots][kb.coding.list], "listItemNumber[slots]");
 
@@ -256,13 +265,7 @@ TEST_F(CellTest, ListItemTemplate)
 
 TEST_F(CellTest, ListTemplate)
 {
-    Object listType(kb, kb.type.Type_, "listType");
-    listType.set(kb.coding.slots, kb.type.List[kb.coding.slots]);
-    listType.set(coding.subTypes, kb.type.List[coding.subTypes]);
-    listType.set(coding.memberOf, kb.type.List[coding.memberOf]);
-    listType.set(coding.methods, kb.type.List[coding.methods]);
-
-    CellI& ListOfNumbers = listType.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    CellI& ListOfNumbers = kb.type.List.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
 
     EXPECT_EQ(&ListOfNumbers[coding.subTypes][kb.dimensions.size], &_1_);
     EXPECT_TRUE(ListOfNumbers[coding.subTypes][coding.index].has(coding.objectType));
@@ -278,8 +281,6 @@ TEST_F(CellTest, ListTemplate)
     EXPECT_TRUE(ListItemType[kb.coding.slots][kb.coding.index].has(kb.coding.value));
 
     EXPECT_EQ(&ListItemType[kb.coding.methods], &kb.type.ListItem[kb.coding.methods]);
-
-    ListItemType.label("ListItem<Number>");
 
     EXPECT_EQ(&ListOfNumbers[kb.coding.methods], &kb.type.List[kb.coding.methods]);
 
