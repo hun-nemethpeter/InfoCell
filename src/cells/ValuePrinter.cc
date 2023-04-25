@@ -463,6 +463,7 @@ void CellValuePrinter::printTypeName(CellI& cell)
     }
     m_ss << cell.label();
 }
+
 void CellValuePrinter::printImpl(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
@@ -478,30 +479,32 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         return;
     } else if (is(kb.type.List)) {
+        printTypeName(cell.type());
         m_ss << "[";
         visitList(cell, [this](CellI& value, int i, bool&) {
             if (i != 0) {
-                m_ss << ",";
+                m_ss << ", ";
             }
-            m_ss << " ";
             value.accept(*this);
         });
-        m_ss << " ]";
+        m_ss << "]";
         return;
     } else if (is(kb.type.Map)) {
         if (!cell.has(kb.coding.list)) {
             m_ss << "{}";
             return;
         }
+        printTypeName(cell.type());
         m_ss << "{";
-        visitList(cell[kb.coding.list], [this](CellI& value, int i, bool&) {
+        visitList(cell[kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.list], [this, &kb, &cell](CellI& value, int i, bool&) {
             if (i != 0) {
-                m_ss << ",";
+                m_ss << ", ";
             }
-            m_ss << " ";
-            value.accept(*this);
+            value[kb.coding.slotRole].accept(*this);
+            m_ss << ": ";
+            cell[kb.coding.index][value[kb.coding.slotRole]].accept(*this);
         });
-        m_ss << " }";
+        m_ss << "}";
         return;
     } else if (is(kb.type.Type_)) {
         CellI& type = cell;
@@ -528,6 +531,9 @@ void CellValuePrinter::printImpl(CellI& cell)
             });
         }
         m_ss << " }";
+        return;
+    } else if (&cell == &kb.colors.red || &cell == &kb.colors.green || &cell == &kb.colors.blue) {
+        m_ss << cell.label();
         return;
     } else if (is(kb.type.op.Block)) {
         printOpBlock(cell);
@@ -677,7 +683,7 @@ void CellValuePrinter::visit(List& list)
 
 void CellValuePrinter::visit(Number& cell)
 {
-    m_ss << "(Number) " << cell.value();
+    m_ss << cell.value();
 }
 
 void CellValuePrinter::visit(String& cell)

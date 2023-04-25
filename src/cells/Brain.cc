@@ -1933,6 +1933,7 @@ Brain::Brain() :
                           ast.set(m_(coding.indexType), _(coding.slots), ast.new_(_(type.MapCellToSlot), _(coding.constructor))),
                           ast.set(m_(coding.indexType) / _(coding.slots), _(coding.list), ast.new_(_(type.List), _(coding.constructor), ast.slot(_(coding.objectType), _(type.Slot)))),
                           ast.set(m_(coding.indexType) / _(coding.slots), _(coding.index), ast.new_(_(type.Index))),
+                          ast.set(m_(coding.indexType), _(coding.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))),
                           m_(coding.index) = ast.new_(m_(coding.indexType)))),
         m_(coding.list).call(_(sequence.add), ast.slot(_(coding.value), in_(coding.value))),
         var_(type.Slot) = ast.new_(_(type.Slot)),

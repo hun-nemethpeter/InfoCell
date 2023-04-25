@@ -229,6 +229,7 @@ TEST_F(CellTest, Map)
     EXPECT_TRUE(map[coding.index].has(_1_));
     EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
     EXPECT_EQ(&map.method(kb.sequence.empty), &false_);
+    EXPECT_TRUE(map[coding.index][kb.coding.type][kb.coding.memberOf][kb.coding.index].has(kb.type.Index));
 
     map.method(kb.sequence.add, { coding.key, _2_ }, { coding.value, kb.colors.green });
     map.method(kb.sequence.add, { coding.key, _3_ }, { coding.value, kb.colors.blue });
