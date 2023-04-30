@@ -226,24 +226,20 @@ void Object::operator()()
                 return;
             }
         });
-    }
-    if (&m_type == &kb.type.op.EvalVar) {
+    } else if (&m_type == &kb.type.op.EvalVar) {
         CellI& value = get(kb.coding.value)[kb.coding.value];
         value();
-    }
-    if (&m_type == &kb.type.op.Function) {
+    } else if (&m_type == &kb.type.op.Function) {
         if (has(kb.coding.op)) {
             CellI& op = get(kb.coding.op);
             op();
         }
-    }
-    if (&m_type == &kb.type.op.Delete) {
+    } else if (&m_type == &kb.type.op.Delete) {
         CellI& input = get(kb.coding.input);
         input();
         CellI* cell = &input[kb.coding.value];
         delete cell;
-    }
-    if (&m_type == &kb.type.op.Set) {
+    } else if (&m_type == &kb.type.op.Set) {
         CellI& inputCell = get(kb.coding.cell);
         CellI& inputRole = get(kb.coding.role);
         CellI& inputValue = get(kb.coding.value);
@@ -255,8 +251,7 @@ void Object::operator()()
         CellI& value = inputValue[kb.coding.value];
 
         cell.set(role, value);
-    }
-    if (&m_type == &kb.type.op.If) {
+    } else if (&m_type == &kb.type.op.If) {
         CellI& inputCondition = get(kb.coding.condition);
         CellI& thenBranch     = get(kb.coding.then);
         inputCondition();
@@ -286,8 +281,7 @@ void Object::operator()()
                 }
             }
         }
-    }
-    if (&m_type == &kb.type.op.Do) {
+    } else if (&m_type == &kb.type.op.Do) {
         bool condition = false;
         set(kb.coding.status, kb.coding.continue_);
         do {
@@ -305,8 +299,7 @@ void Object::operator()()
             inputCondition();
             condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         } while (condition);
-    }
-    if (&m_type == &kb.type.op.While) {
+    } else if (&m_type == &kb.type.op.While) {
         bool condition = false;
         set(kb.coding.status, kb.coding.continue_);
         CellI& inputCondition = get(kb.coding.condition);
@@ -326,8 +319,7 @@ void Object::operator()()
             inputCondition();
             condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         };
-    }
-    if (&m_type == &kb.type.op.New) {
+    } else if (&m_type == &kb.type.op.New) {
         CellI& inputObjectType = get(kb.coding.objectType);
         inputObjectType();
         CellI& objectType = inputObjectType[kb.coding.value];
@@ -339,8 +331,7 @@ void Object::operator()()
         } else {
             set(kb.coding.value, *new Object(kb, objectType));
         }
-    }
-    if (&m_type == &kb.type.op.Same) {
+    } else if (&m_type == &kb.type.op.Same) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -348,8 +339,7 @@ void Object::operator()()
         CellI* lhs = &inputLhs[kb.coding.value];
         CellI* rhs = &inputRhs[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(lhs == rhs));
-    }
-    if (&m_type == &kb.type.op.NotSame) {
+    } else if (&m_type == &kb.type.op.NotSame) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -357,8 +347,7 @@ void Object::operator()()
         CellI* lhs = &inputLhs[kb.coding.value];
         CellI* rhs = &inputRhs[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(lhs != rhs));
-    }
-    if (&m_type == &kb.type.op.Equal) {
+    } else if (&m_type == &kb.type.op.Equal) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -366,8 +355,7 @@ void Object::operator()()
         CellI& lhs = inputLhs[kb.coding.value];
         CellI& rhs = inputRhs[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(lhs == rhs));
-    }
-    if (&m_type == &kb.type.op.NotEqual) {
+    } else if (&m_type == &kb.type.op.NotEqual) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -375,8 +363,7 @@ void Object::operator()()
         CellI& lhs = inputLhs[kb.coding.value];
         CellI& rhs = inputRhs[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(lhs != rhs));
-    }
-    if (&m_type == &kb.type.op.Has) {
+    } else if (&m_type == &kb.type.op.Has) {
         CellI& inputCell = get(kb.coding.cell);
         CellI& inputRole = get(kb.coding.role);
         inputCell();
@@ -384,8 +371,7 @@ void Object::operator()()
         CellI& cell = inputCell[kb.coding.value];
         CellI& role = inputRole[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(cell.has(role)));
-    }
-    if (&m_type == &kb.type.op.Missing) {
+    } else if (&m_type == &kb.type.op.Missing) {
         CellI& inputCell = get(kb.coding.cell);
         CellI& inputRole = get(kb.coding.role);
         inputCell();
@@ -393,8 +379,7 @@ void Object::operator()()
         CellI& cell = inputCell[kb.coding.value];
         CellI& role = inputRole[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(cell.missing(role)));
-    }
-    if (&m_type == &kb.type.op.Get) {
+    } else if (&m_type == &kb.type.op.Get) {
         CellI& inputCell = get(kb.coding.cell);
         CellI& inputRole = get(kb.coding.role);
         inputCell();
@@ -402,8 +387,7 @@ void Object::operator()()
         CellI& cell = inputCell[kb.coding.value];
         CellI& role = inputRole[kb.coding.value];
         set(kb.coding.value, cell[role]);
-    }
-    if (&m_type == &kb.type.op.And) {
+    } else if (&m_type == &kb.type.op.And) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -411,8 +395,7 @@ void Object::operator()()
         bool lhs   = inputLhs[kb.coding.value] == kb.boolean.true_;
         bool rhs   = inputRhs[kb.coding.value] == kb.boolean.true_;
         set(kb.coding.value, kb.toKbBool(lhs && rhs));
-    }
-    if (&m_type == &kb.type.op.Or) {
+    } else if (&m_type == &kb.type.op.Or) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -421,14 +404,12 @@ void Object::operator()()
         bool rhs = inputRhs[kb.coding.value] == kb.boolean.true_;
         set(kb.coding.value, kb.toKbBool(lhs || rhs));
 
-    }
-    if (&m_type == &kb.type.op.Not) {
+    } else if (&m_type == &kb.type.op.Not) {
         CellI& input = get(kb.coding.input);
         input();
         bool res = &input[kb.coding.value] == &kb.boolean.true_;
         set(kb.coding.value, kb.toKbBool(!res));
-    }
-    if (&m_type == &kb.type.op.Add) {
+    } else if (&m_type == &kb.type.op.Add) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -436,8 +417,7 @@ void Object::operator()()
         int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
         int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
         set(kb.coding.value, kb.pools.numbers.get(lhs + rhs));
-    }
-    if (&m_type == &kb.type.op.Subtract) {
+    } else if (&m_type == &kb.type.op.Subtract) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -445,8 +425,7 @@ void Object::operator()()
         int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
         int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
         set(kb.coding.value, kb.pools.numbers.get(lhs - rhs));
-    }
-    if (&m_type == &kb.type.op.Multiply) {
+    } else if (&m_type == &kb.type.op.Multiply) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -454,8 +433,7 @@ void Object::operator()()
         int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
         int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
         set(kb.coding.value, kb.pools.numbers.get(lhs * rhs));
-    }
-    if (&m_type == &kb.type.op.Divide) {
+    } else if (&m_type == &kb.type.op.Divide) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -463,8 +441,7 @@ void Object::operator()()
         int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
         int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
         set(kb.coding.value, kb.pools.numbers.get(lhs / rhs));
-    }
-    if (&m_type == &kb.type.op.LessThan) {
+    } else if (&m_type == &kb.type.op.LessThan) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
@@ -472,8 +449,7 @@ void Object::operator()()
         int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
         int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
         set(kb.coding.value, lhs < rhs ? kb.boolean.true_ : kb.boolean.false_);
-    }
-    if (&m_type == &kb.type.op.GreaterThan) {
+    } else if (&m_type == &kb.type.op.GreaterThan) {
         CellI& inputLhs = get(kb.coding.lhs);
         CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();

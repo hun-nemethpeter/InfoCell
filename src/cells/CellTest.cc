@@ -124,18 +124,13 @@ TEST_F(CellTest, PrintMethod)
 #endif
 
     // TODO
+    // List constructor shouldn't expect an objectType
     // print function for AST nodes
     // inline methods
     // maybe create a Set<type>?
     // type checking
     // create an own type for every function to able to save return values to the fn object
-    // remove .label() from CellI
-    //
-    // Map::index should be present even if the map is empty, just see:
-    // bool Object::hasMethod(CellI & role)
-    // {
-    //     return type().has(kb.coding.methods) && type()[kb.coding.methods].has(kb.coding.index) && type()[kb.coding.methods][kb.coding.index].has(role);
-    // }                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // remove .label() from CellI                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 }
 
 TEST_F(CellTest, List)
@@ -356,6 +351,12 @@ TEST_F(CellTest, HybridPicture)
     EXPECT_EQ(&picture[kb.dimensions.width], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[kb.dimensions.height], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[kb.visualization.pixels][kb.coding.type], &kb.type.ListOf(kb.type.Pixel));
+
+    CellI& ListOfPixels = kb.type.List.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Pixel });
+    Object listOfPixels(kb, ListOfPixels, kb.coding.constructor, { kb.coding.objectType, kb.type.Pixel }, "listOfPixels");
+    listOfPixels.method(kb.sequence.add, { kb.coding.value, picture[kb.visualization.pixels][kb.sequence.first][kb.coding.value] });
+    listOfPixels.method(kb.sequence.add, { kb.coding.value, picture[kb.visualization.pixels][kb.sequence.first][kb.sequence.next][kb.coding.value] });
+    printAs.value(listOfPixels);
 }
 
 TEST_F(CellTest, BasicObjectTest)
