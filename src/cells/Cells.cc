@@ -209,6 +209,28 @@ void Object::set(CellI& role, CellI& value)
     }
 }
 
+static inline void numberOp(brain::Brain& kb, CellI& cell, std::function<int(int, int)> mathOp)
+{
+    CellI& inputLhs = cell.get(kb.coding.lhs);
+    CellI& inputRhs = cell.get(kb.coding.rhs);
+    inputLhs();
+    inputRhs();
+    int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+    int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+    cell.set(kb.coding.value, kb.pools.numbers.get(mathOp(lhs, rhs)));
+}
+
+static inline void numberOpBool(brain::Brain& kb, CellI& cell, std::function<bool(int, int)> mathOp)
+{
+    CellI& inputLhs = cell.get(kb.coding.lhs);
+    CellI& inputRhs = cell.get(kb.coding.rhs);
+    inputLhs();
+    inputRhs();
+    int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+    int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+    cell.set(kb.coding.value, mathOp(lhs, rhs) ? kb.boolean.true_ : kb.boolean.false_);
+}
+
 void Object::operator()()
 {
     if (&m_type == &kb.type.op.Block) {
@@ -410,69 +432,21 @@ void Object::operator()()
         bool res = &input[kb.coding.value] == &kb.boolean.true_;
         set(kb.coding.value, kb.toKbBool(!res));
     } else if (&m_type == &kb.type.op.Add) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputLhs();
-        inputRhs();
-        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-        set(kb.coding.value, kb.pools.numbers.get(lhs + rhs));
+        numberOp(kb, *this, [](int lhs, int rhs) -> int { return lhs + rhs; });
     } else if (&m_type == &kb.type.op.Subtract) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputLhs();
-        inputRhs();
-        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-        set(kb.coding.value, kb.pools.numbers.get(lhs - rhs));
+        numberOp(kb, *this, [](int lhs, int rhs) -> int { return lhs - rhs; });
     } else if (&m_type == &kb.type.op.Multiply) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputLhs();
-        inputRhs();
-        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-        set(kb.coding.value, kb.pools.numbers.get(lhs * rhs));
+        numberOp(kb, *this, [](int lhs, int rhs) -> int { return lhs * rhs; });
     } else if (&m_type == &kb.type.op.Divide) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputLhs();
-        inputRhs();
-        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-        set(kb.coding.value, kb.pools.numbers.get(lhs / rhs));
+        numberOp(kb, *this, [](int lhs, int rhs) -> int { return lhs / rhs; });
     } else if (&m_type == &kb.type.op.LessThan) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputLhs();
-        inputRhs();
-        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-        set(kb.coding.value, lhs < rhs ? kb.boolean.true_ : kb.boolean.false_);
+        numberOpBool(kb, *this, [](int lhs, int rhs) -> int { return lhs < rhs; });
     } else if (&m_type == &kb.type.op.LessThanOrEqual) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputLhs();
-        inputRhs();
-        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-        set(kb.coding.value, lhs <= rhs ? kb.boolean.true_ : kb.boolean.false_);
+        numberOpBool(kb, *this, [](int lhs, int rhs) -> int { return lhs <= rhs; });
     } else if (&m_type == &kb.type.op.GreaterThan) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputLhs();
-        inputRhs();
-        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-        set(kb.coding.value, lhs > rhs ? kb.boolean.true_ : kb.boolean.false_);
+        numberOpBool(kb, *this, [](int lhs, int rhs) -> int { return lhs > rhs; });
     } else if (&m_type == &kb.type.op.GreaterThanOrEqual) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputLhs();
-        inputRhs();
-        int lhs = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-        set(kb.coding.value, lhs >= rhs ? kb.boolean.true_ : kb.boolean.false_);
+        numberOpBool(kb, *this, [](int lhs, int rhs) -> int { return lhs >= rhs; });
     }
 }
 
