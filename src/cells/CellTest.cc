@@ -122,7 +122,11 @@ TEST_F(CellTest, PrintMethod)
     printOp(kb.type.List, kb.sequence.empty);
 
     printOp(kb.type.Number, kb.test.factorial);
-
+    Object testNumber(kb, kb.type.Number, "testNumber");
+    EXPECT_EQ(&testNumber.method2(kb.test.factorial, { kb.coding.input, _0_ }), &_1_);
+    EXPECT_EQ(&testNumber.method2(kb.test.factorial, { kb.coding.input, _1_ }), &_1_);
+    EXPECT_EQ(&testNumber.method2(kb.test.factorial, { kb.coding.input, _2_ }), &_2_);
+    EXPECT_EQ(&testNumber.method2(kb.test.factorial, { kb.coding.input, _3_ }), &_6_);
 #endif
 
     // TODO
