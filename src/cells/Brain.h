@@ -1,4 +1,5 @@
 #pragma once
+#include <format>
 #include "Cells.h"
 
 namespace synth {
@@ -751,7 +752,7 @@ public:
     template <typename... Args>
     Map& map(CellI& key, CellI& value, Args&&... args)
     {
-        Map& ret = *new Map(*this, key.type(), value.type());
+        Map& ret = *new Map(*this, key.type(), value.type(), std::format("Map<{}, {}>(...)", key.type().label(), value.type().label()));
         if constexpr (sizeof...(Args) > 0) {
             ret.add(std::forward<Args>(args)...);
         }

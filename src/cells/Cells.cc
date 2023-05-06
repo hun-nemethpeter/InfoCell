@@ -282,12 +282,8 @@ void Object::operator()()
         do {
             CellI& statement      = get(kb.coding.statement);
             CellI& inputCondition = get(kb.coding.condition);
-            if (&statement.type() == &kb.type.op.Return) {
-                set(kb.coding.status, kb.coding.stop);
-                return;
-            }
             statement();
-            if (statement.has(kb.coding.status) && &statement[kb.coding.status] == &kb.coding.stop) {
+            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.coding.status) && &statement[kb.coding.status] == &kb.coding.stop)) {
                 set(kb.coding.status, kb.coding.stop);
                 return;
             }
@@ -302,12 +298,8 @@ void Object::operator()()
         inputCondition();
         condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         while (condition) {
-            if (&statement.type() == &kb.type.op.Return) {
-                set(kb.coding.status, kb.coding.stop);
-                return;
-            }
             statement();
-            if (statement.has(kb.coding.status) && &statement[kb.coding.status] == &kb.coding.stop) {
+            if (&statement.type() == &kb.type.op.Return || (statement.has(kb.coding.status) && &statement[kb.coding.status] == &kb.coding.stop)) {
                 set(kb.coding.status, kb.coding.stop);
                 return;
             }

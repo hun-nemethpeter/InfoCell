@@ -60,17 +60,14 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Get) {
             printImpl(ast[kb.coding.cell]);
         }
-        if (&ast[kb.coding.cell].type() == &kb.type.ast.Input) {
-            m_ss << "in_" << ast[kb.coding.cell][kb.coding.role].label();
+        if (&ast[kb.coding.cell].type() == &kb.type.ast.Self) {
+            m_ss << "self";
         }
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Cell) {
             m_ss << ast[kb.coding.cell][kb.coding.value].label();
         }
-        if (&ast[kb.coding.cell].type() == &kb.type.ast.Self) {
-            m_ss << "self";
-        }
         if (&ast[kb.coding.cell].type() == &kb.type.ast.Member) {
-            m_ss << "self." << ast[kb.coding.cell][kb.coding.role].label();
+            m_ss << "m_" << ast[kb.coding.cell][kb.coding.role].label();
         }
         if (ast.has(kb.coding.method)) {
             if (&ast.type() == &kb.type.ast.Call) {
@@ -159,8 +156,12 @@ void CellValuePrinter::printOpDelete(CellI& cell)
 void CellValuePrinter::printOpSet(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    printImpl(cell[kb.coding.cell]);
-    m_ss << ".";
+    if ((&cell[kb.coding.ast][kb.coding.cell].type() == &kb.type.ast.Self) && (&cell[kb.coding.ast][kb.coding.role].type() == &kb.type.ast.Cell)) {
+        m_ss << "m_";
+    } else {
+        printImpl(cell[kb.coding.cell]);
+        m_ss << ".";
+    }
     printImpl(cell[kb.coding.role]);
     m_ss << " = ";
     printImpl(cell[kb.coding.value]);
@@ -299,8 +300,28 @@ void CellValuePrinter::printOpMissing(CellI& cell)
 void CellValuePrinter::printOpGet(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
+    if (&cell[kb.coding.ast].type() == &kb.type.ast.Member) {
+        m_ss << "m_" << cell[kb.coding.ast][kb.coding.role].label();
+        return;
+    }
+    if (&cell[kb.coding.ast].type() == &kb.type.ast.Self) {
+        m_ss << "self";
+        return;
+    }
+    if (&cell[kb.coding.ast].type() == &kb.type.ast.Input) {
+        m_ss << "in_" << cell[kb.coding.ast][kb.coding.role].label();
+        return;
+    }
+    if (&cell[kb.coding.ast].type() == &kb.type.ast.Output) {
+        m_ss << "out_" << cell[kb.coding.ast][kb.coding.role].label();
+        return;
+    }
+    if (&cell[kb.coding.ast].type() == &kb.type.ast.Var) {
+        m_ss << "var_" << cell[kb.coding.ast][kb.coding.role].label();
+        return;
+    }
     printImpl(cell[kb.coding.cell]);
-    m_ss << "->";
+    m_ss << ".";
     printImpl(cell[kb.coding.role]);
 }
 
@@ -401,14 +422,25 @@ void CellValuePrinter::printAstCell(CellI& cell)
 void CellValuePrinter::printAstGet(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    if (&cell[kb.coding.cell].type() == &kb.type.ast.Var) {
-        if (&cell[kb.coding.role].type() == &kb.type.ast.Cell) {
-            if (&cell[kb.coding.role][kb.coding.value] == &kb.coding.value) {
-                m_ss << "*";
-                printImpl(cell[kb.coding.cell]);
-                return;
-            }
-        }
+    if (&cell.type() == &kb.type.ast.Member) {
+        m_ss << "m_" << cell[kb.coding.ast][kb.coding.role].label();
+        return;
+    }
+    if (&cell.type() == &kb.type.ast.Self) {
+        m_ss << "self";
+        return;
+    }
+    if (&cell.type() == &kb.type.ast.Input) {
+        m_ss << "in_" << cell[kb.coding.ast][kb.coding.role].label();
+        return;
+    }
+    if (&cell.type() == &kb.type.ast.Output) {
+        m_ss << "out_" << cell[kb.coding.ast][kb.coding.role].label();
+        return;
+    }
+    if (&cell.type() == &kb.type.ast.Var) {
+        m_ss << "var_" << cell[kb.coding.ast][kb.coding.role].label();
+        return;
     }
     printImpl(cell[kb.coding.cell]);
     m_ss << ".";
@@ -451,6 +483,10 @@ void CellValuePrinter::printOpReturn(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     m_ss << "return";
+    if (cell.has(kb.coding.result)) {
+        m_ss << " ";
+        printImpl(cell[kb.coding.result][kb.coding.value]);
+    }
 }
 
 void CellValuePrinter::printTypeName(CellI& cell)

@@ -946,18 +946,26 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         constVar.set(kb.coding.value, function);
         return constVar;
     } else if (&ast.type() == &kb.type.ast.Self) {
-        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.input) / _(coding.self));
+        CellI& retOp = compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.input) / _(coding.self));
+        retOp.set(coding.ast, ast);
+        return retOp;
     } else if (&ast.type() == &kb.type.ast.Input) {
-        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.input) / _(ast[coding.role]));
+        CellI& retOp = compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.input) / _(ast[coding.role]));
+        retOp.set(coding.ast, ast);
+        return retOp;
     } else if (&ast.type() == &kb.type.ast.Output) {
-        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.output) / _(ast[coding.role]));
+        CellI& retOp = compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.output) / _(ast[coding.role]));
+        retOp.set(coding.ast, ast);
+        return retOp;
     } else if (&ast.type() == &kb.type.ast.Var) {
         if (!function[kb.coding.localVars][kb.coding.index].has(ast[kb.coding.role])) {
             Object& var = *new Object(kb, kb.type.op.Var);
             var.set(kb.coding.objectType, kb.type.Cell);
             static_cast<Map&>(function[kb.coding.localVars]).add(ast[kb.coding.role], var);
         }
-        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.localVars) / _(ast[coding.role]));
+        CellI& retOp = compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.localVars) / _(ast[coding.role]));
+        retOp.set(coding.ast, ast);
+        return retOp;
     } else if (&ast.type() == &kb.type.ast.Delete) {
         Object& retOp = *new Object(kb, kb.type.op.Delete);
         retOp.set(kb.coding.ast, ast);
@@ -2370,34 +2378,21 @@ Brain::Brain() :
         coding.slot(visualization.pixels, type.ListOf(type.Pixel))) });
 
 
-    Ast::Function& testFactorial = *new Ast::Function(*this, "Test::factorial");
-    testFactorial.addInputs(list(
+    Ast::Function& numberFactorial = *new Ast::Function(*this, "Number::factorial");
+    numberFactorial.addInputs(list(
         ast.slot(coding.input, type.Number)));
-    testFactorial.addOutputs(list(
+    numberFactorial.addOutputs(list(
         ast.slot(coding.value, type.Number)));
-    testFactorial.addAsts(ast.block(
+    numberFactorial.addAsts(ast.block(
         ast.if_(ast.greaterThanOrEqual(in_(coding.input), _(_1_)),
                 ast.return_(ast.multiply(in_(coding.input), ast.call(ast.self(), _(test.factorial), ast.slot(_(coding.input), ast.subtract(in_(coding.input), _(_1_)))))),
                 ast.return_(_(_1_)))));
 
-#if 1
-    {
-        Object stackFrameResult(*this, type.StackFrame);
-        Object& var = *new Object(*this, type.op.Var);
-        var.set(coding.objectType, type.Cell);
-        stackFrameResult.set(coding.output, list(ast.slot(coding.value, var)));
-
-        Object stackFrame1(*this, type.StackFrame);
-        stackFrame1.set(coding.method, testFactorial);
-        stackFrame1.set(coding.input, map(type.Cell, type.op.Var, coding.input, _(_0_)));
-    }
-#endif
-
     mapPtr = &map(type.Cell, type.ast.Function,
-                  test.factorial, testFactorial);
+                  test.factorial, numberFactorial);
     type.Number.set(coding.asts, *mapPtr);
     mapPtr = &map(type.Cell, type.op.Function,
-                  test.factorial, testFactorial.compile(type.Number));
+                  test.factorial, numberFactorial.compile(type.Number));
     type.Number.set(coding.methods, *mapPtr);
 
     m_initPhase = InitPhase::FullyConstructed;
