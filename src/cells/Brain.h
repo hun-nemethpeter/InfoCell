@@ -149,44 +149,6 @@ public:
     Object While;
 };
 
-class Op2
-{
-public:
-    Op2(brain::Brain& kb);
-
-    Object Add;
-    Object And;
-    Object Base;
-    Object Block;
-    Object ConstVar;
-    Object Delete;
-    Object Divide;
-    Object Do;
-    Object Equal;
-    Object EvalVar;
-    Object Function;
-    Object Get;
-    Object GreaterThan;
-    Object GreaterThanOrEqual;
-    Object Has;
-    Object If;
-    Object LessThan;
-    Object LessThanOrEqual;
-    Object Missing;
-    Object Multiply;
-    Object New;
-    Object Not;
-    Object NotEqual;
-    Object NotSame;
-    Object Or;
-    Object Return;
-    Object Same;
-    Object Set;
-    Object Subtract;
-    Object Var;
-    Object While;
-};
-
 class Ast
 {
 public:
@@ -281,7 +243,6 @@ public:
     Object StackFrame;
 
     type::Op op;
-    type::Op2 op2;
     type::Ast ast;
 };
 
@@ -381,16 +342,11 @@ public:
         void toMethod(Object& type);
         CellI& compile();
         CellI& compile(CellI& type);
-        CellI& compile2(CellI& type);
 
     protected:
         CellI& compileImpl(CellI* type);
         void compileParams(cells::Object& function, CellI* type);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
-
-        CellI& compileImpl2(CellI* type);
-        void compileParams2(cells::Object& function, CellI* type);
-        CellI& compileAst2(CellI& ast, cells::Object& function, CellI* type);
         List& inputs();
         List& outputs();
         Block& asts();
@@ -560,8 +516,7 @@ public:
     Self& self();
     SelfFn& selfFn();
     Return& return_();
-    Set& return_(Base& value);
-    Return& return2_(Base& value);
+    Return& return_(Base& value);
     Input& input(CellI& role);
     Output& output(CellI& role);
     Slot& slot(CellI& role, CellI& type);

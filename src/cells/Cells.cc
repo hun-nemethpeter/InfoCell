@@ -209,55 +209,11 @@ void Object::set(CellI& role, CellI& value)
     }
 }
 
-static inline void numberOp(brain::Brain& kb, CellI& cell, std::function<int(int, int)> mathOp)
-{
-    CellI& inputLhs = cell.get(kb.coding.lhs);
-    inputLhs();
-    int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-    CellI& inputRhs = cell.get(kb.coding.rhs);
-    inputRhs();
-    int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-    cell.set(kb.coding.value, kb.pools.numbers.get(mathOp(lhs, rhs)));
-}
-
-static inline void numberOpBool(brain::Brain& kb, CellI& cell, std::function<bool(int, int)> mathOp)
-{
-    CellI& inputLhs = cell.get(kb.coding.lhs);
-    inputLhs();
-    int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-    CellI& inputRhs = cell.get(kb.coding.rhs);
-    inputRhs();
-    int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-    cell.set(kb.coding.value, mathOp(lhs, rhs) ? kb.boolean.true_ : kb.boolean.false_);
-}
-
-static inline void numberOp2(brain::Brain& kb, CellI& cell, std::function<int(int, int)> mathOp)
-{
-    CellI& inputLhs = cell.get(kb.coding.lhs);
-    inputLhs();
-    int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-    CellI& inputRhs = cell.get(kb.coding.rhs);
-    inputRhs();
-    int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-    cell.set(kb.coding.value, kb.pools.numbers.get(mathOp(lhs, rhs)));
-}
-
-static inline void numberOpBool2(brain::Brain& kb, CellI& cell, std::function<bool(int, int)> mathOp)
-{
-    CellI& inputLhs = cell.get(kb.coding.lhs);
-    inputLhs();
-    int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
-    CellI& inputRhs = cell.get(kb.coding.rhs);
-    inputRhs();
-    int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
-    cell.set(kb.coding.value, mathOp(lhs, rhs) ? kb.boolean.true_ : kb.boolean.false_);
-}
-
 void Object::operator()()
 {
-    if (&m_type == &kb.type.op2.Block) {
+    if (&m_type == &kb.type.op.Block) {
         Visitor::visitList(get(kb.coding.ops), [this](CellI& op, int, bool& stop) {
-            if (&op.type() == &kb.type.op2.Return) {
+            if (&op.type() == &kb.type.op.Return) {
                 op();
                 set(kb.coding.status, kb.coding.stop);
                 stop = true;
@@ -271,234 +227,11 @@ void Object::operator()()
                 return;
             }
         });
-    } else if (&m_type == &kb.type.op2.Return) {
+    } else if (&m_type == &kb.type.op.Return) {
         if (has(kb.coding.result)) {
             CellI& result = get(kb.coding.result);
             result();
         }
-    } else if (&m_type == &kb.type.op2.EvalVar) {
-        CellI& value = get(kb.coding.value)[kb.coding.value];
-        value();
-    } else if (&m_type == &kb.type.op2.Function) {
-        if (has(kb.coding.op)) {
-            CellI& op = get(kb.coding.op);
-            op();
-        }
-    } else if (&m_type == &kb.type.op2.Delete) {
-        CellI& input = get(kb.coding.input);
-        input();
-        CellI* cell = &input[kb.coding.value];
-        delete cell;
-    } else if (&m_type == &kb.type.op2.Set) {
-        CellI& inputCell = get(kb.coding.cell);
-        inputCell();
-        CellI& cell      = inputCell[kb.coding.value];
-        CellI& inputRole = get(kb.coding.role);
-        inputRole();
-        CellI& role       = inputRole[kb.coding.value];
-        CellI& inputValue = get(kb.coding.value);
-        inputValue();
-        CellI& value = inputValue[kb.coding.value];
-        if (label() == "DDDD return set") {
-            std::cout << "DDDD return set " << cell.label() << " to " << value.label() << std::endl;
-        }
-
-        if (label() == "Call { setStackToNew; }") {
-            static int depth = 1;
-            value[kb.coding.value].label(std::format("StackFrame{}", ++depth));
-            value[kb.coding.value][kb.coding.output][kb.coding.value].label(std::format("varResult{}", depth));
-            std::cout << "Call { setStackToNew; } " << cell[kb.coding.stack][kb.coding.value].label() << " -> " << value[kb.coding.value].label() << std::endl;
-        }
-        if (label() == "Call { setStackToOld; }") {
-            std::cout << "Call { setStackToOld; } " << cell[kb.coding.stack][kb.coding.value].label() << " -> " << value[kb.coding.value].label() << std::endl;
-        }
-
-        cell.set(role, value);
-    } else if (&m_type == &kb.type.op2.If) {
-        CellI& inputCondition = get(kb.coding.condition);
-        inputCondition();
-        set(kb.coding.status, kb.coding.continue_);
-        CellI* branchPtr = nullptr;
-        bool condition   = &inputCondition[kb.coding.value] == &kb.boolean.true_;
-        if (condition) {
-            branchPtr = &get(kb.coding.then);
-        } else {
-            if (missing(kb.coding.else_)) {
-                return;
-            }
-            branchPtr = &get(kb.coding.else_);
-        }
-        CellI& branch = *branchPtr;
-        branch();
-        if (&branch.type() == &kb.type.op2.Return || (branch.has(kb.coding.status) && &branch[kb.coding.status] == &kb.coding.stop)) {
-            set(kb.coding.status, kb.coding.stop);
-        }
-    } else if (&m_type == &kb.type.op2.Do) {
-        bool condition = false;
-        set(kb.coding.status, kb.coding.continue_);
-        do {
-            CellI& statement      = get(kb.coding.statement);
-            CellI& inputCondition = get(kb.coding.condition);
-            if (&statement.type() == &kb.type.op2.Return) {
-                set(kb.coding.status, kb.coding.stop);
-                return;
-            }
-            statement();
-            if (statement.has(kb.coding.status) && &statement[kb.coding.status] == &kb.coding.stop) {
-                set(kb.coding.status, kb.coding.stop);
-                return;
-            }
-            inputCondition();
-            condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
-        } while (condition);
-    } else if (&m_type == &kb.type.op2.While) {
-        bool condition = false;
-        set(kb.coding.status, kb.coding.continue_);
-        CellI& inputCondition = get(kb.coding.condition);
-        CellI& statement      = get(kb.coding.statement);
-        inputCondition();
-        condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
-        while (condition) {
-            if (&statement.type() == &kb.type.op2.Return) {
-                set(kb.coding.status, kb.coding.stop);
-                return;
-            }
-            statement();
-            if (statement.has(kb.coding.status) && &statement[kb.coding.status] == &kb.coding.stop) {
-                set(kb.coding.status, kb.coding.stop);
-                return;
-            }
-            inputCondition();
-            condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
-        };
-    } else if (&m_type == &kb.type.op2.New) {
-        CellI& inputObjectType = get(kb.coding.objectType);
-        inputObjectType();
-        CellI& objectType = inputObjectType[kb.coding.value];
-
-        if (&objectType == &kb.type.Number) {
-            set(kb.coding.value, *new Number(kb));
-        } else if (&objectType == &kb.type.String) {
-            set(kb.coding.value, *new String(kb));
-        } else {
-            set(kb.coding.value, *new Object(kb, objectType));
-        }
-    } else if (&m_type == &kb.type.op2.Same) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        inputLhs();
-        CellI* lhs      = &inputLhs[kb.coding.value];
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputRhs();
-        CellI* rhs = &inputRhs[kb.coding.value];
-        set(kb.coding.value, kb.toKbBool(lhs == rhs));
-    } else if (&m_type == &kb.type.op2.NotSame) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        inputLhs();
-        CellI* lhs      = &inputLhs[kb.coding.value];
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputRhs();
-        CellI* rhs = &inputRhs[kb.coding.value];
-        set(kb.coding.value, kb.toKbBool(lhs != rhs));
-    } else if (&m_type == &kb.type.op2.Equal) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        inputLhs();
-        CellI& lhs      = inputLhs[kb.coding.value];
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputRhs();
-        CellI& rhs = inputRhs[kb.coding.value];
-        set(kb.coding.value, kb.toKbBool(lhs == rhs));
-    } else if (&m_type == &kb.type.op2.NotEqual) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        inputLhs();
-        CellI& lhs      = inputLhs[kb.coding.value];
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputRhs();
-        CellI& rhs = inputRhs[kb.coding.value];
-        set(kb.coding.value, kb.toKbBool(lhs != rhs));
-    } else if (&m_type == &kb.type.op2.Has) {
-        CellI& inputCell = get(kb.coding.cell);
-        inputCell();
-        CellI& cell      = inputCell[kb.coding.value];
-        CellI& inputRole = get(kb.coding.role);
-        inputRole();
-        CellI& role = inputRole[kb.coding.value];
-        set(kb.coding.value, kb.toKbBool(cell.has(role)));
-    } else if (&m_type == &kb.type.op2.Missing) {
-        CellI& inputCell = get(kb.coding.cell);
-        inputCell();
-        CellI& cell      = inputCell[kb.coding.value];
-        CellI& inputRole = get(kb.coding.role);
-        inputRole();
-        CellI& role = inputRole[kb.coding.value];
-        set(kb.coding.value, kb.toKbBool(cell.missing(role)));
-    } else if (&m_type == &kb.type.op2.Get) {
-        CellI& inputCell = get(kb.coding.cell);
-        inputCell();
-        CellI& cell      = inputCell[kb.coding.value];
-        CellI& inputRole = get(kb.coding.role);
-        inputRole();
-        CellI& role = inputRole[kb.coding.value];
-        if (label() == "DDDD return get") {
-            std::cout << "DDDD return get " << cell[kb.coding.stack][kb.coding.value].label() << ": " << cell[kb.coding.stack][kb.coding.value][kb.coding.output][kb.coding.value].label() << std::endl;
-        }
-
-        set(kb.coding.value, cell[role]);
-    } else if (&m_type == &kb.type.op2.And) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        inputLhs();
-        bool lhs        = inputLhs[kb.coding.value] == kb.boolean.true_;
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputRhs();
-        bool rhs = inputRhs[kb.coding.value] == kb.boolean.true_;
-        set(kb.coding.value, kb.toKbBool(lhs && rhs));
-    } else if (&m_type == &kb.type.op2.Or) {
-        CellI& inputLhs = get(kb.coding.lhs);
-        inputLhs();
-        bool lhs        = inputLhs[kb.coding.value] == kb.boolean.true_;
-        CellI& inputRhs = get(kb.coding.rhs);
-        inputRhs();
-        bool rhs = inputRhs[kb.coding.value] == kb.boolean.true_;
-        set(kb.coding.value, kb.toKbBool(lhs || rhs));
-
-    } else if (&m_type == &kb.type.op2.Not) {
-        CellI& input = get(kb.coding.input);
-        input();
-        bool res = &input[kb.coding.value] == &kb.boolean.true_;
-        set(kb.coding.value, kb.toKbBool(!res));
-    } else if (&m_type == &kb.type.op2.Add) {
-        numberOp2(kb, *this, [](int lhs, int rhs) -> int { return lhs + rhs; });
-    } else if (&m_type == &kb.type.op2.Subtract) {
-        numberOp2(kb, *this, [](int lhs, int rhs) -> int { return lhs - rhs; });
-    } else if (&m_type == &kb.type.op2.Multiply) {
-        numberOp2(kb, *this, [](int lhs, int rhs) -> int { return lhs * rhs; });
-    } else if (&m_type == &kb.type.op2.Divide) {
-        numberOp2(kb, *this, [](int lhs, int rhs) -> int { return lhs / rhs; });
-    } else if (&m_type == &kb.type.op2.LessThan) {
-        numberOpBool2(kb, *this, [](int lhs, int rhs) -> int { return lhs < rhs; });
-    } else if (&m_type == &kb.type.op2.LessThanOrEqual) {
-        numberOpBool2(kb, *this, [](int lhs, int rhs) -> int { return lhs <= rhs; });
-    } else if (&m_type == &kb.type.op2.GreaterThan) {
-        numberOpBool2(kb, *this, [](int lhs, int rhs) -> int { return lhs > rhs; });
-    } else if (&m_type == &kb.type.op2.GreaterThanOrEqual) {
-        numberOpBool2(kb, *this, [](int lhs, int rhs) -> int { return lhs >= rhs; });
-    }
-
-
-    if (&m_type == &kb.type.op.Block) {
-        Visitor::visitList(get(kb.coding.ops), [this](CellI& op, int, bool& stop) {
-            if (&op.type() == &kb.type.op.Return) {
-                set(kb.coding.status, kb.coding.stop);
-                stop = true;
-                return;
-            }
-            set(kb.coding.status, kb.coding.continue_);
-            op();
-            if (op.has(kb.coding.status) && &op[kb.coding.status] == &kb.coding.stop) {
-                set(kb.coding.status, kb.coding.stop);
-                stop = true;
-                return;
-            }
-        });
     } else if (&m_type == &kb.type.op.EvalVar) {
         CellI& value = get(kb.coding.value)[kb.coding.value];
         value();
@@ -514,45 +247,34 @@ void Object::operator()()
         delete cell;
     } else if (&m_type == &kb.type.op.Set) {
         CellI& inputCell = get(kb.coding.cell);
-        CellI& inputRole = get(kb.coding.role);
-        CellI& inputValue = get(kb.coding.value);
         inputCell();
+        CellI& cell      = inputCell[kb.coding.value];
+        CellI& inputRole = get(kb.coding.role);
         inputRole();
+        CellI& role       = inputRole[kb.coding.value];
+        CellI& inputValue = get(kb.coding.value);
         inputValue();
-        CellI& cell  = inputCell[kb.coding.value];
-        CellI& role  = inputRole[kb.coding.value];
         CellI& value = inputValue[kb.coding.value];
 
         cell.set(role, value);
     } else if (&m_type == &kb.type.op.If) {
         CellI& inputCondition = get(kb.coding.condition);
-        CellI& thenBranch     = get(kb.coding.then);
         inputCondition();
         set(kb.coding.status, kb.coding.continue_);
-        bool condition = &inputCondition[kb.coding.value] == &kb.boolean.true_;
+        CellI* branchPtr = nullptr;
+        bool condition   = &inputCondition[kb.coding.value] == &kb.boolean.true_;
         if (condition) {
-            if (&thenBranch.type() == &kb.type.op.Return) {
-                set(kb.coding.status, kb.coding.stop);
-                return;
-            }
-            thenBranch();
-            if (thenBranch.has(kb.coding.status) && &thenBranch[kb.coding.status] == &kb.coding.stop) {
-                set(kb.coding.status, kb.coding.stop);
-                return;
-            }
+            branchPtr = &get(kb.coding.then);
         } else {
-            if (has(kb.coding.else_)) {
-                CellI& elseBranch = get(kb.coding.else_);
-                if (&elseBranch.type() == &kb.type.op.Return) {
-                    set(kb.coding.status, kb.coding.stop);
-                    return;
-                }
-                elseBranch();
-                if (elseBranch.has(kb.coding.status) && &elseBranch[kb.coding.status] == &kb.coding.stop) {
-                    set(kb.coding.status, kb.coding.stop);
-                    return;
-                }
+            if (missing(kb.coding.else_)) {
+                return;
             }
+            branchPtr = &get(kb.coding.else_);
+        }
+        CellI& branch = *branchPtr;
+        branch();
+        if (&branch.type() == &kb.type.op.Return || (branch.has(kb.coding.status) && &branch[kb.coding.status] == &kb.coding.stop)) {
+            set(kb.coding.status, kb.coding.stop);
         }
     } else if (&m_type == &kb.type.op.Do) {
         bool condition = false;
@@ -606,74 +328,74 @@ void Object::operator()()
         }
     } else if (&m_type == &kb.type.op.Same) {
         CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
+        CellI* lhs      = &inputLhs[kb.coding.value];
+        CellI& inputRhs = get(kb.coding.rhs);
         inputRhs();
-        CellI* lhs = &inputLhs[kb.coding.value];
         CellI* rhs = &inputRhs[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(lhs == rhs));
     } else if (&m_type == &kb.type.op.NotSame) {
         CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
+        CellI* lhs      = &inputLhs[kb.coding.value];
+        CellI& inputRhs = get(kb.coding.rhs);
         inputRhs();
-        CellI* lhs = &inputLhs[kb.coding.value];
         CellI* rhs = &inputRhs[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(lhs != rhs));
     } else if (&m_type == &kb.type.op.Equal) {
         CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
+        CellI& lhs      = inputLhs[kb.coding.value];
+        CellI& inputRhs = get(kb.coding.rhs);
         inputRhs();
-        CellI& lhs = inputLhs[kb.coding.value];
         CellI& rhs = inputRhs[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(lhs == rhs));
     } else if (&m_type == &kb.type.op.NotEqual) {
         CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
+        CellI& lhs      = inputLhs[kb.coding.value];
+        CellI& inputRhs = get(kb.coding.rhs);
         inputRhs();
-        CellI& lhs = inputLhs[kb.coding.value];
         CellI& rhs = inputRhs[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(lhs != rhs));
     } else if (&m_type == &kb.type.op.Has) {
         CellI& inputCell = get(kb.coding.cell);
-        CellI& inputRole = get(kb.coding.role);
         inputCell();
+        CellI& cell      = inputCell[kb.coding.value];
+        CellI& inputRole = get(kb.coding.role);
         inputRole();
-        CellI& cell = inputCell[kb.coding.value];
         CellI& role = inputRole[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(cell.has(role)));
     } else if (&m_type == &kb.type.op.Missing) {
         CellI& inputCell = get(kb.coding.cell);
-        CellI& inputRole = get(kb.coding.role);
         inputCell();
+        CellI& cell      = inputCell[kb.coding.value];
+        CellI& inputRole = get(kb.coding.role);
         inputRole();
-        CellI& cell = inputCell[kb.coding.value];
         CellI& role = inputRole[kb.coding.value];
         set(kb.coding.value, kb.toKbBool(cell.missing(role)));
     } else if (&m_type == &kb.type.op.Get) {
         CellI& inputCell = get(kb.coding.cell);
-        CellI& inputRole = get(kb.coding.role);
         inputCell();
+        CellI& cell      = inputCell[kb.coding.value];
+        CellI& inputRole = get(kb.coding.role);
         inputRole();
-        CellI& cell = inputCell[kb.coding.value];
         CellI& role = inputRole[kb.coding.value];
         set(kb.coding.value, cell[role]);
     } else if (&m_type == &kb.type.op.And) {
         CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
+        bool lhs        = inputLhs[kb.coding.value] == kb.boolean.true_;
+        CellI& inputRhs = get(kb.coding.rhs);
         inputRhs();
-        bool lhs   = inputLhs[kb.coding.value] == kb.boolean.true_;
-        bool rhs   = inputRhs[kb.coding.value] == kb.boolean.true_;
+        bool rhs = inputRhs[kb.coding.value] == kb.boolean.true_;
         set(kb.coding.value, kb.toKbBool(lhs && rhs));
     } else if (&m_type == &kb.type.op.Or) {
         CellI& inputLhs = get(kb.coding.lhs);
-        CellI& inputRhs = get(kb.coding.rhs);
         inputLhs();
+        bool lhs        = inputLhs[kb.coding.value] == kb.boolean.true_;
+        CellI& inputRhs = get(kb.coding.rhs);
         inputRhs();
-        bool lhs = inputLhs[kb.coding.value] == kb.boolean.true_;
         bool rhs = inputRhs[kb.coding.value] == kb.boolean.true_;
         set(kb.coding.value, kb.toKbBool(lhs || rhs));
 
@@ -683,21 +405,69 @@ void Object::operator()()
         bool res = &input[kb.coding.value] == &kb.boolean.true_;
         set(kb.coding.value, kb.toKbBool(!res));
     } else if (&m_type == &kb.type.op.Add) {
-        numberOp(kb, *this, [](int lhs, int rhs) -> int { return lhs + rhs; });
+        CellI& inputLhs = get(kb.coding.lhs);
+        inputLhs();
+        int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputRhs();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, kb.pools.numbers.get(lhs + rhs));
     } else if (&m_type == &kb.type.op.Subtract) {
-        numberOp(kb, *this, [](int lhs, int rhs) -> int { return lhs - rhs; });
+        CellI& inputLhs = get(kb.coding.lhs);
+        inputLhs();
+        int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputRhs();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, kb.pools.numbers.get(lhs - rhs));
     } else if (&m_type == &kb.type.op.Multiply) {
-        numberOp(kb, *this, [](int lhs, int rhs) -> int { return lhs * rhs; });
+        CellI& inputLhs = get(kb.coding.lhs);
+        inputLhs();
+        int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputRhs();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, kb.pools.numbers.get(lhs * rhs));
     } else if (&m_type == &kb.type.op.Divide) {
-        numberOp(kb, *this, [](int lhs, int rhs) -> int { return lhs / rhs; });
+        CellI& inputLhs = get(kb.coding.lhs);
+        inputLhs();
+        int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputRhs();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, kb.pools.numbers.get(lhs / rhs));
     } else if (&m_type == &kb.type.op.LessThan) {
-        numberOpBool(kb, *this, [](int lhs, int rhs) -> int { return lhs < rhs; });
+        CellI& inputLhs = get(kb.coding.lhs);
+        inputLhs();
+        int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputRhs();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, lhs < rhs ? kb.boolean.true_ : kb.boolean.false_);
     } else if (&m_type == &kb.type.op.LessThanOrEqual) {
-        numberOpBool(kb, *this, [](int lhs, int rhs) -> int { return lhs <= rhs; });
+        CellI& inputLhs = get(kb.coding.lhs);
+        inputLhs();
+        int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputRhs();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, lhs <= rhs ? kb.boolean.true_ : kb.boolean.false_);
     } else if (&m_type == &kb.type.op.GreaterThan) {
-        numberOpBool(kb, *this, [](int lhs, int rhs) -> int { return lhs > rhs; });
+        CellI& inputLhs = get(kb.coding.lhs);
+        inputLhs();
+        int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputRhs();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, lhs > rhs ? kb.boolean.true_ : kb.boolean.false_);
     } else if (&m_type == &kb.type.op.GreaterThanOrEqual) {
-        numberOpBool(kb, *this, [](int lhs, int rhs) -> int { return lhs >= rhs; });
+        CellI& inputLhs = get(kb.coding.lhs);
+        inputLhs();
+        int lhs         = static_cast<Number&>(inputLhs[kb.coding.value]).value();
+        CellI& inputRhs = get(kb.coding.rhs);
+        inputRhs();
+        int rhs = static_cast<Number&>(inputRhs[kb.coding.value]).value();
+        set(kb.coding.value, lhs >= rhs ? kb.boolean.true_ : kb.boolean.false_);
     }
 }
 
@@ -735,35 +505,6 @@ CellI& Object::method(CellI& role, Param param1)
     method();
 
     return getFnValue(method);
-}
-
-CellI& Object::method2(CellI& role, Param param1)
-{
-    CellI& method = getMethod(role);
-    Object& stack = *new Object(kb, kb.type.List, kb.coding.constructor, { kb.coding.objectType, kb.type.StackFrame });
-    stack[kb.coding.item].set(kb.coding.methods, kb.type.ListItem[kb.coding.methods]);
-    Object& stackFrame = *new Object(kb, kb.type.StackFrame, "StackFrame1");
-    stackFrame.set(kb.coding.stack, stack);
-    stackFrame.set(kb.coding.method, method);
-    Object& inputIndex = *new Object(kb, kb.type.Index);
-    inputIndex.set(kb.coding.self, *this);
-    inputIndex.set(param1.role, param1.value);
-    stackFrame.set(kb.coding.input, inputIndex);
-    if (method.has(kb.coding.output)) {
-        Object& varResult = *new Object(kb, kb.type.op2.Var, "varResult");
-        Object& outputIndex = *new Object(kb, kb.type.Index, "ResultIndex");
-        outputIndex.set(kb.coding.value, varResult);
-        stackFrame.set(kb.coding.output, outputIndex);
-    }
-    stack.method(kb.sequence.add, { kb.coding.value, stackFrame });
-    method.set(kb.coding.stack, stack[kb.sequence.first]);
-    method();
-
-    if (method.has(kb.coding.output)) {
-        return stackFrame[kb.coding.output][kb.coding.value][kb.coding.value];
-    } else {
-        return kb.coding.emptyObject;
-    }
 }
 
 CellI& Object::method(CellI& role, Param param1, Param param2)
@@ -860,6 +601,9 @@ CellI& Object::getMethod(CellI& role)
         CellI& methodsIndex = type()[kb.coding.methods][kb.coding.index];
         if (methodsIndex.has(role)) {
             CellI& method = methodsIndex[role];
+            Object& inputIndex = *new Object(kb, kb.type.Index);
+            createStack(method);
+            initLocalVars(method);
             setSelf(method);
             return method;
         }
@@ -874,6 +618,8 @@ CellI& Object::getStaticMethod(CellI& role)
         CellI& methodsIndex = (*this)[kb.coding.methods][kb.coding.index];
         if (methodsIndex.has(role)) {
             CellI& method = methodsIndex[role];
+            createStack(method);
+            initLocalVars(method);
             setSelf(method);
             return method;
         }
@@ -882,21 +628,54 @@ CellI& Object::getStaticMethod(CellI& role)
     throw "No such method!";
 }
 
-CellI& Object::getFnValue(CellI& fn)
+void Object::createStack(CellI& method)
 {
-    if (fn.has(kb.coding.output)) {
-        CellI& outputsIndex = fn[kb.coding.output][kb.coding.index];
-        if (outputsIndex.has(kb.coding.value)) {
-            return outputsIndex[kb.coding.value][kb.coding.value];
-        }
+    Object& inputIndex    = *new Object(kb, kb.type.Index);
+    Object& stackFrame    = *new Object(kb, kb.type.StackFrame, "StackFrame1");
+    Object& stackListItem = *new Object(kb, kb.type.ListItem, "StackListItem1");
+    stackFrame.set(kb.coding.method, method);
+    stackFrame.set(kb.coding.input, inputIndex);
+
+    if (method.has(kb.coding.output)) {
+        Object& varResult   = *new Object(kb, kb.type.op.Var, "varResult");
+        Object& outputIndex = *new Object(kb, kb.type.Index, "ResultIndex");
+        outputIndex.set(kb.coding.value, varResult);
+        stackFrame.set(kb.coding.output, outputIndex);
+    }
+    stackListItem.set(kb.coding.value, stackFrame);
+    method.set(kb.coding.stack, stackListItem);
+}
+
+void Object::initLocalVars(CellI& method)
+{
+    if (method.missing(kb.coding.localVars)) {
+        return;
+    }
+    CellI& stackFrame = method[kb.coding.stack][kb.coding.value];
+    Map& map          = static_cast<Map&>(method[kb.coding.localVars]);
+    if (map.empty()) {
+        return;
+    }
+    Object& localVarsIndex = *new Object(kb, kb.type.Index, "LocalVarsIndex");
+    stackFrame.set(kb.coding.localVars, localVarsIndex);
+    Visitor::visitList(map[kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.list], [this, &map, &localVarsIndex](CellI& value, int i, bool&) {
+        Object& localVar = *new Object(kb, kb.type.op.Var, "localVar");
+        localVarsIndex.set(value[kb.coding.slotRole], localVar);
+    });
+}
+
+CellI& Object::getFnValue(CellI& method)
+{
+    if (method.has(kb.coding.output)) {
+        return method[kb.coding.stack][kb.coding.value][kb.coding.output][kb.coding.value][kb.coding.value];
     }
 
     return kb.coding.emptyObject;
 }
 
-void Object::setSelf(CellI& fn)
+void Object::setSelf(CellI& method)
 {
-    setFnParam(fn, { kb.coding.self, *this });
+    setFnParam(method, { kb.coding.self, *this });
 }
 
 void Object::setFnParam(CellI& fn, Param param)
@@ -904,7 +683,7 @@ void Object::setFnParam(CellI& fn, Param param)
     if (fn.has(kb.coding.input)) {
         CellI& inputsIndex = fn[kb.coding.input][kb.coding.index];
         if (inputsIndex.has(param.role)) {
-            inputsIndex[param.role].set(kb.coding.value, param.value);
+            fn[kb.coding.stack][kb.coding.value][kb.coding.input].set(param.role, param.value);
         } else {
             throw "No such param!";
         }

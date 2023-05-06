@@ -97,6 +97,7 @@ Methods::Methods(brain::Brain& kb) :
 }
 
 namespace type {
+
 Op::Op(brain::Brain& kb) :
     Add(kb, kb.type.Type_, "op::Add"),
     And(kb, kb.type.Type_, "op::And"),
@@ -195,6 +196,7 @@ Op::Op(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
+                  coding.stack, coding.slot(coding.stack, type.Stack),
                   coding.localVars, coding.slot(coding.localVars, type.MapCellToOpVar),
                   coding.input, coding.slot(coding.input, type.MapCellToOpBase),
                   coding.op, coding.slot(coding.op, type.ListOf(Base)),
@@ -299,278 +301,12 @@ Op::Op(brain::Brain& kb) :
     Or.set(coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base));
-    Return.set(kb.coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Same.set(kb.coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base),
-                  coding.value, coding.slot(coding.value, Base));
-    Set.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Number));
-    Subtract.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.objectType, coding.slot(coding.objectType, type.Type_),
-                  coding.value, coding.slot(coding.value, type.Cell));
-    Var.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.status, coding.slot(coding.status, type.Cell),
-                  coding.condition, coding.slot(coding.condition, Base),
-                  coding.statement, coding.slot(coding.statement, Base));
-    While.set(coding.slots, *map);
-}
-
-Op2::Op2(brain::Brain& kb) :
-    Add(kb, kb.type.Type_, "op2::Add"),
-    And(kb, kb.type.Type_, "op2::And"),
-    Base(kb, kb.type.Type_, "op2::Base"),
-    Block(kb, kb.type.Type_, "op2::Block"),
-    ConstVar(kb, kb.type.Type_, "op2::ConstVar"),
-    Delete(kb, kb.type.Type_, "op2::Delete"),
-    Divide(kb, kb.type.Type_, "op2::Divide"),
-    Do(kb, kb.type.Type_, "op2::Do"),
-    Equal(kb, kb.type.Type_, "op2::Equal"),
-    EvalVar(kb, kb.type.Type_, "op2::EvalVar"),
-    Function(kb, kb.type.Type_, "op2::Function"),
-    Get(kb, kb.type.Type_, "op2::Get"),
-    GreaterThan(kb, kb.type.Type_, "op2::GreaterThan"),
-    GreaterThanOrEqual(kb, kb.type.Type_, "op2::GreaterThanOrEqual"),
-    Has(kb, kb.type.Type_, "op2::Has"),
-    If(kb, kb.type.Type_, "op2::If"),
-    LessThan(kb, kb.type.Type_, "op2::LessThan"),
-    LessThanOrEqual(kb, kb.type.Type_, "op2::LessThanOrEqual"),
-    Missing(kb, kb.type.Type_, "op2::Missing"),
-    Multiply(kb, kb.type.Type_, "op2::Multiply"),
-    New(kb, kb.type.Type_, "op2::New"),
-    Not(kb, kb.type.Type_, "op2::Not"),
-    NotEqual(kb, kb.type.Type_, "op2::NotEqual"),
-    NotSame(kb, kb.type.Type_, "op2::NotSame"),
-    Or(kb, kb.type.Type_, "op2::Or"),
-    Return(kb, kb.type.Type_, "op2::Return"),
-    Same(kb, kb.type.Type_, "op2::Same"),
-    Set(kb, kb.type.Type_, "op2::Set"),
-    Subtract(kb, kb.type.Type_, "op2::Subtract"),
-    Var(kb, kb.type.Type_, "op2::Var"),
-    While(kb, kb.type.Type_, "op2::While")
-{
-    auto& coding = kb.coding;
-    auto& type   = kb.type;
-    auto& ast    = kb.type.ast;
-
-    CellI* map = nullptr;
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Number));
-    Add.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    And.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.status, coding.slot(coding.status, type.Cell),
-                  coding.ops, coding.slot(coding.ops, type.Cell),
-                  coding.value, coding.slot(coding.value, type.Cell));
-    Block.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.value, coding.slot(coding.value, type.Cell));
-    ConstVar.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.input, coding.slot(coding.input, Base));
-    Delete.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Number));
-    Divide.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.status, coding.slot(coding.status, type.Cell),
-                  coding.condition, coding.slot(coding.condition, Base),
-                  coding.statement, coding.slot(coding.statement, Base));
-    Do.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Equal.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.value, coding.slot(coding.value, Var));
-    EvalVar.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.localVars, coding.slot(coding.localVars, type.MapCellToOpVar),
-                  coding.input, coding.slot(coding.input, type.MapCellToOpBase),
-                  coding.op, coding.slot(coding.op, type.ListOf(Base)),
-                  coding.output, coding.slot(coding.output, type.MapCellToOpBase));
-    Function.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base),
-                  coding.value, coding.slot(coding.value, type.Cell));
-    Get.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    GreaterThan.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    GreaterThanOrEqual.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Has.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.status, coding.slot(coding.status, type.Cell),
-                  coding.condition, coding.slot(coding.condition, Base),
-                  coding.then, coding.slot(coding.then, Base),
-                  coding.else_, coding.slot(coding.else_, Base));
-    If.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    LessThan.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    LessThanOrEqual.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.cell, coding.slot(coding.cell, Base),
-                  coding.role, coding.slot(coding.role, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Missing.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Number));
-    Multiply.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.value, coding.slot(coding.value, type.Cell),
-                  coding.objectType, coding.slot(coding.objectType, Base));
-    New.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.input, coding.slot(coding.input, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Not.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    NotEqual.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    NotSame.set(kb.coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.lhs, coding.slot(coding.lhs, Base),
-                  coding.rhs, coding.slot(coding.rhs, Base),
-                  coding.value, coding.slot(coding.value, type.Boolean));
-    Or.set(coding.slots, *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
                   coding.result, coding.slot(coding.result, ast.Base));
     Return.set(kb.coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
                   coding.lhs, coding.slot(coding.lhs, Base),
                   coding.rhs, coding.slot(coding.rhs, Base),
                   coding.value, coding.slot(coding.value, type.Boolean));
@@ -578,7 +314,6 @@ Op2::Op2(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
                   coding.cell, coding.slot(coding.cell, Base),
                   coding.role, coding.slot(coding.role, Base),
                   coding.value, coding.slot(coding.value, Base));
@@ -586,7 +321,6 @@ Op2::Op2(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
                   coding.lhs, coding.slot(coding.lhs, Base),
                   coding.rhs, coding.slot(coding.rhs, Base),
                   coding.value, coding.slot(coding.value, type.Number));
@@ -600,7 +334,6 @@ Op2::Op2(brain::Brain& kb) :
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
-                  coding.stack, coding.slot(coding.stack, type.Stack),
                   coding.status, coding.slot(coding.status, type.Cell),
                   coding.condition, coding.slot(coding.condition, Base),
                   coding.statement, coding.slot(coding.statement, Base));
@@ -856,7 +589,6 @@ Types::Types(brain::Brain& kb) :
     Stack(kb, kb.type.Type_, "Stack"),
     StackFrame(kb, kb.type.Type_, "StackFrame"),
     op(kb),
-    op2(kb),
     ast(kb)
 {
     CellI* map   = nullptr;
@@ -1166,7 +898,6 @@ void Ast::Function::compileParams(cells::Object& function, CellI* type)
             });
         }
         function.set(kb.coding.input, params);
-
     }
     if (m_outputs) {
         Map& params = *new Map(kb, kb.type.Cell, kb.type.op.Var);
@@ -1192,6 +923,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
 {
     auto compile = [this, &function, type](CellI& ast) -> CellI& { return compileAst(ast, function, type); };
     const auto _ = [this](CellI& cell) -> Ast::Cell& { return kb.ast.cell(cell); };
+    auto& coding = kb.coding;
 
     if (&ast.type() == &kb.type.ast.Block) {
         CellI& list        = ast[kb.coding.asts];
@@ -1214,14 +946,18 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         constVar.set(kb.coding.value, function);
         return constVar;
     } else if (&ast.type() == &kb.type.ast.Self) {
-        return function[kb.coding.input][kb.coding.index][kb.coding.self];
+        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.input) / _(coding.self));
     } else if (&ast.type() == &kb.type.ast.Input) {
-        return function[kb.coding.input][kb.coding.index][ast[kb.coding.role]];
+        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.input) / _(ast[coding.role]));
     } else if (&ast.type() == &kb.type.ast.Output) {
-        Object& constVar = *new Object(kb, kb.type.op.ConstVar);
-        constVar.set(kb.coding.ast, ast);
-        constVar.set(kb.coding.value, function[kb.coding.output][kb.coding.index][ast[kb.coding.role]]);
-        return constVar;
+        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.output) / _(ast[coding.role]));
+    } else if (&ast.type() == &kb.type.ast.Var) {
+        if (!function[kb.coding.localVars][kb.coding.index].has(ast[kb.coding.role])) {
+            Object& var = *new Object(kb, kb.type.op.Var);
+            var.set(kb.coding.objectType, kb.type.Cell);
+            static_cast<Map&>(function[kb.coding.localVars]).add(ast[kb.coding.role], var);
+        }
+        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.localVars) / _(ast[coding.role]));
     } else if (&ast.type() == &kb.type.ast.Delete) {
         Object& retOp = *new Object(kb, kb.type.op.Delete);
         retOp.set(kb.coding.ast, ast);
@@ -1257,16 +993,6 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         retOp.set(kb.coding.condition, compile(ast[kb.coding.condition]));
         retOp.set(kb.coding.statement, compile(ast[kb.coding.statement]));
         return retOp;
-    } else if (&ast.type() == &kb.type.ast.Var) {
-        Object& constVar = *new Object(kb, kb.type.op.ConstVar);
-        constVar.set(kb.coding.ast, ast);
-        if (!function[kb.coding.localVars][kb.coding.index].has(ast[kb.coding.role])) {
-            Object& var = *new Object(kb, kb.type.op.Var);
-            var.set(kb.coding.objectType, kb.type.Cell);
-            static_cast<Map&>(function[kb.coding.localVars]).add(ast[kb.coding.role], var);
-        }
-        constVar.set(kb.coding.value, function[kb.coding.localVars][kb.coding.index][ast[kb.coding.role]]);
-        return constVar;
     } else if (&ast.type() == &kb.type.ast.New) {
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
 
@@ -1308,32 +1034,108 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         Object& block       = *new Object(kb, kb.type.op.Block, blockName);
         block.set(kb.coding.ast, ast);
         block.set(kb.coding.ops, compiledAsts);
-        Object& varMethod = *new Object(kb, kb.type.op.Var, "Call { var method; }");
+        Object& varMethod = *new Object(kb, kb.type.op.Var, "Call { var_method; }");
         varMethod.set(kb.coding.objectType, kb.type.op.Function);
-        CellI& storeMethod = compile(kb.ast.set(_(varMethod), _(kb.coding.value), getMethod));
-        CellI& setSelf     = compile(kb.ast.set(_(varMethod) / _(kb.coding.value) / _(kb.coding.input) / _(kb.coding.index) / _(kb.coding.self), _(kb.coding.value), astCell));
+        CellI& storeMethod     = compile(kb.ast.set(_(varMethod), _(kb.coding.value), getMethod));
+        CellI& setCurrentStack = compile(kb.ast.set(_(varMethod) / _(kb.coding.value), _(kb.coding.stack), kb.ast.get(_(function), _(coding.stack))));
+
+        Object& varNewStackItem = *new Object(kb, kb.type.op.Var, "Call { var_newStackItem; }");
+        varNewStackItem.set(kb.coding.objectType, kb.type.ListItem);
+        Object& varNewStackFrame = *new Object(kb, kb.type.op.Var, "Call { var_newStackFrame; }");
+        varNewStackFrame.set(kb.coding.objectType, kb.type.StackFrame);
+
+        Object& varInputIndex = *new Object(kb, kb.type.Index, "Call { var_inputIndex; }");
+        varInputIndex.set(kb.coding.objectType, kb.type.Index);
+        Object& varLocalVars = *new Object(kb, kb.type.op.Var, "Call { var_localVars; }");
+        varLocalVars.set(kb.coding.objectType, kb.type.Index);
+        Object& varLocalVarsList = *new Object(kb, kb.type.op.Var, "Call { var_localVarsList; }");
+        varLocalVarsList.set(kb.coding.objectType, kb.type.List);
+        Object& varLocalVarsListItem = *new Object(kb, kb.type.op.Var, "Call { var_localVarsListItem; }");
+        varLocalVarsListItem.set(kb.coding.objectType, kb.type.ListItem);
+        Object& varLocalVarsListItemHasNext = *new Object(kb, kb.type.op.Var, "Call { var_localVarsListItemHasNext; }");
+        varLocalVarsListItemHasNext.set(kb.coding.objectType, kb.type.Boolean);
+
+        CellI& storeStackItem     = compile(kb.ast.set(_(varNewStackItem), _(coding.value), kb.ast.new_(_(kb.type.ListItem))));
+        CellI& storeStackFrame    = compile(kb.ast.set(_(varNewStackFrame), _(coding.value), kb.ast.new_(_(kb.type.StackFrame))));
+        CellI& setListItem        = compile(kb.ast.set(_(varNewStackItem) / _(coding.value), _(coding.value), _(varNewStackFrame) / _(coding.value)));
+        CellI& setListItemPrev    = compile(kb.ast.set(_(varNewStackItem) / _(coding.value), _(kb.sequence.previous), _(varMethod) / _(coding.value) / _(coding.stack)));
+        CellI& storeInputIndex    = compile(kb.ast.set(_(varInputIndex), _(coding.value), kb.ast.new_(_(kb.type.Index))));
+        CellI& storeLocalVars     = compile(kb.ast.set(_(varLocalVars), _(coding.value), kb.ast.new_(_(kb.type.Index))));
+        CellI& setLocalVarsList   = compile(kb.ast.set(_(varLocalVarsList), _(coding.value), _(varMethod) / _(kb.coding.value) / _(kb.coding.localVars) / _(kb.coding.index) / _(kb.coding.type) / _(kb.coding.slots) / _(kb.coding.list)));
+        CellI& createNewLocalVars = compile(
+            kb.ast.if_(kb.ast.greaterThan(_(varLocalVarsList) / _(coding.value) / _(kb.dimensions.size), _(kb._0_)),
+                       kb.ast.block(
+                           kb.ast.set(_(varLocalVarsListItem), _(kb.coding.value), _(varLocalVarsList) / _(coding.value) / _(kb.sequence.first)),
+                           kb.ast.do_(kb.ast.block(
+                                          kb.ast.set(_(varLocalVarsListItemHasNext), _(coding.value), _(kb.boolean.true_)),
+                                          kb.ast.set(_(varLocalVars) / _(coding.value), _(varLocalVarsListItem) / _(kb.coding.value) / _(kb.coding.value) / _(coding.slotRole), kb.ast.new_(_(kb.type.op.Var))),
+                                          kb.ast.if_(kb.ast.has(_(varLocalVarsListItem) / _(coding.value), _(kb.sequence.next)),
+                                                     kb.ast.set(_(varLocalVarsListItem), _(coding.value), _(varLocalVarsListItem) / _(coding.value) / _(kb.sequence.next)),
+                                                     kb.ast.set(_(varLocalVarsListItemHasNext), _(coding.value), _(kb.boolean.false_)))),
+                                      kb.ast.same(_(varLocalVarsListItemHasNext) / _(coding.value), _(kb.boolean.true_))))));
+        CellI& setInput      = compile(kb.ast.set(_(varNewStackFrame) / _(coding.value), _(coding.input), _(varInputIndex) / _(coding.value)));
+        CellI& setLocalVars  = compile(kb.ast.set(_(varNewStackFrame) / _(coding.value), _(coding.localVars), _(varLocalVars) / _(coding.value)));
+        CellI& setSelf       = compile(kb.ast.set(_(varInputIndex) / _(coding.value), _(coding.self), astCell));
+        CellI& setStackToNew = compile(kb.ast.set(_(varMethod) / _(coding.value), _(coding.stack), _(varNewStackItem) / _(coding.value)));
+        CellI& setOutput     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value), _(kb.coding.output)),
+                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value) / _(kb.coding.output) / _(kb.coding.index), _(kb.coding.value)),
+                                                             kb.ast.block(kb.ast.set(_(varNewStackFrame) / _(coding.value), _(coding.output), kb.ast.new_(_(kb.type.Index))),
+                                                                          kb.ast.set(_(varNewStackFrame) / _(coding.value) / _(coding.output), _(coding.value), kb.ast.new_(_(kb.type.op.Var)))))));
+        CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value), _(kb.coding.output)),
+                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value) / _(kb.coding.output) / _(kb.coding.index), _(kb.coding.value)),
+                                                             kb.ast.set(_(block), _(kb.coding.value), _(varMethod) / _(coding.value) / _(coding.stack) / _(coding.value) / _(coding.output) / _(kb.coding.value) / _(kb.coding.value)))));
+        CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / _(coding.value), _(coding.stack), _(varMethod) / _(coding.value) / _(coding.stack) / _(kb.sequence.previous)));
+
         compiledAsts.add(storeMethod);
+        compiledAsts.add(setCurrentStack);
+        compiledAsts.add(storeStackItem);
+        compiledAsts.add(storeStackFrame);
+        compiledAsts.add(setListItem);
+        compiledAsts.add(setListItemPrev);
+        compiledAsts.add(storeInputIndex);
+        compiledAsts.add(storeLocalVars);
+        compiledAsts.add(setLocalVarsList);
+        compiledAsts.add(createNewLocalVars);
+        compiledAsts.add(setInput);
+        compiledAsts.add(setLocalVars);
+        compiledAsts.add(setOutput);
         compiledAsts.add(setSelf);
-        getMethod.label("Call { getMethod; }");
-        storeMethod.label("Call { storeMethod; }");
-        setSelf.label("Call { setSelf; }");
+
+
         if (ast.has(kb.coding.parameters)) {
-            Visitor::visitList(ast[kb.coding.parameters], [this, &ast, &function, type, &compiledAsts, &compile, &varMethod, &_](CellI& param, int, bool&) {
+            Visitor::visitList(ast[kb.coding.parameters], [this, &ast, &function, type, &compiledAsts, &compile, &varInputIndex, &_, &coding](CellI& param, int, bool&) {
                 Ast::Base& paramRole  = static_cast<Ast::Base&>(param[kb.coding.slotRole]);
                 Ast::Base& paramValue = static_cast<Ast::Base&>(param[kb.coding.slotType]);
-                CellI& setParam       = compile(kb.ast.set(_(varMethod) / _(kb.coding.value) / _(kb.coding.input) / _(kb.coding.index) / paramRole, _(kb.coding.value), paramValue));
+                CellI& setParam       = compile(kb.ast.set(_(varInputIndex) / _(coding.value), paramRole, paramValue));
                 setParam.label("Call { setParam; }");
                 compiledAsts.add(setParam);
             });
         }
         CellI& evalMethod = *new Object(kb, kb.type.op.EvalVar, std::format("{}::Call {{ evalVar; }}", function.label()));
         evalMethod.set(kb.coding.value, varMethod);
+        compiledAsts.add(setStackToNew);
         compiledAsts.add(evalMethod);
-        CellI& getResult = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value), _(kb.coding.output)),
-                                              kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value) / _(kb.coding.output) / _(kb.coding.index), _(kb.coding.value)),
-                                                         kb.ast.set(_(block), _(kb.coding.value), _(varMethod) / _(kb.coding.value) / _(kb.coding.output) / _(kb.coding.index) / _(kb.coding.value) / _(kb.coding.value)))));
-        getResult.label("Call { getResult; }");
         compiledAsts.add(getResult);
+        compiledAsts.add(setStackToOld);
+
+        getMethod.label("Call { getMethod; }");
+        storeMethod.label("Call { storeMethod; }");
+        setCurrentStack.label("Call  { setCurrentStack; }");
+        storeStackItem.label("Call { storeStackFrame; }");
+        storeStackFrame.label("Call { storeStackFrame; }");
+        setListItem.label("Call { setListItem; }");
+        setListItemPrev.label("Call { setListItemPrev; }");
+        storeInputIndex.label("Call { storeInputIndex; }");
+        storeLocalVars.label("Call { storeLocalVars; }");
+        setLocalVarsList.label("Call { setLocalVarsList; }");
+        createNewLocalVars.label("Call { createNewLocalVars; }");
+        setInput.label("Call { setInput; }");
+        setLocalVars.label("Call { setLocalVars; }");
+        setOutput.label("Call { setOutput; }");
+        setSelf.label("Call { setSelf; }");
+        setStackToNew.label("Call { setStackToNew; }");
+        getResult.label("Call { getResult; }");
+        setStackToOld.label("Call { setStackToOld; }");
 
         return block;
     } else if (&ast.type() == &kb.type.ast.And) {
@@ -1448,374 +1250,11 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         member.set(kb.coding.ast, ast);
         return member;
     } else if (&ast.type() == &kb.type.ast.Return) {
-        Object& retOp = *new Object(kb, kb.type.op.Return);
-        retOp.set(kb.coding.ast, ast);
-        return retOp;
-    }
-
-    throw "Unknown function AST!";
-}
-
-//////
-CellI& Ast::Function::compile2(CellI& type)
-{
-    return compileImpl2(&type);
-}
-
-CellI& Ast::Function::compileImpl2(CellI* type)
-{
-    cells::Object& function = *new cells::Object(kb, kb.type.op2.Function);
-    function.set(kb.coding.localVars, *new Map(kb, kb.type.Cell, kb.type.op2.Var));
-    compileParams2(function, type);
-    function.set(kb.coding.ast, asts());
-    function.set(kb.coding.op, compileAst2(asts(), function, type));
-
-    return function;
-}
-
-void Ast::Function::compileParams2(cells::Object& function, CellI* type)
-{
-    std::stringstream iss;
-    std::stringstream oss;
-    if (m_inputs || type) {
-        Map& params = *new Map(kb, kb.type.Cell, kb.type.op2.Var);
-        if (type) {
-            Object& var = *new Object(kb, kb.type.op2.Var, "self");
-            var.set(kb.coding.objectType, *type);
-            params.add(kb.coding.self, var);
-            iss << kb.coding.self.label() << ": " << (*type).label();
-        }
-        if (m_inputs) {
-            Visitor::visitList(inputs(), [this, &params, &iss](CellI& slot, int i, bool& stop) {
-                if (!params.empty()) {
-                    iss << ", ";
-                }
-                iss << "in_" << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
-                Object& var = *new Object(kb, kb.type.op2.Var, std::format("in_{}", slot[kb.coding.slotRole].label()));
-                var.set(kb.coding.objectType, slot[kb.coding.slotType]);
-                params.add(slot[kb.coding.slotRole], var);
-            });
-        }
-        function.set(kb.coding.input, params);
-    }
-    if (m_outputs) {
-        Map& params = *new Map(kb, kb.type.Cell, kb.type.op2.Var);
-        Visitor::visitList(outputs(), [this, &params, &oss](CellI& slot, int i, bool& stop) {
-            if (!params.empty()) {
-                oss << ", ";
-            }
-            oss << "out_" << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
-            Object& var = *new Object(kb, kb.type.op2.Var, std::format("out_{}", slot[kb.coding.slotRole].label()));
-            var.set(kb.coding.objectType, slot[kb.coding.slotType]);
-            params.add(slot[kb.coding.slotRole], var);
-        });
-        function.set(kb.coding.output, params);
-    }
-    if (m_outputs) {
-        function.label(std::format("fn {}({}) -> ({})", label(), iss.str(), oss.str()));
-    } else {
-        function.label(std::format("fn {}({})", label(), iss.str()));
-    }
-}
-
-CellI& Ast::Function::compileAst2(CellI& ast, cells::Object& function, CellI* type)
-{
-    auto compile = [this, &function, type](CellI& ast) -> CellI& { return compileAst2(ast, function, type); };
-    const auto _ = [this](CellI& cell) -> Ast::Cell& { return kb.ast.cell(cell); };
-    auto& coding = kb.coding;
-
-    if (&ast.type() == &kb.type.ast.Block) {
-        CellI& list        = ast[kb.coding.asts];
-        auto& compiledAsts = *new cells::List(kb, kb.type.op2.Base);
-        Visitor::visitList(list, [this, &compiledAsts, &ast, &function, type](CellI& ast, int, bool&) {
-            compiledAsts.add(compileAst2(ast, function, type));
-        });
-        Object& opBlock = *new Object(kb, kb.type.op2.Block);
-        opBlock.set(kb.coding.ast, ast);
-        opBlock.set(kb.coding.ops, compiledAsts);
-        return opBlock;
-    } else if (&ast.type() == &kb.type.ast.Cell) {
-        Object& constVar = *new Object(kb, kb.type.op2.ConstVar);
-        constVar.set(kb.coding.ast, ast);
-        constVar.set(kb.coding.value, ast[kb.coding.value]);
-        return constVar;
-    } else if (&ast.type() == &kb.type.ast.SelfFn) {
-        Object& constVar = *new Object(kb, kb.type.op2.ConstVar);
-        constVar.set(kb.coding.ast, ast);
-        constVar.set(kb.coding.value, function);
-        return constVar;
-    } else if (&ast.type() == &kb.type.ast.Self) {
-        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.input) / _(coding.self));
-    } else if (&ast.type() == &kb.type.ast.Input) {
-        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.input) / _(ast[coding.role]));
-    } else if (&ast.type() == &kb.type.ast.Output) {
-        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.output) / _(ast[coding.role]));
-    } else if (&ast.type() == &kb.type.ast.Var) {
-        return compile(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.localVars) / _(ast[coding.role]));
-    } else if (&ast.type() == &kb.type.ast.Delete) {
-        Object& retOp = *new Object(kb, kb.type.op2.Delete);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.input, compile(ast[kb.coding.cell]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Set) {
-        Object& retOp = *new Object(kb, kb.type.op2.Set);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.cell, compile(ast[kb.coding.cell]));
-        retOp.set(kb.coding.role, compile(ast[kb.coding.role]));
-        retOp.set(kb.coding.value, compile(ast[kb.coding.value]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.If) {
-        Object& retOp = *new Object(kb, kb.type.op2.If);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.condition, compile(ast[kb.coding.condition]));
-        retOp.set(kb.coding.then, compile(ast[kb.coding.then]));
-        if (ast.has(kb.coding.else_)) {
-            retOp.set(kb.coding.else_, compile(ast[kb.coding.else_]));
-            return retOp;
-        } else {
-            return retOp;
-        }
-    } else if (&ast.type() == &kb.type.ast.Do) {
-        Object& retOp = *new Object(kb, kb.type.op2.Do);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.condition, compile(ast[kb.coding.condition]));
-        retOp.set(kb.coding.statement, compile(ast[kb.coding.statement]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.While) {
-        Object& retOp = *new Object(kb, kb.type.op2.While);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.condition, compile(ast[kb.coding.condition]));
-        retOp.set(kb.coding.statement, compile(ast[kb.coding.statement]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.New) {
-        auto& compiledAsts = *new cells::List(kb, kb.type.op2.Base);
-
-        Object& block = *new Object(kb, kb.type.op2.Block);
-        block.set(kb.coding.ast, ast);
-        block.set(kb.coding.ops, compiledAsts);
-        Object& opSet = *new Object(kb, kb.type.op2.Set, "block.value = new objectType()");
-        opSet.set(kb.coding.ast, ast);
-        opSet.set(kb.coding.cell, compile(kb.ast.cell(block)));
-        opSet.set(kb.coding.role, compile(kb.ast.cell(kb.coding.value)));
-        Object& opNew = *new Object(kb, kb.type.op2.New);
-        opNew.set(kb.coding.ast, ast);
-        opNew.set(kb.coding.objectType, compile(ast[kb.coding.objectType]));
-        opSet.set(kb.coding.value, opNew);
-
-        compiledAsts.add(opSet);
-        if (ast.has(kb.coding.constructor)) {
-            Object& callAst = *new Object(kb, kb.type.ast.Call);
-            callAst.set(kb.coding.cell, kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.coding.value)));
-            callAst.set(kb.coding.method, ast[kb.coding.constructor]);
-            if (ast.has(kb.coding.parameters)) {
-                callAst.set(kb.coding.parameters, ast[kb.coding.parameters]);
-            }
-            compiledAsts.add(compile(callAst));
-        }
-        return block;
-    } else if (&ast.type() == &kb.type.ast.Call || &ast.type() == &kb.type.ast.StaticCall) {
-        const char* blockName  = &ast.type() == &kb.type.ast.Call ? "Call { ... }" : "SCall { ... }";
-        Ast::Base& astCell     = static_cast<Ast::Base&>(ast[kb.coding.cell]);
-        Ast::Base& astMethod   = static_cast<Ast::Base&>(ast[kb.coding.method]);
-        Ast::Get* getMethodPtr = nullptr;
-        if (&ast.type() == &kb.type.ast.Call) {
-            getMethodPtr = &(kb.ast.get(astCell, _(kb.coding.type)) / _(kb.coding.methods));
-        } else {
-            getMethodPtr = &(kb.ast.get(astCell, _(kb.coding.methods)));
-        }
-        Ast::Get& getMethod = (*getMethodPtr) / _(kb.coding.index) / astMethod;
-        auto& compiledAsts  = *new cells::List(kb, kb.type.op2.Base);
-        Object& block       = *new Object(kb, kb.type.op2.Block, blockName);
-        block.set(kb.coding.ast, ast);
-        block.set(kb.coding.ops, compiledAsts);
-        Object& varMethod = *new Object(kb, kb.type.op2.Var, "Call { var_method; }");
-        varMethod.set(kb.coding.objectType, kb.type.op2.Function);
-        CellI& storeMethod = compile(kb.ast.set(_(varMethod), _(kb.coding.value), getMethod));
-
-        Object& varNewStackItem = *new Object(kb, kb.type.op2.Var, "Call { var_newStackItem; }");
-        varNewStackItem.set(kb.coding.objectType, kb.type.ListItem);
-        Object& varNewStackFrame = *new Object(kb, kb.type.op2.Var, "Call { var_newStackFrame; }");
-        varNewStackFrame.set(kb.coding.objectType, kb.type.StackFrame);
-
-        Object& varInputIndex = *new Object(kb, kb.type.Index, "Call { var_inputIndex; }");
-        varInputIndex.set(kb.coding.objectType, kb.type.Index);
-
-        CellI& storeStackItem  = compile(kb.ast.set(_(varNewStackItem), _(coding.value), kb.ast.new_(_(kb.type.ListItem))));
-        CellI& storeStackFrame = compile(kb.ast.set(_(varNewStackFrame), _(coding.value), kb.ast.new_(_(kb.type.StackFrame))));
-        CellI& setListItem     = compile(kb.ast.set(_(varNewStackItem) / _(coding.value), _(coding.value), _(varNewStackFrame) / _(coding.value)));
-        CellI& setListItemPrev = compile(kb.ast.set(_(varNewStackItem) / _(coding.value), _(kb.sequence.previous), _(varMethod) / _(coding.value) / _(coding.stack)));
-
-        CellI& storeInputIndex = compile(kb.ast.set(_(varInputIndex), _(coding.value), kb.ast.new_(_(kb.type.Index))));
-        CellI& setInput        = compile(kb.ast.set(_(varNewStackFrame) / _(coding.value), _(coding.input), _(varInputIndex) / _(coding.value)));
-        CellI& setSelf         = compile(kb.ast.set(_(varInputIndex) / _(coding.value), _(coding.self), astCell));
-        CellI& setStackToNew   = compile(kb.ast.set(_(varMethod) / _(coding.value), _(coding.stack), _(varNewStackItem) / _(coding.value)));
-        CellI& setOutput       = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value), _(kb.coding.output)),
-                                                    kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value) / _(kb.coding.output) / _(kb.coding.index), _(kb.coding.value)),
-                                                               kb.ast.block(kb.ast.set(_(varNewStackFrame) / _(coding.value), _(coding.output), kb.ast.new_(_(kb.type.Index))),
-                                                                            kb.ast.set(_(varNewStackFrame) / _(coding.value) / _(coding.output), _(coding.value), kb.ast.new_(_(kb.type.op2.Var)))))));
-        CellI& getResult       = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value), _(kb.coding.output)),
-                                                    kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value) / _(kb.coding.output) / _(kb.coding.index), _(kb.coding.value)),
-                                                               kb.ast.set(_(block), _(kb.coding.value), _(varMethod) / _(coding.value) / _(coding.stack) / _(coding.value) / _(coding.output) / _(kb.coding.value) / _(kb.coding.value)))));
-        CellI& setStackToOld   = compile(kb.ast.set(_(varMethod) / _(coding.value), _(coding.stack), _(varMethod) / _(coding.value) / _(coding.stack) / _(kb.sequence.previous)));
-
-        compiledAsts.add(storeMethod);
-        compiledAsts.add(storeStackItem);
-        compiledAsts.add(storeStackFrame);
-        compiledAsts.add(setListItem);
-        compiledAsts.add(setListItemPrev);
-        compiledAsts.add(storeInputIndex);
-        compiledAsts.add(setInput);
-        compiledAsts.add(setOutput);
-        compiledAsts.add(setSelf);
-
-
-        if (ast.has(kb.coding.parameters)) {
-            Visitor::visitList(ast[kb.coding.parameters], [this, &ast, &function, type, &compiledAsts, &compile, &varInputIndex, &_, &coding](CellI& param, int, bool&) {
-                Ast::Base& paramRole  = static_cast<Ast::Base&>(param[kb.coding.slotRole]);
-                Ast::Base& paramValue = static_cast<Ast::Base&>(param[kb.coding.slotType]);
-                CellI& setParam       = compile(kb.ast.set(_(varInputIndex) / _(coding.value), paramRole, paramValue));
-                setParam.label("Call { setParam; }");
-                compiledAsts.add(setParam);
-            });
-        }
-        CellI& evalMethod = *new Object(kb, kb.type.op2.EvalVar, std::format("{}::Call {{ evalVar; }}", function.label()));
-        evalMethod.set(kb.coding.value, varMethod);
-        compiledAsts.add(setStackToNew);
-        compiledAsts.add(evalMethod);
-        compiledAsts.add(getResult);
-        compiledAsts.add(setStackToOld);
-
-        storeMethod.label("Call { storeMethod; }");
-        storeStackFrame.label("Call { storeStackFrame; }");
-        storeInputIndex.label("Call { storeInputIndex; }");
-        setInput.label("Call { setInput; }");
-        setOutput.label("Call { setOutput; }");
-        setSelf.label("Call { setSelf; }");
-        setStackToNew.label("Call { setStackToNew; }");
-        getMethod.label("Call { getMethod; }");
-        getResult.label("Call { getResult; }");
-        setStackToOld.label("Call { setStackToOld; }");
-
-        return block;
-    } else if (&ast.type() == &kb.type.ast.And) {
-        Object& retOp = *new Object(kb, kb.type.op2.And);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Or) {
-        Object& retOp = *new Object(kb, kb.type.op2.Or);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Not) {
-        Object& retOp = *new Object(kb, kb.type.op2.Not);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.input, compile(ast[kb.coding.input]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Add) {
-        Object& retOp = *new Object(kb, kb.type.op2.Add);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Subtract) {
-        Object& retOp = *new Object(kb, kb.type.op2.Subtract);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Multiply) {
-        Object& retOp = *new Object(kb, kb.type.op2.Multiply);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Divide) {
-        Object& retOp = *new Object(kb, kb.type.op2.Divide);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.LessThan) {
-        Object& retOp = *new Object(kb, kb.type.op2.LessThan);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.LessThanOrEqual) {
-        Object& retOp = *new Object(kb, kb.type.op2.LessThanOrEqual);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.GreaterThan) {
-        Object& retOp = *new Object(kb, kb.type.op2.GreaterThan);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.GreaterThanOrEqual) {
-        Object& retOp = *new Object(kb, kb.type.op2.GreaterThanOrEqual);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Same) {
-        Object& retOp = *new Object(kb, kb.type.op2.Same);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.NotSame) {
-        Object& retOp = *new Object(kb, kb.type.op2.NotSame);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Equal) {
-        Object& retOp = *new Object(kb, kb.type.op2.Equal);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.NotEqual) {
-        Object& retOp = *new Object(kb, kb.type.op2.NotEqual);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.lhs, compile(ast[kb.coding.lhs]));
-        retOp.set(kb.coding.rhs, compile(ast[kb.coding.rhs]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Has) {
-        Object& retOp = *new Object(kb, kb.type.op2.Has);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.cell, compile(ast[kb.coding.cell]));
-        retOp.set(kb.coding.role, compile(ast[kb.coding.role]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Missing) {
-        Object& retOp = *new Object(kb, kb.type.op2.Missing);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.cell, compile(ast[kb.coding.cell]));
-        retOp.set(kb.coding.role, compile(ast[kb.coding.role]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Get) {
-        Object& retOp = *new Object(kb, kb.type.op2.Get);
-        retOp.set(kb.coding.ast, ast);
-        retOp.set(kb.coding.cell, compile(ast[kb.coding.cell]));
-        retOp.set(kb.coding.role, compile(ast[kb.coding.role]));
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Member) {
-        CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast[kb.coding.role])));
-        member.set(kb.coding.ast, ast);
-        return member;
-    } else if (&ast.type() == &kb.type.ast.Return) {
-        Object& retOp = *new Object(kb, kb.type.op2.Return, "op.return");
+        Object& retOp = *new Object(kb, kb.type.op.Return, "op.return");
         retOp.set(kb.coding.ast, ast);
         if (ast.has(kb.coding.value)) {
             retOp.set(kb.coding.result, compile(kb.ast.set(kb.ast.get(_(function), _(coding.stack)) / _(coding.value) / _(coding.output) / _(coding.value), _(coding.value), static_cast<Ast::Base&>(ast[coding.value]))));
         }
-        retOp[kb.coding.result].label("DDDD return set");
-        retOp[kb.coding.result][kb.coding.cell][kb.coding.cell][kb.coding.cell][kb.coding.cell].label("DDDD return get");
         return retOp;
     }
 
@@ -2150,13 +1589,7 @@ Ast::Return& Ast::return_()
     return Return::New(kb);
 }
 
-Ast::Set& Ast::return_(Base& value)
-{
-    auto& ast = kb.ast;
-    return ast.set(ast.output(kb.coding.value), ast.cell(kb.coding.value), value);
-}
-
-Ast::Return& Ast::return2_(Base& value)
+Ast::Return& Ast::return_(Base& value)
 {
     return Return::New(kb, value);
 }
@@ -2908,6 +2341,14 @@ Brain::Brain() :
                   numbers.sign, coding.slot(numbers.sign, type.Number)); // TODO sign has no class currently
     type.Number.set(coding.slots, *mapPtr);
 
+    mapPtr = &map(type.Cell, type.Slot,
+                  coding.stack, coding.slot(coding.stack, type.ListOf(type.StackFrame)),
+                  coding.method, coding.slot(coding.method, type.op.Function),
+                  coding.input, coding.slot(coding.input, type.ListOf(type.op.Var)),
+                  coding.output, coding.slot(coding.output, type.ListOf(type.op.Var)),
+                  coding.localVars, coding.slot(coding.localVars, type.ListOf(type.op.Var)));
+    type.StackFrame.set(coding.slots, *mapPtr);
+
     type.String.method(methods.addSlots, { coding.list, list(coding.slot(coding.value, type.ListOf(type.Char))) });
 
     type.Color.method(methods.addSlots, { coding.list, list(
@@ -2928,13 +2369,6 @@ Brain::Brain() :
         coding.slot(dimensions.height, type.Number),
         coding.slot(visualization.pixels, type.ListOf(type.Pixel))) });
 
-    mapPtr = &map(type.Cell, type.Slot,
-                  coding.stack, coding.slot(coding.stack, type.ListOf(type.StackFrame)),
-                  coding.method, coding.slot(coding.method, type.op.Function),
-                  coding.input, coding.slot(coding.input, type.ListOf(type.op.Var)),
-                  coding.output, coding.slot(coding.output, type.ListOf(type.op.Var)),
-                  coding.localVars, coding.slot(coding.localVars, type.ListOf(type.op.Var)));
-    type.StackFrame.set(coding.slots, *mapPtr);
 
     Ast::Function& testFactorial = *new Ast::Function(*this, "Test::factorial");
     testFactorial.addInputs(list(
@@ -2943,8 +2377,8 @@ Brain::Brain() :
         ast.slot(coding.value, type.Number)));
     testFactorial.addAsts(ast.block(
         ast.if_(ast.greaterThanOrEqual(in_(coding.input), _(_1_)),
-                ast.return2_(ast.multiply(in_(coding.input), ast.call(ast.self(), _(test.factorial), ast.slot(_(coding.input), ast.subtract(in_(coding.input), _(_1_)))))),
-                ast.return2_(_(_1_)))));
+                ast.return_(ast.multiply(in_(coding.input), ast.call(ast.self(), _(test.factorial), ast.slot(_(coding.input), ast.subtract(in_(coding.input), _(_1_)))))),
+                ast.return_(_(_1_)))));
 
 #if 1
     {
@@ -2963,7 +2397,7 @@ Brain::Brain() :
                   test.factorial, testFactorial);
     type.Number.set(coding.asts, *mapPtr);
     mapPtr = &map(type.Cell, type.op.Function,
-                  test.factorial, testFactorial.compile2(type.Number));
+                  test.factorial, testFactorial.compile(type.Number));
     type.Number.set(coding.methods, *mapPtr);
 
     m_initPhase = InitPhase::FullyConstructed;

@@ -123,10 +123,12 @@ TEST_F(CellTest, PrintMethod)
 
     printOp(kb.type.Number, kb.test.factorial);
     Object testNumber(kb, kb.type.Number, "testNumber");
-    EXPECT_EQ(&testNumber.method2(kb.test.factorial, { kb.coding.input, _0_ }), &_1_);
-    EXPECT_EQ(&testNumber.method2(kb.test.factorial, { kb.coding.input, _1_ }), &_1_);
-    EXPECT_EQ(&testNumber.method2(kb.test.factorial, { kb.coding.input, _2_ }), &_2_);
-    EXPECT_EQ(&testNumber.method2(kb.test.factorial, { kb.coding.input, _3_ }), &_6_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _0_ }), &_1_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _1_ }), &_1_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _2_ }), &_2_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _3_ }), &_6_);
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _4_ }), &kb.pools.numbers.get(24));
+    EXPECT_EQ(&testNumber.method(kb.test.factorial, { kb.coding.input, _5_ }), &kb.pools.numbers.get(120));
 #endif
 
     // TODO
@@ -368,7 +370,7 @@ TEST_F(CellTest, HybridPicture)
 TEST_F(CellTest, BasicObjectTest)
 {
     Object testType(kb, kb.type.Type_, "Test");
-    Object emptyList(kb, kb.type.List, kb.coding.constructor);
+    Object emptyList(kb, kb.type.List, kb.coding.constructor, { kb.coding.objectType, kb.type.Cell });
 
     testType.method(kb.methods.addSlots, { kb.coding.list, emptyList });
 

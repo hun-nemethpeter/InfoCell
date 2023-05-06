@@ -79,7 +79,6 @@ public:
 
     CellI& method(CellI& role);
     CellI& method(CellI& role, Param param1);
-    CellI& method2(CellI& role, Param param1);
     CellI& method(CellI& role, Param param1, Param param2);
     CellI& method(CellI& role, Param param1, Param param2, Param param3);
     CellI& method(CellI& role, Param param1, Param param2, Param param3, Param param4);
@@ -96,6 +95,8 @@ protected:
     bool hasMethod(CellI& role);
     CellI& getMethod(CellI& role);
     CellI& getStaticMethod(CellI& role);
+    void createStack(CellI& method);
+    void initLocalVars(CellI& method);
     CellI& getFnValue(CellI& fn);
 
     void setSelf(CellI& fn);
