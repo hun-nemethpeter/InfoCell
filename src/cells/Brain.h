@@ -339,7 +339,7 @@ public:
 
         void addInputs(List& input);
         void addOutputs(List& output);
-        void addAsts(Block& ast);
+        void addBlock(Block& ast);
         void toMethod(Object& type);
         CellI& compile();
         CellI& compile(CellI& type);
