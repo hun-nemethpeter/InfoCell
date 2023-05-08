@@ -93,12 +93,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
     }
     if (&ast.type() == &kb.type.ast.New) {
         m_ss << "new ";
-        if (&ast[kb.coding.objectType].type() == &kb.type.ast.Cell) {
-            m_ss << ast[kb.coding.objectType][kb.coding.value].label();
-        }
-        if (&ast[kb.coding.objectType].type() == &kb.type.ast.Member) {
-            m_ss << "self." << ast[kb.coding.objectType][kb.coding.role].label();
-        }
+        printImpl(ast[kb.coding.objectType]);
         if (ast.has(kb.coding.constructor)) {
             m_ss << ".";
             m_ss << ast[kb.coding.constructor][kb.coding.value].label();
