@@ -345,23 +345,45 @@ TEST_F(CellTest, MapNumberToColor)
     printAs.cell(map);
 }
 
+TEST_F(CellTest, ListItem)
+{
+    Object listItem(kb, kb.type.ListItem, kb.coding.constructor, { coding.value, kb.colors.green });
+
+    EXPECT_EQ(&listItem[kb.coding.value], &kb.colors.green);
+
+    EXPECT_EQ(&listItem.type()[kb.coding.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(listItem.type()[kb.coding.memberOf][kb.coding.index].has(kb.type.Iterator));
+
+    EXPECT_EQ(&listItem.type()[kb.coding.slots][kb.dimensions.size], &_3_);
+    EXPECT_TRUE(listItem.type()[kb.coding.slots][kb.coding.index].has(kb.sequence.previous));
+    EXPECT_TRUE(listItem.type()[kb.coding.slots][kb.coding.index].has(kb.sequence.next));
+    EXPECT_TRUE(listItem.type()[kb.coding.slots][kb.coding.index].has(kb.coding.value));
+
+    EXPECT_TRUE(listItem.type()[kb.coding.methods][kb.coding.index].has(kb.coding.template_));
+    EXPECT_TRUE(listItem.type()[kb.coding.methods][kb.coding.index].has(kb.coding.constructor));
+}
+
 TEST_F(CellTest, ListItemTemplate)
 {
-    CellI& listItemNumber = kb.type.ListItem.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    CellI& ListItemNumber = kb.type.ListItem.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    Object listItemNumber(kb, ListItemNumber, kb.coding.constructor, { coding.value, _1_ });
+
+    EXPECT_EQ(&listItemNumber[kb.coding.value], &_1_);
+
     printAs.value(kb.type.ListItem, "type.ListItem");
-    printAs.value(listItemNumber, "listItemNumber");
+    printAs.value(ListItemNumber, "listItemNumber");
     printAs.value(kb.type.ListItem[kb.coding.slots][kb.coding.list], "type.ListItem[slots]");
-    printAs.value(listItemNumber[kb.coding.slots][kb.coding.list], "listItemNumber[slots]");
+    printAs.value(ListItemNumber[kb.coding.slots][kb.coding.list], "listItemNumber[slots]");
 
-    EXPECT_EQ(&listItemNumber[kb.coding.memberOf][kb.dimensions.size], &_1_);
-    EXPECT_TRUE(listItemNumber[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem));
+    EXPECT_EQ(&ListItemNumber[kb.coding.memberOf][kb.dimensions.size], &_1_);
+    EXPECT_TRUE(ListItemNumber[kb.coding.memberOf][kb.coding.index].has(kb.type.ListItem));
 
-    EXPECT_EQ(&listItemNumber[kb.coding.slots][kb.dimensions.size], &_3_);
-    EXPECT_TRUE(listItemNumber[kb.coding.slots][kb.coding.index].has(kb.sequence.previous));
-    EXPECT_TRUE(listItemNumber[kb.coding.slots][kb.coding.index].has(kb.sequence.next));
-    EXPECT_TRUE(listItemNumber[kb.coding.slots][kb.coding.index].has(kb.coding.value));
+    EXPECT_EQ(&ListItemNumber[kb.coding.slots][kb.dimensions.size], &_3_);
+    EXPECT_TRUE(ListItemNumber[kb.coding.slots][kb.coding.index].has(kb.sequence.previous));
+    EXPECT_TRUE(ListItemNumber[kb.coding.slots][kb.coding.index].has(kb.sequence.next));
+    EXPECT_TRUE(ListItemNumber[kb.coding.slots][kb.coding.index].has(kb.coding.value));
 
-    EXPECT_EQ(&listItemNumber[kb.coding.methods], &kb.type.ListItem[kb.coding.methods]);
+    EXPECT_EQ(&ListItemNumber[kb.coding.methods], &kb.type.ListItem[kb.coding.methods]);
 }
 
 TEST_F(CellTest, ListTemplate)
@@ -572,6 +594,7 @@ TEST_F(CellTest, CreatingCustomType)
     printAs.svgStruct(colorClass[kb.coding.slots][kb.coding.list][kb.sequence.first][kb.sequence.next][kb.coding.value], "Slot2 of Color");
     printAs.value(colorClass[kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index]");
     printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type]");
+    // printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots]"); TODO
     printAs.value(colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index], "colorClass[kb.coding.slots][kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.index]");
     printAs.cell(colorClass);
 
