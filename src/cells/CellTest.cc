@@ -278,6 +278,40 @@ TEST_F(CellTest, ListOfNumber)
 
 TEST_F(CellTest, Map)
 {
+    Object map(kb, kb.type.Map, kb.coding.constructor);
+
+    printAs.value(map);
+    printAs.cell(map);
+    EXPECT_EQ(&map[kb.dimensions.size], &_0_);
+    EXPECT_EQ(&map.method(kb.dimensions.size), &_0_);
+    EXPECT_EQ(&map.method(kb.sequence.empty), &true_);
+    EXPECT_EQ(&map[kb.coding.keyType], &kb.type.Cell);
+    EXPECT_EQ(&map[kb.coding.objectType], &kb.type.Cell);
+
+    map.method(kb.sequence.add, { coding.key, _1_ }, { coding.value, kb.colors.red });
+    printAs.value(map);
+    printAs.cell(map);
+    EXPECT_EQ(&map[kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map.method(kb.dimensions.size), &_1_);
+    EXPECT_EQ(&map[coding.list][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[coding.list][kb.sequence.first][kb.coding.value], &kb.colors.red);
+    EXPECT_EQ(&map[coding.list][kb.sequence.first], &map[coding.list][kb.sequence.last]);
+    EXPECT_TRUE(map[coding.index].has(_1_));
+    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
+    EXPECT_EQ(&map.method(kb.sequence.empty), &false_);
+    EXPECT_TRUE(map[coding.index][kb.coding.type][kb.coding.memberOf][kb.coding.index].has(kb.type.Index));
+
+    map.method(kb.sequence.add, { coding.key, _2_ }, { coding.value, kb.colors.green });
+    map.method(kb.sequence.add, { coding.key, _3_ }, { coding.value, kb.colors.blue });
+    EXPECT_EQ(&map[coding.index][_1_], &kb.colors.red);
+    EXPECT_EQ(&map[coding.index][_2_], &kb.colors.green);
+    EXPECT_EQ(&map[coding.index][_3_], &kb.colors.blue);
+    printAs.value(map);
+    printAs.cell(map);
+}
+
+TEST_F(CellTest, MapNumberToColor)
+{
     CellI& MapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
     Object map(kb, MapNumberToColor, kb.coding.constructor);
 
@@ -309,18 +343,6 @@ TEST_F(CellTest, Map)
     EXPECT_EQ(&map[coding.index][_3_], &kb.colors.blue);
     printAs.value(map);
     printAs.cell(map);
-}
-
-TEST_F(CellTest, MapTemplate)
-{
-    CellI& mapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
-    printAs.value(kb.type.Map, "type.Map");
-    printAs.value(mapNumberToColor, "mapNumberToColor");
-
-    EXPECT_EQ(&mapNumberToColor[kb.coding.memberOf][kb.dimensions.size], &_1_);
-    EXPECT_TRUE(mapNumberToColor[kb.coding.memberOf][kb.coding.index].has(kb.type.Map));
-
-    EXPECT_EQ(&mapNumberToColor[kb.coding.methods], &kb.type.Map[kb.coding.methods]);
 }
 
 TEST_F(CellTest, ListItemTemplate)

@@ -2043,7 +2043,8 @@ Brain::Brain() :
     type.Map.set(coding.slots, *mapPtr);
     mapPtr = &map(type.Cell, type.Type_,
                   coding.keyType, type.Cell,
-                  coding.objectType, type.Cell);
+                  coding.objectType, type.Cell,
+                  coding.listType, type.ListOf(type.Cell));
     type.Map.set(coding.subTypes, *mapPtr);
     type.Map.set(coding.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
@@ -2218,12 +2219,9 @@ Brain::Brain() :
                   coding.constructor, listItemCtor.compile(type.ListItem));
     type.ListItem.set(coding.methods, *mapPtr);
 
-    {
-        CellI& typeListOfSlot = type.ListOf(type.Slot);
-        typeListOfSlot[coding.subTypes][coding.index][coding.itemType].set(coding.methods, *mapPtr);
-        CellI& typeListOfType = type.ListOf(type.Type_);
-        typeListOfType[coding.subTypes][coding.index][coding.itemType].set(coding.methods, *mapPtr);
-    }
+    type.ListOf(type.Cell)[coding.subTypes][coding.index][coding.itemType].set(coding.methods, *mapPtr);
+    type.ListOf(type.Slot)[coding.subTypes][coding.index][coding.itemType].set(coding.methods, *mapPtr);
+    type.ListOf(type.Type_)[coding.subTypes][coding.index][coding.itemType].set(coding.methods, *mapPtr);
 
     // Pre created:
     // Slot
@@ -2296,12 +2294,9 @@ Brain::Brain() :
                   sequence.empty, listEmpty.compile(type.List));
     type.List.set(coding.methods, *mapPtr);
 
-    {
-        CellI& typeListOfSlot = type.ListOf(type.Slot);
-        typeListOfSlot.set(coding.methods, *mapPtr);
-        CellI& typeListOfType = type.ListOf(type.Type_);
-        typeListOfType.set(coding.methods, *mapPtr);
-    }
+    type.ListOf(type.Cell).set(coding.methods, *mapPtr);
+    type.ListOf(type.Slot).set(coding.methods, *mapPtr);
+    type.ListOf(type.Type_).set(coding.methods, *mapPtr);
 
     Ast::Function& typeCtor = *new Ast::Function(*this, "Type::constructor");
     typeCtor.addInputs(list(
