@@ -378,8 +378,8 @@ TEST_F(CellTest, ListTemplate)
     EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.coding.objectType));
     EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.coding.objectType][kb.coding.slotType], &kb.type.Number);
 
-    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.coding.item));
-    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.coding.item][kb.coding.slotType], &ListItemType);
+    EXPECT_TRUE(ListOfNumbers[kb.coding.slots][kb.coding.index].has(kb.coding.itemType));
+    EXPECT_EQ(&ListOfNumbers[kb.coding.slots][kb.coding.index][kb.coding.itemType][kb.coding.slotType], &ListItemType);
 
     EXPECT_TRUE(ListOfNumbers[kb.coding.memberOf][kb.coding.index].has(kb.type.List));
     EXPECT_EQ(&ListOfNumbers[kb.coding.memberOf][kb.dimensions.size], &_1_);
@@ -388,7 +388,7 @@ TEST_F(CellTest, ListTemplate)
     printAs.value(ListOfNumbers, "ListOfNumbers");
 
     Object listOfNumbers(kb, ListOfNumbers, kb.coding.constructor);
-    CellI& listItemNumber = listOfNumbers[kb.coding.item];
+    CellI& listItemNumber = listOfNumbers[kb.coding.itemType];
     EXPECT_EQ(&ListItemType, &listItemNumber);
     EXPECT_EQ(&ListOfNumbers[coding.subTypes][coding.index][coding.itemType], &listItemNumber);
 }

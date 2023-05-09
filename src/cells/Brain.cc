@@ -635,7 +635,7 @@ Object& Types::ListOf(CellI& type)
                       kb.sequence.first, coding.slot(kb.sequence.first, itemType),
                       kb.sequence.last, coding.slot(kb.sequence.last, itemType),
                       kb.dimensions.size, coding.slot(kb.dimensions.size, kb.type.Number),
-                      kb.coding.item, coding.slot(coding.item, itemType),
+                      kb.coding.itemType, coding.slot(coding.item, itemType),
                       kb.coding.objectType, coding.slot(kb.coding.objectType, type));
         listType.set(kb.coding.slots, *map);
 
@@ -2026,7 +2026,7 @@ Brain::Brain() :
                   sequence.first, coding.slot(sequence.first, type.ListItem),
                   sequence.last, coding.slot(sequence.last, type.ListItem),
                   dimensions.size, coding.slot(dimensions.size, type.Number),
-                  coding.item, coding.slot(coding.item, type.ListItem),
+                  coding.itemType, coding.slot(coding.itemType, type.ListItem),
                   coding.objectType, coding.slot(coding.objectType, type.Cell));
     type.List.set(coding.slots, *mapPtr);
     type.List.set(coding.subTypes, map(type.Cell, type.Type_, coding.itemType, type.ListItem, coding.objectType, type.Cell));
@@ -2243,7 +2243,7 @@ Brain::Brain() :
         ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(sequence.first)), ast.slot(_(coding.slotType), *var_(type.ListItem))),
         ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(sequence.last)), ast.slot(_(coding.slotType), *var_(type.ListItem))),
         ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(dimensions.size)), ast.slot(_(coding.slotType), _(type.Number))),
-        ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(coding.item)), ast.slot(_(coding.slotType), *var_(type.ListItem))),
+        ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(coding.itemType)), ast.slot(_(coding.slotType), *var_(type.ListItem))),
         ast.call(*var_(coding.result), _(methods.addSlot), ast.slot(_(coding.slotRole), _(coding.objectType)), ast.slot(_(coding.slotType), in_(coding.objectType))),
 
         ast.set(*var_(coding.result), _(coding.methods), m_(coding.methods)),
@@ -2254,13 +2254,13 @@ Brain::Brain() :
     listCtor.addBlock(ast.block(
         m_(dimensions.size)   = _(_0_),
         m_(coding.objectType) = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.objectType),
-        m_(coding.item)       = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.itemType)));
+        m_(coding.itemType)   = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.itemType)));
 
     Ast::Function& listAdd = *new Ast::Function(*this, "List::add");
     listAdd.addInputs(list(
         ast.slot(coding.value, type.Cell)));
     listAdd.addBlock(ast.block(
-        var_(coding.item) = ast.new_(m_(coding.item), _(coding.constructor), ast.slot(_(coding.value), in_(coding.value))),
+        var_(coding.item) = ast.new_(m_(coding.itemType), _(coding.constructor), ast.slot(_(coding.value), in_(coding.value))),
         ast.if_(ast.not_(m_(sequence.first).exist()),
                 m_(sequence.first) = *var_(coding.item),                                    // then
                 ast.block(ast.set(m_(sequence.last), _(sequence.next), *var_(coding.item)), // else
