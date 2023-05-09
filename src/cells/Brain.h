@@ -52,11 +52,13 @@ public:
     Object indexType;
     Object input;
     Object item;
+    Object itemType;
     Object key;
     Object keyType;
     Object label;
     Object lhs;
     Object list;
+    Object listType;
     Object localVars;
     Object memberOf;
     Object method;
@@ -217,13 +219,18 @@ protected:
 
 public:
     Object Type_;
+    Object Type2_;
     Object Cell;
     Object Slot;
     Object Container;
     Object Iterator;
     Object List;
+    Object ListOfSlot;
     Object ListItem;
+    Object List2;
+    Object ListItem2;
     Object Map;
+    Object Map2;
     Object MapCellToSlot;
     Object MapCellToType;
     Object MapCellToAstFunction;

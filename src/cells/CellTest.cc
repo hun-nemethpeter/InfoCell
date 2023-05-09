@@ -143,7 +143,7 @@ TEST_F(CellTest, PrintMethod)
 
 TEST_F(CellTest, List)
 {
-    Object list(kb, kb.type.List, kb.coding.constructor, { kb.coding.objectType, kb.type.Cell });
+    Object list(kb, kb.type.List, kb.coding.constructor);
 
     printAs.value(list);
     printAs.cell(list);
@@ -208,10 +208,78 @@ TEST_F(CellTest, List)
     printAs.value(size);
 }
 
+TEST_F(CellTest, ListOfNumber)
+{
+    CellI& ListOfNumber = kb.type.List.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
+    Object list(kb, ListOfNumber, kb.coding.constructor);
+
+    printAs.value(list);
+    printAs.cell(list);
+    EXPECT_EQ(&list[kb.dimensions.size], &_0_);
+    EXPECT_EQ(&list.method(kb.dimensions.size), &_0_);
+    EXPECT_EQ(&list.method(kb.sequence.empty), &true_);
+    EXPECT_EQ(&list[kb.coding.objectType], &kb.type.Number);
+
+    list.method(kb.sequence.add, { kb.coding.value, _1_ });
+    EXPECT_EQ(&list[kb.dimensions.size], &_1_);
+    EXPECT_EQ(&list.method(kb.dimensions.size), &_1_);
+    EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
+
+    CellI& firstItem = list[kb.sequence.first];
+    EXPECT_EQ(&firstItem, &list[kb.sequence.last]);
+    EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
+    EXPECT_EQ(firstItem.has(kb.sequence.next), false);
+    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+    printAs.value(list);
+
+    list.method(kb.sequence.add, { kb.coding.value, kb.pools.numbers.get(2) });
+    EXPECT_EQ(&list[kb.dimensions.size], &_2_);
+    EXPECT_EQ(&list.method(kb.dimensions.size), &_2_);
+    EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
+
+    CellI& secondItem = list[kb.sequence.last];
+    EXPECT_EQ(&firstItem, &list[kb.sequence.first]);
+    EXPECT_NE(&firstItem, &list[kb.sequence.last]);
+
+    EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
+    EXPECT_EQ(&firstItem[kb.sequence.next], &secondItem);
+    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+
+    EXPECT_EQ(&secondItem[kb.sequence.previous], &firstItem);
+    EXPECT_EQ(secondItem.has(kb.sequence.next), false);
+    EXPECT_EQ(&secondItem[kb.coding.value], &_2_);
+
+    printAs.value(list);
+    list.method(kb.sequence.add, { kb.coding.value, _3_ });
+    EXPECT_EQ(&list[kb.dimensions.size], &_3_);
+    EXPECT_EQ(&list.method(kb.dimensions.size), &_3_);
+    EXPECT_EQ(&list.method(kb.sequence.empty), &false_);
+
+    CellI& thirdItem = list[kb.sequence.last];
+    EXPECT_EQ(&firstItem, &list[kb.sequence.first]);
+    EXPECT_NE(&firstItem, &list[kb.sequence.last]);
+
+    EXPECT_EQ(firstItem.has(kb.sequence.previous), false);
+    EXPECT_EQ(&firstItem[kb.sequence.next], &secondItem);
+    EXPECT_EQ(&firstItem[kb.coding.value], &_1_);
+
+    EXPECT_EQ(&secondItem[kb.sequence.previous], &firstItem);
+    EXPECT_EQ(&secondItem[kb.sequence.next], &thirdItem);
+    EXPECT_EQ(&secondItem[kb.coding.value], &_2_);
+
+    EXPECT_EQ(&thirdItem[kb.sequence.previous], &secondItem);
+    EXPECT_EQ(thirdItem.has(kb.sequence.next), false);
+    EXPECT_EQ(&thirdItem[kb.coding.value], &_3_);
+
+    printAs.value(list);
+    CellI& size = list.method(kb.dimensions.size);
+    printAs.value(size);
+}
+
 TEST_F(CellTest, Map)
 {
-    CellI& mapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
-    Object map(kb, mapNumberToColor, kb.coding.constructor);
+    CellI& MapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
+    Object map(kb, MapNumberToColor, kb.coding.constructor);
 
     printAs.value(map);
     printAs.cell(map);
@@ -278,9 +346,11 @@ TEST_F(CellTest, ListTemplate)
 {
     CellI& ListOfNumbers = kb.type.List.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Number });
 
-    EXPECT_EQ(&ListOfNumbers[coding.subTypes][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&ListOfNumbers[coding.subTypes][kb.dimensions.size], &_2_);
     EXPECT_TRUE(ListOfNumbers[coding.subTypes][coding.index].has(coding.objectType));
-    CellI& ListItemType = ListOfNumbers[coding.subTypes][coding.index][coding.objectType];
+    EXPECT_EQ(&ListOfNumbers[coding.subTypes][coding.index][coding.objectType], &kb.type.Number);
+    EXPECT_TRUE(ListOfNumbers[coding.subTypes][coding.index].has(coding.itemType));
+    CellI& ListItemType = ListOfNumbers[coding.subTypes][coding.index][coding.itemType];
     EXPECT_EQ(&ListItemType[kb.coding.slots][kb.coding.index][kb.coding.value][kb.coding.slotType], &kb.type.Number);
     EXPECT_NE(&ListItemType, &kb.type.ListItem);
     EXPECT_EQ(&ListItemType[kb.coding.memberOf][kb.dimensions.size], &_1_);
@@ -317,10 +387,10 @@ TEST_F(CellTest, ListTemplate)
     printAs.value(kb.type.List, "type.List");
     printAs.value(ListOfNumbers, "ListOfNumbers");
 
-    Object listOfNumbers(kb, ListOfNumbers, kb.coding.constructor, { kb.coding.objectType, kb.type.Number });
+    Object listOfNumbers(kb, ListOfNumbers, kb.coding.constructor);
     CellI& listItemNumber = listOfNumbers[kb.coding.item];
     EXPECT_EQ(&ListItemType, &listItemNumber);
-    EXPECT_EQ(&ListOfNumbers[coding.subTypes][coding.index][coding.objectType], &listItemNumber);
+    EXPECT_EQ(&ListOfNumbers[coding.subTypes][coding.index][coding.itemType], &listItemNumber);
 }
 
 TEST_F(CellTest, CreatedTypeWithConstructor)
@@ -361,7 +431,7 @@ TEST_F(CellTest, HybridPicture)
     EXPECT_EQ(&picture[kb.visualization.pixels][kb.coding.type], &kb.type.ListOf(kb.type.Pixel));
 
     CellI& ListOfPixels = kb.type.List.smethod(kb.coding.template_, { kb.coding.objectType, kb.type.Pixel });
-    Object listOfPixels(kb, ListOfPixels, kb.coding.constructor, { kb.coding.objectType, kb.type.Pixel }, "listOfPixels");
+    Object listOfPixels(kb, ListOfPixels, kb.coding.constructor, "listOfPixels");
     listOfPixels.method(kb.sequence.add, { kb.coding.value, picture[kb.visualization.pixels][kb.sequence.first][kb.coding.value] });
     listOfPixels.method(kb.sequence.add, { kb.coding.value, picture[kb.visualization.pixels][kb.sequence.first][kb.sequence.next][kb.coding.value] });
     printAs.value(listOfPixels);
@@ -370,7 +440,7 @@ TEST_F(CellTest, HybridPicture)
 TEST_F(CellTest, BasicObjectTest)
 {
     Object testType(kb, kb.type.Type_, "Test");
-    Object emptyList(kb, kb.type.List, kb.coding.constructor, { kb.coding.objectType, kb.type.Cell });
+    Object emptyList(kb, kb.type.List, kb.coding.constructor);
 
     testType.method(kb.methods.addSlots, { kb.coding.list, emptyList });
 
