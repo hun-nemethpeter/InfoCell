@@ -202,7 +202,7 @@ void Object::set(CellI& role, CellI& value)
         return;
     }
 
-    if (&type() == &kb.type.Index || type()[kb.coding.slots][kb.coding.index].has(role)) { // TODO Index is a hack
+    if (&type() == &kb.type.Index || type()[kb.coding.slots][kb.coding.index].has(role) || (&type() == &type()[kb.coding.slots][kb.coding.index].type())) { // TODO Index is a hack
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";

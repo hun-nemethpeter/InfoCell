@@ -1056,7 +1056,6 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         varNewStackFrame.set(kb.coding.objectType, kb.type.StackFrame);
 
         Object& varInputIndex = *new Object(kb, kb.type.Index, "Call { var_inputIndex; }");
-        varInputIndex.set(kb.coding.objectType, kb.type.Index);
         Object& varLocalVars = *new Object(kb, kb.type.op.Var, "Call { var_localVars; }");
         varLocalVars.set(kb.coding.objectType, kb.type.Index);
         Object& varLocalVarsList = *new Object(kb, kb.type.op.Var, "Call { var_localVarsList; }");
@@ -2051,17 +2050,29 @@ Brain::Brain() :
     Ast::Function& mapCtor = *new Ast::Function(*this, "Map::constructor");
     mapCtor.addBlock(ast.block(
         m_(dimensions.size)   = _(_0_),
-        m_(coding.indexType)  = ast.new_(_(type.Type_)),
         m_(coding.keyType)    = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.keyType),
         m_(coding.objectType) = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.objectType),
         m_(coding.listType)   = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.listType),
         m_(coding.list)       = ast.new_(m_(coding.listType), _(coding.constructor)),
+        m_(coding.indexType)  = ast.new_(_(type.Type_)),
         ast.set(m_(coding.indexType), _(coding.slots), ast.new_(_(type.MapCellToSlot))),
-        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.indexType), m_(coding.indexType)),
+        ast.set(m_(coding.indexType) / _(coding.slots), _(dimensions.size), _(_0_)),
+
+        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.indexType), ast.new_(_(type.Type_))),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType), _(coding.slots), ast.new_(_(type.MapCellToSlot))),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots), _(dimensions.size), _(_0_)),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots), _(coding.keyType), _(type.Cell)),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots), _(coding.objectType), _(type.Slot)),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots), _(coding.listType), _(type.ListOf(type.Slot))),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots), _(coding.list), ast.new_(_(type.ListOf(type.Slot)), _(coding.constructor))),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots), _(coding.index), ast.new_(m_(coding.indexType) / _(coding.slots) / _(coding.indexType))),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType), _(coding.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))),
+
         ast.set(m_(coding.indexType) / _(coding.slots), _(coding.keyType), _(type.Cell)),
         ast.set(m_(coding.indexType) / _(coding.slots), _(coding.objectType), _(type.Slot)),
+        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.listType), _(type.ListOf(type.Slot))),
         ast.set(m_(coding.indexType) / _(coding.slots), _(coding.list), ast.new_(_(type.ListOf(type.Slot)), _(coding.constructor))),
-        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.index), ast.new_(_(type.Index))),
+        ast.set(m_(coding.indexType) / _(coding.slots), _(coding.index), ast.new_(m_(coding.indexType) / _(coding.slots) / _(coding.indexType))),
         ast.set(m_(coding.indexType), _(coding.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))),
         m_(coding.index) = ast.new_(m_(coding.indexType))));
 
@@ -2106,13 +2117,22 @@ Brain::Brain() :
         ast.slot(coding.value, type.Cell)));
     mapAdd.addBlock(ast.block(
         m_(coding.list).call(_(sequence.add), ast.slot(_(coding.value), in_(coding.value))),
+        m_(dimensions.size) = ast.add(m_(dimensions.size), _(_1_)),
+
+        var_(type.Slot) = ast.new_(_(type.Slot)),
+        ast.set(*var_(type.Slot), _(coding.slotRole), in_(coding.key)),
+        ast.set(*var_(type.Slot), _(coding.slotType), _(type.Slot)),
+        ast.call(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots) / _(coding.list), _(sequence.add), ast.slot(_(coding.value), *var_(type.Slot))),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots) / _(coding.index), in_(coding.key), *var_(type.Slot)),
+        ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.indexType) / _(coding.slots), _(dimensions.size), m_(dimensions.size)),
+
         var_(type.Slot) = ast.new_(_(type.Slot)),
         ast.set(*var_(type.Slot), _(coding.slotRole), in_(coding.key)),
         ast.set(*var_(type.Slot), _(coding.slotType), m_(coding.objectType)),
-        m_(dimensions.size) = ast.add(m_(dimensions.size), _(_1_)),
-        ast.set(m_(coding.indexType) / _(coding.slots), _(dimensions.size), m_(dimensions.size)),
         ast.call(m_(coding.indexType) / _(coding.slots) / _(coding.list), _(sequence.add), ast.slot(_(coding.value), *var_(type.Slot))),
         ast.set(m_(coding.indexType) / _(coding.slots) / _(coding.index), in_(coding.key), *var_(type.Slot)),
+        ast.set(m_(coding.indexType) / _(coding.slots), _(dimensions.size), m_(dimensions.size)),
+
         ast.set(m_(coding.index), in_(coding.key), in_(coding.value))));
 
     Ast::Function& mapSize = *new Ast::Function(*this, "Map::size");
