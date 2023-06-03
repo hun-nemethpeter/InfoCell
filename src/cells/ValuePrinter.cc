@@ -28,8 +28,7 @@ void CellValuePrinter::visit(Map::Index::Type::Slots& cell)
 
 void CellValuePrinter::visit(Map::Index::Type::Slot& cell)
 {
-    brain::Brain& kb = cell.kb;
-    m_ss << cell[kb.coding.slotRole].label() << ": " << cell[kb.coding.slotType].label();
+    printImpl(cell);
 }
 
 void CellValuePrinter::visit(Map::Index::Type& cell)

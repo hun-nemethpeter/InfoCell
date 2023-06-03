@@ -235,7 +235,7 @@ void Object::operator()()
     } else if (&m_type == &kb.type.op.EvalVar) {
         CellI& value = get(kb.coding.value)[kb.coding.value];
         value();
-    } else if (&m_type == &kb.type.op.Function) {
+    } else if (&m_type == &kb.type.op.Function || (m_type.has(kb.coding.memberOf) && m_type[kb.coding.memberOf][kb.coding.index].has(kb.type.op.Function))) {
         if (has(kb.coding.op)) {
             CellI& op = get(kb.coding.op);
             op();
@@ -640,19 +640,17 @@ void Object::createStack(CellI& method)
 
 void Object::initLocalVars(CellI& method)
 {
-    if (method.missing(kb.coding.localVars)) {
+    if (method.type()[kb.coding.subTypes][kb.coding.index].missing(kb.coding.localVars)) {
         return;
     }
-    CellI& stackFrame = method[kb.coding.stack][kb.coding.value];
-    Map& map          = static_cast<Map&>(method[kb.coding.localVars]);
-    if (map.empty()) {
-        return;
-    }
-    Object& localVarsIndex = *new Object(kb, kb.type.Index, "LocalVarsIndex");
+    CellI& localVarsType   = method.type()[kb.coding.subTypes][kb.coding.index][kb.coding.localVars];
+    Object& localVarsIndex = *new Object(kb, localVarsType, "LocalVarsIndex");
+    CellI& stackFrame      = method[kb.coding.stack][kb.coding.value];
     stackFrame.set(kb.coding.localVars, localVarsIndex);
-    Visitor::visitList(map[kb.coding.index][kb.coding.type][kb.coding.slots][kb.coding.list], [this, &map, &localVarsIndex](CellI& value, int i, bool&) {
+    Visitor::visitList(localVarsType[kb.coding.slots][kb.coding.list], [this, &localVarsIndex](CellI& slot, int i, bool&) {
         Object& localVar = *new Object(kb, kb.type.op.Var, "localVar");
-        localVarsIndex.set(value[kb.coding.slotRole], localVar);
+        localVar.set(kb.coding.objectType, slot[kb.coding.slotType]);
+        localVarsIndex.set(slot[kb.coding.slotRole], localVar);
     });
 }
 
@@ -1108,6 +1106,18 @@ CellI& Map::Index::Type::Slots::operator[](CellI& role)
     if (&role == &kb.coding.list) {
         return m_slotList;
     }
+    if (&role == &kb.coding.listType) {
+        return kb.type.ListOf(kb.type.Slot);
+    }
+    if (&role == &kb.coding.keyType) {
+        return kb.type.Cell;
+    }
+    if (&role == &kb.coding.objectType) {
+        return kb.type.Slot;
+    }
+    if (&role == &kb.dimensions.size) {
+        return kb.pools.numbers.get(m_slotIndex.m_indexedValues.size());
+    }
 
     throw "No such role!";
 }
@@ -1121,7 +1131,8 @@ void Map::Index::Type::Slots::accept(Visitor& visitor)
 // ============================================================================
 Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
     CellI(kb),
-    m_slots(kb, indexedValues, orderedValues, valueType, *this)
+    m_slots(kb, indexedValues, orderedValues, valueType, *this),
+    m_indexedValues(indexedValues)
 {
     if (&valueType == &kb.type.Slot) {
         label("Index<Slot>");
@@ -1136,7 +1147,9 @@ Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedVa
 
 bool Map::Index::Type::has(CellI& role)
 {
-    if (&role == &kb.coding.type || &role == &kb.coding.slots) {
+    if (&role == &kb.coding.type) {
+        return true;
+    } else if (&role == &kb.coding.slots && !m_indexedValues.empty()) {
         return true;
     }
 
@@ -1310,12 +1323,10 @@ void Map::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-#if 0
-void Map::add(CellI& value)
+bool Map::hasKey(CellI& key)
 {
-    add(value, value);
+    return m_indexedValues.find(&key) != m_indexedValues.end();
 }
-#endif
 
 void Map::add(CellI& key, CellI& value)
 {

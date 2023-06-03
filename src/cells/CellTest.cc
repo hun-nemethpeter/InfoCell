@@ -105,7 +105,7 @@ TEST_F(CellTest, PrintMethod)
     printOp(kb.type.Map, kb.sequence.add);
     printOp(kb.type.Map, kb.sequence.empty);
 
-#if 0
+#if 1
     printOp(kb.type.Type_, kb.coding.constructor);
     printOp(kb.type.Type_, kb.methods.addSlot);
     printOp(kb.type.Type_, kb.methods.addSubType);
@@ -326,6 +326,46 @@ TEST_F(CellTest, MapTypes)
     printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
 }
 
+TEST_F(CellTest, BuiltInMapTypes)
+{
+    Map& map = *new cells::Map(kb, kb.type.Number, kb.type.Color);
+    printAs.value(map.type());
+    printAs.value(map[kb.coding.list].type());
+    printAs.cell(map[kb.coding.index], "map[kb.coding.index]");
+    printAs.value(map[kb.coding.index], "map[kb.coding.index]");
+    printAs.value(map[kb.coding.index].type(), "map[kb.coding.index].type()");
+    map.add(_1_, kb.colors.red);
+    printAs.cell(map[kb.coding.index], "map[kb.coding.index]");
+    printAs.value(map[kb.coding.index], "map[kb.coding.index]");
+    printAs.value(map[kb.coding.index].type(), "map[kb.coding.index].type()");
+    printAs.cell(map[kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots]");
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.keyType], &kb.type.Cell);
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.objectType], &kb.type.Slot);
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.listType], &kb.type.ListOf(kb.type.Slot));
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.list][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotRole], &_1_);
+    CellI& debug = map[kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotType];
+//    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotType], &kb.type.Color);
+
+    EXPECT_TRUE(map[kb.coding.index].type().has(kb.coding.slots));
+    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots].has(kb.coding.index));
+    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].has(kb.coding.type));
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), &map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type());
+
+    EXPECT_TRUE(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type().has(kb.coding.slots));
+    printAs.cell(map[kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots][]");
+    printAs.cell(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
+    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()");
+    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots]");
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.dimensions.size], &_1_);
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotRole], &_1_);
+    EXPECT_EQ(&map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index][_1_][kb.coding.slotType], &kb.type.Slot);
+    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index], "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index]");
+    printAs.value(map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type(), "map[kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()[kb.coding.slots][kb.coding.index].type()");
+}
+
+
 TEST_F(CellTest, MapTemplateTypes)
 {
     CellI& MapNumberToColor = kb.type.Map.smethod(kb.coding.template_, { kb.coding.keyType, kb.type.Number }, { kb.coding.objectType, kb.type.Color });
@@ -491,6 +531,14 @@ TEST_F(CellTest, ListTemplate)
     CellI& listItemNumber = listOfNumbers[kb.coding.itemType];
     EXPECT_EQ(&ListItemType, &listItemNumber);
     EXPECT_EQ(&ListOfNumbers[coding.subTypes][coding.index][coding.itemType], &listItemNumber);
+}
+
+TEST_F(CellTest, FunctionTypes)
+{
+    CellI& function = kb.type.Type_[kb.coding.methods][kb.coding.index][kb.methods.addSlot];
+    printAs.cell(function.type(), "function");
+    printAs.cell(function.type()[kb.coding.subTypes][kb.coding.index][kb.coding.localVars], "function[kb.coding.subTypes][kb.coding.localVars]");
+    printAs.value(function.type()[kb.coding.subTypes][kb.coding.index][kb.coding.localVars], "function[kb.coding.subTypes][kb.coding.localVars]");
 }
 
 TEST_F(CellTest, CreatedTypeWithConstructor)

@@ -349,7 +349,7 @@ public:
 
     protected:
         CellI& compileImpl(CellI* type);
-        void compileParams(cells::Object& function, CellI* type);
+        void compileParams(cells::Object& function, cells::Object& inputType, cells::Object& outputType, CellI* type);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
         List& inputs();
         List& outputs();

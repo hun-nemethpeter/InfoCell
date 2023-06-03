@@ -335,6 +335,7 @@ public:
             void accept(Visitor& visitor) override;
 
             Slots m_slots;
+            IndexedValues& m_indexedValues;
         };
 
         Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType);
