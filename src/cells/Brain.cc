@@ -199,9 +199,7 @@ Op::Op(brain::Brain& kb) :
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
                   coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.input, coding.slot(coding.input, type.MapCellToOpBase),
-                  coding.op, coding.slot(coding.op, type.ListOf(Base)),
-                  coding.output, coding.slot(coding.output, type.MapCellToOpBase));
+                  coding.op, coding.slot(coding.op, type.ListOf(Base)));
     Function.set(coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
@@ -887,44 +885,34 @@ void Ast::Function::compileParams(cells::Object& function, cells::Object& inputT
     std::stringstream iss;
     std::stringstream oss;
     if (m_inputs || type) {
-        Map& params = *new Map(kb, kb.type.Cell, kb.type.op.Var);
         Map& slots = *new Map(kb, kb.type.Cell, kb.type.Slot);
         if (type) {
             Object& var = *new Object(kb, kb.type.op.Var, "self");
             var.set(kb.coding.objectType, *type);
-            params.add(kb.coding.self, var);
             slots.add(kb.coding.self, kb.coding.slot(kb.coding.self, *type));
             iss << kb.coding.self.label() << ": " << (*type).label();
         }
         if (m_inputs) {
-            Visitor::visitList(inputs(), [this, &params, &slots, &iss](CellI& slot, int i, bool& stop) {
-                if (!params.empty()) {
+            Visitor::visitList(inputs(), [this, &slots, &iss](CellI& slot, int i, bool& stop) {
+                if (!slots.empty()) {
                     iss << ", ";
                 }
                 iss << "in_" << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
-                Object& var = *new Object(kb, kb.type.op.Var, std::format("in_{}", slot[kb.coding.slotRole].label()));
-                var.set(kb.coding.objectType, slot[kb.coding.slotType]);
-                params.add(slot[kb.coding.slotRole], var);
                 slots.add(slot[kb.coding.slotRole], kb.coding.slot(slot[kb.coding.slotRole], slot[kb.coding.slotType]));
             });
         }
-        function.set(kb.coding.input, params);
         inputType.set(kb.coding.slots, slots);
     }
     if (m_outputs) {
-        Map& params = *new Map(kb, kb.type.Cell, kb.type.op.Var);
         Map& slots  = *new Map(kb, kb.type.Cell, kb.type.Slot);
-        Visitor::visitList(outputs(), [this, &params, &oss](CellI& slot, int i, bool& stop) {
-            if (!params.empty()) {
+        Visitor::visitList(outputs(), [this, &slots, &oss](CellI& slot, int i, bool& stop) {
+            if (!slots.empty()) {
                 oss << ", ";
             }
             oss << "out_" << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
-            Object& var = *new Object(kb, kb.type.op.Var, std::format("out_{}", slot[kb.coding.slotRole].label()));
-            var.set(kb.coding.objectType, slot[kb.coding.slotType]);
-            params.add(slot[kb.coding.slotRole], var);
+            slots.add(slot[kb.coding.slotRole], kb.coding.slot(slot[kb.coding.slotRole], slot[kb.coding.slotType]));
         });
-        function.set(kb.coding.output, params);
-        outputType.set(kb.coding.slots, params);
+        outputType.set(kb.coding.slots, slots);
     }
     if (m_outputs) {
         function.label(std::format("fn {}({}) -> ({})", label(), iss.str(), oss.str()));
@@ -1107,12 +1095,12 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         CellI& setInput      = compile(kb.ast.set(_(varNewStackFrame) / _(coding.value), _(coding.input), _(varInputIndex) / _(coding.value)));
         CellI& setSelf       = compile(kb.ast.set(_(varInputIndex) / _(coding.value), _(coding.self), astCell));
         CellI& setStackToNew = compile(kb.ast.set(_(varMethod) / _(coding.value), _(coding.stack), _(varNewStackItem) / _(coding.value)));
-        CellI& setOutput     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value), _(kb.coding.output)),
-                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value) / _(kb.coding.output) / _(kb.coding.index), _(kb.coding.value)),
-                                                             kb.ast.block(kb.ast.set(_(varNewStackFrame) / _(coding.value), _(coding.output), kb.ast.new_(_(kb.type.Index))),
+        CellI& setOutput     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(coding.value) / _(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.output), _(coding.slots)),
+                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(coding.value) / _(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.output) / _(coding.slots) / _(coding.index), _(coding.value)),
+                                                             kb.ast.block(kb.ast.set(_(varNewStackFrame) / _(coding.value), _(coding.output), kb.ast.new_(_(varMethod) / _(coding.value) / _(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.output))),
                                                                           kb.ast.set(_(varNewStackFrame) / _(coding.value) / _(coding.output), _(coding.value), kb.ast.new_(_(kb.type.op.Var)))))));
-        CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value), _(kb.coding.output)),
-                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(kb.coding.value) / _(kb.coding.output) / _(kb.coding.index), _(kb.coding.value)),
+        CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(coding.value) / _(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.output), _(coding.slots)),
+                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(coding.value) / _(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.output) / _(coding.slots) / _(coding.index), _(coding.value)),
                                                              kb.ast.set(_(block), _(kb.coding.value), _(varMethod) / _(coding.value) / _(coding.stack) / _(coding.value) / _(coding.output) / _(kb.coding.value) / _(kb.coding.value)))));
         CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / _(coding.value), _(coding.stack), _(varMethod) / _(coding.value) / _(coding.stack) / _(kb.sequence.previous)));
 

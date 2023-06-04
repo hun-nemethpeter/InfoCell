@@ -628,7 +628,7 @@ void Object::createStack(CellI& method)
     stackFrame.set(kb.coding.method, method);
     stackFrame.set(kb.coding.input, inputIndex);
 
-    if (method.has(kb.coding.output)) {
+    if (method.type()[kb.coding.subTypes][kb.coding.index][kb.coding.output].has(kb.coding.slots)) {
         Object& varResult   = *new Object(kb, kb.type.op.Var, "varResult");
         Object& outputIndex = *new Object(kb, kb.type.Index, "ResultIndex");
         outputIndex.set(kb.coding.value, varResult);
@@ -656,7 +656,7 @@ void Object::initLocalVars(CellI& method)
 
 CellI& Object::getFnValue(CellI& method)
 {
-    if (method.has(kb.coding.output)) {
+    if (method.type()[kb.coding.subTypes][kb.coding.index][kb.coding.output].has(kb.coding.slots)) {
         return method[kb.coding.stack][kb.coding.value][kb.coding.output][kb.coding.value][kb.coding.value];
     }
 
@@ -670,8 +670,8 @@ void Object::setSelf(CellI& method)
 
 void Object::setFnParam(CellI& fn, Param param)
 {
-    if (fn.has(kb.coding.input)) {
-        CellI& inputsIndex = fn[kb.coding.input][kb.coding.index];
+    if (fn.type()[kb.coding.subTypes][kb.coding.index][kb.coding.input].has(kb.coding.slots)) {
+        CellI& inputsIndex = fn.type()[kb.coding.subTypes][kb.coding.index][kb.coding.input][kb.coding.slots][kb.coding.index];
         if (inputsIndex.has(param.role)) {
             fn[kb.coding.stack][kb.coding.value][kb.coding.input].set(param.role, param.value);
         } else {
