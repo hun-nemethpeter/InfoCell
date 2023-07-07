@@ -63,6 +63,7 @@ public:
     Object memberOf;
     Object method;
     Object methods;
+    Object name;
     Object objectType;
     Object op;
     Object ops;
@@ -78,6 +79,7 @@ public:
     Object slotType;
     Object stack;
     Object statement;
+    Object static_;
     Object status;
     Object stop;
     Object subTypes;
@@ -338,7 +340,7 @@ public:
     class Function : public BaseT<Function>
     {
     public:
-        Function(brain::Brain& kb, const std::string& label = "Function");
+        Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label);
 
         void addInputs(List& input);
         void addOutputs(List& output);

@@ -55,6 +55,7 @@ Coding::Coding(brain::Brain& kb) :
     memberOf(kb, kb.type.Cell, "memberOf"),
     method(kb, kb.type.Cell, "method"),
     methods(kb, kb.type.Cell, "methods"),
+    name(kb, kb.type.Cell, "name"),
     objectType(kb, kb.type.Cell, "objectType"),
     op(kb, kb.type.Cell, "op"),
     ops(kb, kb.type.Cell, "ops"),
@@ -70,6 +71,7 @@ Coding::Coding(brain::Brain& kb) :
     slotType(kb, kb.type.Cell, "slotType"),
     stack(kb, kb.type.Cell, "stack"),
     statement(kb, kb.type.Cell, "statement"),
+    static_(kb, kb.type.Cell, "static"),
     status(kb, kb.type.Cell, "status"),
     stop(kb, kb.type.Cell, "stop"),
     subTypes(kb, kb.type.Cell, "subTypes"),
@@ -199,7 +201,8 @@ Op::Op(brain::Brain& kb) :
     map = &kb.map(kb.type.Cell, kb.type.Slot,
                   coding.ast, coding.slot(coding.ast, ast.Base),
                   coding.stack, coding.slot(coding.stack, type.Stack),
-                  coding.op, coding.slot(coding.op, type.ListOf(Base)));
+                  coding.op, coding.slot(coding.op, type.ListOf(Base)),
+                  coding.static_, coding.slot(coding.static_, type.Boolean));
     Function.set(coding.slots, *map);
 
     map = &kb.map(kb.type.Cell, kb.type.Slot,
@@ -428,9 +431,12 @@ Ast::Ast(brain::Brain& kb) :
     Equal.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
+                  coding.objectType, coding.slot(coding.objectType, type.Cell),
+                  coding.name, coding.slot(coding.name, type.Cell),
                   coding.input, coding.slot(coding.input, type.ListOf(Slot)),
                   coding.ast, coding.slot(coding.ast, type.ListOf(Base)),
-                  coding.output, coding.slot(coding.output, type.ListOf(Slot)));
+                  coding.output, coding.slot(coding.output, type.ListOf(Slot)),
+                  coding.static_, coding.slot(coding.static_, type.Boolean));
     Function.set(coding.slots, *map);
 
     map = &kb.map(type.Cell, type.Slot,
@@ -829,9 +835,11 @@ Ast::Block::Block(brain::Brain& kb, List& list) :
     set(kb.coding.asts, list);
 }
 
-Ast::Function::Function(brain::Brain& kb, const std::string& label) :
+Ast::Function::Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label) :
     BaseT<Function>(kb, kb.type.ast.Function, "ast.function")
 {
+    set(kb.coding.objectType, objType);
+    set(kb.coding.name, name);
     this->label(label);
 }
 
@@ -869,13 +877,17 @@ CellI& Ast::Function::compileImpl(CellI* type)
     cells::Object& functionInputType  = *new cells::Object(kb, kb.type.Type_);
     cells::Object& functionOutputType = *new cells::Object(kb, kb.type.Type_);
     functionType.set(kb.coding.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.op.Function, kb.type.op.Function));
-    functionType.set(kb.coding.subTypes, kb.map(kb.type.Cell, kb.type.Type_, kb.coding.input, functionInputType, kb.coding.output, functionOutputType));
+    cells::Map& subTypesMap = kb.map(kb.type.Cell, kb.type.Type_, kb.coding.objectType, get(kb.coding.objectType), kb.coding.name, get(kb.coding.name), kb.coding.input, functionInputType, kb.coding.output, functionOutputType);
+    functionType.set(kb.coding.subTypes, subTypesMap);
     functionType.set(kb.coding.slots, kb.type.op.Function[kb.coding.slots]);
 
     cells::Object& function = *new cells::Object(kb, functionType);
     compileParams(function, functionInputType, functionOutputType, type);
     function.set(kb.coding.ast, asts());
     function.set(kb.coding.op, compileAst(asts(), function, type));
+    if (has(kb.coding.static_)) {
+        function.set(kb.coding.static_, get(kb.coding.static_));
+    }
 
     return function;
 }
@@ -2049,7 +2061,7 @@ Brain::Brain() :
     type.Map.set(coding.subTypes, *mapPtr);
     type.Map.set(coding.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
-    Ast::Function& mapCtor = *new Ast::Function(*this, "Map::constructor");
+    Ast::Function& mapCtor = *new Ast::Function(*this, type.Map, coding.constructor, "Map::constructor");
     mapCtor.addBlock(ast.block(
         m_(dimensions.size)   = _(_0_),
         m_(coding.keyType)    = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.keyType),
@@ -2085,7 +2097,8 @@ Brain::Brain() :
     // MapCellToOpVar;
     // MapCellToOpBase;
     // MapTypeToType;
-    Ast::Function& mapTemplate = *new Ast::Function(*this, "static Map::template");
+    Ast::Function& mapTemplate = *new Ast::Function(*this, type.Map, coding.template_, "static Map::template");
+    mapTemplate.set(coding.static_, boolean.true_);
     mapTemplate.addInputs(list(
         ast.slot(coding.keyType, type.Type_),
         ast.slot(coding.objectType, type.Type_)));
@@ -2113,7 +2126,7 @@ Brain::Brain() :
 
         ast.return_(*var_(coding.result))));
 
-    Ast::Function& mapAdd = *new Ast::Function(*this, "Map::add");
+    Ast::Function& mapAdd = *new Ast::Function(*this, type.Map, sequence.add, "Map::add");
     mapAdd.addInputs(list(
         ast.slot(coding.key, type.Cell),
         ast.slot(coding.value, type.Cell)));
@@ -2137,13 +2150,13 @@ Brain::Brain() :
 
         ast.set(m_(coding.index), in_(coding.key), in_(coding.value))));
 
-    Ast::Function& mapSize = *new Ast::Function(*this, "Map::size");
+    Ast::Function& mapSize = *new Ast::Function(*this, type.Map, dimensions.size, "Map::size");
     mapSize.addOutputs(list(
         ast.slot(coding.value, type.Number)));
     mapSize.addBlock(ast.block(
         ast.return_(m_(dimensions.size))));
 
-    Ast::Function& mapEmpty = *new Ast::Function(*this, "Map::empty");
+    Ast::Function& mapEmpty = *new Ast::Function(*this, type.Map, sequence.empty, "Map::empty");
     mapEmpty.addOutputs(list(
         ast.slot(coding.value, type.Boolean)));
     mapEmpty.addBlock(ast.block(
@@ -2207,7 +2220,8 @@ Brain::Brain() :
     type.MapTypeToType.set(coding.slots, *mapPtr);
     type.MapTypeToType.set(coding.methods, map(type.Cell, type.op.Function, coding.constructor, mapCtor.compile(type.Map), dimensions.size, mapSize.compile(type.Map), sequence.add, mapAdd.compile(type.Map), sequence.empty, mapEmpty.compile(type.Map)));
 
-    Ast::Function& listItemTemplate = *new Ast::Function(*this, "static ListItem::template");
+    Ast::Function& listItemTemplate = *new Ast::Function(*this, type.ListItem, coding.template_, "static ListItem::template");
+    listItemTemplate.set(coding.static_, boolean.true_);
     listItemTemplate.addInputs(list(
         ast.slot(coding.objectType, type.Type_)));
     listItemTemplate.addOutputs(list(
@@ -2225,7 +2239,7 @@ Brain::Brain() :
 
         ast.return_(*var_(coding.result))));
 
-    Ast::Function& listItemCtor = *new Ast::Function(*this, "ListItem::constructor");
+    Ast::Function& listItemCtor = *new Ast::Function(*this, type.ListItem, coding.constructor, "ListItem::constructor");
     listItemCtor.addInputs(list(
         ast.slot(coding.value, type.Cell)));
     listItemCtor.addBlock(ast.block(
@@ -2247,7 +2261,8 @@ Brain::Brain() :
 
     // Pre created:
     // Slot
-    Ast::Function& listTemplate = *new Ast::Function(*this, "static List::template");
+    Ast::Function& listTemplate = *new Ast::Function(*this, type.List, coding.template_, "static List::template");
+    listTemplate.set(coding.static_, boolean.true_);
     listTemplate.addInputs(list(
         ast.slot(coding.objectType, type.Type_)));
     listTemplate.addOutputs(list(
@@ -2270,13 +2285,13 @@ Brain::Brain() :
 
         ast.return_(*var_(coding.result))));
 
-    Ast::Function& listCtor = *new Ast::Function(*this, "List::constructor");
+    Ast::Function& listCtor = *new Ast::Function(*this, type.List, coding.constructor, "List::constructor");
     listCtor.addBlock(ast.block(
         m_(dimensions.size)   = _(_0_),
         m_(coding.objectType) = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.objectType),
         m_(coding.itemType)   = m_(coding.type) / _(coding.subTypes) / _(coding.index) / _(coding.itemType)));
 
-    Ast::Function& listAdd = *new Ast::Function(*this, "List::add");
+    Ast::Function& listAdd = *new Ast::Function(*this, type.List, sequence.add, "List::add");
     listAdd.addInputs(list(
         ast.slot(coding.value, type.Cell)));
     listAdd.addBlock(ast.block(
@@ -2288,13 +2303,13 @@ Brain::Brain() :
         m_(sequence.last)   = *var_(coding.item),
         m_(dimensions.size) = ast.add(m_(dimensions.size), _(_1_))));
 
-    Ast::Function& listSize = *new Ast::Function(*this, "List::size");
+    Ast::Function& listSize = *new Ast::Function(*this, type.List, dimensions.size, "List::size");
     listSize.addOutputs(list(
         ast.slot(coding.value, type.Number)));
     listSize.addBlock(ast.block(
         ast.return_(m_(dimensions.size))));
 
-    Ast::Function& listEmpty = *new Ast::Function(*this, "List::empty");
+    Ast::Function& listEmpty = *new Ast::Function(*this, type.List, sequence.empty, "List::empty");
     listEmpty.addOutputs(list(
         ast.slot(coding.value, type.Boolean)));
     listEmpty.addBlock(ast.block(
@@ -2320,7 +2335,7 @@ Brain::Brain() :
     type.ListOf(type.Slot).set(coding.methods, *mapPtr);
     type.ListOf(type.Type_).set(coding.methods, *mapPtr);
 
-    Ast::Function& typeCtor = *new Ast::Function(*this, "Type::constructor");
+    Ast::Function& typeCtor = *new Ast::Function(*this, type.Type_, coding.constructor, "Type::constructor");
     typeCtor.addInputs(list(
         ast.slot(coding.slots, type.MapCellToSlot),
         ast.slot(coding.subTypes, type.MapCellToType),
@@ -2332,7 +2347,7 @@ Brain::Brain() :
         m_(coding.memberOf) = in_(coding.memberOf),
         m_(coding.methods)  = in_(coding.methods))); // TODO we have to compile AST to OP here
 
-    Ast::Function& typeAddSlot = *new Ast::Function(*this, "Type::addSlot");
+    Ast::Function& typeAddSlot = *new Ast::Function(*this, type.Type_, methods.addSlot, "Type::addSlot");
     typeAddSlot.addInputs(list(
         ast.slot(coding.slotRole, type.Cell), ast.slot(coding.slotType, type.Type_)));
     typeAddSlot.addBlock(ast.block(
@@ -2342,7 +2357,7 @@ Brain::Brain() :
         ast.set(*var_(coding.item), _(coding.slotType), in_(coding.slotType)),
         ast.call(m_(coding.slots), _(sequence.add), ast.slot(_(coding.key), in_(coding.slotRole)), ast.slot(_(coding.value), *var_(coding.item)))));
 
-    Ast::Function& typeAddSubType = *new Ast::Function(*this, "Type::addSubType");
+    Ast::Function& typeAddSubType = *new Ast::Function(*this, type.Type_, methods.addSubType, "Type::addSubType");
     typeAddSubType.addInputs(list(
         ast.slot(coding.slotRole, type.Cell),
         ast.slot(coding.slotType, type.Type_)));
@@ -2350,14 +2365,14 @@ Brain::Brain() :
         ast.if_(m_(coding.subTypes).missing(), m_(coding.subTypes) = ast.new_(_(type.MapCellToType), _(coding.constructor))),
         ast.call(m_(coding.subTypes), _(sequence.add), ast.slot(_(coding.key), in_(coding.slotRole)), ast.slot(_(coding.value), in_(coding.slotType)))));
 
-    Ast::Function& typeAddMembership = *new Ast::Function(*this, "Type::addMembership");
+    Ast::Function& typeAddMembership = *new Ast::Function(*this, type.Type_, methods.addMembership, "Type::addMembership");
     typeAddMembership.addInputs(list(
         ast.slot(coding.cell, type.Type_)));
     typeAddMembership.addBlock(ast.block(
         ast.if_(m_(coding.memberOf).missing(), m_(coding.memberOf) = ast.new_(_(type.MapTypeToType), _(coding.constructor))),
         ast.call(m_(coding.memberOf), _(sequence.add), ast.slot(_(coding.key), in_(coding.cell)), ast.slot(_(coding.value), in_(coding.cell)))));
 
-    Ast::Function& typeAddSlots = *new Ast::Function(*this, "Type::addSlots");
+    Ast::Function& typeAddSlots = *new Ast::Function(*this, type.Type_, methods.addSlots, "Type::addSlots");
     typeAddSlots.addInputs(list(
         ast.slot(coding.list, type.ListOf(type.Slot))));
     typeAddSlots.addBlock(ast.block(
@@ -2428,7 +2443,7 @@ Brain::Brain() :
         coding.slot(visualization.pixels, type.ListOf(type.Pixel))) });
 
 
-    Ast::Function& numberFactorial = *new Ast::Function(*this, "Number::factorial");
+    Ast::Function& numberFactorial = *new Ast::Function(*this, type.Number, test.factorial, "Number::factorial");
     numberFactorial.addInputs(list(
         ast.slot(coding.input, type.Number)));
     numberFactorial.addOutputs(list(

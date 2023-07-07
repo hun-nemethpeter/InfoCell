@@ -135,7 +135,49 @@ void CellValuePrinter::printOpEvalVar(CellI& cell)
 void CellValuePrinter::printOpFunction(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << cell.label() << "\n";
+    std::stringstream iss;
+    std::stringstream oss;
+    CellI& subTypesIndex = cell.type()[kb.coding.subTypes][kb.coding.index];
+    CellI& inType        = subTypesIndex[kb.coding.input];
+    CellI& outType       = subTypesIndex[kb.coding.output];
+    bool hasOutput = false;
+    if (inType.has(kb.coding.slots)) {
+        Visitor::visitList(inType[kb.coding.slots][kb.coding.list], [this, &iss, &kb](CellI& slot, int i, bool& stop) {
+            if (i > 0) {
+                iss << ", ";
+            }
+            if (&slot[kb.coding.slotRole] != &kb.coding.self) {
+                iss << "in_";
+            }
+            iss << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
+        });
+    }
+    if (outType.has(kb.coding.slots)) {
+        hasOutput = true;
+        Visitor::visitList(outType[kb.coding.slots][kb.coding.list], [this, &oss, &kb](CellI& slot, int i, bool& stop) {
+            if (i > 0) {
+                oss << ", ";
+            }
+            oss << "out_" << slot[kb.coding.slotRole].label() << ": " << slot[kb.coding.slotType].label();
+        });
+    }
+    const std::string& className = subTypesIndex.has(kb.coding.objectType) ? subTypesIndex[kb.coding.objectType].label() : "";
+    std::string label            = className;
+    if (!className.empty()) {
+        label += "::";
+    }
+    label += subTypesIndex[kb.coding.name].label();
+    bool isStatic = cell.has(kb.coding.static_);
+    std::string staticStr = isStatic ? "static " : "";
+    std::string newLabel;
+
+    if (hasOutput) {
+        newLabel = std::format("fn {}{}({}) -> ({})\n", staticStr, label, iss.str(), oss.str());
+    } else {
+        newLabel = std::format("fn {}{}({})\n", staticStr, label, iss.str());
+    }
+    m_ss << newLabel;
+
     printImpl(cell[kb.coding.op]);
 }
 
