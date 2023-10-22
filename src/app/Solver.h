@@ -270,41 +270,19 @@ private:
 };
 
 // ============================================================================
-class Patch;
-class PatchBoardI
+class Patch
 {
 public:
-    virtual void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y)       = 0;
-    virtual void mergePatch(std::shared_ptr<Patch> winner, std::shared_ptr<Patch> looser) = 0;
+    Patch(int id, input::Color color, int width, int height) :
+        m_id(id), m_color(color), m_width(width), m_height(height) { }
 
-    virtual int width() const  = 0;
-    virtual int height() const = 0;
-};
-
-// ============================================================================
-class Patch : public std::enable_shared_from_this<Patch>
-{
-public:
-    Patch(input::Color color, PatchBoardI* patchBoardI) :
-        m_color(color), m_patchBoardI(patchBoardI), m_width(patchBoardI->width()), m_height(patchBoardI->height()) { }
-
-    void registerSubscribedPixel(int x, int y)
-    {
-        m_subscribedPixels.insert({ x, y });
-    }
-
-    void addPixelCoordinate(int x, int y);
-    void merge(std::shared_ptr<Patch> other);
+    void addPixel(cells::hybrid::Pixel& pixel);
+    bool hasPixel(cells::hybrid::Pixel& pixel) const;
     void sortPixels();
 
     int id() const
     {
         return m_id;
-    }
-
-    void id(int id)
-    {
-        m_id = id;
     }
 
     const input::Color& color() const
@@ -351,75 +329,43 @@ public:
     std::string toString() const;
     VectorShape toVectorShape() const;
 
-    const std::set<Pixel>& subscribedPixels() const
-    {
-        return m_subscribedPixels;
-    }
-
 private:
     int m_id = 0;
     input::Color m_color;
-    PatchBoardI* m_patchBoardI = nullptr;
     const int m_width;
     const int m_height;
+    std::set<cells::hybrid::Pixel*> m_hybridPixels;
     std::vector<Pixel> m_pixels;
-    std::set<Pixel> m_subscribedPixels;
 };
 
 // ============================================================================
-struct PatchSlot
-{
-    PatchSlot(PatchBoardI* patchBoardI) :
-        m_patchBoardI(patchBoardI) { }
-
-    void registerCandidate(std::shared_ptr<Patch> patch);
-    void unRegisterCandidate(std::shared_ptr<Patch> patch);
-    std::shared_ptr<Patch> getCandidate(const input::Color& color);
-
-private:
-    PatchBoardI* m_patchBoardI = nullptr;
-    std::map<input::Color, std::set<std::shared_ptr<Patch>>> m_candidates;
-};
-
-// ============================================================================
-class PatchBoard : public PatchBoardI
+class PatchBoard
 {
 public:
     PatchBoard(const cells::hybrid::Picture& picture) :
-        m_width(picture.width()), m_height(picture.height()), m_picture(picture), m_patchSlots(m_height * m_width, PatchSlot(this))
+        m_width(picture.width()), m_height(picture.height()), m_picture(picture)
     {
     }
 
-    int width() const override
+    int width() const
     {
         return m_width;
     }
 
-    int height() const override
+    int height() const
     {
         return m_height;
     }
 
     void process();
-    void process2();
-    void processPixel(int x, int y, const input::Color& color);
+    void processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& inputPixels, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
 
-    const std::set<std::shared_ptr<Patch>>& patches() const
+    const std::vector<std::shared_ptr<Patch>>& patches() const
     {
         return m_patches;
     }
 
-    void subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y) override;
-    void mergePatch(std::shared_ptr<Patch> winner, std::shared_ptr<Patch> looser) override;
-
 protected:
-    void subscribePatchForPixelImpl(std::shared_ptr<Patch> patch, int x, int y);
-
-    PatchSlot& getPatchSlot(int x, int y)
-    {
-        return m_patchSlots[currentIndex(x, y)];
-    }
-
     int currentIndex(int x, int y) const
     {
         return y * m_width + x;
@@ -437,8 +383,7 @@ protected:
     const int m_width;
     const int m_height;
     const cells::hybrid::Picture& m_picture;
-    std::vector<PatchSlot> m_patchSlots;
-    std::set<std::shared_ptr<Patch>> m_patches;
+    std::vector<std::shared_ptr<Patch>> m_patches;
 };
 
 // ============================================================================
@@ -496,7 +441,7 @@ private:
 class Grid
 {
 public:
-    Grid(std::set<std::shared_ptr<Patch>> patches);
+    Grid(std::vector<std::shared_ptr<Patch>> patches);
 
 private:
     std::vector<VectorShape> shapes;

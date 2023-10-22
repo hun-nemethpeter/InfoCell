@@ -379,26 +379,22 @@ VectorShapeRelation VectorShape::compare(const VectorShape& other)
     return ret;
 }
 
-void Patch::addPixelCoordinate(int x, int y)
+void Patch::addPixel(cells::hybrid::Pixel& pixel)
 {
-    m_pixels.push_back({ x, y });
-    m_patchBoardI->subscribePatchForPixel(shared_from_this(), x, y);
+    m_pixels.push_back({ pixel.m_x.value(), pixel.m_y.value() });
+    m_hybridPixels.insert(&pixel);
 }
 
-void Patch::merge(std::shared_ptr<Patch> other)
+bool Patch::hasPixel(cells::hybrid::Pixel& pixel) const
 {
-    for (const auto& pixel : other->m_pixels) {
-        m_pixels.push_back(pixel);
-    }
-    sortPixels();
-    m_patchBoardI->mergePatch(shared_from_this(), other);
+    return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
 }
 
 void Patch::sortPixels()
 {
-    int patchBoardWidth = m_patchBoardI->width();
-    std::sort(m_pixels.begin(), m_pixels.end(), [patchBoardWidth](const Pixel& p1, const Pixel& p2) {
-        return p1.y * patchBoardWidth + p1.x < p2.y * patchBoardWidth + p2.x;
+    int width = m_width;
+    std::sort(m_pixels.begin(), m_pixels.end(), [width](const Pixel& p1, const Pixel& p2) {
+        return p1.y * width + p1.x < p2.y * width + p2.x;
     });
 }
 
@@ -425,60 +421,6 @@ VectorShape Patch::toVectorShape() const
     ret.fromPixels(pixels());
 
     return ret;
-}
-
-void PatchSlot::registerCandidate(std::shared_ptr<Patch> patch)
-{
-    std::set<std::shared_ptr<Patch>>& patches = m_candidates[patch->color()];
-    patches.insert(patch);
-}
-
-void PatchSlot::unRegisterCandidate(std::shared_ptr<Patch> patch)
-{
-    std::set<std::shared_ptr<Patch>>& patches = m_candidates[patch->color()];
-    patches.erase(patch);
-}
-
-std::shared_ptr<Patch> PatchSlot::getCandidate(const input::Color& color)
-{
-    auto findIt = m_candidates.find(color);
-
-    // no patch
-    if (findIt == m_candidates.end()) {
-        return std::shared_ptr<Patch>();
-    }
-
-    std::set<std::shared_ptr<Patch>>& patches = m_candidates[color];
-
-    // one patch
-    auto firstPatchIt = patches.begin();
-    if (patches.size() == 1)
-        return *firstPatchIt;
-
-    std::shared_ptr<Patch> returnPatch = *firstPatchIt;
-
-    // multiple patch
-    for (auto i = ++firstPatchIt; i != patches.end();) {
-        std::set<std::shared_ptr<Patch>>::iterator current = i++;
-
-        std::shared_ptr<Patch> candidatePatch = *current;
-        if (*candidatePatch < *returnPatch) {
-            auto tmp       = returnPatch;
-            returnPatch    = candidatePatch;
-            candidatePatch = tmp;
-        }
-        // loggerPtr->log(DEBUG) << " - patch (" << candidatePatch.get() << ") merged to " << returnPatch.get();
-        // loggerPtr->log(DEBUG) << " - returnPatch (" << returnPatch.get() << ")";
-        // loggerPtr->logBoard(DEBUG) << returnPatch->toString() << "\n";
-        // loggerPtr->log(DEBUG) << " - candidatePatch (" << candidatePatch.get() << ")";
-        // loggerPtr->logBoard(DEBUG) << candidatePatch->toString() << "\n";
-        returnPatch->merge(candidatePatch);
-
-        // loggerPtr->log(DEBUG) << " - returnPatch (" << returnPatch.get() << ")";
-        // loggerPtr->logBoard(DEBUG) << returnPatch->toString() << "\n";
-    }
-
-    return returnPatch;
 }
 
 DrawingBoard::DrawingBoard(int width, int height) :
@@ -667,8 +609,7 @@ std::string DrawingBoard::toString() const
     return ret;
 }
 
-// TODO
-// Maybe a better algorith just
+// The algorithm steps
 // - has an input set of pixels (x:0, y:0, color)
 // - has a rule for grouping same pixels:
 //     + when a pixel-group (currently this is the class Patch) is started, the color of the pixel-group will be the color of the first pixel
@@ -676,95 +617,97 @@ std::string DrawingBoard::toString() const
 //     + when no more possibility for growing start a new pixel-group
 // - so this algo only dealing with one pixel-group a time
 //
-// Current algo:
-// - creating a patch candidate list for every pixel
-// - on every pixel try to grow the patch, by adding the patch pointer to the candidate list
-// - if a pixel has no candidate patch then create one
-// - if a pixel has a candidate then grow that group
-// - if a pixel has multiple candidates then merge the patches and the winner is who started earlier (has lovest pixel index)
-// - this is too complite but works
-//
-void PatchBoard::process()
-{
-    for (int y = 0; y < height(); ++y) {
-        for (int x = 0; x < width(); ++x) {
-            const cells::hybrid::Pixel& pixel = m_picture.getPixel(x, y);
-            //                logger.log(DEBUG) << "Processing pixel[" << x << ", " << y << "]" << pixel.color;
-            processPixel(x, y, pixel.color());
-        }
-    }
-    int id = 1;
-    std::vector<std::shared_ptr<Patch>> sortedPatches;
-    for (std::shared_ptr<Patch> patch : m_patches) {
-        sortedPatches.push_back(patch);
-    }
-    std::sort(sortedPatches.begin(), sortedPatches.end(), [](const std::shared_ptr<Patch>& lhs, const std::shared_ptr<Patch>& rhs) { return *lhs < *rhs; });
-    for (std::shared_ptr<Patch> patch : sortedPatches) {
+#if 0
+for (std::shared_ptr<Patch> patch : sortedPatches) {
         patch->id(id++);
         loggerPtr->log(DEBUG) << "Patch " << patch->id() << "\n";
         loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
     }
+#endif
+
+void PatchBoard::process()
+{
+    std::set<cells::hybrid::Pixel*> inputPixels;
+    for (int y = 0; y < height(); ++y) {
+        for (int x = 0; x < width(); ++x) {
+            cells::hybrid::Pixel& pixel = const_cast<cells::hybrid::Pixel&>(m_picture.getPixel(x, y));
+            inputPixels.insert(&pixel);
+        }
+    }
+    int patchId = 1;
+    while (!inputPixels.empty()) {
+        cells::hybrid::Pixel& firstPixel = **inputPixels.begin();
+        m_patches.push_back(std::make_shared<Patch>(patchId++, firstPixel.color(), m_width, m_height));
+        Patch& patch = *m_patches.back();
+        std::set<cells::hybrid::Pixel*> checkPixels;
+        checkPixels.insert(&firstPixel);
+        while (!checkPixels.empty()) {
+            auto checkPixelIt                = checkPixels.begin();
+            cells::hybrid::Pixel& checkPixel = **checkPixelIt;
+            processPixel(patch, inputPixels, checkPixels, checkPixel);
+            checkPixels.erase(checkPixelIt);
+        }
+        patch.sortPixels();
+    }
+    std::sort(m_patches.begin(), m_patches.end(), [](const std::shared_ptr<Patch>& lhs, const std::shared_ptr<Patch>& rhs) { return *lhs < *rhs; });
 }
 
-void PatchBoard::process2()
+void PatchBoard::processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& inputPixels, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
 {
     auto& kb = m_picture.kb;
-    cells::CellI& picture = const_cast<cells::hybrid::Picture&>(m_picture);
-    cells::CellI& pixel   = picture[kb.visualization.pixels][kb.sequence.first][kb.coding.value];
-    cells::CellI& color   = pixel[kb.visualization.color];
-
-    bool down  = pixel.has(kb.directions.down);
-    bool right = pixel.has(kb.directions.right);
-    if (down || right) {
-
+    patch.addPixel(checkPixel);
+    inputPixels.erase(&checkPixel);
+    if (checkPixel.has(kb.directions.up)) {
+        cells::hybrid::Pixel& upPixel = static_cast<cells::hybrid::Pixel&>(checkPixel[kb.directions.up]);
+        if (upPixel.color() == patch.color() && !patch.hasPixel(upPixel)) {
+            checkPixels.insert(&upPixel);
+        }
+        if (upPixel.has(kb.directions.right)) {
+            cells::hybrid::Pixel& upRightPixel = static_cast<cells::hybrid::Pixel&>(upPixel[kb.directions.right]);
+            if (upRightPixel.color() == patch.color() && !patch.hasPixel(upRightPixel)) {
+                checkPixels.insert(&upRightPixel);
+            }
+        }
+        if (checkPixel.has(kb.directions.left)) {
+            cells::hybrid::Pixel& upLeftPixel = static_cast<cells::hybrid::Pixel&>(upPixel[kb.directions.left]);
+            if (upLeftPixel.color() == patch.color() && !patch.hasPixel(upLeftPixel)) {
+                checkPixels.insert(&upLeftPixel);
+            }
+        }
+    }
+    if (checkPixel.has(kb.directions.down)) {
+        cells::hybrid::Pixel& downPixel = static_cast<cells::hybrid::Pixel&>(checkPixel[kb.directions.down]);
+        if (downPixel.color() == patch.color() && !patch.hasPixel(downPixel)) {
+            checkPixels.insert(&downPixel);
+        }
+        if (downPixel.has(kb.directions.right)) {
+            cells::hybrid::Pixel& downRightPixel = static_cast<cells::hybrid::Pixel&>(downPixel[kb.directions.right]);
+            if (downRightPixel.color() == patch.color() && !patch.hasPixel(downRightPixel)) {
+                checkPixels.insert(&downRightPixel);
+            }
+        }
+        if (checkPixel.has(kb.directions.left)) {
+            cells::hybrid::Pixel& downLeftPixel = static_cast<cells::hybrid::Pixel&>(downPixel[kb.directions.left]);
+            if (downLeftPixel.color() == patch.color() && !patch.hasPixel(downLeftPixel)) {
+                checkPixels.insert(&downLeftPixel);
+            }
+        }
+    }
+    if (checkPixel.has(kb.directions.left)) {
+        cells::hybrid::Pixel& leftPixel = static_cast<cells::hybrid::Pixel&>(checkPixel[kb.directions.left]);
+        if (leftPixel.color() == patch.color() && !patch.hasPixel(leftPixel)) {
+            checkPixels.insert(&leftPixel);
+        }
+    }
+    if (checkPixel.has(kb.directions.right)) {
+        cells::hybrid::Pixel& rightPixel = static_cast<cells::hybrid::Pixel&>(checkPixel[kb.directions.right]);
+        if (rightPixel.color() == patch.color() && !patch.hasPixel(rightPixel)) {
+            checkPixels.insert(&rightPixel);
+        }
     }
 }
 
-void PatchBoard::processPixel(int x, int y, const input::Color& color)
-{
-    PatchSlot& patchSlot             = getPatchSlot(x, y);
-    std::shared_ptr<Patch> candidate = patchSlot.getCandidate(color);
-
-    if (candidate) {
-        // loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch found " << "(" << candidate.get() << ")";
-    } else {
-        candidate = std::make_shared<Patch>(color, this);
-        // loggerPtr->log(DEBUG) << " - pixel[" << x << ", " << y << "] " << color << " - patch created " << "(" << candidate.get() << ")";
-        m_patches.insert(candidate);
-    }
-    candidate->addPixelCoordinate(x, y);
-}
-
-void PatchBoard::subscribePatchForPixel(std::shared_ptr<Patch> patch, int x, int y)
-{
-    subscribePatchForPixelImpl(patch, x + 1, y);
-    subscribePatchForPixelImpl(patch, x + 1, y + 1);
-    subscribePatchForPixelImpl(patch, x, y + 1);
-    subscribePatchForPixelImpl(patch, x - 1, y + 1);
-}
-
-void PatchBoard::mergePatch(std::shared_ptr<Patch> winner, std::shared_ptr<Patch> looser)
-{
-    const std::set<Pixel> subscribedPixels = looser->subscribedPixels();
-    for (const Pixel& pixel : subscribedPixels) {
-        PatchSlot& patchSlot = getPatchSlot(pixel.x, pixel.y);
-        patchSlot.unRegisterCandidate(looser);
-        patchSlot.registerCandidate(winner);
-    }
-    m_patches.erase(looser);
-    // loggerPtr->log(DEBUG) << " - patch deleted (" << looser.get() << ")";
-}
-
-void PatchBoard::subscribePatchForPixelImpl(std::shared_ptr<Patch> patch, int x, int y)
-{
-    if (!isInRange(x, y))
-        return;
-    PatchSlot& patchSlot = getPatchSlot(x, y);
-    patchSlot.registerCandidate(patch);
-    patch->registerSubscribedPixel(x, y);
-}
-
-Grid::Grid(std::set<std::shared_ptr<Patch>> patches)
+Grid::Grid(std::vector<std::shared_ptr<Patch>> patches)
 {
     for (const auto& patch : patches) {
         shapes.push_back(patch->toVectorShape());

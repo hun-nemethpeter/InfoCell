@@ -41,6 +41,7 @@ ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
 {
     const nlohmann::json& jsonTrainSet = jsonArcFile.at("train");
     m_demonstrations.reserve(jsonTrainSet.size());
+    m_exampleObjects.reserve(jsonTrainSet.size());
     int number = 1;
     for (const auto& train : jsonTrainSet) {
         m_demonstrations.emplace_back(kb, number++, to_string(train.at("input")), to_string(train.at("output")));
