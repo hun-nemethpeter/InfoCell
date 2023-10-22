@@ -342,10 +342,7 @@ private:
 class PatchBoard
 {
 public:
-    PatchBoard(const cells::hybrid::Picture& picture) :
-        m_width(picture.width()), m_height(picture.height()), m_picture(picture)
-    {
-    }
+    PatchBoard(const cells::hybrid::Picture& picture);
 
     int width() const
     {
@@ -365,26 +362,15 @@ public:
     }
 
 protected:
-    void processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& inputPixels, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
+    void processInputPixels();
+    void processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
     cells::hybrid::Pixel* processAdjacentPixel(cells::CellI& direction, Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
 
-    int currentIndex(int x, int y) const
-    {
-        return y * m_width + x;
-    }
-
-    bool isInRange(int x, int y) const
-    {
-        if (y < 0 || x < 0 || x > m_width - 1 || y > m_height - 1) {
-            return false;
-        }
-
-        return true;
-    }
-
+    cells::brain::Brain& kb;
     const int m_width;
     const int m_height;
     const cells::hybrid::Picture& m_picture;
+    std::set<cells::hybrid::Pixel*> m_inputPixels;
     std::vector<std::shared_ptr<Patch>> m_patches;
 };
 

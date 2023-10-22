@@ -609,6 +609,25 @@ std::string DrawingBoard::toString() const
     return ret;
 }
 
+PatchBoard::PatchBoard(const cells::hybrid::Picture& picture) :
+    m_width(picture.width()),
+    m_height(picture.height()),
+    m_picture(picture),
+    kb(picture.kb)
+{
+    processInputPixels();
+}
+
+void PatchBoard::processInputPixels()
+{
+    for (int y = 0; y < height(); ++y) {
+        for (int x = 0; x < width(); ++x) {
+            cells::hybrid::Pixel& pixel = const_cast<cells::hybrid::Pixel&>(m_picture.getPixel(x, y));
+            m_inputPixels.insert(&pixel);
+        }
+    }
+}
+
 // The object finder algorithm
 // - has an input set of pixels (x:0, y:0, color)
 // - has a rule for grouping same pixels:
@@ -618,16 +637,9 @@ std::string DrawingBoard::toString() const
 // - so this algo only dealing with one pixel-group a time
 void PatchBoard::process()
 {
-    std::set<cells::hybrid::Pixel*> inputPixels;
-    for (int y = 0; y < height(); ++y) {
-        for (int x = 0; x < width(); ++x) {
-            cells::hybrid::Pixel& pixel = const_cast<cells::hybrid::Pixel&>(m_picture.getPixel(x, y));
-            inputPixels.insert(&pixel);
-        }
-    }
     int patchId = 1;
-    while (!inputPixels.empty()) {
-        cells::hybrid::Pixel& firstPixel = **inputPixels.begin();
+    while (!m_inputPixels.empty()) {
+        cells::hybrid::Pixel& firstPixel = **m_inputPixels.begin();
         m_patches.push_back(std::make_shared<Patch>(patchId++, firstPixel.color(), m_width, m_height));
         Patch& patch = *m_patches.back();
         std::set<cells::hybrid::Pixel*> checkPixels;
@@ -635,7 +647,7 @@ void PatchBoard::process()
         while (!checkPixels.empty()) {
             auto checkPixelIt                = checkPixels.begin();
             cells::hybrid::Pixel& checkPixel = **checkPixelIt;
-            processPixel(patch, inputPixels, checkPixels, checkPixel);
+            processPixel(patch, checkPixels, checkPixel);
             checkPixels.erase(checkPixelIt);
         }
         patch.sortPixels();
@@ -646,11 +658,10 @@ void PatchBoard::process()
     );
 }
 
-void PatchBoard::processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& inputPixels, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
+void PatchBoard::processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
 {
-    auto& kb = m_picture.kb;
     patch.addPixel(checkPixel);
-    inputPixels.erase(&checkPixel);
+    m_inputPixels.erase(&checkPixel);
 
     if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.up, patch, checkPixels, checkPixel)) {
         processAdjacentPixel(kb.directions.left, patch, checkPixels, *pixel);
