@@ -609,22 +609,13 @@ std::string DrawingBoard::toString() const
     return ret;
 }
 
-// The algorithm steps
+// The object finder algorithm
 // - has an input set of pixels (x:0, y:0, color)
 // - has a rule for grouping same pixels:
 //     + when a pixel-group (currently this is the class Patch) is started, the color of the pixel-group will be the color of the first pixel
 //     + try growing the pixel in every possible (8) direction by moving pixels from the input set to the group's set
 //     + when no more possibility for growing start a new pixel-group
 // - so this algo only dealing with one pixel-group a time
-//
-#if 0
-for (std::shared_ptr<Patch> patch : sortedPatches) {
-        patch->id(id++);
-        loggerPtr->log(DEBUG) << "Patch " << patch->id() << "\n";
-        loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
-    }
-#endif
-
 void PatchBoard::process()
 {
     std::set<cells::hybrid::Pixel*> inputPixels;
@@ -649,7 +640,10 @@ void PatchBoard::process()
         }
         patch.sortPixels();
     }
-    std::sort(m_patches.begin(), m_patches.end(), [](const std::shared_ptr<Patch>& lhs, const std::shared_ptr<Patch>& rhs) { return *lhs < *rhs; });
+    std::sort(m_patches.begin(), m_patches.end(),
+        [](const std::shared_ptr<Patch>& lhs, const std::shared_ptr<Patch>& rhs)
+        { return *lhs < *rhs; }
+    );
 }
 
 void PatchBoard::processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& inputPixels, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
@@ -657,54 +651,30 @@ void PatchBoard::processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& inp
     auto& kb = m_picture.kb;
     patch.addPixel(checkPixel);
     inputPixels.erase(&checkPixel);
-    if (checkPixel.has(kb.directions.up)) {
-        cells::hybrid::Pixel& upPixel = static_cast<cells::hybrid::Pixel&>(checkPixel[kb.directions.up]);
-        if (upPixel.color() == patch.color() && !patch.hasPixel(upPixel)) {
-            checkPixels.insert(&upPixel);
-        }
-        if (upPixel.has(kb.directions.right)) {
-            cells::hybrid::Pixel& upRightPixel = static_cast<cells::hybrid::Pixel&>(upPixel[kb.directions.right]);
-            if (upRightPixel.color() == patch.color() && !patch.hasPixel(upRightPixel)) {
-                checkPixels.insert(&upRightPixel);
-            }
-        }
-        if (checkPixel.has(kb.directions.left)) {
-            cells::hybrid::Pixel& upLeftPixel = static_cast<cells::hybrid::Pixel&>(upPixel[kb.directions.left]);
-            if (upLeftPixel.color() == patch.color() && !patch.hasPixel(upLeftPixel)) {
-                checkPixels.insert(&upLeftPixel);
-            }
+
+    if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.up, patch, checkPixels, checkPixel)) {
+        processAdjacentPixel(kb.directions.left, patch, checkPixels, *pixel);
+        processAdjacentPixel(kb.directions.right, patch, checkPixels, *pixel);
+    }
+    if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.down, patch, checkPixels, checkPixel)) {
+        processAdjacentPixel(kb.directions.left, patch, checkPixels, *pixel);
+        processAdjacentPixel(kb.directions.right, patch, checkPixels, *pixel);
+    }
+    processAdjacentPixel(kb.directions.left, patch, checkPixels, checkPixel);
+    processAdjacentPixel(kb.directions.right, patch, checkPixels, checkPixel);
+}
+
+cells::hybrid::Pixel* PatchBoard::processAdjacentPixel(cells::CellI& direction, Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
+{
+    if (checkPixel.has(direction)) {
+        cells::hybrid::Pixel& pixel = static_cast<cells::hybrid::Pixel&>(checkPixel[direction]);
+        if (pixel.color() == patch.color() && !patch.hasPixel(pixel)) {
+            checkPixels.insert(&pixel);
+            return &pixel;
         }
     }
-    if (checkPixel.has(kb.directions.down)) {
-        cells::hybrid::Pixel& downPixel = static_cast<cells::hybrid::Pixel&>(checkPixel[kb.directions.down]);
-        if (downPixel.color() == patch.color() && !patch.hasPixel(downPixel)) {
-            checkPixels.insert(&downPixel);
-        }
-        if (downPixel.has(kb.directions.right)) {
-            cells::hybrid::Pixel& downRightPixel = static_cast<cells::hybrid::Pixel&>(downPixel[kb.directions.right]);
-            if (downRightPixel.color() == patch.color() && !patch.hasPixel(downRightPixel)) {
-                checkPixels.insert(&downRightPixel);
-            }
-        }
-        if (checkPixel.has(kb.directions.left)) {
-            cells::hybrid::Pixel& downLeftPixel = static_cast<cells::hybrid::Pixel&>(downPixel[kb.directions.left]);
-            if (downLeftPixel.color() == patch.color() && !patch.hasPixel(downLeftPixel)) {
-                checkPixels.insert(&downLeftPixel);
-            }
-        }
-    }
-    if (checkPixel.has(kb.directions.left)) {
-        cells::hybrid::Pixel& leftPixel = static_cast<cells::hybrid::Pixel&>(checkPixel[kb.directions.left]);
-        if (leftPixel.color() == patch.color() && !patch.hasPixel(leftPixel)) {
-            checkPixels.insert(&leftPixel);
-        }
-    }
-    if (checkPixel.has(kb.directions.right)) {
-        cells::hybrid::Pixel& rightPixel = static_cast<cells::hybrid::Pixel&>(checkPixel[kb.directions.right]);
-        if (rightPixel.color() == patch.color() && !patch.hasPixel(rightPixel)) {
-            checkPixels.insert(&rightPixel);
-        }
-    }
+
+    return nullptr;
 }
 
 Grid::Grid(std::vector<std::shared_ptr<Patch>> patches)

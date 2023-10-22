@@ -358,7 +358,6 @@ public:
     }
 
     void process();
-    void processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& inputPixels, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
 
     const std::vector<std::shared_ptr<Patch>>& patches() const
     {
@@ -366,6 +365,9 @@ public:
     }
 
 protected:
+    void processPixel(Patch& patch, std::set<cells::hybrid::Pixel*>& inputPixels, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
+    cells::hybrid::Pixel* processAdjacentPixel(cells::CellI& direction, Patch& patch, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel);
+
     int currentIndex(int x, int y) const
     {
         return y * m_width + x;
