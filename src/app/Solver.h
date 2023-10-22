@@ -344,16 +344,6 @@ class PatchBoard
 public:
     PatchBoard(const cells::hybrid::Picture& picture);
 
-    int width() const
-    {
-        return m_width;
-    }
-
-    int height() const
-    {
-        return m_height;
-    }
-
     void process();
 
     const std::vector<std::shared_ptr<Patch>>& patches() const

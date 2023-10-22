@@ -79,6 +79,22 @@ void TestCases::addTestCases()
         assert(patchBoard.patches().size() == 3);
     }));
 
+    add(TestCase("PatchTestDiagonal", []() {
+        input::Picture inputPicture("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
+        cells::brain::Brain kb;
+        cells::hybrid::Picture picture(kb, inputPicture);
+        PatchBoard patchBoard(picture);
+        patchBoard.process();
+#if 0
+        for (std::shared_ptr<Patch> patch : patchBoard.patches()) {
+            loggerPtr->log(DEBUG) << "Patch:";
+            loggerPtr->logBoard(DEBUG) << patch->toString() << "\n";
+        }
+#endif
+        loggerPtr->log(DEBUG) << "Number of patches found: " << patchBoard.patches().size();
+        assert(patchBoard.patches().size() == 2);
+    }));
+
     add(TestCase("PatchMergeTest", []() {
         input::Picture inputPicture("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
         cells::brain::Brain kb;

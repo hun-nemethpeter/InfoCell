@@ -620,15 +620,13 @@ PatchBoard::PatchBoard(const cells::hybrid::Picture& picture) :
 
 void PatchBoard::processInputPixels()
 {
-    for (int y = 0; y < height(); ++y) {
-        for (int x = 0; x < width(); ++x) {
-            cells::hybrid::Pixel& pixel = const_cast<cells::hybrid::Pixel&>(m_picture.getPixel(x, y));
-            m_inputPixels.insert(&pixel);
-        }
+    std::vector<cells::hybrid::Pixel>& pixels = const_cast<cells::hybrid::Picture&>(m_picture).pixels();
+    for (cells::hybrid::Pixel& pixel : pixels) {
+        m_inputPixels.insert(&pixel);
     }
 }
 
-// The object finder algorithm
+// The object extractor algorithm
 // - has an input set of pixels (x:0, y:0, color)
 // - has a rule for grouping same pixels:
 //     + when a pixel-group (currently this is the class Patch) is started, the color of the pixel-group will be the color of the first pixel
@@ -681,8 +679,8 @@ cells::hybrid::Pixel* PatchBoard::processAdjacentPixel(cells::CellI& direction, 
         cells::hybrid::Pixel& pixel = static_cast<cells::hybrid::Pixel&>(checkPixel[direction]);
         if (pixel.color() == patch.color() && !patch.hasPixel(pixel)) {
             checkPixels.insert(&pixel);
-            return &pixel;
         }
+        return &pixel;
     }
 
     return nullptr;
