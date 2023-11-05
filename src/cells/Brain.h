@@ -16,6 +16,7 @@ public:
     Object next;
     Object current;
     Object add;
+    Object erase;
     Object empty;
 };
 
@@ -61,6 +62,7 @@ public:
     Object listType;
     Object localVars;
     Object memberOf;
+    Object members;
     Object method;
     Object methods;
     Object name;
@@ -221,6 +223,8 @@ protected:
 
 public:
     Object Type_;
+    Object Struct;
+    Object Enum;
     Object Cell;
     Object Slot;
     Object Container;
@@ -247,6 +251,8 @@ public:
     Object Picture;
     Object Stack;
     Object StackFrame;
+    Object Directions;
+    Object Patch;
 
     type::Op op;
     type::Ast ast;

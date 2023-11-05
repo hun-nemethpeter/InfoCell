@@ -54,7 +54,7 @@ ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
     }
     m_task.set(kb.arc.examples, m_examples);
     m_task.set(kb.coding.input, m_testInput);
-    m_task.set(kb.coding.output, m_testInput);
+    m_task.set(kb.coding.output, m_testSolution);
 }
 
 } // namespace synth
