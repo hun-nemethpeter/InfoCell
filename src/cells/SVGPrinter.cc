@@ -58,6 +58,36 @@ void Printer::visit(Map& cell)
     m_stack.push(text("Map"));
 }
 
+void Printer::visit(nextgen::List::Item& cell)
+{
+    m_stack.push(text("List::Item"));
+}
+
+void Printer::visit(nextgen::List& cell)
+{
+    m_stack.push(text("List"));
+}
+
+void Printer::visit(nextgen::Type& cell)
+{
+    m_stack.push(text("Type"));
+}
+
+void Printer::visit(nextgen::Index& cell)
+{
+    m_stack.push(text("Index"));
+}
+
+void Printer::visit(nextgen::Map& cell)
+{
+    m_stack.push(text("Map"));
+}
+
+void Printer::visit(nextgen::Set& cell)
+{
+    m_stack.push(text("Set"));
+}
+
 void Printer::visit(Object& cell)
 {
     m_stack.push(text("Object"));

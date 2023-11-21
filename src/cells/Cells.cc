@@ -952,13 +952,13 @@ CellI& List::Item::operator[](CellI& role)
 
 void List::Item::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 #pragma endregion
 #pragma region List
 // ============================================================================
-List::List(brain::Brain& kb, CellI& valueType) :
-    CellI(kb),
+List::List(brain::Brain& kb, CellI& valueType, const std::string& label) :
+    CellI(kb, label),
     m_valueType(valueType)
 {
 }
@@ -1021,7 +1021,7 @@ CellI& List::operator[](CellI& role)
 
 void List::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 List::Item* List::add(CellI& value)
@@ -1063,9 +1063,15 @@ bool List::empty() const
 #pragma endregion
 #pragma region Type
 // ============================================================================
-Type::Type(brain::Brain& kb) :
-    CellI(kb),
+Type::Type(brain::Brain& kb, const std::string& label) :
+    CellI(kb, label),
     m_slots(new Map(kb, kb.type.Cell, kb.type.Slot))
+{
+}
+
+Type::Type(brain::Brain& kb, WithRecursiveType recursiveType, const std::string& label) :
+    CellI(kb, label),
+    m_slots(new Map(kb, kb.type.Cell, kb.type.Slot, *this))
 {
 }
 
@@ -1149,13 +1155,21 @@ void Type::deleteSlot(CellI& role)
 
 void Type::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 #pragma endregion
 #pragma region Index
 // ============================================================================
-Index::Index(brain::Brain& kb) :
-    CellI(kb)
+Index::Index(brain::Brain& kb, const std::string& label) :
+    CellI(kb, label),
+    m_type(new Type(kb, Type::WithRecursiveType::Yes))
+{
+}
+
+Index::Index(brain::Brain& kb, Type& indexType, const std::string& label) :
+    CellI(kb, label),
+    m_type(&indexType),
+    m_recursiveType(true)
 {
 }
 
@@ -1178,8 +1192,10 @@ void Index::set(CellI& key, CellI& value)
     }
     Object& slot = *new Object(kb, kb.type.Slot);
     slot.set(kb.id.slotRole, key);
-    slot.set(kb.id.slotType, value);
-    m_type->addSlot(key, slot);
+    slot.set(kb.id.slotType, kb.type.Slot);
+    if (!m_recursiveType) {
+        m_type->addSlot(key, slot);
+    }
     m_slots[&key] = &value;
 }
 
@@ -1211,13 +1227,24 @@ CellI& Index::operator[](CellI& role)
 
 void Index::accept(Visitor& visitor)
 {
-//    visitor.visit(*this);
+    visitor.visit(*this);
 }
 #pragma endregion
 #pragma region Map
 // ============================================================================
 Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
     CellI(kb, label),
+    m_list(kb, valueType),
+    m_index(kb),
+    m_keyType(keyType),
+    m_valueType(valueType)
+{
+}
+
+Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Type& indexType, const std::string& label) :
+    CellI(kb, label),
+    m_list(kb, valueType),
+    m_index(kb, indexType),
     m_keyType(keyType),
     m_valueType(valueType)
 {
@@ -1229,13 +1256,13 @@ bool Map::has(CellI& role)
         return true;
     }
     if (&role == &kb.id.list) {
-        return m_list;
+        return true;
     }
     if (&role == &kb.id.index) {
-        return m_index;
+        return true;
     }
     if (&role == &kb.id.indexType) {
-        return m_index;
+        return true;
     }
     if (&role == &kb.id.keyType) {
         return true;
@@ -1268,16 +1295,19 @@ void Map::operator()()
 CellI& Map::operator[](CellI& role)
 {
     if (&role == &kb.id.type) {
-        return kb.type.Map;
+        return kb.type.MapOf(m_keyType, m_valueType);
     }
     if (&role == &kb.id.list) {
-        return *m_list;
+        return m_list;
     }
     if (&role == &kb.id.index) {
-        return *m_index;
+        return m_index;
     }
     if (&role == &kb.id.indexType) { // WTF
-        return m_index->type();
+        return m_index.type();
+    }
+    if (&role == &kb.id.listType) {
+        return kb.type.ListOf(kb.type.Slot);
     }
     if (&role == &kb.id.keyType) {
         return m_keyType;
@@ -1295,13 +1325,13 @@ CellI& Map::operator[](CellI& role)
 
 bool Map::hasKey(CellI& key)
 {
-    return m_index->has(key);
+    return m_index.has(key);
 }
 
 CellI& Map::getValue(CellI& key)
 {
-    if (m_index->has(key)) {
-        return (*m_index)[key][kb.id.value];
+    if (m_index.has(key)) {
+        return m_index[key][kb.id.value];
     }
     throw "No such role!";
 }
@@ -1311,22 +1341,22 @@ void Map::add(CellI& key, CellI& value)
     if (&key == &kb.id.type) {
         throw "id.type can not be stored in a map!";
     }
-    if (m_index->has(key)) {
+    if (m_index.has(key)) {
         throw "A value already registered with this role";
     }
-    List::Item& item = *m_list->add(value);
-    m_index->set(key, item);
+    List::Item& item = *m_list.add(value);
+    m_index.set(key, item);
     ++m_size;
 }
 
 void Map::remove(CellI& key)
 {
-    if (!m_index->has(key)) {
+    if (!m_index.has(key)) {
         return;
     }
-    List::Item* item = &static_cast<List::Item&>((*m_index)[key]);
-    m_list->removeItem(item);
-    m_index->erase(key);
+    List::Item* item = &static_cast<List::Item&>(m_index[key]);
+    m_list.removeItem(item);
+    m_index.erase(key);
     --m_size;
 }
 
@@ -1337,7 +1367,7 @@ bool Map::empty() const
 
 void Map::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 #pragma endregion
 #pragma region Set
@@ -1413,7 +1443,7 @@ bool Set::empty() const
 
 void Set::accept(Visitor& visitor)
 {
-//    visitor.visit(*this);
+    visitor.visit(*this);
 }
 #pragma endregion
 } // namespace nextgen

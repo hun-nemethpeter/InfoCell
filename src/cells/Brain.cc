@@ -1144,6 +1144,44 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         }
         return block;
     } else if (&ast.type() == &kb.type.ast.Call || &ast.type() == &kb.type.ast.StaticCall) {
+/*
+block {
+    var_method.value  = m_list.type.methods.index.add;
+    var_method.value.stack = fn Map::add(self: Map, in_key: Cell, in_value: Cell).stack;
+    var_newStackItem.value = new ListItem;
+    var_newStackFrame.value = new StackFrame;
+    var_newStackItem.value.value = var_newStackFrame.value;
+    var_newStackItem.value.previous = var_method.value.stack;
+    var_inputIndex.value = new Index;
+    if var_method.value.type.subTypes.index has localVars then {
+        var_localVars.value = new var_method.value.type.subTypes.index.localVars;
+        var_newStackFrame.value.localVars = var_localVars.value;
+        var_localVarsListItem.value = var_method.value.type.subTypes.index.localVars.slots.list.first;
+        do {
+            var_localVarsListItemHasNext.value = true;
+            var_localVars.value.var_localVarsListItem.value.value.slotRole = new op::Var;
+            if var_localVarsListItem.value has next then
+                var_localVarsListItem.value = var_localVarsListItem.value.next;
+             else
+                var_localVarsListItemHasNext.value = false;
+        } (var_localVarsListItemHasNext.value is true);
+    };
+    var_newStackFrame.value.input = var_inputIndex.value;
+    if var_method.value.type.subTypes.index.output has slots then
+        if var_method.value.type.subTypes.index.output.slots.index has value then {
+        var_newStackFrame.value.output = new var_method.value.type.subTypes.index.output;
+        var_newStackFrame.value.output.value = new op::Var;
+    };
+    var_inputIndex.value.self = m_list;
+    var_inputIndex.value.value = in_value;
+    var_method.value.stack = var_newStackItem.value;
+    eval(var_method);
+    if var_method.value.type.subTypes.index.output has slots then
+        if var_method.value.type.subTypes.index.output.slots.index has value then
+            block.value = var_method.value.stack.value.output.value.value;
+    var_method.value.stack = var_method.value.stack.previous;
+ }
+*/
         const char* blockName  = &ast.type() == &kb.type.ast.Call ? "Call { ... }" : "SCall { ... }";
         Ast::Base& astCell     = static_cast<Ast::Base&>(ast[kb.id.cell]);
         Ast::Base& astMethod   = static_cast<Ast::Base&>(ast[kb.id.method]);

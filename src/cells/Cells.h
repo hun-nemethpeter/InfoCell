@@ -229,7 +229,7 @@ public:
         Item* m_next     = nullptr;
     };
 
-    List(brain::Brain& kb, CellI& valueType);
+    List(brain::Brain& kb, CellI& valueType, const std::string& label = "");
 
     template <typename T>
     List(brain::Brain& kb, std::vector<T>& values) :
@@ -280,7 +280,12 @@ class Map;
 class Type : public CellI
 {
 public:
-    Type(brain::Brain& kb);
+    enum class WithRecursiveType
+    {
+        Yes
+    };
+    Type(brain::Brain& kb, const std::string& label = "");
+    Type(brain::Brain& kb, WithRecursiveType m_recursiveType, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -294,10 +299,10 @@ public:
     void deleteSlot(CellI& role);
 
     Map* m_slots;
-    Map* m_subTypes;
-    Map* m_memberOf;
-    Map* m_asts;
-    Map* m_methods;
+    Map* m_subTypes = nullptr;
+    Map* m_memberOf = nullptr;
+    Map* m_asts     = nullptr;
+    Map* m_methods  = nullptr;
 };
 
 #if 0
@@ -311,7 +316,8 @@ set.list = { ListItem{ value = Cell1 }, ListItem{ value = Cell2 }, ListItem{ val
 class Index : public CellI
 {
 public:
-    Index(brain::Brain& kb);
+    Index(brain::Brain& kb, const std::string& label = "");
+    Index(brain::Brain& kb, Type& indexType, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -323,6 +329,7 @@ public:
     bool empty() const;
 
     Type* m_type;
+    bool m_recursiveType = false;
     std::map<CellI*, CellI*> m_slots;
 };
 
@@ -330,6 +337,7 @@ class Map : public CellI
 {
 public:
     Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
+    Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Type& indexType, const std::string& label = "");
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -352,8 +360,8 @@ public:
     bool empty() const;
 
 private:
-    List* m_list;
-    Index* m_index;
+    List m_list;
+    Index m_index;
     CellI& m_keyType;
     CellI& m_valueType;
     int m_size = 0;
@@ -440,6 +448,14 @@ Map
                 type:     Index::Type // !!
                 roleSize: Index::Type::Slot1
                 roleName: Index::Type::Slot2
+
+Map
+  type
+  index
+    key1
+    key2
+  list
+    item1 item2
 
 #endif
 public:
@@ -922,6 +938,13 @@ public:
 
     virtual void visit(List&)       = 0;
     virtual void visit(List::Item&) = 0;
+
+    virtual void visit(nextgen::List::Item&) = 0;
+    virtual void visit(nextgen::List&)       = 0;
+    virtual void visit(nextgen::Type&)       = 0;
+    virtual void visit(nextgen::Index&)      = 0;
+    virtual void visit(nextgen::Map&)        = 0;
+    virtual void visit(nextgen::Set&)        = 0;
 
     virtual void visit(Map::Index::Type::Slots::SlotList::Item&) = 0;
     virtual void visit(Map::Index::Type::Slots::SlotList&)       = 0;

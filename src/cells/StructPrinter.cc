@@ -99,6 +99,36 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
     printImpl(cell);
 }
 
+void CellStructPrinter::visit(nextgen::List::Item& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(nextgen::List& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(nextgen::Type& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(nextgen::Index& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(nextgen::Map& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(nextgen::Set& cell)
+{
+    printImpl(cell);
+}
+
 void CellStructPrinter::printImpl(CellI& cell)
 {
     const bool needId = false;

@@ -46,6 +46,36 @@ void CellValuePrinter::visit(Map& cell)
     printImpl(cell);
 }
 
+void CellValuePrinter::visit(nextgen::List::Item& cell)
+{
+    printImpl(cell);
+}
+
+void CellValuePrinter::visit(nextgen::List& cell)
+{
+    printImpl(cell);
+}
+
+void CellValuePrinter::visit(nextgen::Type& cell)
+{
+    printImpl(cell);
+}
+
+void CellValuePrinter::visit(nextgen::Index& cell)
+{
+    printImpl(cell);
+}
+
+void CellValuePrinter::visit(nextgen::Map& cell)
+{
+    printImpl(cell);
+}
+
+void CellValuePrinter::visit(nextgen::Set& cell)
+{
+    printImpl(cell);
+}
+
 void CellValuePrinter::visit(Object& object)
 {
     printImpl(object);
@@ -803,6 +833,10 @@ void CellValuePrinter::visit(hybrid::Pixel& cell)
 void CellValuePrinter::visit(hybrid::Picture& cell)
 {
     m_ss << "(Picture)" << cell.label() << "[" << cell.width() << ", " << cell.height() << "]";
+}
+
+void visit(nextgen::List::Item&)
+{
 }
 
 void CellValuePrinter::printIndent()

@@ -98,6 +98,36 @@ void StructPrinter::visit(hybrid::Picture& cell)
     printStruct(cell);
 }
 
+void StructPrinter::visit(nextgen::List::Item& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(nextgen::List& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(nextgen::Type& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(nextgen::Index& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(nextgen::Map& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(nextgen::Set& cell)
+{
+    printStruct(cell);
+}
+
 void StructPrinter::printStruct(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
