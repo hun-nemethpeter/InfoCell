@@ -13,13 +13,13 @@ class ID
 public:
     ID(brain::Brain& kb);
 
+    Object add;
     Object addMembership;
     Object addMethod;
+    Object addPixel;
     Object addSlot;
     Object addSlots;
     Object addSubType;
-    Object add;
-    Object addPixel;
     Object argument;
     Object ast;
     Object asts;
@@ -30,6 +30,8 @@ public:
     Object color;
     Object condition;
     Object constructor;
+    Object constructorWithRecursiveType;
+    Object constructorWithType;
     Object container;
     Object contains;
     Object continue_;
@@ -45,6 +47,7 @@ public:
     Object firstPixel;
     Object has;
     Object hasPixel;
+    Object hasSlot;
     Object height;
     Object id;
     Object index;
@@ -83,6 +86,9 @@ public:
     Object processAdjacentPixel;
     Object processInputPixels;
     Object processPixel;
+    Object recursiveType;
+    Object remove;
+    Object removeSlot;
     Object result;
     Object rhs;
     Object role;
@@ -91,6 +97,7 @@ public:
     Object shapeId;
     Object shapes;
     Object size;
+    Object slot;
     Object slotRole;
     Object slots;
     Object slotType;

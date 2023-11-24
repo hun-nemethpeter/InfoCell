@@ -9,13 +9,13 @@ namespace brain {
 
 ID::ID(brain::Brain& kb) :
     kb(kb),
+    add(kb, kb.type.Cell, "add"),
     addMembership(kb, kb.type.Cell, "addMembership"),
     addMethod(kb, kb.type.Cell, "addMethod"),
+    addPixel(kb, kb.type.Struct, "addPixel"),
     addSlot(kb, kb.type.Cell, "addSlot"),
     addSlots(kb, kb.type.Cell, "addSlots"),
     addSubType(kb, kb.type.Cell, "addSubType"),
-    add(kb, kb.type.Cell, "add"),
-    addPixel(kb, kb.type.Struct, "addPixel"),
     argument(kb, kb.type.Cell, "argument"),
     ast(kb, kb.type.Cell, "ast"),
     asts(kb, kb.type.Cell, "ast"),
@@ -26,6 +26,8 @@ ID::ID(brain::Brain& kb) :
     color(kb, kb.type.Cell, "color"),
     condition(kb, kb.type.Cell, "condition"),
     constructor(kb, kb.type.Cell, "constructor"),
+    constructorWithRecursiveType(kb, kb.type.Cell, "constructorWithRecursiveType"),
+    constructorWithType(kb, kb.type.Cell, "constructorWithType"),
     container(kb, kb.type.Cell, "container"),
     contains(kb, kb.type.Cell, "contains"),
     continue_(kb, kb.type.Cell, "continue"),
@@ -41,6 +43,7 @@ ID::ID(brain::Brain& kb) :
     firstPixel(kb, kb.type.Struct, "firstPixel"),
     has(kb, kb.type.Struct, "has"),
     hasPixel(kb, kb.type.Struct, "hasPixel"),
+    hasSlot(kb, kb.type.Cell, "hasSlot"),
     height(kb, kb.type.Cell, "height"),
     id(kb, kb.type.Struct, "id"),
     index(kb, kb.type.Cell, "index"),
@@ -79,6 +82,9 @@ ID::ID(brain::Brain& kb) :
     processAdjacentPixel(kb, kb.type.Struct, "processAdjacentPixel"),
     processInputPixels(kb, kb.type.Struct, "processInputPixels"),
     processPixel(kb, kb.type.Struct, "processPixel"),
+    recursiveType(kb, kb.type.Struct, "recursiveType"),
+    remove(kb, kb.type.Cell, "remove"),
+    removeSlot(kb, kb.type.Cell, "removeSlot"),
     result(kb, kb.type.Cell, "result"),
     rhs(kb, kb.type.Cell, "rhs"),
     role(kb, kb.type.Cell, "role"),
@@ -87,6 +93,7 @@ ID::ID(brain::Brain& kb) :
     shapeId(kb, kb.type.Struct, "shapeId"),
     shapes(kb, kb.type.Struct, "shapes"),
     size(kb, kb.type.Cell, "size"),
+    slot(kb, kb.type.Cell, "slot"),
     slotRole(kb, kb.type.Cell, "slotRole"),
     slots(kb, kb.type.Cell, "slots"),
     slotType(kb, kb.type.Cell, "slotType"),
@@ -2076,12 +2083,53 @@ Brain::Brain() :
 
     CellI* mapPtr = nullptr;
 
+#pragma region ListItem
     mapPtr = &slots(type.slot(id.previous, type.ListItem),
                     type.slot(id.next, type.ListItem),
                     type.slot(id.value, type.Cell));
     type.ListItem.set(id.slots, *mapPtr);
     type.ListItem.set(id.memberOf, map(type.Type_, type.Type_, type.Iterator, type.Iterator));
 
+    Ast::Function& listItemTemplate = *new Ast::Function(*this, type.ListItem, id.template_, "static ListItem::template");
+    listItemTemplate.set(id.static_, boolean.true_);
+    listItemTemplate.addInputs(list(
+        ast.slot(id.objectType, type.Type_)));
+    listItemTemplate.addOutputs(list(
+        ast.slot(id.value, type.ListItem)));
+    listItemTemplate.addBlock(ast.block(
+        var_(id.result) = ast.new_(_(type.Type_)),
+
+        ast.call(*var_(id.result), _(id.addMembership), ast.slot(_(id.cell), _(type.ListItem))),
+
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.previous)), ast.slot(_(id.slotType), *var_(id.result))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.next)), ast.slot(_(id.slotType), *var_(id.result))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.value)), ast.slot(_(id.slotType), in_(id.objectType))),
+
+        ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
+
+        ast.return_(*var_(id.result))));
+
+    Ast::Function& listItemCtor = *new Ast::Function(*this, type.ListItem, id.constructor, "ListItem::constructor");
+    listItemCtor.addInputs(list(
+        ast.slot(id.value, type.Cell)));
+    listItemCtor.addBlock(ast.block(
+        m_(id.value) = in_(id.value)));
+
+    mapPtr = &map(type.Cell, type.ast.Function,
+                  id.template_, listItemTemplate,
+                  id.constructor, listItemCtor);
+    type.ListItem.set(id.asts, *mapPtr);
+
+    mapPtr = &map(type.Cell, type.ast.Function,
+                  id.template_, listItemTemplate.compile(type.ListItem),
+                  id.constructor, listItemCtor.compile(type.ListItem));
+    type.ListItem.set(id.methods, *mapPtr);
+
+    type.ListOf(type.Cell)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
+    type.ListOf(type.Slot)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
+    type.ListOf(type.Type_)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
+#pragma endregion
+#pragma region List
     mapPtr = &slots(type.slot(id.first, type.ListItem),
                     type.slot(id.last, type.ListItem),
                     type.slot(id.size, type.Number),
@@ -2091,6 +2139,244 @@ Brain::Brain() :
     type.List.set(id.subTypes, map(type.Cell, type.Type_, id.itemType, type.ListItem, id.objectType, type.Cell));
     type.List.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
+    // Pre created:
+    // Slot
+    Ast::Function& listTemplate = *new Ast::Function(*this, type.List, id.template_, "static List::template");
+    listTemplate.set(id.static_, boolean.true_);
+    listTemplate.addInputs(list(
+        ast.slot(id.objectType, type.Type_)));
+    listTemplate.addOutputs(list(
+        ast.slot(id.value, type.List)));
+    listTemplate.addBlock(ast.block(
+        var_(type.ListItem) = ast.scall(_(type.ListItem), _(id.template_), ast.slot(_(id.objectType), in_(id.objectType))),
+        var_(id.result)     = ast.new_(_(type.Type_)),
+
+        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.itemType)), ast.slot(_(id.slotType), *var_(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
+        ast.call(*var_(id.result), _(id.addMembership), ast.slot(_(id.cell), _(type.List))),
+
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.first)), ast.slot(_(id.slotType), *var_(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.last)), ast.slot(_(id.slotType), *var_(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.size)), ast.slot(_(id.slotType), _(type.Number))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.itemType)), ast.slot(_(id.slotType), *var_(type.ListItem))),
+        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
+
+        ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
+
+        ast.return_(*var_(id.result))));
+
+    Ast::Function& listCtor = *new Ast::Function(*this, type.List, id.constructor, "List::constructor");
+    listCtor.addBlock(ast.block(
+        m_(id.size)       = _(_0_),
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
+        m_(id.itemType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.itemType)));
+
+    Ast::Function& listAdd = *new Ast::Function(*this, type.List, id.add, "List::add");
+    listAdd.addInputs(list(
+        ast.slot(id.value, type.Cell)));
+    listAdd.addOutputs(list(
+        ast.slot(id.value, type.ListItem)));
+    listAdd.addBlock(ast.block(
+        var_(id.item) = ast.new_(m_(id.itemType), _(id.constructor), ast.slot(_(id.value), in_(id.value))),
+        ast.if_(ast.not_(m_(id.first).exist()),
+                m_(id.first) = *var_(id.item),                              // then
+                ast.block(ast.set(m_(id.last), _(id.next), *var_(id.item)), // else
+                          ast.set(*var_(id.item), _(id.previous), m_(id.last)))),
+        m_(id.last) = *var_(id.item),
+        m_(id.size) = ast.add(m_(id.size), _(_1_)),
+        ast.return_(*var_(id.item))));
+
+    Ast::Function& listSize = *new Ast::Function(*this, type.List, id.size, "List::size");
+    listSize.addOutputs(list(
+        ast.slot(id.value, type.Number)));
+    listSize.addBlock(ast.block(
+        ast.return_(m_(id.size))));
+
+    Ast::Function& listEmpty = *new Ast::Function(*this, type.List, id.empty, "List::empty");
+    listEmpty.addOutputs(list(
+        ast.slot(id.value, type.Boolean)));
+    listEmpty.addBlock(ast.block(
+        ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
+
+    mapPtr = &map(type.Cell, type.ast.Function,
+                  id.template_, listTemplate,
+                  id.constructor, listCtor,
+                  id.add, listAdd,
+                  id.size, listSize,
+                  id.empty, listEmpty);
+    type.List.set(id.asts, *mapPtr);
+
+    mapPtr = &map(type.Cell, type.ast.Function,
+                  id.template_, listTemplate.compile(type.List),
+                  id.constructor, listCtor.compile(type.List),
+                  id.add, listAdd.compile(type.List),
+                  id.size, listSize.compile(type.List),
+                  id.empty, listEmpty.compile(type.List));
+    type.List.set(id.methods, *mapPtr);
+
+    type.ListOf(type.Cell).set(id.methods, *mapPtr);
+    type.ListOf(type.Slot).set(id.methods, *mapPtr);
+    type.ListOf(type.Type_).set(id.methods, *mapPtr);
+#pragma endregion
+#pragma region Type
+    Ast::Function& typeCtor = *new Ast::Function(*this, type.Type_, id.constructor, "Type::constructor");
+    typeCtor.addInputs(list(
+        ast.slot(id.slots, type.MapCellToSlot),
+        ast.slot(id.subTypes, type.MapCellToType),
+        ast.slot(id.memberOf, type.MapTypeToType),
+        ast.slot(id.methods, type.MapCellToOpFunction)));
+    typeCtor.addBlock(ast.block(
+        m_(id.slots)    = in_(id.slots),
+        m_(id.subTypes) = in_(id.subTypes),
+        m_(id.memberOf) = in_(id.memberOf),
+        m_(id.methods)  = in_(id.methods))); // TODO we have to compile AST to OP here
+
+    Ast::Function& typeAddSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::addSlot");
+    typeAddSlot.addInputs(list(
+        ast.slot(id.slotRole, type.Cell), ast.slot(id.slotType, type.Type_)));
+    typeAddSlot.addBlock(ast.block(
+        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
+        var_(id.item) = ast.new_(_(type.Slot)),
+        ast.set(*var_(id.item), _(id.slotRole), in_(id.slotRole)),
+        ast.set(*var_(id.item), _(id.slotType), in_(id.slotType)),
+        ast.call(m_(id.slots), _(id.add), ast.slot(_(id.key), in_(id.slotRole)), ast.slot(_(id.value), *var_(id.item)))));
+
+    Ast::Function& typeAddSubType = *new Ast::Function(*this, type.Type_, id.addSubType, "Type::addSubType");
+    typeAddSubType.addInputs(list(
+        ast.slot(id.slotRole, type.Cell),
+        ast.slot(id.slotType, type.Type_)));
+    typeAddSubType.addBlock(ast.block(
+        ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), _(id.constructor))),
+        ast.call(m_(id.subTypes), _(id.add), ast.slot(_(id.key), in_(id.slotRole)), ast.slot(_(id.value), in_(id.slotType)))));
+
+    Ast::Function& typeAddMembership = *new Ast::Function(*this, type.Type_, id.addMembership, "Type::addMembership");
+    typeAddMembership.addInputs(list(
+        ast.slot(id.cell, type.Type_)));
+    typeAddMembership.addBlock(ast.block(
+        ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(_(type.MapTypeToType), _(id.constructor))),
+        ast.call(m_(id.memberOf), _(id.add), ast.slot(_(id.key), in_(id.cell)), ast.slot(_(id.value), in_(id.cell)))));
+
+    Ast::Function& typeAddSlots = *new Ast::Function(*this, type.Type_, id.addSlots, "Type::addSlots");
+    typeAddSlots.addInputs(list(
+        ast.slot(id.list, type.ListOf(type.Slot))));
+    typeAddSlots.addBlock(ast.block(
+        ast.if_(ast.equal(in_(id.list) / _(id.size), _(_0_)), ast.return_()),
+        var_(id.item) = in_(id.list) / _(id.first),
+        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
+        ast.do_(ast.block(
+                    ast.var(id.next) = _(boolean.true_),
+                    ast.call(m_(id.slots), _(id.add), ast.slot(_(id.key), *var_(id.item) / _(id.value) / _(id.slotRole)), ast.slot(_(id.value), *var_(id.item) / _(id.value))),
+                    ast.if_(ast.has(*var_(id.item), _(id.next)),
+                            var_(id.item) = *var_(id.item) / _(id.next),
+                            var_(id.next) = _(boolean.false_))),
+                ast.same(*var_(id.next), _(boolean.true_)))));
+
+    mapPtr = &map(type.Cell, type.ast.Function,
+                  id.constructor, typeCtor,
+                  id.addSlot, typeAddSlot,
+                  id.addSubType, typeAddSubType,
+                  id.addMembership, typeAddMembership,
+                  id.addSlots, typeAddSlots);
+    type.Type_.set(id.asts, *mapPtr);
+    mapPtr = &map(type.Cell, type.op.Function,
+                  id.constructor, typeCtor.compile(type.Type_),
+                  id.addSlot, typeAddSlot.compile(type.Type_),
+                  id.addSubType, typeAddSubType.compile(type.Type_),
+                  id.addMembership, typeAddMembership.compile(type.Type_),
+                  id.addSlots, typeAddSlots.compile(type.Type_));
+    type.Type_.set(id.methods, *mapPtr);
+#pragma endregion
+#pragma region Index
+    type.Index.set(id.memberOf, map(type.Type_, type.Type_));
+
+    Ast::Function& indexCtor = *new Ast::Function(*this, type.Index, id.constructor, "Index::constructor");
+    indexCtor.addBlock(ast.block(
+        ast.set(ast.self(), m_(id.type), ast.new_(_(type.Type_), _(id.constructorWithRecursiveType)))));
+
+    Ast::Function& indexCtorWithType = *new Ast::Function(*this, type.Index, id.constructor, "Index::constructor");
+    indexCtorWithType.addInputs(list(
+        ast.slot(id.type, type.Type_)));
+    indexCtorWithType.addBlock(ast.block(
+        ast.set(ast.self(), m_(id.type), in_(id.type))));
+
+    /*
+    void Index::insert(CellI& key, CellI& value)
+    {
+        if (&key == &kb.id.type) {
+            throw "The type key can not be changed!";
+        }
+        Object& slot = *new Object(kb, kb.type.Slot);
+        slot.set(kb.id.slotRole, key);
+        slot.set(kb.id.slotType, kb.type.Slot);
+        if (!m_recursiveType) {
+            m_type->addSlot(key, slot);
+        }
+        m_slots[&key] = &value;
+    }
+    */
+    Ast::Function& indexInsert = *new Ast::Function(*this, type.Index, id.insert, "Index::insert");
+    indexInsert.addInputs(list(
+        ast.slot(id.key, type.Cell),
+        ast.slot(id.value, type.Cell)));
+    indexInsert.addBlock(ast.block(
+        ast.if_(ast.equal(in_(id.key), _(id.type)), ast.return_()),
+        var_(id.slot) = ast.new_(_(type.Slot)),
+        ast.set(*var_(id.slot), _(id.slotRole), in_(id.key)),
+        ast.set(*var_(id.slot), _(id.slotType), _(type.Slot)),
+        ast.if_(ast.equal(m_(id.recursiveType), _(boolean.false_)),
+                ast.call(m_(id.type), _(id.addSlot), ast.slot(_(id.slotRole), in_(id.key)), ast.slot(_(id.slotType), *var_(id.slot)))),
+        ast.set(ast.self(), in_(id.key), in_(id.value))));
+
+
+    Ast::Function& indexEmpty = *new Ast::Function(*this, type.Index, id.size, "Index::empty");
+    indexEmpty.addOutputs(list(
+        ast.slot(id.value, type.Number)));
+    indexEmpty.addBlock(ast.block(
+        ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.empty)))));
+
+    /*
+    void Index::erase(CellI& role)
+    {
+        if (m_type->hasSlot(role)) {
+            m_slots.erase(&role);
+            m_type->removeSlot(role);
+        }
+    }
+    */
+    Ast::Function& indexRemove = *new Ast::Function(*this, type.Index, id.remove, "Index::remove");
+    indexRemove.addInputs(list(
+        ast.slot(id.key, type.Cell)));
+    indexRemove.addBlock(ast.block(
+        ast.if_(ast.call(m_(id.type), _(id.hasSlot), ast.slot(_(id.slotRole), in_(id.key))),
+                ast.block(
+                   ast.erase(ast.self(), in_(id.key)),
+                   ast.call(m_(id.type), _(id.removeSlot), ast.slot(_(id.slotRole), in_(id.key)))))));
+
+    Ast::Function& indexSize = *new Ast::Function(*this, type.Index, id.size, "Index::size");
+    indexSize.addOutputs(list(
+        ast.slot(id.value, type.Number)));
+    indexSize.addBlock(ast.block(
+        ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.size)))));
+
+    mapPtr = &map(type.Cell, type.ast.Function,
+                  id.constructor, indexCtor,
+                  id.constructorWithType, indexCtorWithType,
+                  id.empty, indexEmpty,
+                  id.insert, indexInsert,
+                  id.remove, indexRemove,
+                  id.size, indexSize);
+    type.Index.set(id.asts, *mapPtr);
+
+    mapPtr = &map(type.Cell, type.ast.Function,
+                  id.constructor, indexCtor.compile(type.Index),
+                  id.constructorWithType, indexCtorWithType.compile(type.Index),
+                  id.empty, indexEmpty.compile(type.Index),
+                  id.insert, indexInsert.compile(type.Index),
+                  id.remove, indexRemove.compile(type.Index),
+                  id.size, indexSize.compile(type.Index));
+    type.Index.set(id.methods, *mapPtr);
+#pragma endregion
+#pragma region Map
     mapPtr = &slots(type.slot(id.keyType, type.Cell),
                     type.slot(id.objectType, type.Cell),
                     type.slot(id.list, type.ListOf(type.Cell)),
@@ -2105,19 +2391,6 @@ Brain::Brain() :
                   id.listType, type.ListOf(type.Cell));
     type.Map.set(id.subTypes, *mapPtr);
     type.Map.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
-
-    mapPtr = &slots(type.slot(id.objectType, type.Cell),
-                    type.slot(id.list, type.ListOf(type.Cell)),
-                    type.slot(id.listType, type.Type_),
-                    type.slot(id.index, type.Index),
-                    type.slot(id.indexType, type.Type_),
-                    type.slot(id.size, type.Number));
-    type.Set.set(id.slots, *mapPtr);
-    mapPtr = &map(type.Cell, type.Type_,
-                  id.objectType, type.Cell,
-                  id.listType, type.ListOf(type.Cell));
-    type.Set.set(id.subTypes, *mapPtr);
-    type.Set.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
     Ast::Function& mapCtor = *new Ast::Function(*this, type.Map, id.constructor, "Map::constructor");
     mapCtor.addBlock(ast.block(
@@ -2276,7 +2549,20 @@ Brain::Brain() :
                   id.size, type.slot(id.size, type.Number));
     type.MapTypeToType.set(id.slots, *mapPtr);
     type.MapTypeToType.set(id.methods, map(type.Cell, type.op.Function, id.constructor, mapCtor.compile(type.Map), id.size, mapSize.compile(type.Map), id.add, mapAdd.compile(type.Map), id.empty, mapEmpty.compile(type.Map)));
-
+#pragma endregion
+#pragma region Set
+    mapPtr = &slots(type.slot(id.objectType, type.Cell),
+                    type.slot(id.list, type.ListOf(type.Cell)),
+                    type.slot(id.listType, type.Type_),
+                    type.slot(id.index, type.Index),
+                    type.slot(id.indexType, type.Type_),
+                    type.slot(id.size, type.Number));
+    type.Set.set(id.slots, *mapPtr);
+    mapPtr = &map(type.Cell, type.Type_,
+                  id.objectType, type.Cell,
+                  id.listType, type.ListOf(type.Cell));
+    type.Set.set(id.subTypes, *mapPtr);
+    type.Set.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
     Ast::Function& setCtor = *new Ast::Function(*this, type.Set, id.constructor, "Set::constructor");
     setCtor.addBlock(ast.block(
         m_(id.size) = _(_0_),
@@ -2386,192 +2672,7 @@ Brain::Brain() :
                   id.size, setSize.compile(type.Set),
                   id.empty, setEmpty.compile(type.Set));
     type.Set.set(id.methods, *mapPtr);
-
-
-    Ast::Function& listItemTemplate = *new Ast::Function(*this, type.ListItem, id.template_, "static ListItem::template");
-    listItemTemplate.set(id.static_, boolean.true_);
-    listItemTemplate.addInputs(list(
-        ast.slot(id.objectType, type.Type_)));
-    listItemTemplate.addOutputs(list(
-        ast.slot(id.value, type.ListItem)));
-    listItemTemplate.addBlock(ast.block(
-        var_(id.result) = ast.new_(_(type.Type_)),
-
-        ast.call(*var_(id.result), _(id.addMembership), ast.slot(_(id.cell), _(type.ListItem))),
-
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.previous)), ast.slot(_(id.slotType), *var_(id.result))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.next)), ast.slot(_(id.slotType), *var_(id.result))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.value)), ast.slot(_(id.slotType), in_(id.objectType))),
-
-        ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
-
-        ast.return_(*var_(id.result))));
-
-    Ast::Function& listItemCtor = *new Ast::Function(*this, type.ListItem, id.constructor, "ListItem::constructor");
-    listItemCtor.addInputs(list(
-        ast.slot(id.value, type.Cell)));
-    listItemCtor.addBlock(ast.block(
-        m_(id.value) = in_(id.value)));
-
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.template_, listItemTemplate,
-                  id.constructor, listItemCtor);
-    type.ListItem.set(id.asts, *mapPtr);
-
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.template_, listItemTemplate.compile(type.ListItem),
-                  id.constructor, listItemCtor.compile(type.ListItem));
-    type.ListItem.set(id.methods, *mapPtr);
-
-    type.ListOf(type.Cell)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
-    type.ListOf(type.Slot)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
-    type.ListOf(type.Type_)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
-
-    // Pre created:
-    // Slot
-    Ast::Function& listTemplate = *new Ast::Function(*this, type.List, id.template_, "static List::template");
-    listTemplate.set(id.static_, boolean.true_);
-    listTemplate.addInputs(list(
-        ast.slot(id.objectType, type.Type_)));
-    listTemplate.addOutputs(list(
-        ast.slot(id.value, type.List)));
-    listTemplate.addBlock(ast.block(
-        var_(type.ListItem) = ast.scall(_(type.ListItem), _(id.template_), ast.slot(_(id.objectType), in_(id.objectType))),
-        var_(id.result) = ast.new_(_(type.Type_)),
-
-        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.itemType)), ast.slot(_(id.slotType), *var_(type.ListItem))),
-        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
-        ast.call(*var_(id.result), _(id.addMembership), ast.slot(_(id.cell), _(type.List))),
-
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.first)), ast.slot(_(id.slotType), *var_(type.ListItem))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.last)), ast.slot(_(id.slotType), *var_(type.ListItem))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.size)), ast.slot(_(id.slotType), _(type.Number))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.itemType)), ast.slot(_(id.slotType), *var_(type.ListItem))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
-
-        ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
-
-        ast.return_(*var_(id.result))));
-
-    Ast::Function& listCtor = *new Ast::Function(*this, type.List, id.constructor, "List::constructor");
-    listCtor.addBlock(ast.block(
-        m_(id.size)   = _(_0_),
-        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
-        m_(id.itemType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.itemType)));
-
-    Ast::Function& listAdd = *new Ast::Function(*this, type.List, id.add, "List::add");
-    listAdd.addInputs(list(
-        ast.slot(id.value, type.Cell)));
-    listAdd.addOutputs(list(
-        ast.slot(id.value, type.ListItem)));
-    listAdd.addBlock(ast.block(
-        var_(id.item) = ast.new_(m_(id.itemType), _(id.constructor), ast.slot(_(id.value), in_(id.value))),
-        ast.if_(ast.not_(m_(id.first).exist()),
-                m_(id.first) = *var_(id.item),                                    // then
-                ast.block(ast.set(m_(id.last), _(id.next), *var_(id.item)), // else
-                          ast.set(*var_(id.item), _(id.previous), m_(id.last)))),
-        m_(id.last)   = *var_(id.item),
-        m_(id.size) = ast.add(m_(id.size), _(_1_)),
-        ast.return_(*var_(id.item))));
-
-    Ast::Function& listSize = *new Ast::Function(*this, type.List, id.size, "List::size");
-    listSize.addOutputs(list(
-        ast.slot(id.value, type.Number)));
-    listSize.addBlock(ast.block(
-        ast.return_(m_(id.size))));
-
-    Ast::Function& listEmpty = *new Ast::Function(*this, type.List, id.empty, "List::empty");
-    listEmpty.addOutputs(list(
-        ast.slot(id.value, type.Boolean)));
-    listEmpty.addBlock(ast.block(
-        ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
-
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.template_, listTemplate,
-                  id.constructor, listCtor,
-                  id.add, listAdd,
-                  id.size, listSize,
-                  id.empty, listEmpty);
-    type.List.set(id.asts, *mapPtr);
-
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.template_, listTemplate.compile(type.List),
-                  id.constructor, listCtor.compile(type.List),
-                  id.add, listAdd.compile(type.List),
-                  id.size, listSize.compile(type.List),
-                  id.empty, listEmpty.compile(type.List));
-    type.List.set(id.methods, *mapPtr);
-
-    type.ListOf(type.Cell).set(id.methods, *mapPtr);
-    type.ListOf(type.Slot).set(id.methods, *mapPtr);
-    type.ListOf(type.Type_).set(id.methods, *mapPtr);
-
-    Ast::Function& typeCtor = *new Ast::Function(*this, type.Type_, id.constructor, "Type::constructor");
-    typeCtor.addInputs(list(
-        ast.slot(id.slots, type.MapCellToSlot),
-        ast.slot(id.subTypes, type.MapCellToType),
-        ast.slot(id.memberOf, type.MapTypeToType),
-        ast.slot(id.methods, type.MapCellToOpFunction)));
-    typeCtor.addBlock(ast.block(
-        m_(id.slots)    = in_(id.slots),
-        m_(id.subTypes) = in_(id.subTypes),
-        m_(id.memberOf) = in_(id.memberOf),
-        m_(id.methods)  = in_(id.methods))); // TODO we have to compile AST to OP here
-
-    Ast::Function& typeAddSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::addSlot");
-    typeAddSlot.addInputs(list(
-        ast.slot(id.slotRole, type.Cell), ast.slot(id.slotType, type.Type_)));
-    typeAddSlot.addBlock(ast.block(
-        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
-        var_(id.item) = ast.new_(_(type.Slot)),
-        ast.set(*var_(id.item), _(id.slotRole), in_(id.slotRole)),
-        ast.set(*var_(id.item), _(id.slotType), in_(id.slotType)),
-        ast.call(m_(id.slots), _(id.add), ast.slot(_(id.key), in_(id.slotRole)), ast.slot(_(id.value), *var_(id.item)))));
-
-    Ast::Function& typeAddSubType = *new Ast::Function(*this, type.Type_, id.addSubType, "Type::addSubType");
-    typeAddSubType.addInputs(list(
-        ast.slot(id.slotRole, type.Cell),
-        ast.slot(id.slotType, type.Type_)));
-    typeAddSubType.addBlock(ast.block(
-        ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), _(id.constructor))),
-        ast.call(m_(id.subTypes), _(id.add), ast.slot(_(id.key), in_(id.slotRole)), ast.slot(_(id.value), in_(id.slotType)))));
-
-    Ast::Function& typeAddMembership = *new Ast::Function(*this, type.Type_, id.addMembership, "Type::addMembership");
-    typeAddMembership.addInputs(list(
-        ast.slot(id.cell, type.Type_)));
-    typeAddMembership.addBlock(ast.block(
-        ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(_(type.MapTypeToType), _(id.constructor))),
-        ast.call(m_(id.memberOf), _(id.add), ast.slot(_(id.key), in_(id.cell)), ast.slot(_(id.value), in_(id.cell)))));
-
-    Ast::Function& typeAddSlots = *new Ast::Function(*this, type.Type_, id.addSlots, "Type::addSlots");
-    typeAddSlots.addInputs(list(
-        ast.slot(id.list, type.ListOf(type.Slot))));
-    typeAddSlots.addBlock(ast.block(
-        ast.if_(ast.equal(in_(id.list) / _(id.size), _(_0_)), ast.return_()),
-        var_(id.item) = in_(id.list) / _(id.first),
-        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
-        ast.do_(ast.block(
-                    ast.var(id.next) = _(boolean.true_),
-                    ast.call(m_(id.slots), _(id.add), ast.slot(_(id.key), *var_(id.item) / _(id.value) / _(id.slotRole)), ast.slot(_(id.value), *var_(id.item) / _(id.value))),
-                    ast.if_(ast.has(*var_(id.item), _(id.next)),
-                            var_(id.item)   = *var_(id.item) / _(id.next),
-                            var_(id.next) = _(boolean.false_))),
-                ast.same(*var_(id.next), _(boolean.true_)))));
-
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.constructor, typeCtor,
-                  id.addSlot, typeAddSlot,
-                  id.addSubType, typeAddSubType,
-                  id.addMembership, typeAddMembership,
-                  id.addSlots, typeAddSlots);
-    type.Type_.set(id.asts, *mapPtr);
-    mapPtr = &map(type.Cell, type.op.Function,
-                  id.constructor, typeCtor.compile(type.Type_),
-                  id.addSlot, typeAddSlot.compile(type.Type_),
-                  id.addSubType, typeAddSubType.compile(type.Type_),
-                  id.addMembership, typeAddMembership.compile(type.Type_),
-                  id.addSlots, typeAddSlots.compile(type.Type_));
-    type.Type_.set(id.methods, *mapPtr);
+#pragma endregion
 
 #if 0
     Object methodData(*this, type.Cell);

@@ -316,6 +316,7 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
+    void insert(CellI& key, CellI& value);
     bool empty() const;
     int size();
 

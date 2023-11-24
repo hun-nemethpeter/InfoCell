@@ -1190,12 +1190,6 @@ void Index::set(CellI& key, CellI& value)
     if (&key == &kb.id.type) {
         throw "The type key can not be changed!";
     }
-    Object& slot = *new Object(kb, kb.type.Slot);
-    slot.set(kb.id.slotRole, key);
-    slot.set(kb.id.slotType, kb.type.Slot);
-    if (!m_recursiveType) {
-        m_type->addSlot(key, slot);
-    }
     m_slots[&key] = &value;
 }
 
@@ -1225,6 +1219,20 @@ CellI& Index::operator[](CellI& role)
     throw "No such role!";
 }
 
+void Index::insert(CellI& key, CellI& value)
+{
+    if (&key == &kb.id.type) {
+        throw "The type key can not be changed!";
+    }
+    Object& slot = *new Object(kb, kb.type.Slot);
+    slot.set(kb.id.slotRole, key);
+    slot.set(kb.id.slotType, kb.type.Slot);
+    if (!m_recursiveType) {
+        m_type->addSlot(key, slot);
+    }
+    m_slots[&key] = &value;
+}
+
 bool Index::empty() const
 {
     return m_slots.empty();
@@ -1232,7 +1240,7 @@ bool Index::empty() const
 
 int Index::size()
 {
-    return m_slots.size();
+    return (int)m_slots.size();
 }
 
 void Index::accept(Visitor& visitor)
@@ -1348,7 +1356,7 @@ void Map::add(CellI& key, CellI& value)
         throw "A value already registered with this role";
     }
     List::Item& item = *m_list.add(value);
-    m_index.set(key, item);
+    m_index.insert(key, item);
     ++m_size;
 }
 
@@ -1441,7 +1449,7 @@ void Set::add(CellI& value)
     if (m_index.has(value)) {
         throw "A value already registered with this role";
     }
-    m_index.set(value, value);
+    m_index.insert(value, value);
     ++m_size;
 }
 
