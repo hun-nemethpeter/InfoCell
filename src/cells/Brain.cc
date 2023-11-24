@@ -18,7 +18,7 @@ ID::ID(brain::Brain& kb) :
     addSubType(kb, kb.type.Cell, "addSubType"),
     argument(kb, kb.type.Cell, "argument"),
     ast(kb, kb.type.Cell, "ast"),
-    asts(kb, kb.type.Cell, "ast"),
+    asts(kb, kb.type.Cell, "asts"),
     branch(kb, kb.type.Cell, "branch"),
     cell(kb, kb.type.Cell, "cell"),
     checkPixel(kb, kb.type.Struct, "checkPixel"),
@@ -2115,16 +2115,11 @@ Brain::Brain() :
     listItemCtor.addBlock(ast.block(
         m_(id.value) = in_(id.value)));
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.template_, listItemTemplate,
-                  id.constructor, listItemCtor);
-    type.ListItem.set(id.asts, *mapPtr);
+    registerMethods(type.ListItem,
+                    id.template_, listItemTemplate,
+                    id.constructor, listItemCtor);
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.template_, listItemTemplate.compile(type.ListItem),
-                  id.constructor, listItemCtor.compile(type.ListItem));
-    type.ListItem.set(id.methods, *mapPtr);
-
+    mapPtr = &type.ListItem[id.methods];
     type.ListOf(type.Cell)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
     type.ListOf(type.Slot)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
     type.ListOf(type.Type_)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
@@ -2198,22 +2193,14 @@ Brain::Brain() :
     listEmpty.addBlock(ast.block(
         ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.template_, listTemplate,
-                  id.constructor, listCtor,
-                  id.add, listAdd,
-                  id.size, listSize,
-                  id.empty, listEmpty);
-    type.List.set(id.asts, *mapPtr);
+    registerMethods(type.List,
+                    id.template_, listTemplate,
+                    id.constructor, listCtor,
+                    id.add, listAdd,
+                    id.size, listSize,
+                    id.empty, listEmpty);
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.template_, listTemplate.compile(type.List),
-                  id.constructor, listCtor.compile(type.List),
-                  id.add, listAdd.compile(type.List),
-                  id.size, listSize.compile(type.List),
-                  id.empty, listEmpty.compile(type.List));
-    type.List.set(id.methods, *mapPtr);
-
+    mapPtr = &type.List[id.methods];
     type.ListOf(type.Cell).set(id.methods, *mapPtr);
     type.ListOf(type.Slot).set(id.methods, *mapPtr);
     type.ListOf(type.Type_).set(id.methods, *mapPtr);
@@ -2271,20 +2258,12 @@ Brain::Brain() :
                             var_(id.next) = _(boolean.false_))),
                 ast.same(*var_(id.next), _(boolean.true_)))));
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.constructor, typeCtor,
-                  id.addSlot, typeAddSlot,
-                  id.addSubType, typeAddSubType,
-                  id.addMembership, typeAddMembership,
-                  id.addSlots, typeAddSlots);
-    type.Type_.set(id.asts, *mapPtr);
-    mapPtr = &map(type.Cell, type.op.Function,
-                  id.constructor, typeCtor.compile(type.Type_),
-                  id.addSlot, typeAddSlot.compile(type.Type_),
-                  id.addSubType, typeAddSubType.compile(type.Type_),
-                  id.addMembership, typeAddMembership.compile(type.Type_),
-                  id.addSlots, typeAddSlots.compile(type.Type_));
-    type.Type_.set(id.methods, *mapPtr);
+    registerMethods(type.Type_,
+                    id.constructor, typeCtor,
+                    id.addSlot, typeAddSlot,
+                    id.addSubType, typeAddSubType,
+                    id.addMembership, typeAddMembership,
+                    id.addSlots, typeAddSlots);
 #pragma endregion
 #pragma region Index
     type.Index.set(id.memberOf, map(type.Type_, type.Type_));
@@ -2358,23 +2337,13 @@ Brain::Brain() :
     indexSize.addBlock(ast.block(
         ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.size)))));
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.constructor, indexCtor,
-                  id.constructorWithType, indexCtorWithType,
-                  id.empty, indexEmpty,
-                  id.insert, indexInsert,
-                  id.remove, indexRemove,
-                  id.size, indexSize);
-    type.Index.set(id.asts, *mapPtr);
-
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.constructor, indexCtor.compile(type.Index),
-                  id.constructorWithType, indexCtorWithType.compile(type.Index),
-                  id.empty, indexEmpty.compile(type.Index),
-                  id.insert, indexInsert.compile(type.Index),
-                  id.remove, indexRemove.compile(type.Index),
-                  id.size, indexSize.compile(type.Index));
-    type.Index.set(id.methods, *mapPtr);
+    registerMethods(type.Index,
+                    id.constructor, indexCtor,
+                    id.constructorWithType, indexCtorWithType,
+                    id.empty, indexEmpty,
+                    id.insert, indexInsert,
+                    id.remove, indexRemove,
+                    id.size, indexSize);
 #pragma endregion
 #pragma region Map
     mapPtr = &slots(type.slot(id.keyType, type.Cell),
@@ -2493,21 +2462,12 @@ Brain::Brain() :
     mapEmpty.addBlock(ast.block(
         ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.constructor, mapCtor,
-                  id.template_, mapTemplate,
-                  id.add, mapAdd,
-                  id.size, mapSize,
-                  id.empty, mapEmpty);
-    type.Map.set(id.asts, *mapPtr);
-
-    mapPtr = &map(type.Cell, type.op.Function,
-                  id.constructor, mapCtor.compile(type.Map),
-                  id.template_, mapTemplate.compile(type.Map),
-                  id.add, mapAdd.compile(type.Map),
-                  id.size, mapSize.compile(type.Map),
-                  id.empty, mapEmpty.compile(type.Map));
-    type.Map.set(id.methods, *mapPtr);
+    registerMethods(type.Map,
+                    id.constructor, mapCtor,
+                    id.template_, mapTemplate,
+                    id.add, mapAdd,
+                    id.size, mapSize,
+                    id.empty, mapEmpty);
 
     // Map<Cell, Slot>
     type.MapCellToSlot.set(id.subTypes, map(type.Cell, type.Type_, id.keyType, type.Cell, id.objectType, type.Slot, id.listType, type.ListOf(type.Slot)));
@@ -2655,23 +2615,13 @@ Brain::Brain() :
     setEmpty.addBlock(ast.block(
         ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.constructor, setCtor,
-                  id.template_, setTemplate,
-                  id.add, setAdd,
-                  id.contains, setContains,
-                  id.size, setSize,
-                  id.empty, setEmpty);
-    type.Set.set(id.asts, *mapPtr);
-
-    mapPtr = &map(type.Cell, type.op.Function,
-                  id.constructor, setCtor.compile(type.Set),
-                  id.template_, setTemplate.compile(type.Set),
-                  id.add, setAdd.compile(type.Set),
-                  id.contains, setContains.compile(type.Set),
-                  id.size, setSize.compile(type.Set),
-                  id.empty, setEmpty.compile(type.Set));
-    type.Set.set(id.methods, *mapPtr);
+    registerMethods(type.Set,
+                    id.constructor, setCtor,
+                    id.template_, setTemplate,
+                    id.add, setAdd,
+                    id.contains, setContains,
+                    id.size, setSize,
+                    id.empty, setEmpty);
 #pragma endregion
 
 #if 0
@@ -2783,11 +2733,16 @@ public:
         return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
     }
     */
-    Ast::Function& shapeHasPixel = *new Ast::Function(*this, type.arc.Shaper, id.addPixel, "Shape::hasPixel");
+    Ast::Function& shapeHasPixel = *new Ast::Function(*this, type.arc.Shaper, id.hasPixel, "Shape::hasPixel");
     shapeHasPixel.addInputs(list(
         ast.slot(id.pixel, type.Pixel)));
     shapeHasPixel.addBlock(ast.block(
         m_(id.pixels) / _(id.index) / in_(id.pixel))); // TODO we need a Set class
+
+    registerMethods(type.arc.Shape,
+                    id.constructor, shapeCtor,
+                    id.addPixel, shapeAddPixel,
+                    id.hasPixel, shapeHasPixel);
 
     /*
     Shaper::Shaper(const cells::hybrid::Picture& picture) :
@@ -2941,29 +2896,12 @@ public:
                     ast.return_(_(id.pixel))),
         ast.return_(_(id.emptyObject)))));
 
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.constructor, shapeCtor,
-                  id.addPixel, shapeAddPixel);
-    type.arc.Shape.set(id.asts, *mapPtr);
-    mapPtr = &map(type.Cell, type.op.Function,
-                  id.constructor, shapeCtor.compile(type.arc.Shape),
-                  id.addPixel, shapeAddPixel.compile(type.arc.Shape));
-    type.arc.Shape.set(id.methods, *mapPtr);
-
-    mapPtr = &map(type.Cell, type.ast.Function,
-                  id.constructor, shaperCtor,
-                  id.processInputPixels, shaperProcessInputPixels,
-                  id.process, shaperProcess,
-                  id.processPixel, shaperProcessPixel,
-                  id.processAdjacentPixel, shaperProcessAdjacentPixel);
-    type.arc.Shaper.set(id.asts, *mapPtr);
-    mapPtr = &map(type.Cell, type.op.Function,
-                  id.constructor, shaperCtor.compile(type.arc.Shaper),
-                  id.processInputPixels, shaperProcessInputPixels.compile(type.arc.Shaper),
-                  id.process, shaperProcess.compile(type.arc.Shaper),
-                  id.processPixel, shaperProcessPixel.compile(type.arc.Shaper),
-                  id.processAdjacentPixel, shaperProcessAdjacentPixel.compile(type.arc.Shaper));
-    type.arc.Shaper.set(id.methods, *mapPtr);
+    registerMethods(type.arc.Shaper,
+                    id.constructor, shaperCtor,
+                    id.processInputPixels, shaperProcessInputPixels,
+                    id.process, shaperProcess,
+                    id.processPixel, shaperProcessPixel,
+                    id.processAdjacentPixel, shaperProcessAdjacentPixel);
 
     m_initPhase = InitPhase::FullyConstructed;
 }

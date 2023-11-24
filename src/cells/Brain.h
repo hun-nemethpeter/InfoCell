@@ -829,6 +829,29 @@ public:
         return ret;
     }
 
+    void addMethods(Object&, Map&, Map&)
+    {
+        // Do nothing
+    }
+
+    template <typename... Args>
+    void addMethods(Object& class_, Map& asts, Map& methods, CellI& methodId, Ast::Function& method, Args&&... args)
+    {
+        asts.add(methodId, method);
+        methods.add(methodId, method.compile(class_));
+        addMethods(class_, asts, methods, std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    void registerMethods(Object& class_, CellI& methodId, Ast::Function& method, Args&&... args)
+    {
+        Map& asts = *new Map(*this, type.Cell, type.ast.Function, "Map<Cell, Type::Ast::Function>(...)");
+        Map& methods = *new Map(*this, type.Cell, type.op.Function, "Map<Cell, Type::Op::Function>(...)");
+        addMethods(class_, asts, methods, methodId, method, std::forward<Args>(args)...);
+        class_.set(id.asts, asts);
+        class_.set(id.methods, methods);
+    }
+
     InitPhase initPhase();
 };
 
