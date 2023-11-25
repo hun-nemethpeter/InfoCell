@@ -399,18 +399,23 @@ void Object::operator()()
     } else if (&m_type == &kb.type.op.And) {
         CellI& inputLhs = get(kb.id.lhs);
         inputLhs();
-        bool lhs        = inputLhs[kb.id.value] == kb.boolean.true_;
-        CellI& inputRhs = get(kb.id.rhs);
-        inputRhs();
-        bool rhs = inputRhs[kb.id.value] == kb.boolean.true_;
-        set(kb.id.value, kb.toKbBool(lhs && rhs));
+        bool lhs        = &inputLhs[kb.id.value] == &kb.boolean.true_;
+        // shortcut, if the left hand side already false we don't evaluate the right hand side
+        if (lhs) {
+            CellI& inputRhs = get(kb.id.rhs);
+            inputRhs();
+            bool rhs = &inputRhs[kb.id.value] == &kb.boolean.true_;
+            set(kb.id.value, kb.toKbBool(lhs && rhs));
+        } else {
+            set(kb.id.value, kb.toKbBool(false));
+        }
     } else if (&m_type == &kb.type.op.Or) {
         CellI& inputLhs = get(kb.id.lhs);
         inputLhs();
-        bool lhs        = inputLhs[kb.id.value] == kb.boolean.true_;
+        bool lhs        = &inputLhs[kb.id.value] == &kb.boolean.true_;
         CellI& inputRhs = get(kb.id.rhs);
         inputRhs();
-        bool rhs = inputRhs[kb.id.value] == kb.boolean.true_;
+        bool rhs = &inputRhs[kb.id.value] == &kb.boolean.true_;
         set(kb.id.value, kb.toKbBool(lhs || rhs));
 
     } else if (&m_type == &kb.type.op.Not) {
@@ -1225,13 +1230,14 @@ void Index::insert(CellI& key, CellI& value)
     if (&key == &kb.id.type) {
         throw "The type key can not be changed!";
     }
+    m_slots[&key] = &value;
+    if (m_recursiveType) {
+        return;
+    }
     Object& slot = *new Object(kb, kb.type.Slot);
     slot.set(kb.id.slotRole, key);
     slot.set(kb.id.slotType, kb.type.Slot);
-    if (!m_recursiveType) {
-        m_type->addSlot(key, slot);
-    }
-    m_slots[&key] = &value;
+    m_type->addSlot(key, slot);
 }
 
 bool Index::empty() const

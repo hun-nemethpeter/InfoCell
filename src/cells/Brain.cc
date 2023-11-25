@@ -95,6 +95,7 @@ ID::ID(brain::Brain& kb) :
     shape(kb, kb.type.Struct, "shape"),
     shapeId(kb, kb.type.Struct, "shapeId"),
     shapes(kb, kb.type.Struct, "shapes"),
+    sharedObject(kb, kb.type.Cell, "sharedObject"),
     size(kb, kb.type.Cell, "size"),
     slot(kb, kb.type.Cell, "slot"),
     slotRole(kb, kb.type.Cell, "slotRole"),
@@ -590,6 +591,14 @@ Types::Types(brain::Brain& kb) :
                     type.slot(id.asts, MapCellToAstFunction),
                     type.slot(id.methods, MapCellToOpFunction));
     Type_.set(id.slots, *map);
+
+    map = &kb.slots(type.slot(id.slots, MapCellToSlot),
+                    type.slot(id.sharedObject, Slot),
+                    type.slot(id.subTypes, MapCellToType),
+                    type.slot(id.memberOf, MapTypeToType),
+                    type.slot(id.asts, MapCellToAstFunction),
+                    type.slot(id.methods, MapCellToOpFunction));
+    Type2_.set(id.slots, *map);
 
     map = &kb.slots(type.slot(id.members, List));
     Enum.set(id.slots, *map);
@@ -2312,10 +2321,8 @@ Brain::Brain() :
         m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))));
 
     Ast::Function& type2CtorWithRecursiveType = *new Ast::Function(*this, type.Type2_, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
-    type2CtorWithRecursiveType.addInputs(list(
-        param(id.indexType, type.Type_)));
     type2CtorWithRecursiveType.addBlock(ast.block(
-        m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructorWithIndexType), param(_(id.indexType), in_(id.indexType)))));
+        m_(id.slots) = ast.new_(_(type.Map2), _(id.constructorWithIndexType), param(_(id.indexType), ast.self()))));
 
     Ast::Function& type2AddSubType = *new Ast::Function(*this, type.Type2_, id.addSubType, "Type::addSubType");
     type2AddSubType.addInputs(list(
@@ -2382,18 +2389,22 @@ Brain::Brain() :
                     id.removeSlot, type2RemoveSlot);
 #pragma endregion
 #pragma region Index
-    type.Index.set(id.memberOf, map(type.Type_, type.Type_));
+    type.Index.set(id.memberOf, map(type.Type2_, type.Type2_));
 
     Ast::Function& indexCtor = *new Ast::Function(*this, type.Index, id.constructor, "Index::constructor");
     indexCtor.addBlock(ast.block(
-        ast.set(ast.self(), m_(id.type), ast.new_(_(type.Type_), _(id.constructorWithRecursiveType))),
-        ast.set(m_(id.type), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index)))));
+        ast.set(ast.self(), m_(id.type), ast.new_(_(type.Type2_), _(id.constructorWithRecursiveType))),
+        ast.set(m_(id.type), _(id.memberOf), _(map(type.Type2_, type.Type2_, type.Index, type.Index)))));
 
-    Ast::Function& indexCtorWithType = *new Ast::Function(*this, type.Index, id.constructorWithSelfType, "Index::constructorWithSelfType");
-    indexCtorWithType.addInputs(list(
-        param(id.type, type.Type_)));
-    indexCtorWithType.addBlock(ast.block(
-        ast.set(ast.self(), m_(id.type), in_(id.type))));
+    Ast::Function& indexCtorWithSelfType = *new Ast::Function(*this, type.Index, id.constructorWithSelfType, "Index::constructorWithSelfType");
+    indexCtorWithSelfType.addInputs(list(
+        param(id.indexType, type.Type_)));
+    indexCtorWithSelfType.addBlock(ast.block(
+        ast.if_(ast.missing(in_(id.indexType), _(id.sharedObject)),
+                ast.block(ast.set(in_(id.indexType), _(id.sharedObject), ast.new_(_(type.Slot))),
+                          ast.set(in_(id.indexType) / _(id.sharedObject), _(id.slotRole), ast.self()),
+                          ast.set(in_(id.indexType) / _(id.sharedObject), _(id.slotType), _(type.Index)))),
+        ast.set(ast.self(), m_(id.type), in_(id.indexType))));
 
     /*
     void Index::insert(CellI& key, CellI& value)
@@ -2401,13 +2412,14 @@ Brain::Brain() :
         if (&key == &kb.id.type) {
             throw "The type key can not be changed!";
         }
+        m_slots[&key] = &value;
+        if (m_recursiveType) {
+            return;
+        }
         Object& slot = *new Object(kb, kb.type.Slot);
         slot.set(kb.id.slotRole, key);
         slot.set(kb.id.slotType, kb.type.Slot);
-        if (!m_recursiveType) {
-            m_type->addSlot(key, slot);
-        }
-        m_slots[&key] = &value;
+        m_type->addSlot(key, slot);
     }
     */
     Ast::Function& indexInsert = *new Ast::Function(*this, type.Index, id.insert, "Index::insert");
@@ -2416,13 +2428,13 @@ Brain::Brain() :
         param(id.value, type.Cell)));
     indexInsert.addBlock(ast.block(
         ast.if_(ast.equal(in_(id.key), _(id.type)), ast.return_()),
+        ast.set(ast.self(), in_(id.key), in_(id.value)),
+        ast.if_(ast.and_(ast.has(m_(id.type), _(id.sharedObject)), ast.equal(m_(id.type) / _(id.sharedObject) / _(id.slotRole), ast.self())),
+            ast.return_()),
         var_(id.slot) = ast.new_(_(type.Slot)),
         ast.set(*var_(id.slot), _(id.slotRole), in_(id.key)),
         ast.set(*var_(id.slot), _(id.slotType), _(type.Slot)),
-        ast.if_(ast.equal(m_(id.recursiveType), _(boolean.false_)),
-                ast.call(m_(id.type), _(id.addSlot), param(_(id.slotRole), in_(id.key)), param(_(id.slotType), *var_(id.slot)))),
-        ast.set(ast.self(), in_(id.key), in_(id.value))));
-
+        ast.call(m_(id.type), _(id.addSlot), param(_(id.slotRole), in_(id.key)), param(_(id.slotType), *var_(id.slot)))));
 
     Ast::Function& indexEmpty = *new Ast::Function(*this, type.Index, id.size, "Index::empty");
     indexEmpty.addOutputs(list(
@@ -2457,7 +2469,7 @@ Brain::Brain() :
 
     registerMethods(type.Index,
                     id.constructor, indexCtor,
-                    id.constructorWithSelfType, indexCtorWithType,
+                    id.constructorWithSelfType, indexCtorWithSelfType,
                     id.empty, indexEmpty,
                     id.insert, indexInsert,
                     id.remove, indexRemove,
@@ -2658,7 +2670,7 @@ Brain::Brain() :
         m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType),
         m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
         m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType), _(id.constructor)),
-        m_(id.index)      = ast.new_(_(type.Index), _(id.constructorWithSelfType), param(_(id.type), in_(id.indexType)))));
+        m_(id.index)      = ast.new_(_(type.Index), _(id.constructorWithSelfType), param(_(id.indexType), in_(id.indexType)))));
 
     Ast::Function& map2Template = *new Ast::Function(*this, type.Map2, id.template_, "static Map::template");
     map2Template.set(id.static_, boolean.true_);

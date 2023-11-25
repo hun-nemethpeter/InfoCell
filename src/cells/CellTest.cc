@@ -893,9 +893,13 @@ TEST_F(CellTest, NextgenType)
 {
     nextgen::Map map(kb, kb.type.Number, kb.type.Color);
     map.add(_1_, kb.colors.blue);
-    CellI& list = map[id.index][id.type][id.slots][id.list];
-    printAs.value(list, "Map<Number, Color>::index::type::slots::list");
     printAs.value(map, "Map<Number, Color>");
+
+    printAs.value(map[id.index][id.type][id.slots][id.list], "map[id.index][id.type][id.slots][id.list]");
+    printAs.value(map[id.index][id.type][id.slots][id.index], "map[id.index][id.type][id.slots][id.list]");
+    printAs.value(map[id.index][id.type][id.slots][id.index][id.type][id.slots][id.list], "map[id.index][id.type][id.slots][id.index][id.type][id.slots][id.list]");
+    printAs.value(map[id.index][id.type][id.slots][id.index][id.type][id.slots][id.index], "map[id.index][id.type][id.slots][id.index][id.type][id.slots][id.index]");
+    EXPECT_EQ(&map[id.index][id.type], &map[id.index][id.type][id.slots][id.index][id.type]);
 
     nextgen::Index index(kb);
     index.set(kb.type.Number, kb.type.Color);
@@ -919,6 +923,21 @@ TEST_F(CellTest, NextgenType)
     set.remove(_2_);
     EXPECT_EQ(&set[id.size], &_0_);
     printAs.value(set[id.index], "set.index");
+}
+
+TEST_F(CellTest, NextgenBrainType)
+{
+    Object map(kb, kb.type.Map2, id.constructor);
+    printAs.value(map.type());
+    printAs.value(map[id.list].type());
+    printAs.value(map[id.index], "map[id.index]");
+    printAs.value(map[id.index].type(), "map[id.index].type()");
+    map.method(id.add, { id.key, _1_ }, { id.value, kb.colors.red });
+    printAs.value(map[id.index], "map[id.index]");
+    printAs.value(map[id.index].type(), "map[id.index].type()");
+    printAs.cell(map[id.index].type()[id.slots], "map[id.index].type()[id.slots]");
+    printAs.cell(map[id.index].type()[id.slots][id.index], "map[id.index].type()[id.slots][id.index]");
+    printAs.value(map[id.index].type()[id.slots][id.index], "map[id.index].type()[id.slots][id.index]");
 }
 
 int main(int argc, char** argv)

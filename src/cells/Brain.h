@@ -99,6 +99,7 @@ public:
     Object shape;
     Object shapeId;
     Object shapes;
+    Object sharedObject;
     Object size;
     Object slot;
     Object slotRole;
