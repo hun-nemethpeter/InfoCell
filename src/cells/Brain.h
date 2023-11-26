@@ -270,6 +270,7 @@ public:
     Object Map;
     Object Map2;
     Object MapCellToSlot;
+    Object Map2CellToSlot;
     Object MapCellToType;
     Object MapCellToAstFunction;
     Object MapCellToOpFunction;

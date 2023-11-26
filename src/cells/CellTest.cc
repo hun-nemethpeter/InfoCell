@@ -928,16 +928,54 @@ TEST_F(CellTest, NextgenType)
 TEST_F(CellTest, NextgenBrainType)
 {
     Object map(kb, kb.type.Map2, id.constructor);
+    EXPECT_EQ(&map[id.size], &_0_);
+    EXPECT_EQ(&map.method(id.size), &_0_);
+    EXPECT_EQ(&map.method(id.empty), &true_);
+    EXPECT_EQ(&map[id.keyType], &kb.type.Cell);
+    EXPECT_EQ(&map[id.objectType], &kb.type.Cell);
     printAs.value(map.type());
     printAs.value(map[id.list].type());
     printAs.value(map[id.index], "map[id.index]");
     printAs.value(map[id.index].type(), "map[id.index].type()");
+
     map.method(id.add, { id.key, _1_ }, { id.value, kb.colors.red });
     printAs.value(map[id.index], "map[id.index]");
     printAs.value(map[id.index].type(), "map[id.index].type()");
     printAs.cell(map[id.index].type()[id.slots], "map[id.index].type()[id.slots]");
     printAs.cell(map[id.index].type()[id.slots][id.index], "map[id.index].type()[id.slots][id.index]");
     printAs.value(map[id.index].type()[id.slots][id.index], "map[id.index].type()[id.slots][id.index]");
+    EXPECT_EQ(&map[id.size], &_1_);
+    EXPECT_EQ(&map.method(id.size), &_1_);
+    EXPECT_EQ(&map[id.list][id.size], &_1_);
+    EXPECT_EQ(&map[id.list][id.objectType], &kb.type.Cell);
+    EXPECT_EQ(&map[id.list][id.first][id.value], &kb.colors.red);
+    EXPECT_EQ(&map[id.list][id.first], &map[id.list][id.last]);
+    EXPECT_TRUE(map[id.index].has(_1_));
+    EXPECT_EQ(&map[id.index][_1_][id.value], &kb.colors.red);
+    EXPECT_EQ(&map.method(id.empty), &false_);
+    EXPECT_TRUE(map[id.index][id.type][id.memberOf][id.index].has(kb.type.Index));
+
+    map.method(id.add, { id.key, _2_ }, { id.value, kb.colors.green });
+    map.method(id.add, { id.key, _3_ }, { id.value, kb.colors.blue });
+    EXPECT_EQ(&map[id.index][_1_][id.value], &kb.colors.red);
+    EXPECT_EQ(&map[id.index][_2_][id.value], &kb.colors.green);
+    EXPECT_EQ(&map[id.index][_3_][id.value], &kb.colors.blue);
+    printAs.value(map);
+    printAs.cell(map);
+
+    map.method(id.remove, { id.key, _3_ });
+    map.method(id.remove, { id.key, _2_ });
+
+    EXPECT_EQ(&map[id.size], &_1_);
+    EXPECT_EQ(&map.method(id.size), &_1_);
+    EXPECT_EQ(&map[id.list][id.size], &_1_);
+    EXPECT_EQ(&map[id.list][id.objectType], &kb.type.Cell);
+    EXPECT_EQ(&map[id.list][id.first][id.value], &kb.colors.red);
+    EXPECT_EQ(&map[id.list][id.first], &map[id.list][id.last]);
+    EXPECT_TRUE(map[id.index].has(_1_));
+    EXPECT_EQ(&map[id.index][_1_][id.value], &kb.colors.red);
+    EXPECT_EQ(&map.method(id.empty), &false_);
+    EXPECT_TRUE(map[id.index][id.type][id.memberOf][id.index].has(kb.type.Index));
 }
 
 int main(int argc, char** argv)

@@ -91,6 +91,7 @@ public:
     CellI& smethod(CellI& role, Param param1, Param param2);
     CellI& smethod(CellI& role, Param param1, Param param2, Param param3);
     CellI& smethod(CellI& role, Param param1, Param param2, Param param3, Param param4);
+    void resetIndent();
 
 protected:
     void destructor();
@@ -111,7 +112,9 @@ protected:
         setFnParam(fn, param);
         setFnParam(fn, std::forward<Args>(args)...);
     }
+    void printIndent();
 
+    static int s_indent;
     CellI& m_type;
     std::map<CellI*, CellI*> m_slots;
 };

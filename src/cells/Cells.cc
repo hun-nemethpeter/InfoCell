@@ -102,6 +102,7 @@ bool CellI::operator!=(CellI& rhs)
 }
 #pragma endregion
 #pragma region Object
+int Object::s_indent = 0;
 // ============================================================================
 Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
     CellI(kb, label),
@@ -222,8 +223,23 @@ void Object::erase(CellI& role)
     m_slots.erase(slotIt);
 }
 
+void Object::printIndent()
+{
+    static const int s_tabSize = 2;
+    for (int i = 0; i < s_indent; ++i) {
+        for (int j = 0; j < s_tabSize; ++j) {
+            std::cout << " ";
+        }
+    }
+}
+void Object::resetIndent()
+{
+    s_indent = 0;
+}
+
 void Object::operator()()
 {
+    static bool s_debugFunctionCalls = false;
     if (&m_type == &kb.type.op.Block) {
         Visitor::visitList(get(kb.id.ops), [this](CellI& op, int, bool& stop) {
             if (&op.type() == &kb.type.op.Return) {
@@ -251,7 +267,22 @@ void Object::operator()()
     } else if (&m_type == &kb.type.op.Function || (m_type.has(kb.id.memberOf) && m_type[kb.id.memberOf][kb.id.index].has(kb.type.op.Function))) {
         if (has(kb.id.op)) {
             CellI& op = get(kb.id.op);
+            const std::string& functionName = label();
+
+            CellI& stackBefore          = get(kb.id.stack);
+            CellI& stackFrameBefore     = get(kb.id.stack)[kb.id.value];
+            CellI& stackFrameBeforeSelf = get(kb.id.stack)[kb.id.value][kb.id.input][kb.id.self];
+            if (s_debugFunctionCalls) {
+                printIndent();
+                s_indent++;
+                std::cout << label() << std::endl;
+            }
             op();
+            if (s_debugFunctionCalls) {
+                s_indent--;
+            }
+            CellI& stackAfter      = get(kb.id.stack);
+            CellI& stackFrameAfter = get(kb.id.stack)[kb.id.value];
         }
     } else if (&m_type == &kb.type.op.Delete) {
         CellI& input = get(kb.id.input);
@@ -268,7 +299,6 @@ void Object::operator()()
         CellI& inputValue = get(kb.id.value);
         inputValue();
         CellI& value = inputValue[kb.id.value];
-
         cell.set(role, value);
     } else if (&m_type == &kb.type.op.Erase) {
         CellI& inputCell = get(kb.id.cell);
@@ -389,6 +419,14 @@ void Object::operator()()
         CellI& role = inputRole[kb.id.value];
         set(kb.id.value, kb.toKbBool(cell.missing(role)));
     } else if (&m_type == &kb.type.op.Get) {
+        if (label() == "self") {
+            CellI& debugCell1Cell = get(kb.id.cell)[kb.id.cell];
+            CellI& debugCell1Role = get(kb.id.cell)[kb.id.role][kb.id.value];
+            CellI& debugCell2Cell = get(kb.id.cell)[kb.id.cell][kb.id.cell];
+            CellI& debugCell2Role = get(kb.id.cell)[kb.id.cell][kb.id.role][kb.id.value];
+            CellI& debugCell3Cell = get(kb.id.cell)[kb.id.cell][kb.id.cell][kb.id.cell][kb.id.value];
+            CellI& debugCell3Role = get(kb.id.cell)[kb.id.cell][kb.id.cell][kb.id.role][kb.id.value];
+        }
         CellI& inputCell = get(kb.id.cell);
         inputCell();
         CellI& cell      = inputCell[kb.id.value];
@@ -616,6 +654,7 @@ bool Object::hasMethod(CellI& role)
 
 CellI& Object::getMethod(CellI& role)
 {
+    resetIndent();
     if (type().has(kb.id.methods)) {
         CellI& methodsIndex = type()[kb.id.methods][kb.id.index];
         if (methodsIndex.has(role)) {
@@ -649,7 +688,7 @@ CellI& Object::getStaticMethod(CellI& role)
 
 void Object::createStack(CellI& method)
 {
-    Object& inputIndex    = *new Object(kb, kb.type.Index);
+    Object& inputIndex    = *new Object(kb, kb.type.Index, "StackFrame1.InputIndex");
     Object& stackFrame    = *new Object(kb, kb.type.StackFrame, "StackFrame1");
     Object& stackListItem = *new Object(kb, kb.type.ListItem, "StackListItem1");
     stackFrame.set(kb.id.method, method);

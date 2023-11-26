@@ -551,15 +551,16 @@ Types::Types(brain::Brain& kb) :
     ListOfSlot(kb, kb.type.Type_, "List<Slot>"),
     ListItem(kb, kb.type.Type_, "ListItem"),
     Map(kb, kb.type.Type_, "Map"),
-    Map2(kb, kb.type.Type_, "Map2"),
+    Map2(kb, kb.type.Type2_, "Map2"),
     MapCellToSlot(kb, kb.type.Type_, "Map<Cell, Slot>"),
+    Map2CellToSlot(kb, kb.type.Type_, "Map2<Cell, Slot>"),
     MapCellToType(kb, kb.type.Type_, "Map<Cell, Type>"),
     MapCellToAstFunction(kb, kb.type.Type_, "Map<Cell, ast::Function>"),
     MapCellToOpFunction(kb, kb.type.Type_, "Map<Cell, op::Function>"),
     MapCellToOpVar(kb, kb.type.Type_, "Map<Cell, op::Var>"),
     MapCellToOpBase(kb, kb.type.Type_, "Map<Cell, op::Base>"),
     MapTypeToType(kb, kb.type.Type_, "Map<Type, Type>"),
-    Index(kb, kb.type.Type_, "Index"),
+    Index(kb, kb.type.Type2_, "Index"),
     Set(kb, kb.type.Type_, "Set"),
     Boolean(kb, kb.type.Type_, "Boolean"),
     Char(kb, kb.type.Type_, "Char"),
@@ -904,6 +905,7 @@ CellI& Ast::Function::compileImpl(CellI* type)
 
     cells::Object& function = *new cells::Object(kb, functionType);
     compileParams(function, functionInputType, functionOutputType, type);
+    functionType.label(std::format("Type for {}", function.label()));
     function.set(kb.id.ast, asts());
     function.set(kb.id.op, compileAst(asts(), function, type));
     if (has(kb.id.static_)) {
@@ -983,6 +985,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
     } else if (&ast.type() == &kb.type.ast.Self) {
         CellI& retOp = compile(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.input) / _(id.self));
         retOp.set(id.ast, ast);
+        retOp.label("self");
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Input) {
         CellI& retOp = compile(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.input) / _(ast[id.role]));
@@ -1154,6 +1157,7 @@ block {
         CellI& setListItem        = compile(kb.ast.set(_(varNewStackItem) / _(id.value), _(id.value), _(varNewStackFrame) / _(id.value)));
         CellI& setListItemPrev    = compile(kb.ast.set(_(varNewStackItem) / _(id.value), _(kb.id.previous), _(varMethod) / _(id.value) / _(id.stack)));
         CellI& storeInputIndex    = compile(kb.ast.set(_(varInputIndex), _(id.value), kb.ast.new_(_(kb.type.Index))));
+        CellI& setMethod          = compile(kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.method), _(varMethod) / _(id.value)));
 
         CellI& createNewLocalVars = compile(
             kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index), _(id.localVars)),
@@ -1179,7 +1183,7 @@ block {
         CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output), _(id.slots)),
                                                   kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.slots) / _(id.index), _(id.value)),
                                                              kb.ast.set(_(block), _(kb.id.value), _(varMethod) / _(id.value) / _(id.stack) / _(id.value) / _(id.output) / _(kb.id.value) / _(kb.id.value)))));
-        CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / _(id.value), _(id.stack), _(varMethod) / _(id.value) / _(id.stack) / _(kb.id.previous)));
+        CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / _(id.value) / _(id.stack) / _(kb.id.previous) / _(id.value) / _(id.method), _(id.stack), _(varMethod) / _(id.value) / _(id.stack) / _(kb.id.previous)));
 
         compiledAsts.add(storeMethod);
         compiledAsts.add(setCurrentStack);
@@ -1189,13 +1193,14 @@ block {
         compiledAsts.add(setListItemPrev);
         compiledAsts.add(storeInputIndex);
         compiledAsts.add(createNewLocalVars);
+        compiledAsts.add(setMethod);
         compiledAsts.add(setInput);
         compiledAsts.add(setOutput);
         compiledAsts.add(setSelf);
 
 
         if (ast.has(kb.id.parameters)) {
-            Visitor::visitList(ast[kb.id.parameters], [this, &ast, &function, type, &compiledAsts, &compile, &varInputIndex, &_, &id](CellI& param, int, bool&) {
+            Visitor::visitList(ast[kb.id.parameters], [this, &compiledAsts, &compile, &varInputIndex, &_, &id](CellI& param, int, bool&) {
                 Ast::Base& paramRole  = static_cast<Ast::Base&>(param[kb.id.slotRole]);
                 Ast::Base& paramValue = static_cast<Ast::Base&>(param[kb.id.slotType]);
                 CellI& setParam       = compile(kb.ast.set(_(varInputIndex) / _(id.value), paramRole, paramValue));
@@ -1219,6 +1224,7 @@ block {
         setListItemPrev.label("Call { setListItemPrev; }");
         storeInputIndex.label("Call { storeInputIndex; }");
         createNewLocalVars.label("Call { createNewLocalVars; }");
+        setMethod.label("Call { setMethod; }");
         setInput.label("Call { setInput; }");
         setOutput.label("Call { setOutput; }");
         setSelf.label("Call { setSelf; }");
@@ -2270,7 +2276,8 @@ Brain::Brain() :
 
     Ast::Function& typeAddSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::addSlot");
     typeAddSlot.addInputs(list(
-        ast.slot(id.slotRole, type.Cell), ast.slot(id.slotType, type.Type_)));
+        param(id.slotRole, type.Cell),
+        param(id.slotType, type.Type_)));
     typeAddSlot.addBlock(ast.block(
         ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
         var_(id.item) = ast.new_(_(type.Slot)),
@@ -2318,7 +2325,7 @@ Brain::Brain() :
 #pragma region Type2
     Ast::Function& type2Ctor = *new Ast::Function(*this, type.Type2_, id.constructor, "Type::constructor");
     type2Ctor.addBlock(ast.block(
-        m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))));
+        m_(id.slots) = ast.new_(_(type.Map2CellToSlot), _(id.constructor))));
 
     Ast::Function& type2CtorWithRecursiveType = *new Ast::Function(*this, type.Type2_, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
     type2CtorWithRecursiveType.addBlock(ast.block(
@@ -2344,8 +2351,8 @@ Brain::Brain() :
         param(id.slotRole, type.Cell),
         param(id.slotType, type.Slot)));
     type2AddSlot.addBlock(ast.block(
-        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
-        ast.call(m_(id.slots), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slot)))));
+        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.Map2CellToSlot), _(id.constructor))),
+        ast.call(m_(id.slots), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slotType)))));
 
     Ast::Function& type2AddSlots = *new Ast::Function(*this, type.Type2_, id.addSlots, "Type::addSlots");
     type2AddSlots.addInputs(list(
@@ -2353,7 +2360,7 @@ Brain::Brain() :
     type2AddSlots.addBlock(ast.block(
         ast.if_(ast.equal(in_(id.list) / _(id.size), _(_0_)), ast.return_()),
         var_(id.item) = in_(id.list) / _(id.first),
-        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
+        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.Map2CellToSlot), _(id.constructor))),
         ast.do_(ast.block(
                     var_(id.next) = _(boolean.true_),
                     ast.call(m_(id.slots), _(id.add), param(_(id.key), *var_(id.item) / _(id.value) / _(id.slotRole)), param(_(id.value), *var_(id.item) / _(id.value))),
@@ -2362,7 +2369,7 @@ Brain::Brain() :
                             var_(id.next) = _(boolean.false_))),
                 ast.same(*var_(id.next), _(boolean.true_)))));
 
-    Ast::Function& type2HasSlot = *new Ast::Function(*this, type.Type2_, id.addSlot, "Type::hasSlot");
+    Ast::Function& type2HasSlot = *new Ast::Function(*this, type.Type2_, id.hasSlot, "Type::hasSlot");
     type2HasSlot.addInputs(list(
         param(id.slotRole, type.Cell)));
     type2HasSlot.addOutputs(list(
@@ -2376,7 +2383,7 @@ Brain::Brain() :
         param(id.slotRole, type.Cell)));
     type2RemoveSlot.addBlock(ast.block(
         ast.if_(m_(id.slots).missing(), ast.return_()),
-        ast.call(m_(id.slots), _(id.removeSlot), param(_(id.key), in_(id.slotRole)))));
+        ast.call(m_(id.slots), _(id.remove), param(_(id.key), in_(id.slotRole)))));
 
     registerMethods(type.Type2_,
                     id.constructor, type2Ctor,
@@ -2709,6 +2716,8 @@ Brain::Brain() :
     Ast::Function& map2HasKey = *new Ast::Function(*this, type.Map2, id.hasKey, "Map::hasKey");
     map2HasKey.addInputs(list(
         param(id.key, type.Cell)));
+    map2HasKey.addOutputs(list(
+        ast.slot(id.value, type.Boolean)));
     map2HasKey.addBlock(ast.block(
         ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
 
@@ -2750,7 +2759,7 @@ Brain::Brain() :
         ast.if_(ast.equal(in_(id.key), _(id.type)), ast.return_()),
         ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_()),
         var_(id.item) = m_(id.list).call(_(id.add), param(_(id.value), in_(id.value))),
-        ast.call(m_(id.index), _(id.insert), param(_(id.key), in_(id.key)), param(_(id.value), in_(id.value))),
+        ast.call(m_(id.index), _(id.insert), param(_(id.key), in_(id.key)), param(_(id.value), *var_(id.item))),
         m_(id.size) = ast.add(m_(id.size), _(_1_))));
 
     /*
@@ -2769,9 +2778,9 @@ Brain::Brain() :
     map2Remove.addInputs(list(
         param(id.key, type.Cell)));
     map2Remove.addBlock(ast.block(
-        ast.if_(ast.not_(ast.call(m_(id.type), _(id.hasSlot), param(_(id.slotRole), in_(id.key)))),
+        ast.if_(ast.missing(m_(id.index), in_(id.key)),
                 ast.return_()),
-        ast.call(m_(id.list), _(id.remove), param(_(id.item), m_(id.index) / _(in_(id.key)))),
+        ast.call(m_(id.list), _(id.remove), param(_(id.item), m_(id.index) / in_(id.key))),
         ast.call(m_(id.index), _(id.remove), param(_(id.key), in_(id.key))),
         m_(id.size) = ast.subtract(m_(id.size), _(_1_))));
 
@@ -2797,6 +2806,28 @@ Brain::Brain() :
                     id.remove, map2Remove,
                     id.size, map2Size,
                     id.empty, map2Empty);
+
+    // Map<Cell, Slot>
+    type.Map2CellToSlot.set(id.subTypes, map(type.Cell, type.Type2_, id.keyType, type.Cell, id.objectType, type.Slot, id.listType, type.ListOf(type.Slot)));
+    type.Map2CellToSlot.set(id.memberOf, map(type.Type2_, type.Type2_, type.Map2, type.Map2));
+    mapPtr = &slots(type.slot(id.list, type.ListOf(type.Slot)),
+                    type.slot(id.index, type.Index),
+                    type.slot(id.keyType, type.Cell),
+                    type.slot(id.objectType, type.Slot),
+                    type.slot(id.size, type.Number));
+    type.Map2CellToSlot.set(id.slots, *mapPtr);
+    registerMethods(type.Map2CellToSlot,
+                    id.constructor, map2Ctor,
+                    id.constructorWithIndexType, map2CtorWithIndexType,
+                    id.template_, map2Template,
+                    id.hasKey, map2HasKey,
+                    id.getValue, map2GetValue,
+                    id.add, map2Add,
+                    id.remove, map2Remove,
+                    id.size, map2Size,
+                    id.empty, map2Empty);
+
+
  #pragma endregion
 #pragma region Set
     mapPtr = &slots(type.slot(id.objectType, type.Cell),
