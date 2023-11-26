@@ -20,29 +20,18 @@ class Printer : public cells::Visitor
 public:
     Printer(int width, int height);
 
-    void visit(Map::Index::Type::Slots::SlotList::Item& cell) override;
-    void visit(Map::Index::Type::Slots::SlotList& cell) override;
-    void visit(Map::Index::Type::Slots::SlotIndex& cell) override;
-    void visit(Map::Index::Type::Slots& cell) override;
-    void visit(Map::Index::Type::Slot& cell) override;
-    void visit(Map::Index::Type& cell) override;
-    void visit(Map::Index& cell) override;
-    void visit(Map& cell) override;
     void visit(Object& cell) override;
     void visit(List::Item& cell) override;
     void visit(List& cell) override;
+    void visit(Type& cell) override;
+    void visit(Index& cell) override;
+    void visit(Map& cell) override;
+    void visit(Set& cell) override;
     void visit(Number& cell) override;
     void visit(String& cell) override;
     void visit(hybrid::Color& cell) override;
     void visit(hybrid::Pixel& cell) override;
     void visit(hybrid::Picture& cell) override;
-    void visit(nextgen::List::Item& cell) override;
-    void visit(nextgen::List& cell) override;
-    void visit(nextgen::Type& cell) override;
-    void visit(nextgen::Index& cell) override;
-    void visit(nextgen::Map& cell) override;
-    void visit(nextgen::Set& cell) override;
-
     void showcaseLastResult(const std::string& caseName);
     std::string print();
     void writeFile(const std::filesystem::path& path);

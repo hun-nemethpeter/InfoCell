@@ -540,7 +540,6 @@ Arc::Arc(brain::Brain& kb) :
 Types::Types(brain::Brain& kb) :
     kb(kb),
     Type_(kb, kb.type.Type_, "Type"),
-    Type2_(kb, kb.type.Type_, "Type"),
     Struct(kb, kb.type.Type_, "Struct"),
     Enum(kb, kb.type.Type_, "Enum"),
     Cell(kb, kb.type.Type_, "Cell"),
@@ -551,16 +550,14 @@ Types::Types(brain::Brain& kb) :
     ListOfSlot(kb, kb.type.Type_, "List<Slot>"),
     ListItem(kb, kb.type.Type_, "ListItem"),
     Map(kb, kb.type.Type_, "Map"),
-    Map2(kb, kb.type.Type2_, "Map2"),
     MapCellToSlot(kb, kb.type.Type_, "Map<Cell, Slot>"),
-    Map2CellToSlot(kb, kb.type.Type_, "Map2<Cell, Slot>"),
     MapCellToType(kb, kb.type.Type_, "Map<Cell, Type>"),
     MapCellToAstFunction(kb, kb.type.Type_, "Map<Cell, ast::Function>"),
     MapCellToOpFunction(kb, kb.type.Type_, "Map<Cell, op::Function>"),
     MapCellToOpVar(kb, kb.type.Type_, "Map<Cell, op::Var>"),
     MapCellToOpBase(kb, kb.type.Type_, "Map<Cell, op::Base>"),
     MapTypeToType(kb, kb.type.Type_, "Map<Type, Type>"),
-    Index(kb, kb.type.Type2_, "Index"),
+    Index(kb, kb.type.Type_, "Index"),
     Set(kb, kb.type.Type_, "Set"),
     Boolean(kb, kb.type.Type_, "Boolean"),
     Char(kb, kb.type.Type_, "Char"),
@@ -587,19 +584,12 @@ Types::Types(brain::Brain& kb) :
     Slot.set(kb.id.slots, *map);
 
     map = &kb.slots(type.slot(id.slots, MapCellToSlot),
-                    type.slot(id.subTypes, MapCellToType),
-                    type.slot(id.memberOf, MapTypeToType),
-                    type.slot(id.asts, MapCellToAstFunction),
-                    type.slot(id.methods, MapCellToOpFunction));
-    Type_.set(id.slots, *map);
-
-    map = &kb.slots(type.slot(id.slots, MapCellToSlot),
                     type.slot(id.sharedObject, Slot),
                     type.slot(id.subTypes, MapCellToType),
                     type.slot(id.memberOf, MapTypeToType),
                     type.slot(id.asts, MapCellToAstFunction),
                     type.slot(id.methods, MapCellToOpFunction));
-    Type2_.set(id.slots, *map);
+    Type_.set(id.slots, *map);
 
     map = &kb.slots(type.slot(id.members, List));
     Enum.set(id.slots, *map);
@@ -963,24 +953,24 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
     auto& id = kb.id;
 
     if (&ast.type() == &kb.type.ast.Block) {
-        CellI& list        = ast[kb.id.asts];
+        CellI& list        = ast[id.asts];
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
         Visitor::visitList(list, [this, &compiledAsts, &ast, &function, type](CellI& ast, int, bool&) {
             compiledAsts.add(compileAst(ast, function, type));
         });
         Object& opBlock = *new Object(kb, kb.type.op.Block);
-        opBlock.set(kb.id.ast, ast);
-        opBlock.set(kb.id.ops, compiledAsts);
+        opBlock.set(id.ast, ast);
+        opBlock.set(id.ops, compiledAsts);
         return opBlock;
     } else if (&ast.type() == &kb.type.ast.Cell) {
         Object& constVar = *new Object(kb, kb.type.op.ConstVar);
-        constVar.set(kb.id.ast, ast);
-        constVar.set(kb.id.value, ast[kb.id.value]);
+        constVar.set(id.ast, ast);
+        constVar.set(id.value, ast[id.value]);
         return constVar;
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
         Object& constVar = *new Object(kb, kb.type.op.ConstVar);
-        constVar.set(kb.id.ast, ast);
-        constVar.set(kb.id.value, function);
+        constVar.set(id.ast, ast);
+        constVar.set(id.value, function);
         return constVar;
     } else if (&ast.type() == &kb.type.ast.Self) {
         CellI& retOp = compile(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.input) / _(id.self));
@@ -996,85 +986,88 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         retOp.set(id.ast, ast);
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Var) {
-        if (function.type()[kb.id.subTypes][kb.id.index].missing(kb.id.localVars)) {
-            cells::Object& functionLocalVarsType = *new cells::Object(kb, kb.type.Type_);
-            functionLocalVarsType.set(kb.id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.Index, kb.type.Index));
-            static_cast<Map&>(function.type()[kb.id.subTypes]).add(kb.id.localVars, functionLocalVarsType);
+        if (function.label().starts_with("fn Map::add")) {
+            std::cout << "";
         }
-        CellI& localVarsType = function.type()[kb.id.subTypes][kb.id.index][kb.id.localVars];
-        if (localVarsType.missing(kb.id.slots)) {
-            localVarsType.set(kb.id.slots, *new Map(kb, kb.type.Cell, kb.type.Slot));
+        if (function.type()[id.subTypes][id.index].missing(id.localVars)) {
+            cells::Object& functionLocalVarsType = *new cells::Object(kb, kb.type.Type_, std::format("LocalVarsType of {}", function.label()));
+            functionLocalVarsType.set(id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.Index, kb.type.Index));
+            static_cast<Map&>(function.type()[id.subTypes]).add(id.localVars, functionLocalVarsType);
         }
-        auto& slotsMap = static_cast<Map&>(localVarsType[kb.id.slots]);
-        if (!slotsMap.hasKey(ast[kb.id.role])) {
-            slotsMap.add(ast[kb.id.role], kb.type.slot(ast[kb.id.role], kb.type.op.Var));
+        CellI& localVarsType = function.type()[id.subTypes][id.index][id.localVars][id.value];
+        if (localVarsType.missing(id.slots)) {
+            localVarsType.set(id.slots, *new Map(kb, kb.type.Cell, kb.type.Slot));
+        }
+        auto& slotsMap = static_cast<Map&>(localVarsType[id.slots]);
+        if (!slotsMap.hasKey(ast[id.role])) {
+            slotsMap.add(ast[id.role], kb.type.slot(ast[id.role], kb.type.op.Var));
         }
         CellI& retOp = compile(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.localVars) / _(ast[id.role]));
         retOp.set(id.ast, ast);
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Delete) {
         Object& retOp = *new Object(kb, kb.type.op.Delete);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.input, compile(ast[kb.id.cell]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.input, compile(ast[id.cell]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Set) {
         Object& retOp = *new Object(kb, kb.type.op.Set);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.cell, compile(ast[kb.id.cell]));
-        retOp.set(kb.id.role, compile(ast[kb.id.role]));
-        retOp.set(kb.id.value, compile(ast[kb.id.value]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.cell, compile(ast[id.cell]));
+        retOp.set(id.role, compile(ast[id.role]));
+        retOp.set(id.value, compile(ast[id.value]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Erase) {
         Object& retOp = *new Object(kb, kb.type.op.Erase);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.cell, compile(ast[kb.id.cell]));
-        retOp.set(kb.id.role, compile(ast[kb.id.role]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.cell, compile(ast[id.cell]));
+        retOp.set(id.role, compile(ast[id.role]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.If) {
         Object& retOp = *new Object(kb, kb.type.op.If);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.condition, compile(ast[kb.id.condition]));
-        retOp.set(kb.id.then, compile(ast[kb.id.then]));
-        if (ast.has(kb.id.else_)) {
-            retOp.set(kb.id.else_, compile(ast[kb.id.else_]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.condition, compile(ast[id.condition]));
+        retOp.set(id.then, compile(ast[id.then]));
+        if (ast.has(id.else_)) {
+            retOp.set(id.else_, compile(ast[id.else_]));
             return retOp;
         } else {
             return retOp;
         }
     } else if (&ast.type() == &kb.type.ast.Do) {
         Object& retOp = *new Object(kb, kb.type.op.Do);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.condition, compile(ast[kb.id.condition]));
-        retOp.set(kb.id.statement, compile(ast[kb.id.statement]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.condition, compile(ast[id.condition]));
+        retOp.set(id.statement, compile(ast[id.statement]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.While) {
         Object& retOp = *new Object(kb, kb.type.op.While);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.condition, compile(ast[kb.id.condition]));
-        retOp.set(kb.id.statement, compile(ast[kb.id.statement]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.condition, compile(ast[id.condition]));
+        retOp.set(id.statement, compile(ast[id.statement]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.New) {
         auto& compiledAsts = *new cells::List(kb, kb.type.op.Base);
 
         Object& block = *new Object(kb, kb.type.op.Block);
-        block.set(kb.id.ast, ast);
-        block.set(kb.id.ops, compiledAsts);
+        block.set(id.ast, ast);
+        block.set(id.ops, compiledAsts);
         Object& opSet = *new Object(kb, kb.type.op.Set, "block.value = new objectType()");
-        opSet.set(kb.id.ast, ast);
-        opSet.set(kb.id.cell, compile(kb.ast.cell(block)));
-        opSet.set(kb.id.role, compile(kb.ast.cell(kb.id.value)));
+        opSet.set(id.ast, ast);
+        opSet.set(id.cell, compile(kb.ast.cell(block)));
+        opSet.set(id.role, compile(kb.ast.cell(id.value)));
         Object& opNew = *new Object(kb, kb.type.op.New);
-        opNew.set(kb.id.ast, ast);
-        opNew.set(kb.id.objectType, compile(ast[kb.id.objectType]));
-        opSet.set(kb.id.value, opNew);
+        opNew.set(id.ast, ast);
+        opNew.set(id.objectType, compile(ast[id.objectType]));
+        opSet.set(id.value, opNew);
 
         compiledAsts.add(opSet);
-        if (ast.has(kb.id.constructor)) {
+        if (ast.has(id.constructor)) {
             Object& callAst = *new Object(kb, kb.type.ast.Call);
-            callAst.set(kb.id.cell, kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.id.value)));
-            callAst.set(kb.id.method, ast[kb.id.constructor]);
-            if (ast.has(kb.id.parameters)) {
-                callAst.set(kb.id.parameters, ast[kb.id.parameters]);
+            callAst.set(id.cell, kb.ast.get(kb.ast.cell(block), kb.ast.cell(id.value)));
+            callAst.set(id.method, ast[id.constructor]);
+            if (ast.has(id.parameters)) {
+                callAst.set(id.parameters, ast[id.parameters]);
             }
             compiledAsts.add(compile(callAst));
         }
@@ -1119,70 +1112,72 @@ block {
  }
 */
         const char* blockName  = &ast.type() == &kb.type.ast.Call ? "Call { ... }" : "SCall { ... }";
-        Ast::Base& astCell     = static_cast<Ast::Base&>(ast[kb.id.cell]);
-        Ast::Base& astMethod   = static_cast<Ast::Base&>(ast[kb.id.method]);
+        Ast::Base& astCell     = static_cast<Ast::Base&>(ast[id.cell]);
+        Ast::Base& astMethod   = static_cast<Ast::Base&>(ast[id.method]);
         Ast::Get* getMethodPtr = nullptr;
         if (&ast.type() == &kb.type.ast.Call) {
-            getMethodPtr = &(kb.ast.get(astCell, _(kb.id.type)) / _(kb.id.methods));
+            getMethodPtr = &(kb.ast.get(astCell, _(id.type)) / _(id.methods));
         } else {
-            getMethodPtr = &(kb.ast.get(astCell, _(kb.id.methods)));
+            getMethodPtr = &(kb.ast.get(astCell, _(id.methods)));
         }
-        Ast::Get& getMethod = (*getMethodPtr) / _(kb.id.index) / astMethod;
+        Ast::Get& getMethod = (*getMethodPtr) / _(id.index) / astMethod / _(id.value);
         auto& compiledAsts  = *new cells::List(kb, kb.type.op.Base);
         Object& block       = *new Object(kb, kb.type.op.Block, blockName);
-        block.set(kb.id.ast, ast);
-        block.set(kb.id.ops, compiledAsts);
+        block.set(id.ast, ast);
+        block.set(id.ops, compiledAsts);
         Object& varMethod = *new Object(kb, kb.type.op.Var, "Call { var_method; }");
-        varMethod.set(kb.id.objectType, kb.type.op.Function);
-        CellI& storeMethod     = compile(kb.ast.set(_(varMethod), _(kb.id.value), getMethod));
-        CellI& setCurrentStack = compile(kb.ast.set(_(varMethod) / _(kb.id.value), _(kb.id.stack), kb.ast.get(_(function), _(id.stack))));
+        varMethod.set(id.objectType, kb.type.op.Function);
+        CellI& storeMethod     = compile(kb.ast.set(_(varMethod), _(id.value), getMethod));
+        CellI& setCurrentStack = compile(kb.ast.set(_(varMethod) / _(id.value), _(id.stack), kb.ast.get(_(function), _(id.stack))));
 
         Object& varNewStackItem = *new Object(kb, kb.type.op.Var, "Call { var_newStackItem; }");
-        varNewStackItem.set(kb.id.objectType, kb.type.ListItem);
+        varNewStackItem.set(id.objectType, kb.type.ListItem);
         Object& varNewStackFrame = *new Object(kb, kb.type.op.Var, "Call { var_newStackFrame; }");
-        varNewStackFrame.set(kb.id.objectType, kb.type.StackFrame);
+        varNewStackFrame.set(id.objectType, kb.type.StackFrame);
 
         Object& varInputIndex = *new Object(kb, kb.type.Index, "Call { var_inputIndex; }");
         Object& varLocalVars = *new Object(kb, kb.type.op.Var, "Call { var_localVars; }");
-        varLocalVars.set(kb.id.objectType, kb.type.Index);
+        varLocalVars.set(id.objectType, kb.type.Index);
         Object& varLocalVarsList = *new Object(kb, kb.type.op.Var, "Call { var_localVarsList; }");
-        varLocalVarsList.set(kb.id.objectType, kb.type.List);
+        varLocalVarsList.set(id.objectType, kb.type.List);
         Object& varLocalVarsListItem = *new Object(kb, kb.type.op.Var, "Call { var_localVarsListItem; }");
-        varLocalVarsListItem.set(kb.id.objectType, kb.type.ListItem);
+        varLocalVarsListItem.set(id.objectType, kb.type.ListItem);
         Object& varLocalVarsListItemHasNext = *new Object(kb, kb.type.op.Var, "Call { var_localVarsListItemHasNext; }");
-        varLocalVarsListItemHasNext.set(kb.id.objectType, kb.type.Boolean);
+        varLocalVarsListItemHasNext.set(id.objectType, kb.type.Boolean);
 
         CellI& storeStackItem     = compile(kb.ast.set(_(varNewStackItem), _(id.value), kb.ast.new_(_(kb.type.ListItem))));
         CellI& storeStackFrame    = compile(kb.ast.set(_(varNewStackFrame), _(id.value), kb.ast.new_(_(kb.type.StackFrame))));
         CellI& setListItem        = compile(kb.ast.set(_(varNewStackItem) / _(id.value), _(id.value), _(varNewStackFrame) / _(id.value)));
-        CellI& setListItemPrev    = compile(kb.ast.set(_(varNewStackItem) / _(id.value), _(kb.id.previous), _(varMethod) / _(id.value) / _(id.stack)));
+        CellI& setListItemPrev    = compile(kb.ast.set(_(varNewStackItem) / _(id.value), _(id.previous), _(varMethod) / _(id.value) / _(id.stack)));
+        CellI& setListItemNext    = compile(kb.ast.set(_(varMethod) / _(id.value) / _(id.stack), _(id.next), _(varNewStackItem) / _(id.value)));
         CellI& storeInputIndex    = compile(kb.ast.set(_(varInputIndex), _(id.value), kb.ast.new_(_(kb.type.Index))));
         CellI& setMethod          = compile(kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.method), _(varMethod) / _(id.value)));
 
         CellI& createNewLocalVars = compile(
             kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index), _(id.localVars)),
                        kb.ast.block(
-                           kb.ast.set(_(varLocalVars), _(id.value), kb.ast.new_(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.localVars))),
+                           kb.ast.set(_(varLocalVars), _(id.value), kb.ast.new_(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.localVars) / _(id.value))),
                            kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.localVars), _(varLocalVars) / _(id.value)),
-                           kb.ast.set(_(varLocalVarsListItem), _(id.value), _(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.localVars) / _(id.slots) / _(id.list) / _(kb.id.first)),
+                           kb.ast.set(_(varLocalVarsListItem), _(id.value), _(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.localVars) / _(id.value) / _(id.slots) / _(id.list) / _(id.first)),
                            kb.ast.do_(kb.ast.block(
                                           kb.ast.set(_(varLocalVarsListItemHasNext), _(id.value), _(kb.boolean.true_)),
-                                          kb.ast.set(_(varLocalVars) / _(id.value), _(varLocalVarsListItem) / _(kb.id.value) / _(kb.id.value) / _(id.slotRole), kb.ast.new_(_(kb.type.op.Var))),
-                                          kb.ast.if_(kb.ast.has(_(varLocalVarsListItem) / _(id.value), _(kb.id.next)),
-                                                     kb.ast.set(_(varLocalVarsListItem), _(id.value), _(varLocalVarsListItem) / _(id.value) / _(kb.id.next)),
+                                          kb.ast.set(_(varLocalVars) / _(id.value), _(varLocalVarsListItem) / _(id.value) / _(id.value) / _(id.slotRole), kb.ast.new_(_(kb.type.op.Var))),
+                                          kb.ast.if_(kb.ast.has(_(varLocalVarsListItem) / _(id.value), _(id.next)),
+                                                     kb.ast.set(_(varLocalVarsListItem), _(id.value), _(varLocalVarsListItem) / _(id.value) / _(id.next)),
                                                      kb.ast.set(_(varLocalVarsListItemHasNext), _(id.value), _(kb.boolean.false_)))),
                                       kb.ast.same(_(varLocalVarsListItemHasNext) / _(id.value), _(kb.boolean.true_))))));
 
         CellI& setInput      = compile(kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.input), _(varInputIndex) / _(id.value)));
         CellI& setSelf       = compile(kb.ast.set(_(varInputIndex) / _(id.value), _(id.self), astCell));
         CellI& setStackToNew = compile(kb.ast.set(_(varMethod) / _(id.value), _(id.stack), _(varNewStackItem) / _(id.value)));
-        CellI& setOutput     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output), _(id.slots)),
-                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.slots) / _(id.index), _(id.value)),
-                                                             kb.ast.block(kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.output), kb.ast.new_(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output))),
+        CellI& setOutput     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value), _(id.slots)),
+                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value) / _(id.slots) / _(id.index), _(id.value)),
+                                                             kb.ast.block(kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.output), kb.ast.new_(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value))),
                                                                           kb.ast.set(_(varNewStackFrame) / _(id.value) / _(id.output), _(id.value), kb.ast.new_(_(kb.type.op.Var)))))));
-        CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output), _(id.slots)),
-                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.slots) / _(id.index), _(id.value)),
-                                                             kb.ast.set(_(block), _(kb.id.value), _(varMethod) / _(id.value) / _(id.stack) / _(id.value) / _(id.output) / _(kb.id.value) / _(kb.id.value)))));
+        CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value), _(id.slots)),
+                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value) / _(id.slots) / _(id.index), _(id.value)),
+                                                             kb.ast.set(_(block), _(id.value), _(varMethod) / _(id.value) / _(id.stack) / _(id.value) / _(id.output) / _(id.value) / _(id.value)))));
+//        CellI& setStackToOld = compile(kb.ast.set(_(varNewStackItem) / _(id.value) / _(id.previous) / _(id.value) / _(id.method), _(id.stack), _(varNewStackItem) / _(id.value) / _(id.previous)));
         CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / _(id.value) / _(id.stack) / _(kb.id.previous) / _(id.value) / _(id.method), _(id.stack), _(varMethod) / _(id.value) / _(id.stack) / _(kb.id.previous)));
 
         compiledAsts.add(storeMethod);
@@ -1191,6 +1186,7 @@ block {
         compiledAsts.add(storeStackFrame);
         compiledAsts.add(setListItem);
         compiledAsts.add(setListItemPrev);
+        compiledAsts.add(setListItemNext);
         compiledAsts.add(storeInputIndex);
         compiledAsts.add(createNewLocalVars);
         compiledAsts.add(setMethod);
@@ -1199,17 +1195,17 @@ block {
         compiledAsts.add(setSelf);
 
 
-        if (ast.has(kb.id.parameters)) {
-            Visitor::visitList(ast[kb.id.parameters], [this, &compiledAsts, &compile, &varInputIndex, &_, &id](CellI& param, int, bool&) {
-                Ast::Base& paramRole  = static_cast<Ast::Base&>(param[kb.id.slotRole]);
-                Ast::Base& paramValue = static_cast<Ast::Base&>(param[kb.id.slotType]);
+        if (ast.has(id.parameters)) {
+            Visitor::visitList(ast[id.parameters], [this, &compiledAsts, &compile, &varInputIndex, &_, &id](CellI& param, int, bool&) {
+                Ast::Base& paramRole  = static_cast<Ast::Base&>(param[id.slotRole]);
+                Ast::Base& paramValue = static_cast<Ast::Base&>(param[id.slotType]);
                 CellI& setParam       = compile(kb.ast.set(_(varInputIndex) / _(id.value), paramRole, paramValue));
                 setParam.label("Call { setParam; }");
                 compiledAsts.add(setParam);
             });
         }
         CellI& evalMethod = *new Object(kb, kb.type.op.EvalVar, std::format("{}::Call {{ evalVar; }}", function.label()));
-        evalMethod.set(kb.id.value, varMethod);
+        evalMethod.set(id.value, varMethod);
         compiledAsts.add(setStackToNew);
         compiledAsts.add(evalMethod);
         compiledAsts.add(getResult);
@@ -1222,6 +1218,7 @@ block {
         storeStackFrame.label("Call { storeStackFrame; }");
         setListItem.label("Call { setListItem; }");
         setListItemPrev.label("Call { setListItemPrev; }");
+        setListItemPrev.label("Call { setListItemNext; }");
         storeInputIndex.label("Call { storeInputIndex; }");
         createNewLocalVars.label("Call { createNewLocalVars; }");
         setMethod.label("Call { setMethod; }");
@@ -1235,120 +1232,120 @@ block {
         return block;
     } else if (&ast.type() == &kb.type.ast.And) {
         Object& retOp = *new Object(kb, kb.type.op.And);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Or) {
         Object& retOp = *new Object(kb, kb.type.op.Or);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Not) {
         Object& retOp = *new Object(kb, kb.type.op.Not);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.input, compile(ast[kb.id.input]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.input, compile(ast[id.input]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Add) {
         Object& retOp = *new Object(kb, kb.type.op.Add);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Subtract) {
         Object& retOp = *new Object(kb, kb.type.op.Subtract);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Multiply) {
         Object& retOp = *new Object(kb, kb.type.op.Multiply);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Divide) {
         Object& retOp = *new Object(kb, kb.type.op.Divide);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.LessThan) {
         Object& retOp = *new Object(kb, kb.type.op.LessThan);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.LessThanOrEqual) {
         Object& retOp = *new Object(kb, kb.type.op.LessThanOrEqual);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.GreaterThan) {
         Object& retOp = *new Object(kb, kb.type.op.GreaterThan);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.GreaterThanOrEqual) {
         Object& retOp = *new Object(kb, kb.type.op.GreaterThanOrEqual);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Same) {
         Object& retOp = *new Object(kb, kb.type.op.Same);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.NotSame) {
         Object& retOp = *new Object(kb, kb.type.op.NotSame);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Equal) {
         Object& retOp = *new Object(kb, kb.type.op.Equal);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.NotEqual) {
         Object& retOp = *new Object(kb, kb.type.op.NotEqual);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.lhs, compile(ast[kb.id.lhs]));
-        retOp.set(kb.id.rhs, compile(ast[kb.id.rhs]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.lhs, compile(ast[id.lhs]));
+        retOp.set(id.rhs, compile(ast[id.rhs]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Has) {
         Object& retOp = *new Object(kb, kb.type.op.Has);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.cell, compile(ast[kb.id.cell]));
-        retOp.set(kb.id.role, compile(ast[kb.id.role]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.cell, compile(ast[id.cell]));
+        retOp.set(id.role, compile(ast[id.role]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Missing) {
         Object& retOp = *new Object(kb, kb.type.op.Missing);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.cell, compile(ast[kb.id.cell]));
-        retOp.set(kb.id.role, compile(ast[kb.id.role]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.cell, compile(ast[id.cell]));
+        retOp.set(id.role, compile(ast[id.role]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Get) {
         Object& retOp = *new Object(kb, kb.type.op.Get);
-        retOp.set(kb.id.ast, ast);
-        retOp.set(kb.id.cell, compile(ast[kb.id.cell]));
-        retOp.set(kb.id.role, compile(ast[kb.id.role]));
+        retOp.set(id.ast, ast);
+        retOp.set(id.cell, compile(ast[id.cell]));
+        retOp.set(id.role, compile(ast[id.role]));
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Member) {
-        CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast[kb.id.role])));
-        member.set(kb.id.ast, ast);
+        CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast[id.role])));
+        member.set(id.ast, ast);
         return member;
     } else if (&ast.type() == &kb.type.ast.Return) {
         Object& retOp = *new Object(kb, kb.type.op.Return, "op.return");
-        retOp.set(kb.id.ast, ast);
-        if (ast.has(kb.id.value)) {
-            retOp.set(kb.id.result, compile(kb.ast.set(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.output) / _(id.value), _(id.value), static_cast<Ast::Base&>(ast[id.value]))));
+        retOp.set(id.ast, ast);
+        if (ast.has(id.value)) {
+            retOp.set(id.result, compile(kb.ast.set(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.output) / _(id.value), _(id.value), static_cast<Ast::Base&>(ast[id.value]))));
         }
         return retOp;
     }
@@ -2140,9 +2137,9 @@ Brain::Brain() :
                     id.constructor, listItemCtor);
 
     mapPtr = &type.ListItem[id.methods];
-    type.ListOf(type.Cell)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
-    type.ListOf(type.Slot)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
-    type.ListOf(type.Type_)[id.subTypes][id.index][id.itemType].set(id.methods, *mapPtr);
+    type.ListOf(type.Cell)[id.subTypes][id.index][id.itemType][id.value].set(id.methods, *mapPtr);
+    type.ListOf(type.Slot)[id.subTypes][id.index][id.itemType][id.value].set(id.methods, *mapPtr);
+    type.ListOf(type.Type_)[id.subTypes][id.index][id.itemType][id.value].set(id.methods, *mapPtr);
 #pragma endregion
 #pragma region List
     mapPtr = &slots(type.slot(id.first, type.ListItem),
@@ -2183,8 +2180,8 @@ Brain::Brain() :
     Ast::Function& listCtor = *new Ast::Function(*this, type.List, id.constructor, "List::constructor");
     listCtor.addBlock(ast.block(
         m_(id.size)       = _(_0_),
-        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
-        m_(id.itemType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.itemType)));
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
+        m_(id.itemType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.itemType) / _(id.value)));
 
     Ast::Function& listAdd = *new Ast::Function(*this, type.List, id.add, "List::add");
     listAdd.addInputs(list(
@@ -2263,42 +2260,38 @@ Brain::Brain() :
 #pragma endregion
 #pragma region Type
     Ast::Function& typeCtor = *new Ast::Function(*this, type.Type_, id.constructor, "Type::constructor");
-    typeCtor.addInputs(list(
-        ast.slot(id.slots, type.MapCellToSlot),
-        ast.slot(id.subTypes, type.MapCellToType),
-        ast.slot(id.memberOf, type.MapTypeToType),
-        ast.slot(id.methods, type.MapCellToOpFunction)));
     typeCtor.addBlock(ast.block(
-        m_(id.slots)    = in_(id.slots),
-        m_(id.subTypes) = in_(id.subTypes),
-        m_(id.memberOf) = in_(id.memberOf),
-        m_(id.methods)  = in_(id.methods))); // TODO we have to compile AST to OP here
+        m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))));
+
+    Ast::Function& typeCtorWithRecursiveType = *new Ast::Function(*this, type.Type_, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
+    typeCtorWithRecursiveType.addBlock(ast.block(
+        m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructorWithIndexType), param(_(id.indexType), ast.self()))));
+
+    Ast::Function& typeAddSubType = *new Ast::Function(*this, type.Type_, id.addSubType, "Type::addSubType");
+    typeAddSubType.addInputs(list(
+        param(id.slotRole, type.Cell),
+        param(id.slotType, type.Type_)));
+    typeAddSubType.addBlock(ast.block(
+        ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), _(id.constructor))),
+        ast.call(m_(id.subTypes), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slotType)))));
+
+    Ast::Function& typeAddMembership = *new Ast::Function(*this, type.Type_, id.addMembership, "Type::addMembership");
+    typeAddMembership.addInputs(list(
+        param(id.cell, type.Type_)));
+    typeAddMembership.addBlock(ast.block(
+        ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(_(type.MapTypeToType), _(id.constructor))),
+        ast.call(m_(id.memberOf), _(id.add), param(_(id.key), in_(id.cell)), param(_(id.value), in_(id.cell)))));
 
     Ast::Function& typeAddSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::addSlot");
     typeAddSlot.addInputs(list(
         param(id.slotRole, type.Cell),
-        param(id.slotType, type.Type_)));
+        param(id.slotType, type.Slot)));
     typeAddSlot.addBlock(ast.block(
         ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
-        var_(id.item) = ast.new_(_(type.Slot)),
-        ast.set(*var_(id.item), _(id.slotRole), in_(id.slotRole)),
-        ast.set(*var_(id.item), _(id.slotType), in_(id.slotType)),
-        ast.call(m_(id.slots), _(id.add), ast.slot(_(id.key), in_(id.slotRole)), ast.slot(_(id.value), *var_(id.item)))));
-
-    Ast::Function& typeAddSubType = *new Ast::Function(*this, type.Type_, id.addSubType, "Type::addSubType");
-    typeAddSubType.addInputs(list(
-        ast.slot(id.slotRole, type.Cell),
-        ast.slot(id.slotType, type.Type_)));
-    typeAddSubType.addBlock(ast.block(
-        ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), _(id.constructor))),
-        ast.call(m_(id.subTypes), _(id.add), ast.slot(_(id.key), in_(id.slotRole)), ast.slot(_(id.value), in_(id.slotType)))));
-
-    Ast::Function& typeAddMembership = *new Ast::Function(*this, type.Type_, id.addMembership, "Type::addMembership");
-    typeAddMembership.addInputs(list(
-        ast.slot(id.cell, type.Type_)));
-    typeAddMembership.addBlock(ast.block(
-        ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(_(type.MapTypeToType), _(id.constructor))),
-        ast.call(m_(id.memberOf), _(id.add), ast.slot(_(id.key), in_(id.cell)), ast.slot(_(id.value), in_(id.cell)))));
+        var_(id.slot) = ast.new_(_(type.Slot)),
+        ast.set(*var_(id.slot), _(id.slotRole), in_(id.slotRole)),
+        ast.set(*var_(id.slot), _(id.slotType), in_(id.slotType)),
+        ast.call(m_(id.slots), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), *var_(id.slot)))));
 
     Ast::Function& typeAddSlots = *new Ast::Function(*this, type.Type_, id.addSlots, "Type::addSlots");
     typeAddSlots.addInputs(list(
@@ -2309,99 +2302,46 @@ Brain::Brain() :
         ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor))),
         ast.do_(ast.block(
                     var_(id.next) = _(boolean.true_),
-                    ast.call(m_(id.slots), _(id.add), ast.slot(_(id.key), *var_(id.item) / _(id.value) / _(id.slotRole)), ast.slot(_(id.value), *var_(id.item) / _(id.value))),
-                    ast.if_(ast.has(*var_(id.item), _(id.next)),
-                            var_(id.item) = *var_(id.item) / _(id.next),
-                            var_(id.next) = _(boolean.false_))),
-                ast.same(*var_(id.next), _(boolean.true_)))));
-
-    registerMethods(type.Type_,
-                    id.constructor, typeCtor,
-                    id.addSlot, typeAddSlot,
-                    id.addSubType, typeAddSubType,
-                    id.addMembership, typeAddMembership,
-                    id.addSlots, typeAddSlots);
-#pragma endregion
-#pragma region Type2
-    Ast::Function& type2Ctor = *new Ast::Function(*this, type.Type2_, id.constructor, "Type::constructor");
-    type2Ctor.addBlock(ast.block(
-        m_(id.slots) = ast.new_(_(type.Map2CellToSlot), _(id.constructor))));
-
-    Ast::Function& type2CtorWithRecursiveType = *new Ast::Function(*this, type.Type2_, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
-    type2CtorWithRecursiveType.addBlock(ast.block(
-        m_(id.slots) = ast.new_(_(type.Map2), _(id.constructorWithIndexType), param(_(id.indexType), ast.self()))));
-
-    Ast::Function& type2AddSubType = *new Ast::Function(*this, type.Type2_, id.addSubType, "Type::addSubType");
-    type2AddSubType.addInputs(list(
-        param(id.slotRole, type.Cell),
-        param(id.slotType, type.Type_)));
-    type2AddSubType.addBlock(ast.block(
-        ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), _(id.constructor))),
-        ast.call(m_(id.subTypes), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slotType)))));
-
-    Ast::Function& type2AddMembership = *new Ast::Function(*this, type.Type2_, id.addMembership, "Type::addMembership");
-    type2AddMembership.addInputs(list(
-        param(id.cell, type.Type_)));
-    type2AddMembership.addBlock(ast.block(
-        ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(_(type.MapTypeToType), _(id.constructor))),
-        ast.call(m_(id.memberOf), _(id.add), param(_(id.key), in_(id.cell)), param(_(id.value), in_(id.cell)))));
-
-    Ast::Function& type2AddSlot = *new Ast::Function(*this, type.Type2_, id.addSlot, "Type::addSlot");
-    type2AddSlot.addInputs(list(
-        param(id.slotRole, type.Cell),
-        param(id.slotType, type.Slot)));
-    type2AddSlot.addBlock(ast.block(
-        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.Map2CellToSlot), _(id.constructor))),
-        ast.call(m_(id.slots), _(id.add), param(_(id.key), in_(id.slotRole)), param(_(id.value), in_(id.slotType)))));
-
-    Ast::Function& type2AddSlots = *new Ast::Function(*this, type.Type2_, id.addSlots, "Type::addSlots");
-    type2AddSlots.addInputs(list(
-        ast.slot(id.list, type.ListOf(type.Slot))));
-    type2AddSlots.addBlock(ast.block(
-        ast.if_(ast.equal(in_(id.list) / _(id.size), _(_0_)), ast.return_()),
-        var_(id.item) = in_(id.list) / _(id.first),
-        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(_(type.Map2CellToSlot), _(id.constructor))),
-        ast.do_(ast.block(
-                    var_(id.next) = _(boolean.true_),
                     ast.call(m_(id.slots), _(id.add), param(_(id.key), *var_(id.item) / _(id.value) / _(id.slotRole)), param(_(id.value), *var_(id.item) / _(id.value))),
                     ast.if_(ast.has(*var_(id.item), _(id.next)),
                             var_(id.item) = *var_(id.item) / _(id.next),
                             var_(id.next) = _(boolean.false_))),
                 ast.same(*var_(id.next), _(boolean.true_)))));
 
-    Ast::Function& type2HasSlot = *new Ast::Function(*this, type.Type2_, id.hasSlot, "Type::hasSlot");
-    type2HasSlot.addInputs(list(
+    Ast::Function& typeHasSlot = *new Ast::Function(*this, type.Type_, id.hasSlot, "Type::hasSlot");
+    typeHasSlot.addInputs(list(
         param(id.slotRole, type.Cell)));
-    type2HasSlot.addOutputs(list(
+    typeHasSlot.addOutputs(list(
         param(id.value, type.Boolean)));
-    type2HasSlot.addBlock(ast.block(
+    typeHasSlot.addBlock(ast.block(
         ast.if_(m_(id.slots).missing(), ast.return_(_(boolean.false_))),
         ast.return_(ast.call(m_(id.slots), _(id.hasKey), param(_(id.key), in_(id.slotRole))))));
 
-    Ast::Function& type2RemoveSlot = *new Ast::Function(*this, type.Type2_, id.removeSlot, "Type::removeSlot");
-    type2RemoveSlot.addInputs(list(
+    Ast::Function& typeRemoveSlot = *new Ast::Function(*this, type.Type_, id.removeSlot, "Type::removeSlot");
+    typeRemoveSlot.addInputs(list(
         param(id.slotRole, type.Cell)));
-    type2RemoveSlot.addBlock(ast.block(
+    typeRemoveSlot.addBlock(ast.block(
         ast.if_(m_(id.slots).missing(), ast.return_()),
         ast.call(m_(id.slots), _(id.remove), param(_(id.key), in_(id.slotRole)))));
 
-    registerMethods(type.Type2_,
-                    id.constructor, type2Ctor,
-                    id.constructorWithRecursiveType, type2CtorWithRecursiveType,
-                    id.addSubType, type2AddSubType,
-                    id.addMembership, type2AddMembership,
-                    id.addSlot, type2AddSlot,
-                    id.addSlots, type2AddSlots,
-                    id.hasSlot, type2HasSlot,
-                    id.removeSlot, type2RemoveSlot);
+    registerMethods(type.Type_,
+                    id.constructor, typeCtor,
+                    id.constructorWithRecursiveType, typeCtorWithRecursiveType,
+                    id.addSubType, typeAddSubType,
+                    id.addMembership, typeAddMembership,
+                    id.addSlot, typeAddSlot,
+                    id.addSlots, typeAddSlots,
+                    id.hasSlot, typeHasSlot,
+                    id.removeSlot, typeRemoveSlot);
 #pragma endregion
 #pragma region Index
-    type.Index.set(id.memberOf, map(type.Type2_, type.Type2_));
+    type.Index.set(id.memberOf, map(type.Type_, type.Type_));
 
     Ast::Function& indexCtor = *new Ast::Function(*this, type.Index, id.constructor, "Index::constructor");
     indexCtor.addBlock(ast.block(
-        ast.set(ast.self(), m_(id.type), ast.new_(_(type.Type2_), _(id.constructorWithRecursiveType))),
-        ast.set(m_(id.type), _(id.memberOf), _(map(type.Type2_, type.Type2_, type.Index, type.Index)))));
+        ast.set(ast.self(), _(id.type), ast.new_(_(type.Type_), _(id.constructorWithRecursiveType))),
+        ast.set(m_(id.type), _(id.methods), _(type.Index) / _(id.methods)),
+        ast.set(m_(id.type), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index)))));
 
     Ast::Function& indexCtorWithSelfType = *new Ast::Function(*this, type.Index, id.constructorWithSelfType, "Index::constructorWithSelfType");
     indexCtorWithSelfType.addInputs(list(
@@ -2411,7 +2351,7 @@ Brain::Brain() :
                 ast.block(ast.set(in_(id.indexType), _(id.sharedObject), ast.new_(_(type.Slot))),
                           ast.set(in_(id.indexType) / _(id.sharedObject), _(id.slotRole), ast.self()),
                           ast.set(in_(id.indexType) / _(id.sharedObject), _(id.slotType), _(type.Index)))),
-        ast.set(ast.self(), m_(id.type), in_(id.indexType))));
+        ast.set(ast.self(), _(id.type), in_(id.indexType))));
 
     /*
     void Index::insert(CellI& key, CellI& value)
@@ -2434,14 +2374,11 @@ Brain::Brain() :
         param(id.key, type.Cell),
         param(id.value, type.Cell)));
     indexInsert.addBlock(ast.block(
-        ast.if_(ast.equal(in_(id.key), _(id.type)), ast.return_()),
+        ast.if_(ast.same(in_(id.key), _(id.type)), ast.return_()),
         ast.set(ast.self(), in_(id.key), in_(id.value)),
-        ast.if_(ast.and_(ast.has(m_(id.type), _(id.sharedObject)), ast.equal(m_(id.type) / _(id.sharedObject) / _(id.slotRole), ast.self())),
+        ast.if_(ast.and_(ast.has(m_(id.type), _(id.sharedObject)), ast.same(m_(id.type) / _(id.sharedObject) / _(id.slotRole), ast.self())),
             ast.return_()),
-        var_(id.slot) = ast.new_(_(type.Slot)),
-        ast.set(*var_(id.slot), _(id.slotRole), in_(id.key)),
-        ast.set(*var_(id.slot), _(id.slotType), _(type.Slot)),
-        ast.call(m_(id.type), _(id.addSlot), param(_(id.slotRole), in_(id.key)), param(_(id.slotType), *var_(id.slot)))));
+        ast.call(m_(id.type), _(id.addSlot), param(_(id.slotRole), in_(id.key)), param(_(id.slotType), _(type.Slot)))));
 
     Ast::Function& indexEmpty = *new Ast::Function(*this, type.Index, id.size, "Index::empty");
     indexEmpty.addOutputs(list(
@@ -2486,9 +2423,8 @@ Brain::Brain() :
     mapPtr = &slots(type.slot(id.keyType, type.Cell),
                     type.slot(id.objectType, type.Cell),
                     type.slot(id.list, type.ListOf(type.Cell)),
-                    type.slot(id.listType, type.Type_),
+                    type.slot(id.listType, type.List),
                     type.slot(id.index, type.Index),
-                    type.slot(id.indexType, type.Type_),
                     type.slot(id.size, type.Number));
     type.Map.set(id.slots, *mapPtr);
     mapPtr = &map(type.Cell, type.Type_,
@@ -2501,39 +2437,23 @@ Brain::Brain() :
     Ast::Function& mapCtor = *new Ast::Function(*this, type.Map, id.constructor, "Map::constructor");
     mapCtor.addBlock(ast.block(
         m_(id.size)       = _(_0_),
-        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType),
-        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
-        m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType),
-        m_(id.list)       = ast.new_(m_(id.listType), _(id.constructor)),
-        m_(id.indexType)  = ast.new_(_(type.Type_)),
-        ast.set(m_(id.indexType), _(id.slots), ast.new_(_(type.MapCellToSlot))),
-        ast.set(m_(id.indexType) / _(id.slots), _(id.size), _(_0_)),
+        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType) / _(id.value),
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
+        m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value), _(id.constructor)),
+        m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value),
+        m_(id.index)      = ast.new_(_(type.Index), _(id.constructor))));
 
-        ast.set(m_(id.indexType) / _(id.slots), _(id.indexType), ast.new_(_(type.Type_))),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType), _(id.slots), ast.new_(_(type.MapCellToSlot))),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots), _(id.size), _(_0_)),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots), _(id.keyType), _(type.Cell)),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots), _(id.objectType), _(type.Slot)),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots), _(id.listType), _(type.ListOf(type.Slot))),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots), _(id.list), ast.new_(_(type.ListOf(type.Slot)), _(id.constructor))),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots), _(id.index), ast.new_(m_(id.indexType) / _(id.slots) / _(id.indexType))),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))),
+    Ast::Function& mapCtorWithIndexType = *new Ast::Function(*this, type.Map, id.constructorWithIndexType, "Map::constructorWithIndexType");
+    mapCtorWithIndexType.addInputs(list(
+        param(id.indexType, type.Type_)));
+    mapCtorWithIndexType.addBlock(ast.block(
+        m_(id.size)       = _(_0_),
+        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType) / _(id.value),
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
+        m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value), _(id.constructor)),
+        m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value),
+        m_(id.index)      = ast.new_(_(type.Index), _(id.constructorWithSelfType), param(_(id.indexType), in_(id.indexType)))));
 
-        ast.set(m_(id.indexType) / _(id.slots), _(id.keyType), _(type.Cell)),
-        ast.set(m_(id.indexType) / _(id.slots), _(id.objectType), _(type.Slot)),
-        ast.set(m_(id.indexType) / _(id.slots), _(id.listType), _(type.ListOf(type.Slot))),
-        ast.set(m_(id.indexType) / _(id.slots), _(id.list), ast.new_(_(type.ListOf(type.Slot)), _(id.constructor))),
-        ast.set(m_(id.indexType) / _(id.slots), _(id.index), ast.new_(m_(id.indexType) / _(id.slots) / _(id.indexType))),
-        ast.set(m_(id.indexType), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))),
-        m_(id.index) = ast.new_(m_(id.indexType))));
-
-    // MapCellToSlot;
-    // MapCellToType;
-    // MapCellToAstFunction;
-    // MapCellToOpFunction;
-    // MapCellToOpVar;
-    // MapCellToOpBase;
-    // MapTypeToType;
     Ast::Function& mapTemplate = *new Ast::Function(*this, type.Map, id.template_, "static Map::template");
     mapTemplate.set(id.static_, boolean.true_);
     mapTemplate.addInputs(list(
@@ -2562,163 +2482,18 @@ Brain::Brain() :
         ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
 
         ast.return_(*var_(id.result))));
-
-    Ast::Function& mapAdd = *new Ast::Function(*this, type.Map, id.add, "Map::add");
-    mapAdd.addInputs(list(
-        ast.slot(id.key, type.Cell),
-        ast.slot(id.value, type.Cell)));
-    mapAdd.addBlock(ast.block(
-        m_(id.list).call(_(id.add), ast.slot(_(id.value), in_(id.value))),
-        m_(id.size) = ast.add(m_(id.size), _(_1_)),
-
-        var_(type.Slot) = ast.new_(_(type.Slot)),
-        ast.set(*var_(type.Slot), _(id.slotRole), in_(id.key)),
-        ast.set(*var_(type.Slot), _(id.slotType), _(type.Slot)),
-        ast.call(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots) / _(id.list), _(id.add), ast.slot(_(id.value), *var_(type.Slot))),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots) / _(id.index), in_(id.key), *var_(type.Slot)),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.indexType) / _(id.slots), _(id.size), m_(id.size)),
-
-        var_(type.Slot) = ast.new_(_(type.Slot)),
-        ast.set(*var_(type.Slot), _(id.slotRole), in_(id.key)),
-        ast.set(*var_(type.Slot), _(id.slotType), m_(id.objectType)),
-        ast.call(m_(id.indexType) / _(id.slots) / _(id.list), _(id.add), ast.slot(_(id.value), *var_(type.Slot))),
-        ast.set(m_(id.indexType) / _(id.slots) / _(id.index), in_(id.key), *var_(type.Slot)),
-        ast.set(m_(id.indexType) / _(id.slots), _(id.size), m_(id.size)),
-
-        ast.set(m_(id.index), in_(id.key), in_(id.value))));
-
-    Ast::Function& mapSize = *new Ast::Function(*this, type.Map, id.size, "Map::size");
-    mapSize.addOutputs(list(
-        ast.slot(id.value, type.Number)));
-    mapSize.addBlock(ast.block(
-        ast.return_(m_(id.size))));
-
-    Ast::Function& mapEmpty = *new Ast::Function(*this, type.Map, id.empty, "Map::empty");
-    mapEmpty.addOutputs(list(
-        ast.slot(id.value, type.Boolean)));
-    mapEmpty.addBlock(ast.block(
-        ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
-
-    registerMethods(type.Map,
-                    id.constructor, mapCtor,
-                    id.template_, mapTemplate,
-                    id.add, mapAdd,
-                    id.size, mapSize,
-                    id.empty, mapEmpty);
-
-    // Map<Cell, Slot>
-    type.MapCellToSlot.set(id.subTypes, map(type.Cell, type.Type_, id.keyType, type.Cell, id.objectType, type.Slot, id.listType, type.ListOf(type.Slot)));
-    type.MapCellToSlot.set(id.memberOf, map(type.Type_, type.Type_, type.Map, type.Map));
-    mapPtr = &slots(type.slot(id.list, type.ListOf(type.Slot)),
-                    type.slot(id.listType, type.ListOf(type.Slot)),
-                    type.slot(id.index, type.Index),
-                    type.slot(id.indexType, type.Type_),
-                    type.slot(id.keyType, type.Cell),
-                    type.slot(id.objectType, type.Slot),
-                    type.slot(id.size, type.Number));
-    type.MapCellToSlot.set(id.slots, *mapPtr);
-    type.MapCellToSlot.set(id.methods, map(type.Cell, type.op.Function, id.constructor, mapCtor.compile(type.Map), id.size, mapSize.compile(type.Map), id.add, mapAdd.compile(type.Map), id.empty, mapEmpty.compile(type.Map)));
-
-    // Map<Cell, Type>
-    type.MapCellToType.set(id.subTypes, map(type.Cell, type.Type_, id.keyType, type.Cell, id.objectType, type.Type_, id.listType, type.ListOf(type.Type_)));
-    type.MapCellToType.set(id.memberOf, map(type.Type_, type.Type_, type.Map, type.Map));
-    mapPtr = &map(type.Cell, type.Type_,
-                  id.list, type.slot(id.list, type.ListOf(type.Type_)),
-                  id.listType, type.slot(id.listType, type.ListOf(type.Type_)),
-                  id.index, type.slot(id.index, type.Index),
-                  id.indexType, type.slot(id.indexType, type.Type_),
-                  id.keyType, type.slot(id.keyType, type.Cell),
-                  id.objectType, type.slot(id.objectType, type.Type_),
-                  id.size, type.slot(id.size, type.Number));
-    type.MapCellToType.set(id.slots, *mapPtr);
-    type.MapCellToType.set(id.methods, map(type.Cell, type.op.Function, id.constructor, mapCtor.compile(type.Map), id.size, mapSize.compile(type.Map), id.add, mapAdd.compile(type.Map), id.empty, mapEmpty.compile(type.Map)));
-
-    // Map<Type, Type>
-    type.MapTypeToType.set(id.subTypes, map(type.Cell, type.Type_, id.keyType, type.Type_, id.objectType, type.Type_, id.listType, type.ListOf(type.Type_)));
-    type.MapTypeToType.set(id.memberOf, map(type.Type_, type.Type_, type.Map, type.Map));
-    mapPtr = &map(type.Type_, type.Type_,
-                  id.list, type.slot(id.list, type.ListOf(type.Type_)),
-                  id.listType, type.slot(id.listType, type.ListOf(type.Type_)),
-                  id.index, type.slot(id.index, type.Index),
-                  id.indexType, type.slot(id.indexType, type.Type_),
-                  id.keyType, type.slot(id.keyType, type.Type_),
-                  id.objectType, type.slot(id.objectType, type.Type_),
-                  id.size, type.slot(id.size, type.Number));
-    type.MapTypeToType.set(id.slots, *mapPtr);
-    type.MapTypeToType.set(id.methods, map(type.Cell, type.op.Function, id.constructor, mapCtor.compile(type.Map), id.size, mapSize.compile(type.Map), id.add, mapAdd.compile(type.Map), id.empty, mapEmpty.compile(type.Map)));
-#pragma endregion
-#pragma region Map2
-    mapPtr = &slots(type.slot(id.keyType, type.Cell),
-                    type.slot(id.objectType, type.Cell),
-                    type.slot(id.list, type.ListOf(type.Cell)),
-                    type.slot(id.index, type.Index),
-                    type.slot(id.size, type.Number));
-    type.Map2.set(id.slots, *mapPtr);
-    mapPtr = &map(type.Cell, type.Type_,
-                  id.keyType, type.Cell,
-                  id.objectType, type.Cell,
-                  id.listType, type.ListOf(type.Cell));
-    type.Map2.set(id.subTypes, *mapPtr);
-    type.Map2.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
-
-    Ast::Function& map2Ctor = *new Ast::Function(*this, type.Map2, id.constructor, "Map::constructor");
-    map2Ctor.addBlock(ast.block(
-        m_(id.size)       = _(_0_),
-        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType),
-        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
-        m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType), _(id.constructor)),
-        m_(id.index)      = ast.new_(_(type.Index), _(id.constructor))));
-
-    Ast::Function& map2CtorWithIndexType = *new Ast::Function(*this, type.Map2, id.constructorWithIndexType, "Map::constructorWithIndexType");
-    map2CtorWithIndexType.addInputs(list(
-        param(id.indexType, type.Type_)));
-    map2CtorWithIndexType.addBlock(ast.block(
-        m_(id.size)       = _(_0_),
-        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType),
-        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType),
-        m_(id.list)       = ast.new_(m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType), _(id.constructor)),
-        m_(id.index)      = ast.new_(_(type.Index), _(id.constructorWithSelfType), param(_(id.indexType), in_(id.indexType)))));
-
-    Ast::Function& map2Template = *new Ast::Function(*this, type.Map2, id.template_, "static Map::template");
-    map2Template.set(id.static_, boolean.true_);
-    map2Template.addInputs(list(
-        ast.slot(id.keyType, type.Type_),
-        ast.slot(id.objectType, type.Type_)));
-    map2Template.addOutputs(list(
-        ast.slot(id.value, type.Map)));
-    map2Template.addBlock(ast.block(
-        var_(id.result)   = ast.new_(_(type.Type_)),
-        var_(id.listType) = ast.scall(_(type.List), _(id.template_), ast.slot(_(id.objectType), in_(id.objectType))),
-
-        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.keyType)), ast.slot(_(id.slotType), in_(id.keyType))),
-        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
-        ast.call(*var_(id.result), _(id.addSubType), ast.slot(_(id.slotRole), _(id.listType)), ast.slot(_(id.slotType), *var_(id.listType))),
-
-        ast.call(*var_(id.result), _(id.addMembership), ast.slot(_(id.cell), _(type.Map))),
-
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.keyType)), ast.slot(_(id.slotType), in_(id.keyType))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.objectType)), ast.slot(_(id.slotType), in_(id.objectType))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.list)), ast.slot(_(id.slotType), *var_(id.listType))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.listType)), ast.slot(_(id.slotType), *var_(id.listType))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.index)), ast.slot(_(id.slotType), _(type.Index))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.indexType)), ast.slot(_(id.slotType), _(type.Type_))),
-        ast.call(*var_(id.result), _(id.addSlot), ast.slot(_(id.slotRole), _(id.size)), ast.slot(_(id.slotType), _(type.Number))),
-
-        ast.set(*var_(id.result), _(id.methods), m_(id.methods)),
-
-        ast.return_(*var_(id.result))));
     /*
     bool Map::hasKey(CellI& key)
     {
         return m_index.has(key);
     }
     */
-    Ast::Function& map2HasKey = *new Ast::Function(*this, type.Map2, id.hasKey, "Map::hasKey");
-    map2HasKey.addInputs(list(
+    Ast::Function& mapHasKey = *new Ast::Function(*this, type.Map, id.hasKey, "Map::hasKey");
+    mapHasKey.addInputs(list(
         param(id.key, type.Cell)));
-    map2HasKey.addOutputs(list(
+    mapHasKey.addOutputs(list(
         ast.slot(id.value, type.Boolean)));
-    map2HasKey.addBlock(ast.block(
+    mapHasKey.addBlock(ast.block(
         ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
 
     /*
@@ -2730,12 +2505,11 @@ Brain::Brain() :
         throw "No such role!";
     }
     */
-    Ast::Function& map2GetValue = *new Ast::Function(*this, type.Map2, id.hasKey, "Map::getValue");
-    map2GetValue.addInputs(list(
+    Ast::Function& mapGetValue = *new Ast::Function(*this, type.Map, id.hasKey, "Map::getValue");
+    mapGetValue.addInputs(list(
         param(id.key, type.Cell)));
-    map2GetValue.addBlock(ast.block(
+    mapGetValue.addBlock(ast.block(
         ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_(m_(id.index) / in_(id.key) / _(id.value)), ast.return_(_(id.emptyObject)))));
-
 
     /*
     void Map::add(CellI& key, CellI& value)
@@ -2751,16 +2525,17 @@ Brain::Brain() :
         ++m_size;
     }
     */
-    Ast::Function& map2Add = *new Ast::Function(*this, type.Map2, id.add, "Map::add");
-    map2Add.addInputs(list(
+    Ast::Function& mapAdd = *new Ast::Function(*this, type.Map, id.add, "Map::add");
+    mapAdd.addInputs(list(
         param(id.key, type.Cell),
         param(id.value, type.Cell)));
-    map2Add.addBlock(ast.block(
-        ast.if_(ast.equal(in_(id.key), _(id.type)), ast.return_()),
+    mapAdd.addBlock(ast.block(
+        ast.if_(ast.same(in_(id.key), _(id.type)), ast.return_()),
         ast.if_(ast.has(m_(id.index), in_(id.key)), ast.return_()),
+        m_(id.size) = ast.add(m_(id.size), _(_1_)),
         var_(id.item) = m_(id.list).call(_(id.add), param(_(id.value), in_(id.value))),
-        ast.call(m_(id.index), _(id.insert), param(_(id.key), in_(id.key)), param(_(id.value), *var_(id.item))),
-        m_(id.size) = ast.add(m_(id.size), _(_1_))));
+        ast.call(m_(id.index), _(id.insert), param(_(id.key), in_(id.key)), param(_(id.value), *var_(id.item)))
+        ));
 
     /*
     void Map::remove(CellI& key)
@@ -2774,61 +2549,106 @@ Brain::Brain() :
         --m_size;
     }
     */
-    Ast::Function& map2Remove = *new Ast::Function(*this, type.Map2, id.remove, "Map::remove");
-    map2Remove.addInputs(list(
+    Ast::Function& mapRemove = *new Ast::Function(*this, type.Map, id.remove, "Map::remove");
+    mapRemove.addInputs(list(
         param(id.key, type.Cell)));
-    map2Remove.addBlock(ast.block(
+    mapRemove.addBlock(ast.block(
         ast.if_(ast.missing(m_(id.index), in_(id.key)),
                 ast.return_()),
         ast.call(m_(id.list), _(id.remove), param(_(id.item), m_(id.index) / in_(id.key))),
         ast.call(m_(id.index), _(id.remove), param(_(id.key), in_(id.key))),
         m_(id.size) = ast.subtract(m_(id.size), _(_1_))));
 
-    Ast::Function& map2Size = *new Ast::Function(*this, type.Map2, id.size, "Map::size");
-    map2Size.addOutputs(list(
+    Ast::Function& mapSize = *new Ast::Function(*this, type.Map, id.size, "Map::size");
+    mapSize.addOutputs(list(
         param(id.value, type.Number)));
-    map2Size.addBlock(ast.block(
+    mapSize.addBlock(ast.block(
         ast.return_(m_(id.size))));
 
-    Ast::Function& map2Empty = *new Ast::Function(*this, type.Map2, id.empty, "Map::empty");
-    map2Empty.addOutputs(list(
+    Ast::Function& mapEmpty = *new Ast::Function(*this, type.Map, id.empty, "Map::empty");
+    mapEmpty.addOutputs(list(
         param(id.value, type.Boolean)));
-    map2Empty.addBlock(ast.block(
+    mapEmpty.addBlock(ast.block(
         ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_)))));
 
-    registerMethods(type.Map2,
-                    id.constructor, map2Ctor,
-                    id.constructorWithIndexType, map2CtorWithIndexType,
-                    id.template_, map2Template,
-                    id.hasKey, map2HasKey,
-                    id.getValue, map2GetValue,
-                    id.add, map2Add,
-                    id.remove, map2Remove,
-                    id.size, map2Size,
-                    id.empty, map2Empty);
+    registerMethods(type.Map,
+                    id.constructor, mapCtor,
+                    id.constructorWithIndexType, mapCtorWithIndexType,
+                    id.template_, mapTemplate,
+                    id.hasKey, mapHasKey,
+                    id.getValue, mapGetValue,
+                    id.add, mapAdd,
+                    id.remove, mapRemove,
+                    id.size, mapSize,
+                    id.empty, mapEmpty);
 
     // Map<Cell, Slot>
-    type.Map2CellToSlot.set(id.subTypes, map(type.Cell, type.Type2_, id.keyType, type.Cell, id.objectType, type.Slot, id.listType, type.ListOf(type.Slot)));
-    type.Map2CellToSlot.set(id.memberOf, map(type.Type2_, type.Type2_, type.Map2, type.Map2));
+    type.MapCellToSlot.set(id.subTypes, map(type.Cell, type.Type_, id.keyType, type.Cell, id.objectType, type.Slot, id.listType, type.ListOf(type.Slot)));
+    type.MapCellToSlot.set(id.memberOf, map(type.Type_, type.Type_, type.Map, type.Map));
     mapPtr = &slots(type.slot(id.list, type.ListOf(type.Slot)),
+                    type.slot(id.listType, type.ListOf(type.Slot)),
                     type.slot(id.index, type.Index),
                     type.slot(id.keyType, type.Cell),
                     type.slot(id.objectType, type.Slot),
                     type.slot(id.size, type.Number));
-    type.Map2CellToSlot.set(id.slots, *mapPtr);
-    registerMethods(type.Map2CellToSlot,
-                    id.constructor, map2Ctor,
-                    id.constructorWithIndexType, map2CtorWithIndexType,
-                    id.template_, map2Template,
-                    id.hasKey, map2HasKey,
-                    id.getValue, map2GetValue,
-                    id.add, map2Add,
-                    id.remove, map2Remove,
-                    id.size, map2Size,
-                    id.empty, map2Empty);
+    type.MapCellToSlot.set(id.slots, *mapPtr);
+    registerMethods(type.MapCellToSlot,
+                    id.constructor, mapCtor,
+                    id.constructorWithIndexType, mapCtorWithIndexType,
+                    id.template_, mapTemplate,
+                    id.hasKey, mapHasKey,
+                    id.getValue, mapGetValue,
+                    id.add, mapAdd,
+                    id.remove, mapRemove,
+                    id.size, mapSize,
+                    id.empty, mapEmpty);
 
+    // Map<Cell, Type>
+    type.MapCellToType.set(id.subTypes, map(type.Cell, type.Type_, id.keyType, type.Cell, id.objectType, type.Type_, id.listType, type.ListOf(type.Type_)));
+    type.MapCellToType.set(id.memberOf, map(type.Type_, type.Type_, type.Map, type.Map));
+    mapPtr = &map(type.Cell, type.Type_,
+                  id.list, type.slot(id.list, type.ListOf(type.Type_)),
+                  id.listType, type.slot(id.listType, type.ListOf(type.Type_)),
+                  id.index, type.slot(id.index, type.Index),
+                  id.indexType, type.slot(id.indexType, type.Type_),
+                  id.keyType, type.slot(id.keyType, type.Cell),
+                  id.objectType, type.slot(id.objectType, type.Type_),
+                  id.size, type.slot(id.size, type.Number));
+    type.MapCellToType.set(id.slots, *mapPtr);
+    registerMethods(type.MapCellToType,
+                    id.constructor, mapCtor,
+                    id.constructorWithIndexType, mapCtorWithIndexType,
+                    id.template_, mapTemplate,
+                    id.hasKey, mapHasKey,
+                    id.getValue, mapGetValue,
+                    id.add, mapAdd,
+                    id.remove, mapRemove,
+                    id.size, mapSize,
+                    id.empty, mapEmpty);
 
- #pragma endregion
+    // Map<Type, Type>
+    type.MapTypeToType.set(id.subTypes, map(type.Cell, type.Type_, id.keyType, type.Type_, id.objectType, type.Type_, id.listType, type.ListOf(type.Type_)));
+    type.MapTypeToType.set(id.memberOf, map(type.Type_, type.Type_, type.Map, type.Map));
+    mapPtr = &map(type.Type_, type.Type_,
+                  id.list, type.slot(id.list, type.ListOf(type.Type_)),
+                  id.listType, type.slot(id.listType, type.ListOf(type.Type_)),
+                  id.index, type.slot(id.index, type.Index),
+                  id.indexType, type.slot(id.indexType, type.Type_),
+                  id.keyType, type.slot(id.keyType, type.Type_),
+                  id.objectType, type.slot(id.objectType, type.Type_),
+                  id.size, type.slot(id.size, type.Number));
+    type.MapTypeToType.set(id.slots, *mapPtr);
+    registerMethods(type.MapTypeToType,
+                    id.constructor, mapCtor,
+                    id.constructorWithIndexType, mapCtorWithIndexType,
+                    id.template_, mapTemplate,
+                    id.hasKey, mapHasKey,
+                    id.getValue, mapGetValue,
+                    id.add, mapAdd,
+                    id.remove, mapRemove,
+                    id.size, mapSize,
+                    id.empty, mapEmpty);
+#pragma endregion
 #pragma region Set
     mapPtr = &slots(type.slot(id.objectType, type.Cell),
                     type.slot(id.list, type.ListOf(type.Cell)),
@@ -2954,8 +2774,7 @@ Brain::Brain() :
                     type.slot(numbers.sign, type.Number)); // TODO sign has no class currently
     type.Number.set(id.slots, *mapPtr);
 
-    mapPtr = &slots(type.slot(id.stack, type.ListOf(type.StackFrame)),
-                    type.slot(id.method, type.op.Function),
+    mapPtr = &slots(type.slot(id.method, type.op.Function),
                     type.slot(id.input, type.ListOf(type.op.Var)),
                     type.slot(id.output, type.ListOf(type.op.Var)),
                     type.slot(id.localVars, type.Index));
@@ -3096,7 +2915,7 @@ public:
     shaperProcessInputPixels.addBlock(ast.block(
         var_(id.pixels) = m_(id.picture) / _(id.pixels),
         var_(id.pixel) = *var_(id.pixels)/ _(id.first),
-        ast.while_(ast.equal(*var_(id.pixel), *var_(id.pixels) / _(id.last)),
+        ast.while_(ast.same(*var_(id.pixel), *var_(id.pixels) / _(id.last)),
                    ast.block(
                           ast.call(m_(id.inputPixels), _(id.add), ast.slot(_(id.value), *var_(id.pixel))),
                           var_(id.pixel) = *var_(id.pixels)/ _(id.first)))));
@@ -3210,7 +3029,7 @@ public:
         ast.if_(ast.call(*var_(id.checkPixel), _(id.has), ast.slot(_(id.direction), in_(id.direction))),
                 ast.block(
                     var_(id.pixel) = _(id.checkPixel) / _(id.direction),
-                    ast.if_(ast.and_(ast.equal(*var_(id.pixel) / _(id.color), *var_(id.shape) / _(id.color)), ast.not_(ast.call(*var_(id.shape), _(id.hasPixel), ast.slot(_(id.pixel), *var_(id.pixel))))),
+                    ast.if_(ast.and_(ast.same(*var_(id.pixel) / _(id.color), *var_(id.shape) / _(id.color)), ast.not_(ast.call(*var_(id.shape), _(id.hasPixel), ast.slot(_(id.pixel), *var_(id.pixel))))),
                         ast.call(*var_(id.checkPixels), _(id.insert), ast.slot(_(id.pixel), *var_(id.pixel)))),
                     ast.return_(_(id.pixel))),
         ast.return_(_(id.emptyObject)))));

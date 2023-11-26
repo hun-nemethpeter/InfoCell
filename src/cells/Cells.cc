@@ -194,16 +194,19 @@ bool Object::has(CellI& role)
 
 void Object::set(CellI& role, CellI& value)
 {
-    if (&role == &kb.id.type) {
+    if ((&role == &kb.id.type) && (&type() != &kb.type.Index)) {
         throw "Type change not allowed.";
+    }
+    if ((&role == &kb.id.type) && (&type() == &kb.type.Index)) {
+        std::cout << "";
     }
 
     if (kb.initPhase() == InitPhase::Init) {
         m_slots[&role] = &value;
         return;
     }
-
-    if (&type() == &kb.type.Index || type()[kb.id.slots][kb.id.index].has(role) || (&type() == &type()[kb.id.slots][kb.id.index].type())) { // TODO Index is a hack
+    auto is = [this](CellI& rhsType) -> bool { return &type() == &rhsType || (type().has(kb.id.memberOf) && type()[kb.id.memberOf][kb.id.index].has(rhsType)); };
+    if (is(kb.type.Index) || type()[kb.id.slots][kb.id.index].has(role)) {
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
@@ -240,6 +243,7 @@ void Object::resetIndent()
 void Object::operator()()
 {
     static bool s_debugFunctionCalls = false;
+
     if (&m_type == &kb.type.op.Block) {
         Visitor::visitList(get(kb.id.ops), [this](CellI& op, int, bool& stop) {
             if (&op.type() == &kb.type.op.Return) {
@@ -275,7 +279,7 @@ void Object::operator()()
             if (s_debugFunctionCalls) {
                 printIndent();
                 s_indent++;
-                std::cout << label() << std::endl;
+                std::cout << label() << " selfType: " << stackFrameBeforeSelf.type().label() << std::endl;
             }
             op();
             if (s_debugFunctionCalls) {
@@ -299,6 +303,18 @@ void Object::operator()()
         CellI& inputValue = get(kb.id.value);
         inputValue();
         CellI& value = inputValue[kb.id.value];
+        if (label() == "Call { storeMethod; }") {
+//            std::cout << "DDDD storeMethod " << value.label() << std::endl;
+        }
+        if (label() == "Call { setStackToOld; }") {
+//            std::cout << "DDDD setStackToOld " << cell.label() << " to " << &value << std::endl;
+        }
+        if (label() == "Call { setStackToNew; }") {
+//            std::cout << "DDDD setStackToNew " << cell.label() << " to " << &value << std::endl;
+        }
+        if (value.label().starts_with("fn Map::add")) {
+            std::cout << "";
+        }
         cell.set(role, value);
     } else if (&m_type == &kb.type.op.Erase) {
         CellI& inputCell = get(kb.id.cell);
@@ -658,7 +674,7 @@ CellI& Object::getMethod(CellI& role)
     if (type().has(kb.id.methods)) {
         CellI& methodsIndex = type()[kb.id.methods][kb.id.index];
         if (methodsIndex.has(role)) {
-            CellI& method = methodsIndex[role];
+            CellI& method = methodsIndex[role][kb.id.value];
             Object& inputIndex = *new Object(kb, kb.type.Index);
             createStack(method);
             initLocalVars(method);
@@ -675,7 +691,7 @@ CellI& Object::getStaticMethod(CellI& role)
     if (has(kb.id.methods)) {
         CellI& methodsIndex = (*this)[kb.id.methods][kb.id.index];
         if (methodsIndex.has(role)) {
-            CellI& method = methodsIndex[role];
+            CellI& method = methodsIndex[role][kb.id.value];
             createStack(method);
             initLocalVars(method);
             setSelf(method);
@@ -694,7 +710,7 @@ void Object::createStack(CellI& method)
     stackFrame.set(kb.id.method, method);
     stackFrame.set(kb.id.input, inputIndex);
 
-    if (method.type()[kb.id.subTypes][kb.id.index][kb.id.output].has(kb.id.slots)) {
+    if (method.type()[kb.id.subTypes][kb.id.index][kb.id.output][kb.id.value].has(kb.id.slots)) {
         Object& varResult   = *new Object(kb, kb.type.op.Var, "varResult");
         Object& outputIndex = *new Object(kb, kb.type.Index, "ResultIndex");
         outputIndex.set(kb.id.value, varResult);
@@ -709,7 +725,7 @@ void Object::initLocalVars(CellI& method)
     if (method.type()[kb.id.subTypes][kb.id.index].missing(kb.id.localVars)) {
         return;
     }
-    CellI& localVarsType   = method.type()[kb.id.subTypes][kb.id.index][kb.id.localVars];
+    CellI& localVarsType   = method.type()[kb.id.subTypes][kb.id.index][kb.id.localVars][kb.id.value];
     Object& localVarsIndex = *new Object(kb, localVarsType, "LocalVarsIndex");
     CellI& stackFrame      = method[kb.id.stack][kb.id.value];
     stackFrame.set(kb.id.localVars, localVarsIndex);
@@ -722,7 +738,7 @@ void Object::initLocalVars(CellI& method)
 
 CellI& Object::getFnValue(CellI& method)
 {
-    if (method.type()[kb.id.subTypes][kb.id.index][kb.id.output].has(kb.id.slots)) {
+    if (method.type()[kb.id.subTypes][kb.id.index][kb.id.output][kb.id.value].has(kb.id.slots)) {
         return method[kb.id.stack][kb.id.value][kb.id.output][kb.id.value][kb.id.value];
     }
 
@@ -736,8 +752,8 @@ void Object::setSelf(CellI& method)
 
 void Object::setFnParam(CellI& fn, Param param)
 {
-    if (fn.type()[kb.id.subTypes][kb.id.index][kb.id.input].has(kb.id.slots)) {
-        CellI& inputsIndex = fn.type()[kb.id.subTypes][kb.id.index][kb.id.input][kb.id.slots][kb.id.index];
+    if (fn.type()[kb.id.subTypes][kb.id.index][kb.id.input][kb.id.value].has(kb.id.slots)) {
+        CellI& inputsIndex = fn.type()[kb.id.subTypes][kb.id.index][kb.id.input][kb.id.value][kb.id.slots][kb.id.index];
         if (inputsIndex.has(param.role)) {
             fn[kb.id.stack][kb.id.value][kb.id.input].set(param.role, param.value);
         } else {
@@ -747,184 +763,6 @@ void Object::setFnParam(CellI& fn, Param param)
 }
 
 #pragma endregion
-#pragma region List::Item
-// ============================================================================
-List::Item::Item(brain::Brain& kb, Value& value) :
-    CellI(kb), m_value(value)
-{
-}
-
-bool List::Item::has(CellI& role)
-{
-    if (&role == &kb.id.type || &role == &kb.id.value) {
-        return true;
-    }
-    if (&role == &kb.id.previous && m_value.prev()) {
-        return true;
-    }
-    if (&role == &kb.id.next && m_value.next()) {
-        return true;
-    }
-
-    return false;
-}
-
-void List::Item::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void List::Item::erase(CellI& role)
-{
-    // Do nothing
-}
-
-void List::Item::operator()()
-{
-    // Do nothing
-}
-
-CellI& List::Item::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return kb.type.ListOf(m_value.m_list.m_valueType)[kb.id.subTypes][kb.id.index][kb.id.objectType];
-    }
-    if (&role == &kb.id.previous) {
-        if (m_value.prev())
-            return m_value.prev()->m_listItem;
-        else
-            throw "No such role!";
-    }
-    if (&role == &kb.id.next) {
-        if (m_value.next())
-            return m_value.next()->m_listItem;
-        else
-            throw "No such role!";
-    }
-    if (&role == &kb.id.value) {
-        return m_value.m_value;
-    }
-
-    throw "No such role!";
-}
-
-void List::Item::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region List::Value
-// ============================================================================
-List::Value::Value(List& list, CellI& value) :
-    m_list(list),
-    m_value(value),
-    m_listItem(list.kb, *this)
-{
-}
-
-List::Value* List::Value::prev()
-{
-    return m_iterator != m_list.m_items.begin() ? &*std::prev(m_iterator) : nullptr;
-}
-
-List::Value* List::Value::next()
-{
-    return m_iterator != std::prev(m_list.m_items.end()) ? &*std::next(m_iterator) : nullptr;
-}
-#pragma endregion
-#pragma region List
-// ============================================================================
-List::List(brain::Brain& kb, CellI& valueType) :
-    CellI(kb),
-    m_valueType(valueType)
-{
-}
-
-bool List::has(CellI& role)
-{
-    if (&role == &kb.id.type || &role == &kb.id.size) {
-        return true;
-    }
-    if ((&role == &kb.id.first || &role == &kb.id.last) && !m_items.empty()) {
-        return true;
-    }
-    if (&role == &kb.id.objectType) {
-        return true;
-    }
-
-    return false;
-}
-
-void List::set(CellI& role, CellI& value)
-{
-    throw "Not supported";
-}
-
-void List::erase(CellI& role)
-{
-    throw "Not supported";
-}
-
-void List::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& List::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return kb.type.ListOf(m_valueType);
-    }
-    if (&role == &kb.id.first) {
-        return m_items.front().m_listItem;
-    }
-    if (&role == &kb.id.last) {
-        return m_items.back().m_listItem;
-    }
-    if (&role == &kb.id.size) {
-        int size = (int)m_items.size();
-
-        return kb.pools.numbers.get(size);
-    }
-    if (&role == &kb.id.objectType) {
-        return m_valueType;
-    }
-
-    throw "No such role!";
-}
-
-void List::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-List::Item* List::add(CellI& value)
-{
-    m_items.emplace_back(*this, value);
-    Value& item = m_items.back();
-    item.m_iterator = std::prev(m_items.end());
-    m_itemToValue[&item.m_listItem] = &item;
-
-    return &item.m_listItem;
-}
-
-bool List::empty() const
-{
-    return m_items.empty();
-}
-
-CellI& List::toNative()
-{
-    Object& ret = *new Object(kb, get(kb.id.type));
-    ret.set(kb.id.first, get(kb.id.first));
-    ret.set(kb.id.last, get(kb.id.first));
-    ret.set(kb.id.size, get(kb.id.size));
-
-    return ret;
-}
-
-#pragma endregion
-namespace nextgen {
 #pragma region List::Item
 // ============================================================================
 List::Item::Item(brain::Brain& kb, List& list, CellI& value) :
@@ -1322,6 +1160,9 @@ bool Map::has(CellI& role)
     if (&role == &kb.id.list) {
         return true;
     }
+    if (&role == &kb.id.listType) {
+        return true;
+    }
     if (&role == &kb.id.index) {
         return true;
     }
@@ -1521,551 +1362,6 @@ int Set::size()
 void Set::accept(Visitor& visitor)
 {
     visitor.visit(*this);
-}
-#pragma endregion
-} // namespace nextgen
-
-#pragma region Map::Index::Type::Slots::SlotList::Item
-// ============================================================================
-Map::Index::Type::Slots::SlotList::Item::Item(brain::Brain& kb, Value& value) :
-    CellI(kb),
-    m_value(value)
-{
-}
-
-bool Map::Index::Type::Slots::SlotList::Item::has(CellI& role)
-{
-    if (&role == &kb.id.type || &role == &kb.id.value) {
-        return true;
-    }
-    if (&role == &kb.id.previous && m_value.prev()) {
-        return true;
-    }
-    if (&role == &kb.id.next && m_value.next()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Map::Index::Type::Slots::SlotList::Item::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slots::SlotList::Item::erase(CellI& role)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slots::SlotList::Item::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Map::Index::Type::Slots::SlotList::Item::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return kb.type.ListOf(kb.type.Slot)[kb.id.subTypes][kb.id.index][kb.id.objectType];
-    }
-    if (&role == &kb.id.previous) {
-        if (m_value.prev())
-            return m_value.prev()->m_indexTypeSlotsListItem;
-        else
-            throw "No such role!";
-    }
-    if (&role == &kb.id.next) {
-        if (m_value.next())
-            return m_value.next()->m_indexTypeSlotsListItem;
-        else
-            throw "No such role!";
-    }
-    if (&role == &kb.id.value) {
-        return m_value.m_indexTypeSlot;
-    }
-
-    throw "No such role!";
-}
-
-void Map::Index::Type::Slots::SlotList::Item::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Map::Index::Type::Slots::SlotList
-// ============================================================================
-Map::Index::Type::Slots::SlotList::SlotList(brain::Brain& kb, OrderedValues& orderedValues) :
-    CellI(kb),
-    m_orderedValues(orderedValues)
-{
-}
-
-bool Map::Index::Type::Slots::SlotList::has(CellI& role)
-{
-    if (&role == &kb.id.type || &role == &kb.id.first || &role == &kb.id.last || &role == &kb.id.size) {
-        return true;
-    }
-
-    return false;
-}
-
-void Map::Index::Type::Slots::SlotList::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slots::SlotList::erase(CellI& role)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slots::SlotList::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Map::Index::Type::Slots::SlotList::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return kb.type.ListOf(kb.type.Slot);
-    }
-    if (&role == &kb.id.first) {
-        if (m_orderedValues.empty()) {
-            throw "No such role!";
-        }
-        return (*m_orderedValues.begin())->m_indexTypeSlotsListItem;
-    }
-    if (&role == &kb.id.last) {
-        if (m_orderedValues.empty()) {
-            throw "No such role!";
-        }
-        return (*m_orderedValues.rbegin())->m_indexTypeSlotsListItem;
-    }
-    if (&role == &kb.id.size) {
-        return kb.pools.numbers.get((int)m_orderedValues.size());
-    }
-
-    throw "No such role!";
-}
-
-void Map::Index::Type::Slots::SlotList::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Map::Index::Type::Slots::SlotIndex
-// ============================================================================
-Map::Index::Type::Slots::SlotIndex::SlotIndex(brain::Brain& kb, IndexedValues& indexedValues, Type& type) :
-    CellI(kb),
-    m_indexedValues(indexedValues),
-    m_type(type)
-{
-}
-
-bool Map::Index::Type::Slots::SlotIndex::has(CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return true;
-    }
-    auto slotIt = m_indexedValues.find(&role);
-    if (slotIt != m_indexedValues.end()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Map::Index::Type::Slots::SlotIndex::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slots::SlotIndex::erase(CellI& role)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slots::SlotIndex::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Map::Index::Type::Slots::SlotIndex::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return m_type;
-    }
-    auto slotIt = m_indexedValues.find(&role);
-    if (slotIt != m_indexedValues.end()) {
-        return slotIt->second.m_indexTypeSlot;
-    }
-
-    throw "No such role!";
-}
-
-void Map::Index::Type::Slots::SlotIndex::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Map::Index::Type::Slot
-// ============================================================================
-Map::Index::Type::Slot::Slot(brain::Brain& kb, CellI& slotRole, CellI& slotType) :
-    CellI(kb),
-    m_slotRole(slotRole),
-    m_slotType(slotType)
-{
-}
-
-bool Map::Index::Type::Slot::has(CellI& role)
-{
-    if (&role == &kb.id.type || &role == &kb.id.slotType || &role == &kb.id.slotRole) {
-        return true;
-    }
-    return false;
-}
-
-void Map::Index::Type::Slot::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slot::erase(CellI& role)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slot::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Map::Index::Type::Slot::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return kb.type.Slot;
-    }
-    if (&role == &kb.id.slotType) {
-        return m_slotType;
-    }
-    if (&role == &kb.id.slotRole) {
-        return m_slotRole;
-    }
-
-    throw "No such role!";
-}
-
-void Map::Index::Type::Slot::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Map::Index::Type::Slots
-// ============================================================================
-Map::Index::Type::Slots::Slots(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType, Type& type) :
-    CellI(kb),
-    m_slotList(kb, orderedValues),
-    m_slotIndex(kb, indexedValues, type)
-{
-    if (&valueType == &kb.type.Slot) {
-        label("Index<Slot>::Map");
-    } else if (&valueType == &kb.type.ast.Function) {
-        label("Index<Ast::Function>::Map");
-    } else if (&valueType == &kb.type.op.Function) {
-        label("Index<Op::Function>::Map");
-    } else {
-        label(std::format("Index<{}>::Map", valueType.label()));
-    }
-}
-
-bool Map::Index::Type::Slots::has(CellI& role)
-{
-    if (&role == &kb.id.type || &role == &kb.id.index || &role == &kb.id.list) {
-        return true;
-    }
-
-    return false;
-}
-
-void Map::Index::Type::Slots::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slots::erase(CellI& role)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::Slots::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Map::Index::Type::Slots::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return kb.type.MapCellToSlot;
-    }
-    if (&role == &kb.id.index) {
-        return m_slotIndex;
-    }
-    if (&role == &kb.id.list) {
-        return m_slotList;
-    }
-    if (&role == &kb.id.listType) {
-        return kb.type.ListOf(kb.type.Slot);
-    }
-    if (&role == &kb.id.keyType) {
-        return kb.type.Cell;
-    }
-    if (&role == &kb.id.objectType) {
-        return kb.type.Slot;
-    }
-    if (&role == &kb.id.size) {
-        return kb.pools.numbers.get((int)m_slotIndex.m_indexedValues.size());
-    }
-
-    throw "No such role!";
-}
-
-void Map::Index::Type::Slots::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Map::Index::Type
-// ============================================================================
-Map::Index::Type::Type(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
-    CellI(kb),
-    m_slots(kb, indexedValues, orderedValues, valueType, *this),
-    m_indexedValues(indexedValues)
-{
-    if (&valueType == &kb.type.Slot) {
-        label("Index<Slot>");
-    } else if (&valueType == &kb.type.ast.Function) {
-        label("Index<Ast::Function>");
-    } else if (&valueType == &kb.type.op.Function) {
-        label("Index<Op::Function>");
-    } else {
-        label(std::format("Index<{}>", valueType.label()));
-    }
-}
-
-bool Map::Index::Type::has(CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return true;
-    } else if (&role == &kb.id.slots && !m_indexedValues.empty()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Map::Index::Type::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::erase(CellI& role)
-{
-    // Do nothing
-}
-
-void Map::Index::Type::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Map::Index::Type::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return kb.type.Type_;
-    }
-    if (&role == &kb.id.slots) {
-        return m_slots;
-    }
-    if (&role == &kb.id.memberOf) {
-        static std::unique_ptr<Map> s_memberOfList;
-        if (!s_memberOfList) {
-            s_memberOfList = std::make_unique<Map>(kb, kb.type.Cell, kb.id.type);
-            s_memberOfList->add(kb.type.Index, kb.type.Index);
-        }
-        return *s_memberOfList;
-    }
-
-    throw "No such role!";
-}
-
-void Map::Index::Type::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Map::Index
-// ============================================================================
-Map::Index::Index(brain::Brain& kb, IndexedValues& indexedValues, OrderedValues& orderedValues, CellI& valueType) :
-    CellI(kb),
-    m_type(kb, indexedValues, orderedValues, valueType),
-    m_indexedValues(indexedValues),
-    m_orderedValues(orderedValues)
-{
-}
-
-bool Map::Index::has(CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return true;
-    }
-    auto slotIt = m_indexedValues.find(&role);
-    if (slotIt != m_indexedValues.end()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Map::Index::set(CellI& role, CellI& value)
-{
-    // Do nothing
-}
-
-void Map::Index::erase(CellI& role)
-{
-    // Do nothing
-}
-
-void Map::Index::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Map::Index::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return m_type;
-    }
-    auto slotIt = m_indexedValues.find(&role);
-    if (slotIt != m_indexedValues.end()) {
-        return slotIt->second.m_value;
-    }
-
-    throw "No such role!";
-}
-
-void Map::Index::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-#pragma endregion
-#pragma region Map::Value
-// ============================================================================
-Map::Value::Value(Map& map, CellI& value, CellI& index, size_t listItemIndex) :
-    m_map(map),
-    m_value(value),
-    m_indexTypeSlotsListItem(map.kb, *this),
-    m_indexTypeSlot(map.kb, index, m_map.m_valueType)
-{
-}
-
-Map::Value* Map::Value::prev()
-{
-    return m_iterator != m_map.m_orderedValues.begin() ? *std::prev(m_iterator) : nullptr;
-}
-
-Map::Value* Map::Value::next()
-{
-    return m_iterator != std::prev(m_map.m_orderedValues.end()) ? *std::next(m_iterator) : nullptr;
-}
-#pragma endregion
-#pragma region Map
-// ============================================================================
-Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
-    CellI(kb, label),
-    m_keyType(keyType),
-    m_valueType(valueType),
-    m_list(kb, valueType),
-    m_index(kb, m_indexedValues, m_orderedValues, valueType)
-{
-}
-
-bool Map::has(CellI& role)
-{
-    if (&role == &kb.id.type || &role == &kb.id.size) {
-        return true;
-    }
-    if (&role == &kb.id.index && !m_orderedValues.empty()) {
-        return true;
-    }
-    if (&role == &kb.id.list && !m_orderedValues.empty()) {
-        return true;
-    }
-
-    return false;
-}
-
-void Map::set(CellI& role, CellI& value)
-{
-    throw "Not supported";
-}
-
-void Map::erase(CellI& role)
-{
-    throw "Not supported";
-}
-
-void Map::operator()()
-{
-    // Do nothing, this is a data cell
-}
-
-CellI& Map::operator[](CellI& role)
-{
-    if (&role == &kb.id.type) {
-        return kb.type.MapOf(m_keyType, m_valueType);
-    }
-    if (&role == &kb.id.index) {
-        return m_index;
-    }
-    if (&role == &kb.id.list) {
-        return m_list;
-    }
-    if (&role == &kb.id.size) {
-        int size = (int)m_orderedValues.size();
-
-        return kb.pools.numbers.get(size);
-    }
-
-    throw "No such role!";
-}
-
-void Map::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-bool Map::hasKey(CellI& key)
-{
-    return m_indexedValues.find(&key) != m_indexedValues.end();
-}
-
-void Map::add(CellI& key, CellI& value)
-{
-    if (m_indexedValues.find(&key) != m_indexedValues.end()) {
-        throw "A value already registered with this role";
-    }
-    auto it = m_indexedValues.emplace(std::piecewise_construct,
-                                      std::forward_as_tuple(&key),
-                                      std::forward_as_tuple(*this, value, key, m_orderedValues.size()));
-    m_orderedValues.push_back(&it.first->second);
-    m_orderedValues.back()->m_iterator = std::prev(m_orderedValues.end());
-    m_list.add(value);
-}
-
-bool Map::empty() const
-{
-    return m_indexedValues.empty();
 }
 #pragma endregion
 #pragma region Number

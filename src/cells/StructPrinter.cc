@@ -5,57 +5,6 @@
 namespace synth {
 namespace cells {
 
-void CellStructPrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(Map::Index::Type::Slots::SlotList& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(Map::Index::Type::Slots::SlotIndex& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(Map::Index::Type::Slots& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(Map::Index::Type::Slot& cell)
-{
-    brain::Brain& kb = cell.kb;
-    if (cell.label().empty()) {
-        m_ss << cell[kb.id.slotRole].label() << ": ";
-    } else {
-        m_ss << cell.label() << ": ";
-    }
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(Map::Index::Type& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(Map::Index& cell)
-{
-    if (cell.label().empty()) {
-        m_ss << "IndexedList::ValueIndex: ";
-    } else {
-        m_ss << cell.label() << ": ";
-    }
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(Map& cell)
-{
-    printImpl(cell);
-}
-
 void CellStructPrinter::visit(Object& cell)
 {
     if (!cell.label().empty()) {
@@ -70,6 +19,26 @@ void CellStructPrinter::visit(List::Item& cell)
 }
 
 void CellStructPrinter::visit(List& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Type& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Index& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Map& cell)
+{
+    printImpl(cell);
+}
+
+void CellStructPrinter::visit(Set& cell)
 {
     printImpl(cell);
 }
@@ -95,36 +64,6 @@ void CellStructPrinter::visit(hybrid::Pixel& cell)
 }
 
 void CellStructPrinter::visit(hybrid::Picture& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(nextgen::List::Item& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(nextgen::List& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(nextgen::Type& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(nextgen::Index& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(nextgen::Map& cell)
-{
-    printImpl(cell);
-}
-
-void CellStructPrinter::visit(nextgen::Set& cell)
 {
     printImpl(cell);
 }

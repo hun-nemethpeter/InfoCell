@@ -257,7 +257,6 @@ protected:
 
 public:
     Object Type_;
-    Object Type2_;
     Object Struct;
     Object Enum;
     Object Cell;
@@ -268,9 +267,7 @@ public:
     Object ListOfSlot;
     Object ListItem;
     Object Map;
-    Object Map2;
     Object MapCellToSlot;
-    Object Map2CellToSlot;
     Object MapCellToType;
     Object MapCellToAstFunction;
     Object MapCellToOpFunction;

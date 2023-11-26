@@ -18,46 +18,6 @@ StructPrinter::StructPrinter(int width, int height) :
     m_fontName = "Times New Roman";
 }
 
-void StructPrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Map::Index::Type::Slots::SlotList& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Map::Index::Type::Slots::SlotIndex& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Map::Index::Type::Slots& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Map::Index::Type::Slot& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Map::Index::Type& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Map::Index& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(Map& cell)
-{
-    printStruct(cell);
-}
-
 void StructPrinter::visit(Object& cell)
 {
     printStruct(cell);
@@ -69,6 +29,26 @@ void StructPrinter::visit(List::Item& cell)
 }
 
 void StructPrinter::visit(List& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(Type& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(Index& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(Map& cell)
+{
+    printStruct(cell);
+}
+
+void StructPrinter::visit(Set& cell)
 {
     printStruct(cell);
 }
@@ -94,36 +74,6 @@ void StructPrinter::visit(hybrid::Pixel& cell)
 }
 
 void StructPrinter::visit(hybrid::Picture& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(nextgen::List::Item& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(nextgen::List& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(nextgen::Type& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(nextgen::Index& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(nextgen::Map& cell)
-{
-    printStruct(cell);
-}
-
-void StructPrinter::visit(nextgen::Set& cell)
 {
     printStruct(cell);
 }

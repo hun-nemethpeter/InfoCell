@@ -6,37 +6,27 @@
 namespace synth {
 namespace cells {
 
-void CellValuePrinter::visit(Map::Index::Type::Slots::SlotList::Item& cell)
+void CellValuePrinter::visit(Object& object)
+{
+    printImpl(object);
+}
+
+void CellValuePrinter::visit(List::Item& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Map::Index::Type::Slots::SlotList& cell)
+void CellValuePrinter::visit(List& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Map::Index::Type::Slots::SlotIndex& cell)
+void CellValuePrinter::visit(Type& cell)
 {
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(Map::Index::Type::Slots& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Map::Index::Type::Slot& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Map::Index::Type& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Map::Index& cell)
+void CellValuePrinter::visit(Index& cell)
 {
     printImpl(cell);
 }
@@ -46,40 +36,9 @@ void CellValuePrinter::visit(Map& cell)
     printImpl(cell);
 }
 
-void CellValuePrinter::visit(nextgen::List::Item& cell)
+void CellValuePrinter::visit(Set& cell)
 {
     printImpl(cell);
-}
-
-void CellValuePrinter::visit(nextgen::List& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(nextgen::Type& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(nextgen::Index& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(nextgen::Map& cell)
-{
-    m_nextGenMap = true;
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(nextgen::Set& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Object& object)
-{
-    printImpl(object);
 }
 
 void CellValuePrinter::printOpBlock(CellI& cell)
@@ -169,8 +128,8 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     std::stringstream iss;
     std::stringstream oss;
     CellI& subTypesIndex = cell.type()[kb.id.subTypes][kb.id.index];
-    CellI& inType        = subTypesIndex[kb.id.input];
-    CellI& outType       = subTypesIndex[kb.id.output];
+    CellI& inType        = subTypesIndex[kb.id.input][kb.id.value];
+    CellI& outType       = subTypesIndex[kb.id.output][kb.id.value];
     bool hasOutput = false;
     if (inType.has(kb.id.slots)) {
         Visitor::visitList(inType[kb.id.slots][kb.id.list], [this, &iss, &kb](CellI& slot, int i, bool& stop) {
@@ -570,13 +529,13 @@ void CellValuePrinter::printTypeName(CellI& cell)
     brain::Brain& kb = cell.kb;
     auto isA          = [this, &cell, &kb](CellI& type) -> bool { return &cell == &type || (cell.has(kb.id.memberOf) && cell[kb.id.memberOf][kb.id.index].has(type)); };
     if (isA(kb.type.Map)) {
-        m_ss << std::format("Map<{}, {}>", cell[kb.id.subTypes][kb.id.index][kb.id.keyType].label(), cell[kb.id.subTypes][kb.id.index][kb.id.objectType].label());
+        m_ss << std::format("Map<{}, {}>", cell[kb.id.subTypes][kb.id.index][kb.id.keyType][kb.id.value].label(), cell[kb.id.subTypes][kb.id.index][kb.id.objectType][kb.id.value].label());
         return;
     } else if (isA(kb.type.ListItem)) {
-        m_ss << std::format("ListItem<{}>", cell[kb.id.slots][kb.id.index][kb.id.value][kb.id.slotType].label());
+        m_ss << std::format("ListItem<{}>", cell[kb.id.slots][kb.id.index][kb.id.value][kb.id.value][kb.id.slotType].label());
         return;
     } else if (isA(kb.type.List)) {
-        m_ss << std::format("List<{}>", cell[kb.id.slots][kb.id.index][kb.id.objectType][kb.id.slotType].label());
+        m_ss << std::format("List<{}>", cell[kb.id.slots][kb.id.index][kb.id.objectType][kb.id.value][kb.id.slotType].label());
         return;
     }
     m_ss << cell.label();
@@ -591,7 +550,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         CellI& cellType = cell[kb.id.slotType];
         m_ss << cell[kb.id.slotRole].label() << ": ";
         if (cellType.type().has(kb.id.memberOf) && cellType.type()[kb.id.memberOf][kb.id.index].has(kb.type.ListItem)) {
-            m_ss << "ListItem<" << cellType.type()[kb.id.slots][kb.id.index][kb.id.value][kb.id.slotType].label() << ">";
+            m_ss << "ListItem<" << cellType.type()[kb.id.slots][kb.id.index][kb.id.value][kb.id.value][kb.id.slotType].label() << ">";
         } else {
             m_ss << cellType.label();
         }
@@ -614,25 +573,14 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         printTypeName(cell.type());
         m_ss << "{";
-        if (m_nextGenMap) {
-            visitList(cell[kb.id.index][kb.id.type][kb.id.slots][kb.id.list], [this, &kb, &cell](CellI& value, int i, bool&) {
-                if (i != 0) {
-                    m_ss << ", ";
-                }
-                value[kb.id.slotRole].accept(*this);
-                m_ss << ": ";
-                cell[kb.id.index][value[kb.id.slotRole]][kb.id.value].accept(*this);
-            });
-        } else {
-            visitList(cell[kb.id.index][kb.id.type][kb.id.slots][kb.id.list], [this, &kb, &cell](CellI& value, int i, bool&) {
-                if (i != 0) {
-                    m_ss << ", ";
-                }
-                value[kb.id.slotRole].accept(*this);
-                m_ss << ": ";
-                cell[kb.id.index][value[kb.id.slotRole]].accept(*this);
-            });
-        }
+        visitList(cell[kb.id.index][kb.id.type][kb.id.slots][kb.id.list], [this, &kb, &cell](CellI& value, int i, bool&) {
+            if (i != 0) {
+                m_ss << ", ";
+            }
+            value[kb.id.slotRole].accept(*this);
+            m_ss << ": ";
+            cell[kb.id.index][value[kb.id.slotRole]][kb.id.value].accept(*this);
+        });
         m_ss << "}";
         return;
     } else if (is(kb.type.Type_)) {
@@ -798,30 +746,6 @@ void CellValuePrinter::printImpl(CellI& cell)
     m_ss << " }";
 }
 
-void CellValuePrinter::visit(List::Item& listItemCell)
-{
-    brain::Brain& kb = listItemCell.kb;
-    m_ss << "[ ";
-    if (!listItemCell[kb.id.value].label().empty()) {
-        m_ss << listItemCell[kb.id.value].label() << " ";
-    }
-    m_ss << "]";
-
-}
-
-void CellValuePrinter::visit(List& list)
-{
-    m_ss << "[";
-    visitList(list, [this](CellI& value, int i, bool&) {
-        if (i != 0) {
-            m_ss << ",";
-        }
-        m_ss << " ";
-        value.accept(*this);
-    });
-    m_ss << " ]";
-}
-
 void CellValuePrinter::visit(Number& cell)
 {
     m_ss << cell.value();
@@ -845,10 +769,6 @@ void CellValuePrinter::visit(hybrid::Pixel& cell)
 void CellValuePrinter::visit(hybrid::Picture& cell)
 {
     m_ss << "(Picture)" << cell.label() << "[" << cell.width() << ", " << cell.height() << "]";
-}
-
-void visit(nextgen::List::Item&)
-{
 }
 
 void CellValuePrinter::printIndent()

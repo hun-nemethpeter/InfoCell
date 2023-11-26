@@ -18,76 +18,6 @@ Printer::Printer(int width, int height) :
     m_fontName = "Times New Roman";
 }
 
-void Printer::visit(Map::Index::Type::Slots::SlotList::Item& cell)
-{
-    m_stack.push(text("Map::Index::Type::Slots::SlotList::Item"));
-}
-
-void Printer::visit(Map::Index::Type::Slots::SlotList& cell)
-{
-    m_stack.push(text("Map::Index::Type::Slots::SlotList"));
-}
-
-void Printer::visit(Map::Index::Type::Slots::SlotIndex& cell)
-{
-    m_stack.push(text("Map::Index::Type::Slots::SlotIndex"));
-}
-
-void Printer::visit(Map::Index::Type::Slots& cell)
-{
-    m_stack.push(text("Map::Index::Type::Slots"));
-}
-
-void Printer::visit(Map::Index::Type::Slot& cell)
-{
-    m_stack.push(text("Map::Index::Type::Slot"));
-}
-
-void Printer::visit(Map::Index::Type& cell)
-{
-    m_stack.push(text("Map::Index::Type"));
-}
-
-void Printer::visit(Map::Index& cell)
-{
-    m_stack.push(text("Map::Index"));
-}
-
-void Printer::visit(Map& cell)
-{
-    m_stack.push(text("Map"));
-}
-
-void Printer::visit(nextgen::List::Item& cell)
-{
-    m_stack.push(text("List::Item"));
-}
-
-void Printer::visit(nextgen::List& cell)
-{
-    m_stack.push(text("List"));
-}
-
-void Printer::visit(nextgen::Type& cell)
-{
-    m_stack.push(text("Type"));
-}
-
-void Printer::visit(nextgen::Index& cell)
-{
-    m_stack.push(text("Index"));
-}
-
-void Printer::visit(nextgen::Map& cell)
-{
-    m_stack.push(text("Map"));
-}
-
-void Printer::visit(nextgen::Set& cell)
-{
-    m_stack.push(text("Set"));
-}
-
 void Printer::visit(Object& cell)
 {
     m_stack.push(text("Object"));
@@ -131,6 +61,26 @@ void Printer::visit(List& list)
     flexConfig.align_content   = FlexboxConfig::AlignContent::FlexStart;
 
     m_stack.push(flexbox(listItems, flexConfig));
+}
+
+void Printer::visit(Type& cell)
+{
+    m_stack.push(text("Type"));
+}
+
+void Printer::visit(Index& cell)
+{
+    m_stack.push(text("Index"));
+}
+
+void Printer::visit(Map& cell)
+{
+    m_stack.push(text("Map"));
+}
+
+void Printer::visit(Set& cell)
+{
+    m_stack.push(text("Set"));
 }
 
 void Printer::visit(Number& cell)
