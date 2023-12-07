@@ -129,8 +129,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     std::stringstream oss;
     CellI& subTypesIndex = cell.type()[kb.id.subTypes][kb.id.index];
     CellI& inType        = subTypesIndex[kb.id.parameters][kb.id.value];
-    CellI& outType       = subTypesIndex[kb.id.output][kb.id.value];
-    bool hasOutput = false;
+    bool hasReturnValue = false;
     if (inType.has(kb.id.slots)) {
         Visitor::visitList(inType[kb.id.slots][kb.id.list], [this, &iss, &kb](CellI& slot, int i, bool& stop) {
             if (i > 0) {
@@ -142,14 +141,10 @@ void CellValuePrinter::printOpFunction(CellI& cell)
             iss << slot[kb.id.slotRole].label() << ": " << slot[kb.id.slotType].label();
         });
     }
-    if (outType.has(kb.id.slots)) {
-        hasOutput = true;
-        Visitor::visitList(outType[kb.id.slots][kb.id.list], [this, &oss, &kb](CellI& slot, int i, bool& stop) {
-            if (i > 0) {
-                throw "More than one return type";
-            }
-            oss << slot[kb.id.slotType].label();
-        });
+    if (subTypesIndex.has(kb.id.returnType)) {
+        CellI& outType = subTypesIndex[kb.id.returnType][kb.id.value];
+        hasReturnValue      = true;
+        oss << outType.label();
     }
     const std::string& className = subTypesIndex.has(kb.id.objectType) ? subTypesIndex[kb.id.objectType].label() : "";
     std::string label            = className;
@@ -161,7 +156,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     std::string staticStr = isStatic ? "static " : "";
     std::string newLabel;
 
-    if (hasOutput) {
+    if (hasReturnValue) {
         newLabel = std::format("fn {}{}({}) -> {}\n", staticStr, label, iss.str(), oss.str());
     } else {
         newLabel = std::format("fn {}{}({})\n", staticStr, label, iss.str());

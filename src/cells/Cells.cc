@@ -710,7 +710,7 @@ void Object::createStack(CellI& method)
     stackFrame.set(kb.id.method, method);
     stackFrame.set(kb.id.input, inputIndex);
 
-    if (method.type()[kb.id.subTypes][kb.id.index][kb.id.output][kb.id.value].has(kb.id.slots)) {
+    if (method.type()[kb.id.subTypes][kb.id.index].has(kb.id.returnType)) {
         Object& varResult   = *new Object(kb, kb.type.op.Var, "varResult");
         Object& outputIndex = *new Object(kb, kb.type.Index, "ResultIndex");
         outputIndex.set(kb.id.value, varResult);
@@ -738,8 +738,8 @@ void Object::initLocalVars(CellI& method)
 
 CellI& Object::getFnValue(CellI& method)
 {
-    if (method.type()[kb.id.subTypes][kb.id.index][kb.id.output][kb.id.value].has(kb.id.slots)) {
-        return method[kb.id.stack][kb.id.value][kb.id.output][kb.id.value][kb.id.value];
+    if (method.type()[kb.id.subTypes][kb.id.index].has(kb.id.returnType)) {
+        return method[kb.id.stack][kb.id.value][kb.id.output][kb.id.value];
     }
 
     return kb.id.emptyObject;

@@ -89,6 +89,8 @@ ID::ID(brain::Brain& kb) :
     remove(kb, kb.type.Cell, "remove"),
     removeSlot(kb, kb.type.Cell, "removeSlot"),
     result(kb, kb.type.Cell, "result"),
+    returnType(kb, kb.type.Cell, "returnType"),
+    returnValue(kb, kb.type.Cell, "returnValue"),
     rhs(kb, kb.type.Cell, "rhs"),
     role(kb, kb.type.Cell, "role"),
     self(kb, kb.type.Cell, "self"),
@@ -429,8 +431,8 @@ Ast::Ast(brain::Brain& kb) :
     map = &kb.slots(type.slot(id.objectType, type.Cell),
                     type.slot(id.name, type.Cell),
                     type.slot(id.parameters, type.ListOf(Slot)),
+                    type.slot(id.returnType, type.Type_),
                     type.slot(id.ast, type.ListOf(Base)),
-                    type.slot(id.output, type.ListOf(Slot)),
                     type.slot(id.static_, type.Boolean));
     Function.set(id.slots, *map);
 
@@ -970,12 +972,10 @@ Ast::Struct& Ast::StructT::instantiateWith(CellI* outType, List& inputParams)
                 instantiedFunction.set(kb.id.parameters, instantiatedParameters);
             }
             // return type
-            if (astFunction.has(kb.id.output)) {
-                CellI& slot              = astFunction[kb.id.output];
-                CellI& slotRole          = slot[kb.id.slotRole];
-                CellI& slotType          = slot[kb.id.slotType];
-                CellI& instantiatedParam = instantiateTemplateParam(slotType, *outType, inputParameters);
-                instantiedFunction.set(kb.id.output, instantiatedParam);
+            if (astFunction.has(kb.id.returnType)) {
+                CellI& returnType = astFunction[kb.id.returnType];
+                CellI& instantiatedReturnType = instantiateTemplateParam(returnType, *outType, inputParameters);
+                instantiedFunction.set(kb.id.returnType, instantiatedReturnType);
             }
         });
         ret.m_methods = &instantiatedMethods;
@@ -1060,9 +1060,7 @@ void Ast::Function::parameters(Slot& param)
 
 void Ast::Function::returnType(CellI& type)
 {
-    Slot& slot = kb.ast.slot(kb.id.value, type);
-    set(kb.id.output, slot);
-    m_returnType = &slot;
+    m_returnType = &type;
 }
 
 void Ast::Function::addBlock(Block& ast)
@@ -1083,16 +1081,16 @@ CellI& Ast::Function::compile(CellI& type)
 
 CellI& Ast::Function::compileImpl(CellI* type)
 {
-    cells::Object& functionType       = *new cells::Object(kb, kb.type.Type_);
-    cells::Object& functionInputType  = *new cells::Object(kb, kb.type.Type_);
-    cells::Object& functionOutputType = *new cells::Object(kb, kb.type.Type_);
+    cells::Object& functionType = *new cells::Object(kb, kb.type.Type_);
     functionType.set(kb.id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.op.Function, kb.type.op.Function));
-    cells::Map& subTypesMap = kb.map(kb.type.Cell, kb.type.Type_, kb.id.objectType, get(kb.id.objectType), kb.id.name, get(kb.id.name), kb.id.parameters, functionInputType, kb.id.output, functionOutputType);
+    cells::Map& subTypesMap = kb.map(kb.type.Cell, kb.type.Type_,
+                                     kb.id.objectType, get(kb.id.objectType),
+                                     kb.id.name, get(kb.id.name));
     functionType.set(kb.id.subTypes, subTypesMap);
     functionType.set(kb.id.slots, kb.type.op.Function[kb.id.slots]);
 
     cells::Object& function = *new cells::Object(kb, functionType);
-    compileParams(function, functionInputType, functionOutputType, type);
+    compileParams(function, subTypesMap, type);
     functionType.label(std::format("Type for {}", function.label()));
     function.set(kb.id.ast, asts());
     function.set(kb.id.op, compileAst(asts(), function, type));
@@ -1103,12 +1101,13 @@ CellI& Ast::Function::compileImpl(CellI* type)
     return function;
 }
 
-void Ast::Function::compileParams(cells::Object& function, cells::Object& inputType, cells::Object& outputType, CellI* type)
+void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesMap, CellI* type)
 {
     std::stringstream iss;
     std::stringstream oss;
     if (m_parameters || type) {
-        Map& slots = *new Map(kb, kb.type.Cell, kb.type.Slot);
+        cells::Object& parametersType = *new cells::Object(kb, kb.type.Type_);
+        Map& slots                    = *new Map(kb, kb.type.Cell, kb.type.Slot);
         if (type) {
             Object& var = *new Object(kb, kb.type.op.Var, "self");
             var.set(kb.id.objectType, *type);
@@ -1124,14 +1123,12 @@ void Ast::Function::compileParams(cells::Object& function, cells::Object& inputT
                 slots.add(slot[kb.id.slotRole], kb.type.slot(slot[kb.id.slotRole], slot[kb.id.slotType]));
             });
         }
-        inputType.set(kb.id.slots, slots);
+        parametersType.set(kb.id.slots, slots);
+        subTypesMap.add(kb.id.parameters, parametersType);
     }
     if (m_returnType) {
-        Map& slots  = *new Map(kb, kb.type.Cell, kb.type.Slot);
-        CellI& slot = returnType();
-        oss << slot[kb.id.slotType].label();
-        slots.add(slot[kb.id.slotRole], kb.type.slot(slot[kb.id.slotRole], slot[kb.id.slotType]));
-        outputType.set(kb.id.slots, slots);
+        oss << returnType().label();
+        subTypesMap.add(kb.id.returnType, returnType());
     }
     if (m_returnType) {
         function.label(std::format("fn {}({}) -> {}", label(), iss.str(), oss.str()));
@@ -1360,14 +1357,11 @@ block {
         CellI& setInput      = compile(kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.input), _(varInputIndex) / _(id.value)));
         CellI& setSelf       = compile(kb.ast.set(_(varInputIndex) / _(id.value), _(id.self), astCell));
         CellI& setStackToNew = compile(kb.ast.set(_(varMethod) / _(id.value), _(id.stack), _(varNewStackItem) / _(id.value)));
-        CellI& setOutput     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value), _(id.slots)),
-                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value) / _(id.slots) / _(id.index), _(id.value)),
-                                                             kb.ast.block(kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.output), kb.ast.new_(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value))),
-                                                                          kb.ast.set(_(varNewStackFrame) / _(id.value) / _(id.output), _(id.value), kb.ast.new_(_(kb.type.op.Var)))))));
-        CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value), _(id.slots)),
-                                                  kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.output) / _(id.value) / _(id.slots) / _(id.index), _(id.value)),
-                                                             kb.ast.set(_(block), _(id.value), _(varMethod) / _(id.value) / _(id.stack) / _(id.value) / _(id.output) / _(id.value) / _(id.value)))));
-//        CellI& setStackToOld = compile(kb.ast.set(_(varNewStackItem) / _(id.value) / _(id.previous) / _(id.value) / _(id.method), _(id.stack), _(varNewStackItem) / _(id.value) / _(id.previous)));
+        CellI& setRetValue   = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index), _(id.returnType)),
+                                                  kb.ast.block(kb.ast.set(_(varNewStackFrame) / _(id.value), _(id.output), kb.ast.new_(_(kb.type.op.Var))),
+                                                               kb.ast.set(_(varNewStackFrame) / _(id.value) / _(id.output), _(id.objectType), _(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index) / _(id.returnType) / _(id.value)))));
+        CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _(id.value) / _(id.type) / _(id.subTypes) / _(id.index), _(id.returnType)),
+                                                  kb.ast.set(_(block), _(id.value), _(varMethod) / _(id.value) / _(id.stack) / _(id.value) / _(id.output) / _(id.value))));
         CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / _(id.value) / _(id.stack) / _(kb.id.previous) / _(id.value) / _(id.method), _(id.stack), _(varMethod) / _(id.value) / _(id.stack) / _(id.previous)));
 
         compiledAsts.add(storeMethod);
@@ -1381,7 +1375,7 @@ block {
         compiledAsts.add(createNewLocalVars);
         compiledAsts.add(setMethod);
         compiledAsts.add(setInput);
-        compiledAsts.add(setOutput);
+        compiledAsts.add(setRetValue);
         compiledAsts.add(setSelf);
 
 
@@ -1413,7 +1407,7 @@ block {
         createNewLocalVars.label("Call { createNewLocalVars; }");
         setMethod.label("Call { setMethod; }");
         setInput.label("Call { setInput; }");
-        setOutput.label("Call { setOutput; }");
+        setRetValue.label("Call { setRetValue; }");
         setSelf.label("Call { setSelf; }");
         setStackToNew.label("Call { setStackToNew; }");
         getResult.label("Call { getResult; }");
@@ -1535,7 +1529,7 @@ block {
         Object& retOp = *new Object(kb, kb.type.op.Return, "op.return");
         retOp.set(id.ast, ast);
         if (ast.has(id.value)) {
-            retOp.set(id.result, compile(kb.ast.set(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.output) / _(id.value), _(id.value), static_cast<Ast::Base&>(ast[id.value]))));
+            retOp.set(id.result, compile(kb.ast.set(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.output), _(id.value), static_cast<Ast::Base&>(ast[id.value]))));
         }
         return retOp;
     }
@@ -1543,14 +1537,12 @@ block {
     throw "Unknown function AST!";
 }
 
-//////
-
 List& Ast::Function::parameters()
 {
     return *m_parameters;
 }
 
-Ast::Slot& Ast::Function::returnType()
+CellI& Ast::Function::returnType()
 {
     return *m_returnType;
 }
@@ -2300,11 +2292,11 @@ Brain::Brain() :
     _9_(pools.numbers.get(9))
 
 {
-    const auto _     = [this](CellI& cell) -> Ast::Cell& { return ast.cell(cell); };
-    const auto p_    = [this](CellI& role) -> Ast::Parameter& { return ast.parameter(role); };
+    const auto _      = [this](CellI& cell) -> Ast::Cell& { return ast.cell(cell); };
+    const auto p_     = [this](CellI& role) -> Ast::Parameter& { return ast.parameter(role); };
     const auto m_     = [this](CellI& role) -> Ast::Member& { return ast.member(role); };
     const auto var_   = [this](CellI& role) -> Ast::Var& { return ast.var(role); };
-    const auto param = [this](CellI& role, CellI& value) -> Ast::Slot& { return ast.slot(role, value); };
+    const auto param  = [this](CellI& role, CellI& value) -> Ast::Slot& { return ast.slot(role, value); };
     const auto member = [this](CellI& role, CellI& value) -> Ast::Slot& { return ast.slot(role, value); };
 
     CellI* mapPtr = nullptr;

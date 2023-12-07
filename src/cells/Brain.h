@@ -93,6 +93,8 @@ public:
     Object remove;
     Object removeSlot;
     Object result;
+    Object returnType;
+    Object returnValue;
     Object rhs;
     Object role;
     Object self;
@@ -495,14 +497,14 @@ public:
     protected:
         void addBlock(Block& ast);
         CellI& compileImpl(CellI* type);
-        void compileParams(cells::Object& function, cells::Object& inputType, cells::Object& outputType, CellI* type);
+        void compileParams(cells::Object& function, cells::Map& subTypesMap, CellI* type);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI* type);
         List& parameters();
-        Slot& returnType();
+        CellI& returnType();
         Base& asts();
 
         List* m_parameters = nullptr;
-        Slot* m_returnType = nullptr;
+        CellI* m_returnType = nullptr;
         Base* m_asts  = nullptr;
     };
 
