@@ -208,7 +208,6 @@ public:
     Object NotEqual;
     Object NotSame;
     Object Or;
-    Object Output;
     Object Parameter;
     Object Return;
     Object Same;
@@ -360,11 +359,6 @@ public:
     public:
         Parameter(brain::Brain& kb, CellI& role);
         Get& operator/(Base& role);
-    };
-    class Output : public BaseT<Output>
-    {
-    public:
-        Output(brain::Brain& kb, CellI& role);
     };
     class Slot : public BaseT<Slot>
     {
@@ -689,7 +683,6 @@ public:
     Return& return_();
     Return& return_(Base& value);
     Parameter& parameter(CellI& role);
-    Output& output(CellI& role);
     Slot& slot(CellI& role, CellI& type);
     Call& call(CellI& cell, CellI& method);
     Call& call(CellI& cell, CellI& method, Slot& slot1);

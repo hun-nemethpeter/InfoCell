@@ -365,7 +365,6 @@ Ast::Ast(brain::Brain& kb) :
     NotEqual(kb, kb.type.Type_, "ast::NotEqual"),
     NotSame(kb, kb.type.Type_, "ast::NotSame"),
     Or(kb, kb.type.Type_, "ast::Or"),
-    Output(kb, kb.type.Type_, "ast::Output"),
     Parameter(kb, kb.type.Type_, "ast::Parameter"),
     Return(kb, kb.type.Type_, "ast::Return"),
     Same(kb, kb.type.Type_, "ast::Same"),
@@ -494,9 +493,6 @@ Ast::Ast(brain::Brain& kb) :
     map = &kb.slots(type.slot(id.lhs, Base),
                     type.slot(id.rhs, Base));
     Or.set(id.slots, *map);
-
-    map = &kb.slots(type.slot(id.role, type.Cell));
-    Output.set(id.slots, *map);
 
     map = &kb.slots(type.slot(id.role, type.Cell));
     Parameter.set(id.slots, *map);
@@ -736,12 +732,6 @@ Ast::Parameter::Parameter(brain::Brain& kb, CellI& role) :
 Ast::Get& Ast::Parameter::operator/(Base& role)
 {
     return Get::New(kb, *this, role);
-}
-
-Ast::Output::Output(brain::Brain& kb, CellI& role) :
-    BaseT<Output>(kb, kb.type.ast.Output, "ast.output")
-{
-    set(kb.id.role, role);
 }
 
 Ast::Slot::Slot(brain::Brain& kb, CellI& role, CellI& type) :
@@ -1183,10 +1173,6 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI* typ
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Parameter) {
         CellI& retOp = compile(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.input) / _(ast[id.role]));
-        retOp.set(id.ast, ast);
-        return retOp;
-    } else if (&ast.type() == &kb.type.ast.Output) {
-        CellI& retOp = compile(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.output) / _(ast[id.role]));
         retOp.set(id.ast, ast);
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Var) {
@@ -1914,12 +1900,6 @@ Ast::Parameter& Ast::parameter(CellI& role)
 {
     auto& ast = kb.ast;
     return Parameter::New(kb, role);
-}
-
-Ast::Output& Ast::output(CellI& role)
-{
-    auto& ast = kb.ast;
-    return Output::New(kb, role);
 }
 
 Ast::Slot& Ast::slot(CellI& role, CellI& type)

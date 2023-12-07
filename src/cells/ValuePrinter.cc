@@ -347,10 +347,6 @@ void CellValuePrinter::printOpGet(CellI& cell)
         m_ss << "p_" << cell[kb.id.ast][kb.id.role].label();
         return;
     }
-    if (&cell[kb.id.ast].type() == &kb.type.ast.Output) {
-        m_ss << "out_" << cell[kb.id.ast][kb.id.role].label();
-        return;
-    }
     if (&cell[kb.id.ast].type() == &kb.type.ast.Var) {
         m_ss << "var_" << cell[kb.id.ast][kb.id.role].label();
         return;
@@ -469,10 +465,6 @@ void CellValuePrinter::printAstGet(CellI& cell)
         m_ss << "p_" << cell[kb.id.ast][kb.id.role].label();
         return;
     }
-    if (&cell.type() == &kb.type.ast.Output) {
-        m_ss << "out_" << cell[kb.id.ast][kb.id.role].label();
-        return;
-    }
     if (&cell.type() == &kb.type.ast.Var) {
         m_ss << "var_" << cell[kb.id.ast][kb.id.role].label();
         return;
@@ -486,12 +478,6 @@ void CellValuePrinter::printAstParameter(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
     m_ss << "p_" << cell[kb.id.role].label();
-}
-
-void CellValuePrinter::printAstOutput(CellI& cell)
-{
-    brain::Brain& kb = cell.kb;
-    m_ss << "out_" << cell[kb.id.role].label();
 }
 
 void CellValuePrinter::printAstVar(CellI& cell)
@@ -713,9 +699,6 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     } else if (is(kb.type.ast.Parameter)) {
         printAstParameter(cell);
-        return;
-    } else if (is(kb.type.ast.Output)) {
-        printAstOutput(cell);
         return;
     } else if (is(kb.type.ast.Var)) {
         printAstVar(cell);
