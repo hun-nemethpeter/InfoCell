@@ -47,6 +47,7 @@ public:
     Object first;
     Object firstPixel;
     Object getValue;
+    Object global;
     Object has;
     Object hasKey;
     Object hasPixel;
@@ -97,6 +98,8 @@ public:
     Object returnValue;
     Object rhs;
     Object role;
+    Object scope;
+    Object scopes;
     Object self;
     Object shape;
     Object shapeId;
@@ -112,6 +115,8 @@ public:
     Object statement;
     Object static_;
     Object status;
+    Object structs;
+    Object structTs;
     Object stop;
     Object subTypes;
     Object template_;
@@ -202,6 +207,7 @@ public:
     Object Parameter;
     Object Return;
     Object Same;
+    Object Scope;
     Object Self;
     Object SelfFn;
     Object Set;
@@ -328,11 +334,9 @@ public:
     {
     public:
         BaseT<T>(brain::Brain& kb, CellI& classCell, const std::string& label = "") :
-            Base(kb, classCell, label), kb(kb)
+            Base(kb, classCell, label)
         {
         }
-
-        brain::Brain& kb;
     };
     class Get;
     class Cell : public BaseT<Cell>
@@ -394,10 +398,27 @@ public:
         Block(brain::Brain& kb, List& list);
     };
     class Function;
-    class StructBase
+    class Struct;
+    class StructT;
+    class Scope : public BaseT<Scope>
     {
     public:
-        StructBase(brain::Brain& kb, CellI& type);
+        Scope(brain::Brain& kb, CellI& id, const std::string& label);
+        Scope& addScope(CellI& id, const std::string& label);
+        Function& addMethod(CellI& id, const std::string& label);
+        Struct& addStruct(CellI& id, const std::string& label);
+        StructT& addStructT(CellI& id, const std::string& label);
+
+    protected:
+        Map& scopes();
+        Map& methods();
+        Map& structs();
+        Map& structTs();
+    };
+    class StructBase : public Base
+    {
+    public:
+        StructBase(brain::Brain& kb, CellI& astType, CellI& cell, const std::string& label = "");
 
         Function& addMethod(CellI& id, const std::string& label);
 
@@ -425,22 +446,22 @@ public:
             memberOf(std::forward<Args>(args)...);
         }
 
-        brain::Brain& kb;
-        CellI& m_cellType;
-        Map* m_methods  = nullptr;
-        List* m_members  = nullptr;
-        List* m_subtypes = nullptr;
-        List* m_memberOf = nullptr;
+    protected:
+        Map& methods();
+        List& members();
+        List& subTypes();
+        List& memberOf();
+        CellI& cell();
     };
 
-    class Struct : public BaseT<Struct>,
-                   public StructBase
+    class Struct : public StructBase,
+                   public NewT<Struct>
     {
     public:
         Struct(brain::Brain& kb, CellI& type, const std::string& label);
     };
-    class StructT : public BaseT<StructT>,
-                    public StructBase
+    class StructT : public StructBase,
+                    public NewT<StructT>
     {
     public:
         using StructBase::kb;
@@ -479,6 +500,7 @@ public:
     class Function : public BaseT<Function>
     {
     public:
+        Function(brain::Brain& kb, CellI& name, const std::string& label);
         Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label);
 
         void parameters(Slot& param);
