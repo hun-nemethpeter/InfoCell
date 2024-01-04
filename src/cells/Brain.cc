@@ -12,7 +12,7 @@ ID::ID(brain::Brain& kb) :
     add(kb, kb.type.Cell, "add"),
     addMembership(kb, kb.type.Cell, "addMembership"),
     addMethod(kb, kb.type.Cell, "addMethod"),
-    addPixel(kb, kb.type.Struct, "addPixel"),
+    addPixel(kb, kb.type.Cell, "addPixel"),
     addSlot(kb, kb.type.Cell, "addSlot"),
     addSlots(kb, kb.type.Cell, "addSlots"),
     addSubType(kb, kb.type.Cell, "addSubType"),
@@ -21,8 +21,8 @@ ID::ID(brain::Brain& kb) :
     asts(kb, kb.type.Cell, "asts"),
     branch(kb, kb.type.Cell, "branch"),
     cell(kb, kb.type.Cell, "cell"),
-    checkPixel(kb, kb.type.Struct, "checkPixel"),
-    checkPixels(kb, kb.type.Struct, "checkPixels"),
+    checkPixel(kb, kb.type.Cell, "checkPixel"),
+    checkPixels(kb, kb.type.Cell, "checkPixels"),
     code(kb, kb.type.Cell, "code"),
     color(kb, kb.type.Cell, "color"),
     condition(kb, kb.type.Cell, "condition"),
@@ -35,27 +35,27 @@ ID::ID(brain::Brain& kb) :
     continue_(kb, kb.type.Cell, "continue"),
     current(kb, kb.type.Cell, "current"),
     destructor(kb, kb.type.Cell, "destructor"),
-    direction(kb, kb.type.Struct, "direction"),
+    direction(kb, kb.type.Cell, "direction"),
     else_(kb, kb.type.Cell, "else_"),
     empty(kb, kb.type.Cell, "empty"),
     emptyObject(kb, kb.type.Cell, "emptyObject"),
     erase(kb, kb.type.Cell, "erase"),
     eval(kb, kb.type.Cell, "eval"),
     first(kb, kb.type.Cell, "first"),
-    firstPixel(kb, kb.type.Struct, "firstPixel"),
+    firstPixel(kb, kb.type.Cell, "firstPixel"),
     getValue(kb, kb.type.Cell, "getValue"),
     global(kb, kb.type.Cell, "global"),
-    has(kb, kb.type.Struct, "has"),
+    has(kb, kb.type.Cell, "has"),
     hasKey(kb, kb.type.Cell, "hasKey"),
-    hasPixel(kb, kb.type.Struct, "hasPixel"),
+    hasPixel(kb, kb.type.Cell, "hasPixel"),
     hasSlot(kb, kb.type.Cell, "hasSlot"),
     height(kb, kb.type.Cell, "height"),
-    id(kb, kb.type.Struct, "id"),
+    id(kb, kb.type.Cell, "id"),
     index(kb, kb.type.Cell, "index"),
     indexType(kb, kb.type.Cell, "indexType"),
     input(kb, kb.type.Cell, "input"),
-    inputPixels(kb, kb.type.Struct, "inputPixels"),
-    insert(kb, kb.type.Struct, "insert"),
+    inputPixels(kb, kb.type.Cell, "inputPixels"),
+    insert(kb, kb.type.Cell, "insert"),
     item(kb, kb.type.Cell, "item"),
     itemType(kb, kb.type.Cell, "itemType"),
     key(kb, kb.type.Cell, "key"),
@@ -79,15 +79,15 @@ ID::ID(brain::Brain& kb) :
     output(kb, kb.type.Cell, "output"),
     parameter(kb, kb.type.Cell, "parameter"),
     parameters(kb, kb.type.Cell, "parameters"),
-    picture(kb, kb.type.Struct, "picture"),
-    pixel(kb, kb.type.Struct, "pixel"),
-    pixels(kb, kb.type.Struct, "pixels"),
+    picture(kb, kb.type.Cell, "picture"),
+    pixel(kb, kb.type.Cell, "pixel"),
+    pixels(kb, kb.type.Cell, "pixels"),
     previous(kb, kb.type.Cell, "previous"),
-    process(kb, kb.type.Struct, "process"),
-    processAdjacentPixel(kb, kb.type.Struct, "processAdjacentPixel"),
-    processInputPixels(kb, kb.type.Struct, "processInputPixels"),
-    processPixel(kb, kb.type.Struct, "processPixel"),
-    recursiveType(kb, kb.type.Struct, "recursiveType"),
+    process(kb, kb.type.Cell, "process"),
+    processAdjacentPixel(kb, kb.type.Cell, "processAdjacentPixel"),
+    processInputPixels(kb, kb.type.Cell, "processInputPixels"),
+    processPixel(kb, kb.type.Cell, "processPixel"),
+    recursiveType(kb, kb.type.Cell, "recursiveType"),
     remove(kb, kb.type.Cell, "remove"),
     removeSlot(kb, kb.type.Cell, "removeSlot"),
     result(kb, kb.type.Cell, "result"),
@@ -98,16 +98,16 @@ ID::ID(brain::Brain& kb) :
     scope(kb, kb.type.Cell, "scope"),
     scopes(kb, kb.type.Cell, "scopes"),
     self(kb, kb.type.Cell, "self"),
-    shape(kb, kb.type.Struct, "shape"),
-    shapeId(kb, kb.type.Struct, "shapeId"),
-    shapes(kb, kb.type.Struct, "shapes"),
+    shape(kb, kb.type.Cell, "shape"),
+    shapeId(kb, kb.type.Cell, "shapeId"),
+    shapes(kb, kb.type.Cell, "shapes"),
     sharedObject(kb, kb.type.Cell, "sharedObject"),
     size(kb, kb.type.Cell, "size"),
     slot(kb, kb.type.Cell, "slot"),
     slotRole(kb, kb.type.Cell, "slotRole"),
     slots(kb, kb.type.Cell, "slots"),
     slotType(kb, kb.type.Cell, "slotType"),
-    sortPixels(kb, kb.type.Struct, "sortPixels"),
+    sortPixels(kb, kb.type.Cell, "sortPixels"),
     stack(kb, kb.type.Cell, "stack"),
     statement(kb, kb.type.Cell, "statement"),
     static_(kb, kb.type.Cell, "static"),
@@ -416,7 +416,7 @@ Ast::Ast(brain::Brain& kb) :
     map = &kb.slots(type.slot(id.cell, Base));
     Delete.set(id.slots, *map);
 
-    map = &kb.slots(type.slot(id.role, Base),
+    map = &kb.slots(type.slot(id.id, Base),
                     type.slot(id.parameters, type.ListOf(Slot)));
     DependentType.set(id.slots, *map);
 
@@ -639,14 +639,6 @@ Types::Types(brain::Brain& kb) :
     Enum.set(id.slots, *map);
 
     kb.m_initPhase = Brain::InitPhase::SlotTypeInitialzed;
-}
-
-Templates::Templates(brain::Brain& kb) :
-    kb(kb),
-    List(kb, kb.type.Template, "List"),
-    ListItem(kb, kb.type.Template, "ListItem"),
-    Map(kb, kb.type.Template, "Map")
-{
 }
 
 cells::CellI& Types::slot(cells::CellI& role, cells::CellI& type)
@@ -896,7 +888,7 @@ Ast::Block::Block(brain::Brain& kb, List& list) :
 }
 
 Ast::Scope::Scope(brain::Brain& kb, CellI& id, const std::string& label) :
-    BaseT<Scope>(kb, kb.type.ast.Scope, "ast.scope")
+    BaseT<Scope>(kb, kb.type.ast.Scope, label)
 {
     set(kb.id.id, id);
 }
@@ -1080,12 +1072,12 @@ CellI& Ast::StructBase::cell()
 }
 
 Ast::Struct::Struct(brain::Brain& kb, CellI& type, const std::string& label) :
-    StructBase(kb, kb.type.ast.Struct, type, "ast.struct")
+    StructBase(kb, kb.type.ast.Struct, type, label)
 {
 }
 
 Ast::StructT::StructT(brain::Brain& kb, CellI& type, const std::string& label) :
-    StructBase(kb, kb.type.ast.StructT, type, "ast.structT")
+    StructBase(kb, kb.type.ast.StructT, type, label)
 {
 }
 
@@ -1097,9 +1089,20 @@ void Ast::StructT::templateParams(Slot& param)
     templateParams().add(param[kb.id.slotRole], param);
 }
 
-CellI& Ast::StructT::dependentType(CellI& type)
+
+Ast::Struct& Ast::StructT::declareType(CellI& parameters)
 {
-    return kb.id.emptyObject; // TODO
+    static Struct* ret = new Struct(kb, *new Object(kb, kb.type.Type_, "TODO"), "TODO"); // TODO
+    // maybe we need an incomplete instantiation
+    // we have to define the instantiation process
+    // declare template type -> register template with parameter AND create inclomplete type
+    // instantiation -> declare template type -> actually do the instantiation
+    return *ret;
+}
+
+Ast::Struct& Ast::StructT::instantiate(List& parameters)
+{
+    return instantiateWith(nullptr, parameters);
 }
 
 Ast::Struct& Ast::StructT::instantiateWith(CellI* outType, List& inputParams)
@@ -1209,7 +1212,9 @@ CellI& Ast::StructT::instantiateTemplateParam(CellI& param, CellI& selfType, Map
         return inputParameters.getValue(paramValue);
     }
     if (&param.type() == &kb.type.ast.DependentType) {
-        return param; // TODO
+        Scope& scope = static_cast<Scope&>(get(kb.id.scope));
+        StructT& structT = static_cast<StructT&>(scope[kb.id.structTs][kb.id.index][param[kb.id.id]][kb.id.value]);
+        return structT.declareType(param[kb.id.parameters]);
     }
     if (&param.type() == &kb.type.ast.Cell) {
         return param[kb.id.value];
@@ -1350,14 +1355,14 @@ Map& Ast::StructT::templateParams()
 }
 
 Ast::Function::Function(brain::Brain& kb, CellI& name, const std::string& label) :
-    BaseT<Function>(kb, kb.type.ast.Function, "ast.function")
+    BaseT<Function>(kb, kb.type.ast.Function, label)
 {
     set(kb.id.name, name);
     this->label(label);
 }
 
 Ast::Function::Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label) :
-    BaseT<Function>(kb, kb.type.ast.Function, "ast.function")
+    BaseT<Function>(kb, kb.type.ast.Function, label)
 {
     set(kb.id.objectType, objType);
     set(kb.id.name, name);
@@ -1992,10 +1997,10 @@ Ast::Call& Ast::Member::call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot
     return Call::New(kb, *this, method, slot1, slot2, slot3, slot4);
 }
 
-Ast::DependentType::DependentType(brain::Brain& kb, CellI& role, CellI& typeList) :
+Ast::DependentType::DependentType(brain::Brain& kb, CellI& id, CellI& typeList) :
     BaseT<DependentType>(kb, kb.type.ast.DependentType, "ast.dependentType")
 {
-    set(kb.id.role, role);
+    set(kb.id.id, id);
     set(kb.id.parameters, typeList);
 }
 
@@ -2592,7 +2597,6 @@ Brain::Brain() :
     m_initPhase(InitPhase::Init),
     id(*this),
     type(*this),
-    templates(*this),
     pools(*this),
     ast(*this),
     directions(*this),
@@ -2629,7 +2633,7 @@ Brain::Brain() :
     const auto dt_ = [this](CellI& role, auto&... param) -> Ast::DependentType& { return ast.dependentType(role, param...); };
 
     auto& globalScope = *new Ast::Scope(*this, id.global, "global");
-    auto& listItemStructT = globalScope.addStructT(templates.ListItem, "ListItem<objectType:Type>");
+    auto& listItemStructT = globalScope.addStructT(id.listItem, "ListItem<objectType:Type>");
     listItemStructT.templateParams(
         param(id.objectType, type.Type_));
     listItemStructT.members(
@@ -2643,24 +2647,25 @@ Brain::Brain() :
     listItemConstructor.code(
         m_(id.value) = p_(id.value));
 
+    globalScope.instantiate(id.listItem, param(id.objectType, type.Number));
     auto& listItemNumberStruct = listItemStructT.instantiate(param(id.objectType, type.Number));
-    auto& listItemNumberType = listItemStructT.dependentType(type.Number);
 
-    auto& listStructT = globalScope.addStructT(templates.List, "List<objectType:Type>");
+    auto& listStructT = globalScope.addStructT(id.list, "List<objectType:Type>");
     listStructT.templateParams(
         param(id.objectType, type.Type_));
     listStructT.memberOf(
         _(type.Container));
     listStructT.subTypes(
-        param(id.itemType, dt_(templates.ListItem, t_(id.objectType))),
+        param(id.itemType, dt_(id.listItem, param(id.objectType, t_(id.objectType)))),
         param(id.objectType, t_(id.objectType)));
     listStructT.members(
-        member(id.itemType, dt_(templates.ListItem, t_(id.objectType))),
+        member(id.itemType, dt_(id.listItem, param(id.objectType, t_(id.objectType)))),
         member(id.objectType, t_(id.objectType)),
-        member(id.first, dt_(templates.ListItem, t_(id.objectType))),
-        member(id.last, dt_(templates.ListItem, t_(id.objectType))),
+        member(id.first, dt_(id.listItem, param(id.objectType, t_(id.objectType)))),
+        member(id.last, dt_(id.listItem, param(id.objectType, t_(id.objectType)))),
         member(id.size, _(type.Number)));
 
+    globalScope.instantiate(id.list, param(id.objectType, type.Number));
     auto& listNumberStruct = listStructT.instantiate(param(id.objectType, type.Number));
 
 #pragma endregion

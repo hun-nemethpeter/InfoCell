@@ -297,19 +297,6 @@ public:
     type::Arc arc;
 };
 
-class Templates
-{
-public:
-    Templates(brain::Brain& kb);
-    Object List;
-    Object ListItem;
-    Object Map;
-
-protected:
-    brain::Brain& kb;
-};
-
-
 template <typename T>
 class NewT
 {
@@ -405,11 +392,13 @@ public:
     class Scope : public BaseT<Scope>
     {
     public:
-        Scope(brain::Brain& kb, CellI& id, const std::string& label);
+        Scope(brain::Brain& kb, CellI& id, const std::string& label = "ast.scope");
         Scope& addScope(CellI& id, const std::string& label);
         Function& addMethod(CellI& id, const std::string& label);
         Struct& addStruct(CellI& id, const std::string& label);
         StructT& addStructT(CellI& id, const std::string& label);
+        template <typename... Args>
+        void instantiate(CellI& id, Args&&... args);
 
     protected:
         Map& scopes();
@@ -420,7 +409,7 @@ public:
     class StructBase : public Base
     {
     public:
-        StructBase(brain::Brain& kb, CellI& astType, CellI& cell, const std::string& label = "");
+        StructBase(brain::Brain& kb, CellI& astType, CellI& cell, const std::string& label);
 
         Function& addMethod(CellI& id, const std::string& label);
 
@@ -460,14 +449,14 @@ public:
                    public NewT<Struct>
     {
     public:
-        Struct(brain::Brain& kb, CellI& type, const std::string& label);
+        Struct(brain::Brain& kb, CellI& type, const std::string& label = "ast.struct");
     };
     class StructT : public StructBase,
                     public NewT<StructT>
     {
     public:
         using StructBase::kb;
-        StructT(brain::Brain& kb, CellI& type, const std::string& label);
+        StructT(brain::Brain& kb, CellI& type, const std::string& label = "ast.structT");
 
         void templateParams(Slot& param);
 
@@ -477,16 +466,12 @@ public:
             templateParams(param);
             templateParams(std::forward<Args>(args)...);
         }
-        CellI& dependentType(CellI& type);
-        template <typename... Args>
-        void dependentType(CellI& type, Args&&... args)
-        {
-            dependentType(type);
-            dependentType(std::forward<Args>(args)...);
-        }
+
+        Struct& declareType(CellI& parameters);
 
         template <typename... Args>
         Struct& instantiate(Args&&... args);
+        Struct& instantiate(List& parameters);
 
         template <typename... Args>
         void instantiateInto(CellI& type, Args&&... args);
@@ -500,8 +485,8 @@ public:
     class Function : public BaseT<Function>
     {
     public:
-        Function(brain::Brain& kb, CellI& name, const std::string& label);
-        Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label);
+        Function(brain::Brain& kb, CellI& name, const std::string& label = "ast.function");
+        Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label = "ast.function");
 
         void parameters(Slot& param);
 
@@ -588,7 +573,7 @@ public:
     {
     public:
         DependentType(const DependentType&) = delete;
-        DependentType(brain::Brain& kb, CellI& role, CellI& type);
+        DependentType(brain::Brain& kb, CellI& id, CellI& type);
     };
     class TemplateParam : public BaseT<TemplateParam>
     {
@@ -892,7 +877,6 @@ public:
     ~Brain();
     ID id;
     Types type;
-    Templates templates;
     Pools pools;
     Ast ast;
     Directions directions;
@@ -1008,6 +992,17 @@ void Ast::Function::code(Args&&... args)
 {
     addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
 }
+
+template <typename... Args>
+void Ast::Scope::instantiate(CellI& id, Args&&... args)
+{
+    if (!structTs().hasKey(id)) {
+        throw "No such template!";
+    }
+    auto& structT = static_cast<Ast::StructT&>(structTs().getValue(id));
+    Ast::Struct& instance = structT.instantiate(std::forward<Args>(args)...);
+}
+
 template <typename... Args>
 Ast::Struct& Ast::StructT::instantiate(Args&&... args)
 {
