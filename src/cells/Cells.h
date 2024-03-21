@@ -246,6 +246,7 @@ public:
     bool m_recursiveType = false;
     std::map<CellI*, CellI*> m_slots;
 };
+
 // ============================================================================
 class Map : public CellI
 {
@@ -281,6 +282,45 @@ private:
     CellI& m_valueType;
     int m_size = 0;
 };
+
+// ============================================================================
+class TrieMap : public CellI
+{
+public:
+    TrieMap(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
+
+    bool has(CellI& role) override;
+    void set(CellI& role, CellI& value) override;
+    void erase(CellI& role) override;
+    void operator()() override;
+    CellI& operator[](CellI& role) override;
+    void accept(Visitor& visitor) override;
+
+    bool hasKey(List& key);
+    CellI& getValue(List& key);
+
+    void add(List& key, CellI& value);
+    template <typename... Args>
+    void add(List& key, CellI& value, Args&&... args)
+    {
+        add(key, value);
+        add(std::forward<Args>(args)...);
+    }
+    void remove(List& key);
+    void remove2(List& key);
+    bool empty() const;
+    int size();
+
+private:
+    void removeCb(CellI& currentNode, CellI& keyListItem, List::Item*& valueItem, bool last);
+
+    List m_list;
+    Object m_rootNode;
+    CellI& m_keyType;
+    CellI& m_valueType;
+    int m_size = 0;
+};
+
 // ============================================================================
 class Set : public CellI
 {

@@ -23,6 +23,7 @@ ID::ID(brain::Brain& kb) :
     cell(kb, kb.type.Cell, "cell"),
     checkPixel(kb, kb.type.Cell, "checkPixel"),
     checkPixels(kb, kb.type.Cell, "checkPixels"),
+    children(kb, kb.type.Cell, "children"),
     code(kb, kb.type.Cell, "code"),
     color(kb, kb.type.Cell, "color"),
     condition(kb, kb.type.Cell, "condition"),
@@ -34,6 +35,7 @@ ID::ID(brain::Brain& kb) :
     contains(kb, kb.type.Cell, "contains"),
     continue_(kb, kb.type.Cell, "continue"),
     current(kb, kb.type.Cell, "current"),
+    data(kb, kb.type.Cell, "data"),
     destructor(kb, kb.type.Cell, "destructor"),
     direction(kb, kb.type.Cell, "direction"),
     else_(kb, kb.type.Cell, "else_"),
@@ -82,6 +84,7 @@ ID::ID(brain::Brain& kb) :
     output(kb, kb.type.Cell, "output"),
     parameter(kb, kb.type.Cell, "parameter"),
     parameters(kb, kb.type.Cell, "parameters"),
+    parent(kb, kb.type.Cell, "parent"),
     picture(kb, kb.type.Cell, "picture"),
     pixel(kb, kb.type.Cell, "pixel"),
     pixels(kb, kb.type.Cell, "pixels"),
@@ -98,6 +101,7 @@ ID::ID(brain::Brain& kb) :
     returnValue(kb, kb.type.Cell, "returnValue"),
     rhs(kb, kb.type.Cell, "rhs"),
     role(kb, kb.type.Cell, "role"),
+    rootNode(kb, kb.type.Cell, "rootNode"),
     scope(kb, kb.type.Cell, "scope"),
     scopes(kb, kb.type.Cell, "scopes"),
     self(kb, kb.type.Cell, "self"),
@@ -115,9 +119,9 @@ ID::ID(brain::Brain& kb) :
     statement(kb, kb.type.Cell, "statement"),
     static_(kb, kb.type.Cell, "static"),
     status(kb, kb.type.Cell, "status"),
+    stop(kb, kb.type.Cell, "stop"),
     structs(kb, kb.type.Cell, "structs"),
     structTs(kb, kb.type.Cell, "structTs"),
-    stop(kb, kb.type.Cell, "stop"),
     subTypes(kb, kb.type.Cell, "subTypes"),
     template_(kb, kb.type.Cell, "template"),
     templateIdType(kb, kb.type.Cell, "templateIdType"),
@@ -617,6 +621,8 @@ Types::Types(brain::Brain& kb) :
     MapCellToOpBase(kb, kb.type.Type_, "Map<Cell, op::Base>"),
     MapTypeToType(kb, kb.type.Type_, "Map<Type, Type>"),
     Index(kb, kb.type.Type_, "Index"),
+    TrieMap(kb, kb.type.Type_, "TrieMap"),
+    TrieMapNode(kb, kb.type.Type_, "TrieMapNode"),
     Set(kb, kb.type.Type_, "Set"),
     Boolean(kb, kb.type.Type_, "Boolean"),
     Char(kb, kb.type.Type_, "Char"),
@@ -1037,6 +1043,18 @@ Ast::Struct& Ast::Scope::instantiateIncompleteStructT(CellI& id, List& parameter
     return addIncompleteStruct(idCell);
 }
 
+void Ast::Scope::addIncompleteStruct(Struct& astStruct)
+{
+    if (missing(kb.id.incompleteStructTypes)) {
+        set(kb.id.incompleteStructTypes, *new Map(kb, kb.type.Cell, kb.type.ast.Struct, "Map<Cell, Type::Ast::Struct>(...)"));
+    }
+    auto& id = astStruct.get(kb.id.id);
+    if (incompleteStructTypes().has(id)) {
+        return;
+    }
+    incompleteStructTypes().add(id, astStruct);
+}
+
 Ast::Struct& Ast::Scope::addIncompleteStruct(CellI& id)
 {
     if (missing(kb.id.incompleteStructTypes)) {
@@ -1275,6 +1293,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
         ret->label(std::format("{}<{}>", id().label(), ss.str()));
     } else {
         ret = new Ast::Struct(kb, idCell, std::format("{}<{}>", id().label(), ss.str()));
+        scope.addIncompleteStruct(*ret);
     }
 
     // instantiate methods
@@ -3648,6 +3667,20 @@ Brain::Brain() :
     methodData.set(id.static_, boolean.false_);
     methodData.set(id.const_, boolean.false_);
 #endif
+
+    mapPtr = &slots(type.slot(id.keyType, type.Cell),
+                    type.slot(id.objectType, type.Cell),
+                    type.slot(id.list, type.ListOf(type.Cell)),
+                    type.slot(id.listType, type.List),
+                    type.slot(id.rootNode, type.TrieMapNode),
+                    type.slot(id.size, type.Number));
+    type.TrieMap.set(id.slots, *mapPtr);
+
+    mapPtr = &slots(type.slot(id.children, type.Index),
+                    type.slot(id.data, type.ListItem),
+                    type.slot(id.parent, type.TrieMapNode));
+    type.TrieMapNode.set(id.slots, *mapPtr);
+
     mapPtr = &slots(type.slot(id.value, type.ListOf(type.Digit)),
                     type.slot(numbers.sign, type.Number)); // TODO sign has no class currently
     type.Number.set(id.slots, *mapPtr);

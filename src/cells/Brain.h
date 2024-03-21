@@ -27,6 +27,7 @@ public:
     Object cell;
     Object checkPixel;
     Object checkPixels;
+    Object children;
     Object code;
     Object color;
     Object condition;
@@ -38,6 +39,7 @@ public:
     Object contains;
     Object continue_;
     Object current;
+    Object data;
     Object destructor;
     Object direction;
     Object else_;
@@ -86,6 +88,7 @@ public:
     Object output;
     Object parameter;
     Object parameters;
+    Object parent;
     Object picture;
     Object pixel;
     Object pixels;
@@ -102,6 +105,7 @@ public:
     Object returnValue;
     Object rhs;
     Object role;
+    Object rootNode;
     Object scope;
     Object scopes;
     Object self;
@@ -119,9 +123,9 @@ public:
     Object statement;
     Object static_;
     Object status;
+    Object stop;
     Object structs;
     Object structTs;
-    Object stop;
     Object subTypes;
     Object template_;
     Object templateIdType;
@@ -283,6 +287,8 @@ public:
     Object MapCellToOpBase;
     Object MapTypeToType;
     Object Index;
+    Object TrieMap;
+    Object TrieMapNode;
     Object Set;
     Object Boolean;
     Object Char;
@@ -404,6 +410,7 @@ public:
         Function& addFunction(CellI& id, const std::string& label);
         FunctionT& addFunctionT(CellI& id, const std::string& label);
         Struct& addStruct(CellI& id, const std::string& label);
+        void addIncompleteStruct(Struct& astStruct);
         Struct& addIncompleteStruct(CellI& id);
         StructT& addStructT(CellI& id, const std::string& label);
 

@@ -924,6 +924,181 @@ TEST_F(CellTest, NextgenBrainType)
     EXPECT_TRUE(map[id.index][id.type][id.memberOf][id.index].has(kb.type.Index));
 }
 
+////////////
+// Proof of concept trie class
+class Trie
+{
+    struct Node
+    {
+        Node(char data);
+        ~Node();
+
+        char m_data = 0;
+        std::map<char, Node*> m_children;
+        int m_isLeaf = false;
+    };
+
+public:
+    Trie();
+    bool empty();
+    void insert(const std::string& word);
+    int search(const std::string& word);
+    void remove(const std::string& word);
+    void print();
+
+private:
+    void printCb(Node* node);
+    void removeCb(Node& node, const std::string& key, int depth);
+
+    std::unique_ptr<Node> m_root;
+};
+
+Trie::Node::Node(char data) :
+    m_data(data) { }
+
+Trie::Node::~Node()
+{
+    for (auto& pair : m_children) {
+        delete pair.second;
+    }
+}
+
+Trie::Trie()
+{
+    m_root = std::make_unique<Node>('\0');
+}
+
+bool Trie::empty()
+{
+    return m_root->m_children.empty();
+}
+
+void Trie::insert(const std::string& word)
+{
+    Node* currentNode = m_root.get();
+
+    for (char ch : word) {
+        Node*& children = currentNode->m_children[ch];
+        if (children == nullptr) {
+            children = new Node(ch);
+        }
+        currentNode = children;
+    }
+    // At the end of the word, mark this node as the leaf node
+    currentNode->m_isLeaf = 1;
+}
+
+int Trie::search(const std::string& word)
+{
+    // Searches for word in the Trie
+    Node* currentNode = m_root.get();
+
+    for (char ch : word) {
+        auto chFindIt = currentNode->m_children.find(ch);
+        if (chFindIt == currentNode->m_children.end())
+            return 0;
+        currentNode = chFindIt->second;
+    }
+    if (currentNode->m_isLeaf == 1)
+        return 1;
+
+    return 0;
+}
+void Trie::remove(const std::string& word)
+{
+    removeCb(*m_root, word, 0);
+}
+
+void Trie::removeCb(Node& node, const std::string& key, int depth)
+{
+    if (depth == key.length()) {
+        node.m_isLeaf = false;
+        return;
+    }
+
+    char ch       = key[depth];
+    auto chFindIt = node.m_children.find(ch);
+    if (chFindIt == node.m_children.end()) {
+        return;
+    }
+    Node& child = *chFindIt->second;
+
+    removeCb(child, key, depth + 1);
+
+    if (!child.m_isLeaf) {
+        if (child.m_children.empty()) {
+            delete &child;
+            node.m_children.erase(chFindIt);
+        }
+    }
+}
+
+void Trie::print()
+{
+    if (empty())
+        return;
+    printCb(m_root.get());
+}
+
+void Trie::printCb(Node* node)
+{
+    printf("%c -> ", node->m_data);
+
+    for (auto& it : node->m_children) {
+        printCb(it.second);
+    }
+}
+
+void print_search_new(Trie& trie, const std::string& word)
+{
+    std::cout << std::format("Searching for {}:", word);
+    if (trie.search(word) == 0)
+        std::cout << "Not Found\n";
+    else
+        std::cout << "Found!\n";
+}
+////////////
+
+TEST_F(CellTest, TrieTest)
+{
+    Trie trie;
+    trie.insert("hello");
+    trie.insert("hi");
+    trie.insert("teabag");
+    trie.insert("teacan");
+    print_search_new(trie, "tea");
+    print_search_new(trie, "teabag");
+    print_search_new(trie, "teacan");
+    print_search_new(trie, "hi");
+    print_search_new(trie, "hey");
+    print_search_new(trie, "hello");
+    trie.print();
+    printf("\n");
+    trie.remove("hello");
+    printf("After deleting 'hello'...\n");
+    trie.print();
+    printf("\n");
+    trie.remove("teacan");
+    printf("After deleting 'teacan'...\n");
+    trie.print();
+    printf("\n");
+}
+
+TEST_F(CellTest, TrieMapTest)
+{
+    TrieMap trieMap(kb, kb.type.Number, kb.type.Number, "testTrieMap");
+    EXPECT_EQ(&trieMap[id.size], &_0_);
+    auto& key1 = kb.list(kb._0_, kb._1_, kb._2_, kb._3_, kb._4_);
+    auto& value1 = kb.directions.down;
+    trieMap.add(key1, value1);
+    EXPECT_EQ(&trieMap[id.size], &_1_);
+    EXPECT_TRUE(trieMap.hasKey(key1));
+    EXPECT_EQ(&trieMap.getValue(key1), &value1);
+    trieMap.remove2(key1);
+    EXPECT_EQ(&trieMap[id.size], &_0_);
+    EXPECT_FALSE(trieMap.hasKey(key1));
+}
+
 int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);

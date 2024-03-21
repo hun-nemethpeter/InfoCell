@@ -1273,6 +1273,290 @@ void Map::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 #pragma endregion
+#pragma region TrieMap
+// ============================================================================
+TrieMap::TrieMap(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
+    CellI(kb, label),
+    m_list(kb, valueType),
+    m_rootNode(kb, kb.type.TrieMapNode, "TrieNode_Root"),
+    m_keyType(keyType),
+    m_valueType(valueType)
+{
+}
+
+bool TrieMap::has(CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return true;
+    }
+    if (&role == &kb.id.list) {
+        return true;
+    }
+    if (&role == &kb.id.listType) {
+        return true;
+    }
+    if (&role == &kb.id.index) {
+        return true;
+    }
+    if (&role == &kb.id.keyType) {
+        return true;
+    }
+    if (&role == &kb.id.objectType) {
+        return true;
+    }
+    if (&role == &kb.id.size) {
+        return true;
+    }
+
+    return false;
+}
+
+void TrieMap::set(CellI& key, CellI& value)
+{
+    throw "Not supported";
+}
+
+void TrieMap::erase(CellI& role)
+{
+    throw "Not supported";
+}
+
+void TrieMap::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& TrieMap::operator[](CellI& role)
+{
+    if (&role == &kb.id.type) {
+        return kb.type.MapOf(m_keyType, m_valueType);
+    }
+    if (&role == &kb.id.list) {
+        return m_list;
+    }
+    if (&role == &kb.id.rootNode) {
+        return m_rootNode;
+    }
+    if (&role == &kb.id.listType) {
+        return kb.type.ListOf(kb.type.Slot);
+    }
+    if (&role == &kb.id.keyType) {
+        return m_keyType;
+    }
+    if (&role == &kb.id.objectType) {
+        return m_valueType;
+    }
+    if (&role == &kb.id.size) {
+        return kb.pools.numbers.get(m_size);
+    }
+
+    throw "No such role!";
+}
+
+bool TrieMap::hasKey(List& key)
+{
+    CellI* currentNode = &m_rootNode;
+
+    Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+        CellI* children = nullptr;
+        if (currentNode->missing(kb.id.children)) {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.id.children));
+        if (childrenIndex.has(keyItem)) {
+            children = &childrenIndex.get(keyItem);
+        } else {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        currentNode = children;
+    });
+
+    if (!currentNode || currentNode->missing(kb.id.data)) {
+        return false;
+    }
+
+    return true;
+}
+
+CellI& TrieMap::getValue(List& key)
+{
+    CellI* currentNode = &m_rootNode;
+
+    Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+        CellI* children = nullptr;
+        if (currentNode->missing(kb.id.children)) {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.id.children));
+        if (childrenIndex.has(keyItem)) {
+            children = &childrenIndex.get(keyItem);
+        } else {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        currentNode = children;
+    });
+
+    if (!currentNode || currentNode->missing(kb.id.data)) {
+        throw "No such key!";
+    }
+
+    return (*currentNode)[kb.id.data][kb.id.value];
+}
+
+void TrieMap::add(List& key, CellI& value)
+{
+    CellI* currentNode = &m_rootNode;
+
+    Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+        CellI* child = nullptr;
+        if (currentNode->missing(kb.id.children)) {
+            currentNode->set(kb.id.children, *new Index(kb));
+        }
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.id.children));
+        if (childrenIndex.has(keyItem)) {
+            child = &childrenIndex.get(keyItem);
+        } else {
+            child = new Object(kb, kb.type.TrieMapNode);
+            child->set(kb.id.parent, *currentNode);
+            childrenIndex.insert(keyItem, *child);
+        }
+        currentNode = child;
+    });
+
+    List::Item& item = *m_list.add(value);
+    currentNode->set(kb.id.data, item);
+    ++m_size;
+}
+
+void TrieMap::remove(List& key)
+{
+    if (key.empty()) {
+        return;
+    }
+    List::Item* valueItem = nullptr;
+    removeCb(m_rootNode, key[kb.id.first], valueItem, false);
+    if (!valueItem) {
+        return;
+    }
+    m_list.removeItem(valueItem);
+    --m_size;
+}
+
+void TrieMap::remove2(List& key)
+{
+    if (key.empty()) {
+        return;
+    }
+    CellI* currentNode    = &m_rootNode;
+
+    Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+        CellI* children = nullptr;
+        if (currentNode->missing(kb.id.children)) {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.id.children));
+        if (childrenIndex.has(keyItem)) {
+            children = &childrenIndex.get(keyItem);
+        } else {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        currentNode = children;
+    });
+
+    if (!currentNode || currentNode->missing(kb.id.data)) {
+        return;
+    }
+    List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[kb.id.data]);
+    currentNode->erase(kb.id.data);
+
+    CellI* keyItem = &key[kb.id.last];
+    while (currentNode->has(kb.id.parent)) {
+        CellI& parent = currentNode->get(kb.id.parent);
+        CellI& child = *currentNode;
+        if (child.missing(kb.id.data)) {
+            if (child.missing(kb.id.children) || ( child.has(kb.id.children) && static_cast<Index&>(child[kb.id.children]).empty())) {
+                delete currentNode;
+                parent[kb.id.children].erase((*keyItem)[kb.id.value]);
+            }
+        }
+        currentNode = &parent;
+        if (parent.missing(kb.id.parent)) {
+            break;
+        }
+        keyItem = &(*keyItem)[kb.id.previous];
+    }
+    if (!valueItem) {
+        return;
+    }
+    m_list.removeItem(valueItem);
+    --m_size;
+}
+
+void TrieMap::removeCb(CellI& currentNode, CellI& keyListItem, List::Item*& valueItem, bool last)
+{
+    if (last) {
+        if (currentNode.missing(kb.id.data)) {
+            valueItem = nullptr;
+            return;
+        }
+        valueItem = &static_cast<List::Item&>(currentNode[kb.id.data]);
+        currentNode.erase(kb.id.data);
+        return;
+    }
+    if (keyListItem.missing(kb.id.next)) {
+        last = true;
+    }
+    if (currentNode.missing(kb.id.children)) {
+        valueItem = nullptr;
+    }
+    CellI& childrenIndex = currentNode[kb.id.children];
+    CellI& key           = keyListItem[kb.id.value];
+    CellI* childPtr         = nullptr;
+    if (childrenIndex.has(key)) {
+        childPtr = &childrenIndex.get(key);
+    } else {
+        valueItem = nullptr;
+        return;
+    }
+    CellI& child = *childPtr;
+
+    removeCb(child, last ? keyListItem : keyListItem[kb.id.next], valueItem, last);
+
+    if (child.missing(kb.id.data)) {
+        if (child.has(kb.id.children) && static_cast<Index&>(child[kb.id.children]).empty()) {
+            delete childPtr;
+            childrenIndex.erase(key);
+        }
+    }
+}
+
+bool TrieMap::empty() const
+{
+    return m_size == 0;
+}
+
+int TrieMap::size()
+{
+    return m_size;
+}
+
+void TrieMap::accept(Visitor& visitor)
+{
+//    visitor.visit(*this); TODO
+}
+#pragma endregion
 #pragma region Set
 // ============================================================================
 Set::Set(brain::Brain& kb, CellI& valueType, const std::string& label) :
