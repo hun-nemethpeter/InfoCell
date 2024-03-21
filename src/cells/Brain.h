@@ -125,10 +125,10 @@ public:
     Object status;
     Object stop;
     Object structs;
+    Object structTInstances;
     Object structTs;
     Object subTypes;
     Object template_;
-    Object templateIdType;
     Object templateParams;
     Object then;
     Object type;
@@ -410,8 +410,9 @@ public:
         Function& addFunction(CellI& id, const std::string& label);
         FunctionT& addFunctionT(CellI& id, const std::string& label);
         Struct& addStruct(CellI& id, const std::string& label);
+        void addStructTInstance(Struct& astStruct);
         void addIncompleteStruct(Struct& astStruct);
-        Struct& addIncompleteStruct(CellI& id);
+        Struct& addIncompleteStruct(List& id);
         StructT& addStructT(CellI& id, const std::string& label);
 
         void implicitInstantiation();
@@ -427,8 +428,8 @@ public:
         Map& functionTs();
         Map& structs();
         Map& structTs();
-        Map& structTInstances();
-        Map& incompleteStructTypes();
+        TrieMap& structTInstances();
+        TrieMap& incompleteStructTypes();
     };
 
     class StructBase : public Base
@@ -462,12 +463,13 @@ public:
             memberOf(std::forward<Args>(args)...);
         }
 
+        CellI& id();
+
     protected:
         Map& methods();
         List& members();
         List& subTypes();
         List& memberOf();
-        CellI& id();
     };
 
     class Struct : public StructBase,

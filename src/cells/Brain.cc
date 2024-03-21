@@ -121,10 +121,10 @@ ID::ID(brain::Brain& kb) :
     status(kb, kb.type.Cell, "status"),
     stop(kb, kb.type.Cell, "stop"),
     structs(kb, kb.type.Cell, "structs"),
+    structTInstances(kb, kb.type.Cell, "structTInstances"),
     structTs(kb, kb.type.Cell, "structTs"),
     subTypes(kb, kb.type.Cell, "subTypes"),
     template_(kb, kb.type.Cell, "template"),
-    templateIdType(kb, kb.type.Cell, "templateIdType"),
     templateParams(kb, kb.type.Cell, "templateParams"),
     then(kb, kb.type.Cell, "then"),
     type(kb, kb.type.Cell, "type"),
@@ -533,7 +533,8 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot(id.rhs, Base));
     Same.set(id.slots, *map);
 
-    map = &kb.slots(type.slot(id.incompleteStructTypes, type.Map),
+    map = &kb.slots(type.slot(id.incompleteStructTypes, type.TrieMap),
+                    type.slot(id.structTInstances, type.TrieMap),
                     type.slot(id.id, type.Cell),
                     type.slot(id.scopes, type.Map),
                     type.slot(id.functions, type.Map),
@@ -569,7 +570,6 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot(id.members, type.ListOf(type.ast.Slot)),
                     type.slot(id.subTypes, type.ListOf(type.ast.Slot)),
                     type.slot(id.memberOf, type.ListOf(type.Type_)),
-                    type.slot(id.templateIdType, type.Cell),
                     type.slot(id.templateParams, type.MapOf(type.Cell, type.Type_)));
     StructT.set(id.slots, *map);
 
@@ -640,24 +640,37 @@ Types::Types(brain::Brain& kb) :
     ast(kb),
     arc(kb)
 {
-    CellI* map = nullptr;
+    CellI* mapPtr = nullptr;
     auto& id   = kb.id;
     auto& type = kb.type;
 
-    map = &kb.slots(type.slot(id.slotType, type.Type_),
-                    type.slot(id.slotRole, type.Cell));
-    Slot.set(kb.id.slots, *map);
+    mapPtr = &kb.slots(type.slot(id.slotType, type.Type_),
+                       type.slot(id.slotRole, type.Cell));
+    Slot.set(kb.id.slots, *mapPtr);
 
-    map = &kb.slots(type.slot(id.slots, MapCellToSlot),
-                    type.slot(id.sharedObject, Slot),
-                    type.slot(id.subTypes, MapCellToType),
-                    type.slot(id.memberOf, MapTypeToType),
-                    type.slot(id.asts, MapCellToAstFunction),
-                    type.slot(id.methods, MapCellToOpFunction));
-    Type_.set(id.slots, *map);
+    mapPtr = &kb.slots(type.slot(id.slots, MapCellToSlot),
+                       type.slot(id.sharedObject, Slot),
+                       type.slot(id.subTypes, MapCellToType),
+                       type.slot(id.memberOf, MapTypeToType),
+                       type.slot(id.asts, MapCellToAstFunction),
+                       type.slot(id.methods, MapCellToOpFunction));
+    Type_.set(id.slots, *mapPtr);
 
-    map = &kb.slots(type.slot(id.members, List));
-    Enum.set(id.slots, *map);
+    mapPtr = &kb.slots(type.slot(id.members, List));
+    Enum.set(id.slots, *mapPtr);
+
+    mapPtr = &kb.slots(type.slot(id.keyType, type.Cell),
+                       type.slot(id.objectType, type.Cell),
+                       type.slot(id.list, type.ListOf(type.Cell)),
+                       type.slot(id.listType, type.List),
+                       type.slot(id.rootNode, type.TrieMapNode),
+                       type.slot(id.size, type.Number));
+    type.TrieMap.set(id.slots, *mapPtr);
+
+    mapPtr = &kb.slots(type.slot(id.children, type.Index),
+                       type.slot(id.data, type.ListItem),
+                       type.slot(id.parent, type.TrieMapNode));
+    type.TrieMapNode.set(id.slots, *mapPtr);
 
     kb.m_initPhase = Brain::InitPhase::SlotTypeInitialzed;
 }
@@ -988,6 +1001,19 @@ Ast::StructT& Ast::Scope::addStructT(CellI& id, const std::string& label)
     return structT;
 }
 
+void Ast::Scope::addStructTInstance(Struct& astStruct)
+{
+    List& id = static_cast<List&>(astStruct.id());
+    if (missing(kb.id.structTInstances)) {
+        set(kb.id.structTInstances, *new TrieMap(kb, kb.type.Cell, kb.type.ast.Struct, "TrieMap<Cell, Type::Ast::StructT>(...)"));
+    }
+    if (structTs().hasKey(id)) {
+        throw "Already registered!";
+    }
+    structTInstances().add(id, astStruct);
+    astStruct.set(kb.id.scope, *this);
+}
+
 void Ast::Scope::implicitInstantiation()
 {
     if (has(kb.id.functions)) {
@@ -1024,13 +1050,12 @@ Ast::Struct& Ast::Scope::instantiateIncompleteStructT(CellI& id, List& parameter
     }
 
     Ast::StructT& structT = static_cast<Ast::StructT&>(structTs().getValue(id));
-    Object& idCell        = *new Object(kb, structT.idType());
-    idCell.set(kb.id.id, id);
+    List& idCell          = *new List(kb, kb.type.Cell);
+    idCell.add(id);
 
     Visitor::visitList(parameters, [this, &idCell](CellI& slot, int, bool&) {
-        CellI& slotRole = slot[kb.id.slotRole];
-        CellI& slotType = slot[kb.id.slotType];
-        idCell.set(slotRole, slotType);
+        idCell.add(slot[kb.id.slotRole]);
+        idCell.add(slot[kb.id.slotType]);
     });
 
     if (has(kb.id.structs)) {
@@ -1046,19 +1071,19 @@ Ast::Struct& Ast::Scope::instantiateIncompleteStructT(CellI& id, List& parameter
 void Ast::Scope::addIncompleteStruct(Struct& astStruct)
 {
     if (missing(kb.id.incompleteStructTypes)) {
-        set(kb.id.incompleteStructTypes, *new Map(kb, kb.type.Cell, kb.type.ast.Struct, "Map<Cell, Type::Ast::Struct>(...)"));
+        set(kb.id.incompleteStructTypes, *new TrieMap(kb, kb.type.Cell, kb.type.ast.Struct, "TrieMap<List(id, params...), Type::Ast::Struct>(...)"));
     }
-    auto& id = astStruct.get(kb.id.id);
+    List& id = static_cast<List&>(astStruct.get(kb.id.id));
     if (incompleteStructTypes().has(id)) {
         return;
     }
     incompleteStructTypes().add(id, astStruct);
 }
 
-Ast::Struct& Ast::Scope::addIncompleteStruct(CellI& id)
+Ast::Struct& Ast::Scope::addIncompleteStruct(List& id)
 {
     if (missing(kb.id.incompleteStructTypes)) {
-        set(kb.id.incompleteStructTypes, *new Map(kb, kb.type.Cell, kb.type.ast.Struct, "Map<Cell, Type::Ast::Struct>(...)"));
+        set(kb.id.incompleteStructTypes, *new TrieMap(kb, kb.type.Cell, kb.type.ast.Struct, "TrieMap<List(id, params...), Type::Ast::Struct>(...)"));
     }
     if (incompleteStructTypes().hasKey(id)) {
         return static_cast<Ast::Struct&>(incompleteStructTypes().getValue(id));
@@ -1114,12 +1139,21 @@ Map& Ast::Scope::structTs()
     }
 }
 
-Map& Ast::Scope::incompleteStructTypes()
+TrieMap& Ast::Scope::structTInstances()
+{
+    if (missing(kb.id.structTInstances)) {
+        throw "No incomplete struct types!";
+    } else {
+        return static_cast<TrieMap&>(get(kb.id.structTInstances));
+    }
+}
+
+TrieMap& Ast::Scope::incompleteStructTypes()
 {
     if (missing(kb.id.incompleteStructTypes)) {
         throw "No incomplete struct types!";
     } else {
-        return static_cast<Map&>(get(kb.id.incompleteStructTypes));
+        return static_cast<TrieMap&>(get(kb.id.incompleteStructTypes));
     }
 }
 
@@ -1228,27 +1262,12 @@ Ast::StructT::StructT(brain::Brain& kb, CellI& id, const std::string& label) :
 {
 }
 
-Type& Ast::StructT::idType()
-{
-    if (missing(kb.id.templateIdType)) {
-        throw "No template id type!";
-    } else {
-        return static_cast<Type&>(get(kb.id.templateIdType));
-    }
-}
-
 void Ast::StructT::templateParams(Slot& slot)
 {
     if (missing(kb.id.templateParams)) {
         set(kb.id.templateParams, *new Map(kb, kb.type.Cell, kb.type.Type_));
-        auto& idType = *new Type(kb, "id type");
-        idType.addSlot(kb.id.id, kb.ast.slot(kb.id.id, kb.type.Cell));
-        set(kb.id.templateIdType, idType);
     }
     templateParams().add(slot[kb.id.slotRole], slot);
-    CellI& slotRole = slot[kb.id.slotRole];
-    CellI& slotType = slot[kb.id.slotType];
-    idType().addSlot(slotRole, slotType);
 }
 
 Ast::Struct& Ast::StructT::declareType(List& parameters)
@@ -1270,8 +1289,8 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
     }
     std::stringstream ss;
     Map inputParameters(kb, kb.type.Cell, kb.type.Cell);
-    Object& idCell = *new Object(kb, idType());
-    idCell.set(kb.id.id, id());
+    List& idCell = *new List(kb, kb.type.Cell);
+    idCell.add(id());
 
     Visitor::visitList(inputParams, [this, &inputParameters, &ss, &idCell](CellI& slot, int i, bool& stop) {
         CellI& slotRole = slot[kb.id.slotRole];
@@ -1284,7 +1303,8 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
         if (!templateParams().hasKey(slotRole)) {
             throw "Instantiating with unknown template parameter!";
         }
-        idCell.set(slotRole, slotType);
+        idCell.add(slotRole);
+        idCell.add(slotType);
     });
     idCell.label(std::format("id of {}<{}>", id().label(), ss.str()));
     Ast::Struct* ret = nullptr;
@@ -1361,6 +1381,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
         });
         ret->set(kb.id.memberOf, instantiatedMemberOfs);
     }
+    scope.addStructTInstance(*ret);
 
     return *ret;
 }
@@ -3667,19 +3688,6 @@ Brain::Brain() :
     methodData.set(id.static_, boolean.false_);
     methodData.set(id.const_, boolean.false_);
 #endif
-
-    mapPtr = &slots(type.slot(id.keyType, type.Cell),
-                    type.slot(id.objectType, type.Cell),
-                    type.slot(id.list, type.ListOf(type.Cell)),
-                    type.slot(id.listType, type.List),
-                    type.slot(id.rootNode, type.TrieMapNode),
-                    type.slot(id.size, type.Number));
-    type.TrieMap.set(id.slots, *mapPtr);
-
-    mapPtr = &slots(type.slot(id.children, type.Index),
-                    type.slot(id.data, type.ListItem),
-                    type.slot(id.parent, type.TrieMapNode));
-    type.TrieMapNode.set(id.slots, *mapPtr);
 
     mapPtr = &slots(type.slot(id.value, type.ListOf(type.Digit)),
                     type.slot(numbers.sign, type.Number)); // TODO sign has no class currently

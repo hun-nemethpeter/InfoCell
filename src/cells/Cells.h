@@ -307,12 +307,10 @@ public:
         add(std::forward<Args>(args)...);
     }
     void remove(List& key);
-    void remove2(List& key);
     bool empty() const;
     int size();
 
 private:
-    void removeCb(CellI& currentNode, CellI& keyListItem, List::Item*& valueItem, bool last);
 
     List m_list;
     Object m_rootNode;
@@ -500,6 +498,7 @@ public:
     virtual void visit(Type&)       = 0;
     virtual void visit(Index&)      = 0;
     virtual void visit(Map&)        = 0;
+    virtual void visit(TrieMap&)    = 0;
     virtual void visit(Set&)        = 0;
 
     virtual void visit(hybrid::Color&)   = 0;

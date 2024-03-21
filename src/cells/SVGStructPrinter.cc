@@ -47,6 +47,10 @@ void StructPrinter::visit(Map& cell)
 {
     printStruct(cell);
 }
+void StructPrinter::visit(TrieMap& cell)
+{
+    printStruct(cell);
+}
 
 void StructPrinter::visit(Set& cell)
 {

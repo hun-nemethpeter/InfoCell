@@ -1441,20 +1441,6 @@ void TrieMap::remove(List& key)
     if (key.empty()) {
         return;
     }
-    List::Item* valueItem = nullptr;
-    removeCb(m_rootNode, key[kb.id.first], valueItem, false);
-    if (!valueItem) {
-        return;
-    }
-    m_list.removeItem(valueItem);
-    --m_size;
-}
-
-void TrieMap::remove2(List& key)
-{
-    if (key.empty()) {
-        return;
-    }
     CellI* currentNode    = &m_rootNode;
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
@@ -1481,65 +1467,29 @@ void TrieMap::remove2(List& key)
     List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[kb.id.data]);
     currentNode->erase(kb.id.data);
 
-    CellI* keyItem = &key[kb.id.last];
+    CellI* keyItemPtr = &key[kb.id.last];
     while (currentNode->has(kb.id.parent)) {
+        CellI& keyItem = *keyItemPtr;
         CellI& parent = currentNode->get(kb.id.parent);
         CellI& child = *currentNode;
         if (child.missing(kb.id.data)) {
             if (child.missing(kb.id.children) || ( child.has(kb.id.children) && static_cast<Index&>(child[kb.id.children]).empty())) {
                 delete currentNode;
-                parent[kb.id.children].erase((*keyItem)[kb.id.value]);
+                parent[kb.id.children].erase(keyItem[kb.id.value]);
             }
         }
         currentNode = &parent;
-        if (parent.missing(kb.id.parent)) {
+        if (keyItem.has(kb.id.previous)) {
+            keyItemPtr = &keyItem[kb.id.previous];
+        } else {
             break;
         }
-        keyItem = &(*keyItem)[kb.id.previous];
     }
     if (!valueItem) {
         return;
     }
     m_list.removeItem(valueItem);
     --m_size;
-}
-
-void TrieMap::removeCb(CellI& currentNode, CellI& keyListItem, List::Item*& valueItem, bool last)
-{
-    if (last) {
-        if (currentNode.missing(kb.id.data)) {
-            valueItem = nullptr;
-            return;
-        }
-        valueItem = &static_cast<List::Item&>(currentNode[kb.id.data]);
-        currentNode.erase(kb.id.data);
-        return;
-    }
-    if (keyListItem.missing(kb.id.next)) {
-        last = true;
-    }
-    if (currentNode.missing(kb.id.children)) {
-        valueItem = nullptr;
-    }
-    CellI& childrenIndex = currentNode[kb.id.children];
-    CellI& key           = keyListItem[kb.id.value];
-    CellI* childPtr         = nullptr;
-    if (childrenIndex.has(key)) {
-        childPtr = &childrenIndex.get(key);
-    } else {
-        valueItem = nullptr;
-        return;
-    }
-    CellI& child = *childPtr;
-
-    removeCb(child, last ? keyListItem : keyListItem[kb.id.next], valueItem, last);
-
-    if (child.missing(kb.id.data)) {
-        if (child.has(kb.id.children) && static_cast<Index&>(child[kb.id.children]).empty()) {
-            delete childPtr;
-            childrenIndex.erase(key);
-        }
-    }
 }
 
 bool TrieMap::empty() const
@@ -1554,7 +1504,7 @@ int TrieMap::size()
 
 void TrieMap::accept(Visitor& visitor)
 {
-//    visitor.visit(*this); TODO
+    visitor.visit(*this);
 }
 #pragma endregion
 #pragma region Set

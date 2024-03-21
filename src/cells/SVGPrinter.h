@@ -26,6 +26,7 @@ public:
     void visit(Type& cell) override;
     void visit(Index& cell) override;
     void visit(Map& cell) override;
+    void visit(TrieMap& cell) override;
     void visit(Set& cell) override;
     void visit(Number& cell) override;
     void visit(String& cell) override;

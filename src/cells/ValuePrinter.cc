@@ -36,6 +36,11 @@ void CellValuePrinter::visit(Map& cell)
     printImpl(cell);
 }
 
+void CellValuePrinter::visit(TrieMap& cell)
+{
+    printImpl(cell);
+}
+
 void CellValuePrinter::visit(Set& cell)
 {
     printImpl(cell);

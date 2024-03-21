@@ -38,6 +38,11 @@ void CellStructPrinter::visit(Map& cell)
     printImpl(cell);
 }
 
+void CellStructPrinter::visit(TrieMap& cell)
+{
+    printImpl(cell);
+}
+
 void CellStructPrinter::visit(Set& cell)
 {
     printImpl(cell);

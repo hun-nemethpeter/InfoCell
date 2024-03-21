@@ -78,6 +78,11 @@ void Printer::visit(Map& cell)
     m_stack.push(text("Map"));
 }
 
+void Printer::visit(TrieMap& cell)
+{
+    m_stack.push(text("TrieMap"));
+}
+
 void Printer::visit(Set& cell)
 {
     m_stack.push(text("Set"));

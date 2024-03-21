@@ -1094,7 +1094,7 @@ TEST_F(CellTest, TrieMapTest)
     EXPECT_EQ(&trieMap[id.size], &_1_);
     EXPECT_TRUE(trieMap.hasKey(key1));
     EXPECT_EQ(&trieMap.getValue(key1), &value1);
-    trieMap.remove2(key1);
+    trieMap.remove(key1);
     EXPECT_EQ(&trieMap[id.size], &_0_);
     EXPECT_FALSE(trieMap.hasKey(key1));
 }
