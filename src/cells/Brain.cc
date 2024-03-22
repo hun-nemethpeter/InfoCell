@@ -445,8 +445,7 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot(id.role, Base));
     Erase.set(id.slots, *map);
 
-    map = &kb.slots(type.slot(id.objectType, type.Cell),
-                    type.slot(id.name, type.Cell),
+    map = &kb.slots(type.slot(id.name, type.Cell),
                     type.slot(id.parameters, type.ListOf(Slot)),
                     type.slot(id.returnType, type.Type_),
                     type.slot(id.code, Base),
@@ -454,8 +453,7 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot(id.static_, type.Boolean));
     Function.set(id.slots, *map);
 
-    map = &kb.slots(type.slot(id.objectType, type.Cell),
-                    type.slot(id.name, type.Cell),
+    map = &kb.slots(type.slot(id.name, type.Cell),
                     type.slot(id.parameters, type.ListOf(Slot)),
                     type.slot(id.returnType, type.Type_),
                     type.slot(id.code, Base),
@@ -634,6 +632,7 @@ Types::Types(brain::Brain& kb) :
     Picture(kb, kb.type.Type_, "Picture"),
     Stack(kb, kb.type.Type_, "Stack"),
     StackFrame(kb, kb.type.Type_, "StackFrame"),
+    Program(kb, kb.type.Type_, "Program"),
     Directions(kb, kb.type.Enum, "Directions"),
     Shape(kb, kb.type.Struct, "Shape"),
     op(kb),
@@ -671,6 +670,12 @@ Types::Types(brain::Brain& kb) :
                        type.slot(id.data, type.ListItem),
                        type.slot(id.parent, type.TrieMapNode));
     type.TrieMapNode.set(id.slots, *mapPtr);
+
+    mapPtr = &kb.slots(type.slot(id.data, type.ListOf(type.Cell)),
+                       type.slot(id.code, type.op.Base),
+                       type.slot(id.stack, type.kb.type.ListItem));
+    type.Program.set(id.slots, *mapPtr);
+
 
     kb.m_initPhase = Brain::InitPhase::SlotTypeInitialzed;
 }
@@ -1039,8 +1044,30 @@ void Ast::Scope::implicitInstantiation()
 CellI& Ast::Scope::compile()
 {
     implicitInstantiation();
-    // TODO Maybe we should give back a compiled object?
-    return kb.id.cell;
+    auto& ret = *new Object(kb, kb.type.Program);
+    auto& compiledFunctions = *new List(kb, kb.type.op.Function, "compiled functions");
+
+    if (has(kb.id.functions)) {
+        Visitor::visitList(functions()[kb.id.list], [this, &compiledFunctions](CellI& function, int i, bool& stop) {
+            Ast::Function& astFunction = static_cast<Ast::Function&>(function);
+            auto& compiledFunction = astFunction.compile();
+            compiledFunctions.add(compiledFunction);
+        });
+    }
+    if (has(kb.id.structs)) {
+        Visitor::visitList(structs()[kb.id.list], [this](CellI& struct_, int i, bool& stop) {
+            Ast::Struct& astStruct = static_cast<Ast::Struct&>(struct_);
+            astStruct.compile();
+        });
+    }
+    if (has(kb.id.scopes)) {
+        Visitor::visitList(scopes()[kb.id.list], [this](CellI& scope, int i, bool& stop) {
+            Ast::Scope& astScope = static_cast<Ast::Scope&>(scope);
+            astScope.compile();
+        });
+    }
+
+    return ret;
 }
 
 Ast::Struct& Ast::Scope::instantiateIncompleteStructT(CellI& id, List& parameters)
@@ -1165,7 +1192,7 @@ Ast::StructBase::StructBase(brain::Brain& kb, CellI& astType, CellI& id, const s
 
 Ast::Function& Ast::StructBase::addMethod(CellI& id, const std::string& label)
 {
-    Ast::Function& function = *new Ast::Function(kb, this->id(), id, label);
+    Ast::Function& function = *new Ast::Function(kb, id, label);
     if (missing(kb.id.methods)) {
         set(kb.id.methods, *new Map(kb, kb.type.Cell, kb.type.ast.Function, "Map<Cell, Type::Ast::Function>(...)"));
     }
@@ -1257,6 +1284,54 @@ void Ast::Struct::implicitInstantiation()
     }
 }
 
+Object& Ast::Struct::compile()
+{
+    Object& compiledStruct = *new Object(kb, kb.type.Type_);
+
+        // instantiate methods
+    if (has(kb.id.methods)) {
+        Map& compiledMethods = *new Map(kb, kb.type.Cell, kb.type.ast.Function);
+        Visitor::visitList(methods()[kb.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
+            auto& compiledFunction = static_cast<Ast::Function&>(astFunction).compile();
+            compiledMethods.add(compiledFunction[kb.id.id], compiledFunction);
+        });
+        compiledStruct.set(kb.id.methods, compiledMethods);
+    }
+
+    // instantiate members
+    if (has(kb.id.members)) {
+        Map& compiledMembers = *new Map(kb, kb.type.Cell, kb.type.Slot, "members Map<Cell, Slot>(...)");
+        Visitor::visitList(members(), [this, &compiledMembers](CellI& slot, int i, bool& stop) {
+            CellI& slotRole          = slot[kb.id.slotRole];
+            CellI& slotType          = slot[kb.id.slotType];
+            compiledMembers.add(slotRole, slotType);
+        });
+        compiledStruct.set(kb.id.members, compiledMembers);
+    }
+
+    // instantiate sub types
+    if (has(kb.id.subTypes)) {
+        Map& compiledSubTypes = *new Map(kb, kb.type.Cell, kb.type.Type_, "subTypes Map<Cell, Type>(...)");
+        Visitor::visitList(subTypes(), [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
+            CellI& slotRole          = slot[kb.id.slotRole];
+            CellI& slotType          = slot[kb.id.slotType];
+            compiledSubTypes.add(slotRole, slotType);
+        });
+        compiledStruct.set(kb.id.subTypes, compiledSubTypes);
+    }
+
+    // instantiate memberOf list
+    if (has(kb.id.memberOf)) {
+        Map& compiledMemberOfs = *new Map(kb, kb.type.Type_, kb.type.Type_, "memberOf Map<Type, Type>(...)");
+        Visitor::visitList(memberOf(), [this, &compiledMemberOfs](CellI& membershipType, int i, bool& stop) {
+            compiledMemberOfs.add(membershipType, membershipType);
+        });
+        compiledStruct.set(kb.id.memberOf, compiledMemberOfs);
+    }
+
+    return compiledStruct;
+}
+
 Ast::StructT::StructT(brain::Brain& kb, CellI& id, const std::string& label) :
     StructBase(kb, kb.type.ast.StructT, id, label)
 {
@@ -1320,7 +1395,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
     if (has(kb.id.methods)) {
         Map& instantiatedMethods = *new Map(kb, kb.type.Cell, kb.type.ast.Function);
         Visitor::visitList(methods()[kb.id.list], [this, &inputParameters, ret, &instantiatedMethods](CellI& astFunction, int i, bool& stop) {
-            Ast::Function& instantiedFunction = *new Function(kb, kb.type.Cell, astFunction[kb.id.name], "");
+            Ast::Function& instantiedFunction = *new Function(kb, astFunction[kb.id.name], "");
             instantiatedMethods.add(astFunction[kb.id.name], instantiedFunction);
 
             // parameters
@@ -1568,13 +1643,15 @@ Ast::Function::Function(brain::Brain& kb, CellI& name, const std::string& label)
     this->label(label);
 }
 
-Ast::Function::Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label) :
+#if 0
+Ast::Function::Function(brain::Brain& kb, CellI& returnType, CellI& name, const std::string& label) :
     BaseT<Function>(kb, kb.type.ast.Function, label)
 {
-    set(kb.id.objectType, objType);
+    set(kb.id.returnType, returnType);
     set(kb.id.name, name);
     this->label(label);
 }
+#endif
 
 void Ast::Function::parameters(Slot& param)
 {
@@ -1614,7 +1691,6 @@ CellI& Ast::Function::compileImpl(CellI* type)
     cells::Object& functionType = *new cells::Object(kb, kb.type.Type_);
     functionType.set(kb.id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.op.Function, kb.type.op.Function));
     cells::Map& subTypesMap = kb.map(kb.type.Cell, kb.type.Type_,
-                                     kb.id.objectType, get(kb.id.objectType),
                                      kb.id.name, get(kb.id.name));
     functionType.set(kb.id.subTypes, subTypesMap);
     functionType.set(kb.id.slots, kb.type.op.Function[kb.id.slots]);
@@ -2165,6 +2241,8 @@ block {
             retOp.set(id.result, compile(kb.ast.set(kb.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.output), _(id.value), static_cast<Ast::Base&>(ast[id.value]))));
         }
         return retOp;
+    } else if (&ast.type() == &kb.type.ast.Struct) {
+        return ast; // TODO
     }
 
     throw "Unknown function AST!";
@@ -3053,7 +3131,7 @@ Brain::Brain() :
     type.ListItem.set(id.slots, *mapPtr);
     type.ListItem.set(id.memberOf, map(type.Type_, type.Type_, type.Iterator, type.Iterator));
 
-    Ast::Function& listItemTemplate = *new Ast::Function(*this, type.ListItem, id.template_, "static ListItem::template");
+    Ast::Function& listItemTemplate = *new Ast::Function(*this, id.template_, "static ListItem::template");
     listItemTemplate.set(id.static_, boolean.true_);
     listItemTemplate.parameters(
         param(id.objectType, type.Type_));
@@ -3071,7 +3149,7 @@ Brain::Brain() :
 
         ast.return_(*var_(id.result)));
 
-    Ast::Function& listItemCtor = *new Ast::Function(*this, type.ListItem, id.constructor, "ListItem::constructor");
+    Ast::Function& listItemCtor = *new Ast::Function(*this, id.constructor, "ListItem::constructor");
     listItemCtor.parameters(
         param(id.value, type.Cell));
     listItemCtor.code(
@@ -3098,7 +3176,7 @@ Brain::Brain() :
 
     // Pre created:
     // Slot
-    Ast::Function& listTemplate = *new Ast::Function(*this, type.List, id.template_, "static List::template");
+    Ast::Function& listTemplate = *new Ast::Function(*this, id.template_, "static List::template");
     listTemplate.set(id.static_, boolean.true_);
     listTemplate.parameters(
         param(id.objectType, type.Type_));
@@ -3121,13 +3199,13 @@ Brain::Brain() :
 
         ast.return_(*var_(id.result)));
 
-    Ast::Function& listCtor = *new Ast::Function(*this, type.List, id.constructor, "List::constructor");
+    Ast::Function& listCtor = *new Ast::Function(*this, id.constructor, "List::constructor");
     listCtor.code(
         m_(id.size)       = _(_0_),
         m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
         m_(id.itemType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.itemType) / _(id.value));
 
-    Ast::Function& listAdd = *new Ast::Function(*this, type.List, id.add, "List::add");
+    Ast::Function& listAdd = *new Ast::Function(*this, id.add, "List::add");
     listAdd.parameters(
         param(id.value, type.Cell));
     listAdd.returnType(type.ListItem);
@@ -3156,7 +3234,7 @@ Brain::Brain() :
         --m_size;
     }
     */
-    Ast::Function& listRemove = *new Ast::Function(*this, type.List, id.remove, "List::remove");
+    Ast::Function& listRemove = *new Ast::Function(*this, id.remove, "List::remove");
     listRemove.parameters(
         param(id.item, type.Cell));
     listRemove.code(
@@ -3176,12 +3254,12 @@ Brain::Brain() :
                         ast.erase(ast.self(), _(id.last)))),
         m_(id.size) = ast.subtract(m_(id.size), _(_1_)));
 
-    Ast::Function& listSize = *new Ast::Function(*this, type.List, id.size, "List::size");
+    Ast::Function& listSize = *new Ast::Function(*this, id.size, "List::size");
     listSize.returnType(type.Number);
     listSize.code(
         ast.return_(m_(id.size)));
 
-    Ast::Function& listEmpty = *new Ast::Function(*this, type.List, id.empty, "List::empty");
+    Ast::Function& listEmpty = *new Ast::Function(*this, id.empty, "List::empty");
     listEmpty.returnType(type.Boolean);
     listEmpty.code(
         ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
@@ -3200,15 +3278,15 @@ Brain::Brain() :
     type.ListOf(type.Type_).set(id.methods, *mapPtr);
 #pragma endregion
 #pragma region Type
-    Ast::Function& typeCtor = *new Ast::Function(*this, type.Type_, id.constructor, "Type::constructor");
+    Ast::Function& typeCtor = *new Ast::Function(*this, id.constructor, "Type::constructor");
     typeCtor.code(
         m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructor)));
 
-    Ast::Function& typeCtorWithRecursiveType = *new Ast::Function(*this, type.Type_, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
+    Ast::Function& typeCtorWithRecursiveType = *new Ast::Function(*this, id.constructorWithRecursiveType, "Type::constructorWithRecursiveType");
     typeCtorWithRecursiveType.code(
         m_(id.slots) = ast.new_(_(type.MapCellToSlot), _(id.constructorWithIndexType), param(_(id.indexType), ast.self())));
 
-    Ast::Function& typeAddSubType = *new Ast::Function(*this, type.Type_, id.addSubType, "Type::addSubType");
+    Ast::Function& typeAddSubType = *new Ast::Function(*this, id.addSubType, "Type::addSubType");
     typeAddSubType.parameters(
         param(id.slotRole, type.Cell),
         param(id.slotType, type.Type_));
@@ -3216,14 +3294,14 @@ Brain::Brain() :
         ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), _(id.constructor))),
         ast.call(m_(id.subTypes), _(id.add), param(_(id.key), p_(id.slotRole)), param(_(id.value), p_(id.slotType))));
 
-    Ast::Function& typeAddMembership = *new Ast::Function(*this, type.Type_, id.addMembership, "Type::addMembership");
+    Ast::Function& typeAddMembership = *new Ast::Function(*this, id.addMembership, "Type::addMembership");
     typeAddMembership.parameters(
         param(id.cell, type.Type_));
     typeAddMembership.code(
         ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(_(type.MapTypeToType), _(id.constructor))),
         ast.call(m_(id.memberOf), _(id.add), param(_(id.key), p_(id.cell)), param(_(id.value), p_(id.cell))));
 
-    Ast::Function& typeAddSlot = *new Ast::Function(*this, type.Type_, id.addSlot, "Type::addSlot");
+    Ast::Function& typeAddSlot = *new Ast::Function(*this, id.addSlot, "Type::addSlot");
     typeAddSlot.parameters(
         param(id.slotRole, type.Cell),
         param(id.slotType, type.Slot));
@@ -3234,7 +3312,7 @@ Brain::Brain() :
         ast.set(*var_(id.slot), _(id.slotType), p_(id.slotType)),
         ast.call(m_(id.slots), _(id.add), param(_(id.key), p_(id.slotRole)), param(_(id.value), *var_(id.slot))));
 
-    Ast::Function& typeAddSlots = *new Ast::Function(*this, type.Type_, id.addSlots, "Type::addSlots");
+    Ast::Function& typeAddSlots = *new Ast::Function(*this, id.addSlots, "Type::addSlots");
     typeAddSlots.parameters(
         param(id.list, type.ListOf(type.Slot)));
     typeAddSlots.code(
@@ -3249,7 +3327,7 @@ Brain::Brain() :
                             var_(id.next) = _(boolean.false_))),
                 ast.same(*var_(id.next), _(boolean.true_))));
 
-    Ast::Function& typeHasSlot = *new Ast::Function(*this, type.Type_, id.hasSlot, "Type::hasSlot");
+    Ast::Function& typeHasSlot = *new Ast::Function(*this, id.hasSlot, "Type::hasSlot");
     typeHasSlot.parameters(
         param(id.slotRole, type.Cell));
     typeHasSlot.returnType(type.Boolean);
@@ -3257,7 +3335,7 @@ Brain::Brain() :
         ast.if_(m_(id.slots).missing(), ast.return_(_(boolean.false_))),
         ast.return_(ast.call(m_(id.slots), _(id.hasKey), param(_(id.key), p_(id.slotRole)))));
 
-    Ast::Function& typeRemoveSlot = *new Ast::Function(*this, type.Type_, id.removeSlot, "Type::removeSlot");
+    Ast::Function& typeRemoveSlot = *new Ast::Function(*this, id.removeSlot, "Type::removeSlot");
     typeRemoveSlot.parameters(
         param(id.slotRole, type.Cell));
     typeRemoveSlot.code(
@@ -3277,13 +3355,13 @@ Brain::Brain() :
 #pragma region Index
     type.Index.set(id.memberOf, map(type.Type_, type.Type_));
 
-    Ast::Function& indexCtor = *new Ast::Function(*this, type.Index, id.constructor, "Index::constructor");
+    Ast::Function& indexCtor = *new Ast::Function(*this, id.constructor, "Index::constructor");
     indexCtor.code(
         ast.set(ast.self(), _(id.type), ast.new_(_(type.Type_), _(id.constructorWithRecursiveType))),
         ast.set(m_(id.type), _(id.methods), _(type.Index) / _(id.methods)),
         ast.set(m_(id.type), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))));
 
-    Ast::Function& indexCtorWithSelfType = *new Ast::Function(*this, type.Index, id.constructorWithSelfType, "Index::constructorWithSelfType");
+    Ast::Function& indexCtorWithSelfType = *new Ast::Function(*this, id.constructorWithSelfType, "Index::constructorWithSelfType");
     indexCtorWithSelfType.parameters(
         param(id.indexType, type.Type_));
     indexCtorWithSelfType.code(
@@ -3309,7 +3387,7 @@ Brain::Brain() :
         m_type->addSlot(key, slot);
     }
     */
-    Ast::Function& indexInsert = *new Ast::Function(*this, type.Index, id.insert, "Index::insert");
+    Ast::Function& indexInsert = *new Ast::Function(*this, id.insert, "Index::insert");
     indexInsert.parameters(
         param(id.key, type.Cell),
         param(id.value, type.Cell));
@@ -3320,7 +3398,7 @@ Brain::Brain() :
             ast.return_()),
         ast.call(m_(id.type), _(id.addSlot), param(_(id.slotRole), p_(id.key)), param(_(id.slotType), _(type.Slot))));
 
-    Ast::Function& indexEmpty = *new Ast::Function(*this, type.Index, id.size, "Index::empty");
+    Ast::Function& indexEmpty = *new Ast::Function(*this, id.size, "Index::empty");
     indexEmpty.returnType(type.Boolean);
     indexEmpty.code(
         ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.empty))));
@@ -3335,7 +3413,7 @@ Brain::Brain() :
         m_type->removeSlot(role);
     }
     */
-    Ast::Function& indexRemove = *new Ast::Function(*this, type.Index, id.remove, "Index::remove");
+    Ast::Function& indexRemove = *new Ast::Function(*this, id.remove, "Index::remove");
     indexRemove.parameters(
         param(id.key, type.Cell));
     indexRemove.code(
@@ -3344,7 +3422,7 @@ Brain::Brain() :
         ast.erase(ast.self(), p_(id.key)),
         ast.call(m_(id.type), _(id.removeSlot), param(_(id.slotRole), p_(id.key))));
 
-    Ast::Function& indexSize = *new Ast::Function(*this, type.Index, id.size, "Index::size");
+    Ast::Function& indexSize = *new Ast::Function(*this, id.size, "Index::size");
     indexSize.returnType(type.Number);
     indexSize.code(
         ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.size))));
@@ -3372,7 +3450,7 @@ Brain::Brain() :
     type.Map.set(id.subTypes, *mapPtr);
     type.Map.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
-    Ast::Function& mapCtor = *new Ast::Function(*this, type.Map, id.constructor, "Map::constructor");
+    Ast::Function& mapCtor = *new Ast::Function(*this, id.constructor, "Map::constructor");
     mapCtor.code(
         m_(id.size)       = _(_0_),
         m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType) / _(id.value),
@@ -3381,7 +3459,7 @@ Brain::Brain() :
         m_(id.list)       = ast.new_(m_(id.listType), _(id.constructor)),
         m_(id.index)      = ast.new_(_(type.Index), _(id.constructor)));
 
-    Ast::Function& mapCtorWithIndexType = *new Ast::Function(*this, type.Map, id.constructorWithIndexType, "Map::constructorWithIndexType");
+    Ast::Function& mapCtorWithIndexType = *new Ast::Function(*this, id.constructorWithIndexType, "Map::constructorWithIndexType");
     mapCtorWithIndexType.parameters(
         param(id.indexType, type.Type_));
     mapCtorWithIndexType.code(
@@ -3392,7 +3470,7 @@ Brain::Brain() :
         m_(id.list)       = ast.new_(m_(id.listType), _(id.constructor)),
         m_(id.index)      = ast.new_(_(type.Index), _(id.constructorWithSelfType), param(_(id.indexType), p_(id.indexType))));
 
-    Ast::Function& mapTemplate = *new Ast::Function(*this, type.Map, id.template_, "static Map::template");
+    Ast::Function& mapTemplate = *new Ast::Function(*this, id.template_, "static Map::template");
     mapTemplate.set(id.static_, boolean.true_);
     mapTemplate.parameters(
         param(id.keyType, type.Type_),
@@ -3425,7 +3503,7 @@ Brain::Brain() :
         return m_index.has(key);
     }
     */
-    Ast::Function& mapHasKey = *new Ast::Function(*this, type.Map, id.hasKey, "Map::hasKey");
+    Ast::Function& mapHasKey = *new Ast::Function(*this, id.hasKey, "Map::hasKey");
     mapHasKey.parameters(
         param(id.key, type.Cell));
     mapHasKey.returnType(type.Boolean);
@@ -3441,7 +3519,7 @@ Brain::Brain() :
         throw "No such role!";
     }
     */
-    Ast::Function& mapGetValue = *new Ast::Function(*this, type.Map, id.hasKey, "Map::getValue");
+    Ast::Function& mapGetValue = *new Ast::Function(*this, id.hasKey, "Map::getValue");
     mapGetValue.parameters(
         param(id.key, type.Cell));
     mapGetValue.code(
@@ -3461,7 +3539,7 @@ Brain::Brain() :
         ++m_size;
     }
     */
-    Ast::Function& mapAdd = *new Ast::Function(*this, type.Map, id.add, "Map::add");
+    Ast::Function& mapAdd = *new Ast::Function(*this, id.add, "Map::add");
     mapAdd.parameters(
         param(id.key, type.Cell),
         param(id.value, type.Cell));
@@ -3484,7 +3562,7 @@ Brain::Brain() :
         --m_size;
     }
     */
-    Ast::Function& mapRemove = *new Ast::Function(*this, type.Map, id.remove, "Map::remove");
+    Ast::Function& mapRemove = *new Ast::Function(*this, id.remove, "Map::remove");
     mapRemove.parameters(
         param(id.key, type.Cell));
     mapRemove.code(
@@ -3494,12 +3572,12 @@ Brain::Brain() :
         ast.call(m_(id.index), _(id.remove), param(_(id.key), p_(id.key))),
         m_(id.size) = ast.subtract(m_(id.size), _(_1_)));
 
-    Ast::Function& mapSize = *new Ast::Function(*this, type.Map, id.size, "Map::size");
+    Ast::Function& mapSize = *new Ast::Function(*this, id.size, "Map::size");
     mapSize.returnType(type.Number);
     mapSize.code(
         ast.return_(m_(id.size)));
 
-    Ast::Function& mapEmpty = *new Ast::Function(*this, type.Map, id.empty, "Map::empty");
+    Ast::Function& mapEmpty = *new Ast::Function(*this, id.empty, "Map::empty");
     mapEmpty.returnType(type.Boolean);
     mapEmpty.code(
         ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
@@ -3596,7 +3674,7 @@ Brain::Brain() :
     type.Set.set(id.subTypes, *mapPtr);
     type.Set.set(id.memberOf, map(type.Type_, type.Type_, type.Container, type.Container));
 
-    Ast::Function& setCtor = *new Ast::Function(*this, type.Set, id.constructor, "Set::constructor");
+    Ast::Function& setCtor = *new Ast::Function(*this, id.constructor, "Set::constructor");
     setCtor.code(
         m_(id.size)       = _(_0_),
         m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
@@ -3604,7 +3682,7 @@ Brain::Brain() :
         m_(id.list)       = ast.new_(m_(id.listType), _(id.constructor)),
         m_(id.index)      = ast.new_(_(type.Index), _(id.constructor)));
 
-    Ast::Function& setTemplate = *new Ast::Function(*this, type.Set, id.template_, "static Set::template");
+    Ast::Function& setTemplate = *new Ast::Function(*this, id.template_, "static Set::template");
     setTemplate.set(id.static_, boolean.true_);
     setTemplate.parameters(
         param(id.objectType, type.Type_));
@@ -3629,7 +3707,7 @@ Brain::Brain() :
 
         ast.return_(*var_(id.result)));
 
-    Ast::Function& setAdd = *new Ast::Function(*this, type.Set, id.add, "Set::add");
+    Ast::Function& setAdd = *new Ast::Function(*this, id.add, "Set::add");
     setAdd.parameters(
         param(id.value, type.Cell));
     setAdd.returnType(type.ListItem);
@@ -3642,7 +3720,7 @@ Brain::Brain() :
         ast.set(m_(id.index), p_(id.value), *var_(id.listItem)),
         ast.return_(*var_(id.listItem)));
 
-    Ast::Function& setContains = *new Ast::Function(*this, type.Set, id.contains, "Set::contains");
+    Ast::Function& setContains = *new Ast::Function(*this, id.contains, "Set::contains");
     setContains.parameters(
         param(id.value, type.Cell));
     setContains.returnType(type.Boolean);
@@ -3651,7 +3729,7 @@ Brain::Brain() :
                 ast.return_(_(boolean.true_)),
                 ast.return_(_(boolean.false_))));
 
-    Ast::Function& setErase = *new Ast::Function(*this, type.Set, id.add, "Set::erase");
+    Ast::Function& setErase = *new Ast::Function(*this, id.add, "Set::erase");
     setErase.parameters(
         param(id.value, type.Cell));
     setErase.code(
@@ -3661,12 +3739,12 @@ Brain::Brain() :
         m_(id.size) = ast.subtract(m_(id.size), _(_1_)));
 
 
-    Ast::Function& setSize = *new Ast::Function(*this, type.Set, id.size, "Set::size");
+    Ast::Function& setSize = *new Ast::Function(*this, id.size, "Set::size");
     setSize.returnType(type.Number);
     setSize.code(
         ast.return_(m_(id.size)));
 
-    Ast::Function& setEmpty = *new Ast::Function(*this, type.Set, id.empty, "Set::empty");
+    Ast::Function& setEmpty = *new Ast::Function(*this, id.empty, "Set::empty");
     setEmpty.returnType(type.Boolean);
     setEmpty.code(
         ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
@@ -3719,7 +3797,7 @@ Brain::Brain() :
         type.slot(id.pixels, type.ListOf(type.Pixel))) });
 
 
-    Ast::Function& numberFactorial = *new Ast::Function(*this, type.Number, test.factorial, "Number::factorial");
+    Ast::Function& numberFactorial = *new Ast::Function(*this, test.factorial, "Number::factorial");
     numberFactorial.parameters(
         param(id.input, type.Number));
     numberFactorial.returnType(type.Number);
@@ -3757,7 +3835,7 @@ public:
     Shape(int id, input::Color color, int width, int height) :
         m_id(id), m_color(color), m_width(width), m_height(height) { }
     */
-    Ast::Function& shapeCtor = *new Ast::Function(*this, type.arc.Shaper, id.constructor, "Shape::Shape");
+    Ast::Function& shapeCtor = *new Ast::Function(*this, id.constructor, "Shape::Shape");
     shapeCtor.parameters(
         param(id.id, type.Number),
         param(id.color, type.Color),
@@ -3776,7 +3854,7 @@ public:
         m_hybridPixels.insert(&pixel);
     }
     */
-    Ast::Function& shapeAddPixel = *new Ast::Function(*this, type.arc.Shaper, id.addPixel, "Shape::addPixel");
+    Ast::Function& shapeAddPixel = *new Ast::Function(*this, id.addPixel, "Shape::addPixel");
     shapeAddPixel.parameters(
         param(id.pixel, type.Pixel));
     shapeAddPixel.code(
@@ -3788,7 +3866,7 @@ public:
         return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
     }
     */
-    Ast::Function& shapeHasPixel = *new Ast::Function(*this, type.arc.Shaper, id.hasPixel, "Shape::hasPixel");
+    Ast::Function& shapeHasPixel = *new Ast::Function(*this, id.hasPixel, "Shape::hasPixel");
     shapeHasPixel.parameters(
         param(id.pixel, type.Pixel));
     shapeHasPixel.code(
@@ -3809,7 +3887,7 @@ public:
         processInputPixels();
     }
     */
-    Ast::Function& shaperCtor = *new Ast::Function(*this, type.arc.Shaper, id.constructor, "Shaper::Shaper");
+    Ast::Function& shaperCtor = *new Ast::Function(*this, id.constructor, "Shaper::Shaper");
     shaperCtor.parameters(
         param(id.width, type.Number),
         param(id.height, type.Number),
@@ -3828,7 +3906,7 @@ public:
         }
     }
     */
-    Ast::Function& shaperProcessInputPixels = *new Ast::Function(*this, type.arc.Shaper, id.processInputPixels, "Shaper::processInputPixels");
+    Ast::Function& shaperProcessInputPixels = *new Ast::Function(*this, id.processInputPixels, "Shaper::processInputPixels");
     shaperProcessInputPixels.code(
         var_(id.pixels) = m_(id.picture) / _(id.pixels),
         var_(id.pixel)  = *var_(id.pixels) / _(id.first),
@@ -3861,7 +3939,7 @@ public:
         );
     }
     */
-    Ast::Function& shaperProcess = *new Ast::Function(*this, type.arc.Shaper, id.process, "Shaper::process");
+    Ast::Function& shaperProcess = *new Ast::Function(*this, id.process, "Shaper::process");
     shaperProcess.code(
         var_(id.shapeId) = _(_1_),
         ast.while_(ast.not_(ast.call(m_(id.inputPixels), _(id.empty))),
@@ -3896,7 +3974,7 @@ public:
         processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
     }
     */
-    Ast::Function& shaperProcessPixel = *new Ast::Function(*this, type.arc.Shaper, id.processPixel, "Shaper::processPixel");
+    Ast::Function& shaperProcessPixel = *new Ast::Function(*this, id.processPixel, "Shaper::processPixel");
     shaperProcessPixel.parameters(
         param(id.shape, type.Shape),
         param(id.checkPixels, type.ListOf(type.Pixel)),
@@ -3930,7 +4008,7 @@ public:
         return nullptr;
     }
     */
-    Ast::Function& shaperProcessAdjacentPixel = *new Ast::Function(*this, type.arc.Shaper, id.processAdjacentPixel, "Shaper::processAdjacentPixel");
+    Ast::Function& shaperProcessAdjacentPixel = *new Ast::Function(*this, id.processAdjacentPixel, "Shaper::processAdjacentPixel");
     shaperProcessAdjacentPixel.parameters(
         param(id.direction, type.Directions),
         param(id.shape, type.Shape),

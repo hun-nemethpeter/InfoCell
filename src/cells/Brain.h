@@ -300,6 +300,7 @@ public:
     Object Picture;
     Object Stack;
     Object StackFrame;
+    Object Program;
     Object Directions;
     Object Shape;
 
@@ -478,6 +479,7 @@ public:
     public:
         Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
         void implicitInstantiation();
+        Object& compile();
     };
 
     class StructT : public StructBase,
@@ -486,8 +488,6 @@ public:
     public:
         using StructBase::kb;
         StructT(brain::Brain& kb, CellI& id, const std::string& label = "ast.structT");
-
-        Type& idType();
 
         void templateParams(Slot& param);
 
@@ -515,7 +515,6 @@ public:
     {
     public:
         Function(brain::Brain& kb, CellI& name, const std::string& label = "ast.function");
-        Function(brain::Brain& kb, CellI& objType, CellI& name, const std::string& label = "ast.function");
 
         void parameters(Slot& param);
 
