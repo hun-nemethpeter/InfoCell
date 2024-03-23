@@ -134,6 +134,7 @@ public:
     Object then;
     Object type;
     Object value;
+    Object variables;
     Object width;
 };
 
@@ -302,6 +303,7 @@ public:
     Object Stack;
     Object StackFrame;
     Object Program;
+    Object ScopeData;
     Object Directions;
     Object Shape;
 
@@ -400,6 +402,7 @@ public:
         Block(brain::Brain& kb, List& list);
     };
 
+    class Var;
     class Function;
     class FunctionT;
     class Struct;
@@ -411,10 +414,24 @@ public:
         Scope& addScope(CellI& id, const std::string& label);
         Function& addFunction(CellI& id, const std::string& label);
         FunctionT& addFunctionT(CellI& id, const std::string& label);
+
+        bool hasVariable(CellI& id);
+        Var& getVariable(CellI& id);
+        Var& addVariable(CellI& id);
+
+        bool hasStruct(CellI& id);
+        Struct& getStruct(CellI& id);
         Struct& addStruct(CellI& id, const std::string& label);
+
+        bool hasStructTInstance(List& id);
+        Struct& getStructTInstance(List& id);
         void addStructTInstance(Struct& astStruct);
+
+        bool hasIncompleteStructType(List& id);
+        Struct& getIncompleteStructType(List& id);
         void addIncompleteStruct(Struct& astStruct);
         Struct& addIncompleteStruct(List& id);
+
         StructT& addStructT(CellI& id, const std::string& label);
 
         void implicitInstantiation();
@@ -425,6 +442,7 @@ public:
 
         Struct& instantiateIncompleteStructT(CellI& id, List& parameters);
 
+        Map& variables();
         Map& scopes();
         Map& functions();
         Map& functionTs();
@@ -480,7 +498,7 @@ public:
     public:
         Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
         void implicitInstantiation();
-        Object& compile();
+        Object& compile(Object& program, Scope& scope);
     };
 
     class StructT : public StructBase,
@@ -531,13 +549,13 @@ public:
         void code(Args&&... args);
 
         void implicitInstantiation();
-        CellI& compile();
+        CellI& compile(Object& program, Scope& scope);
 
     protected:
         void addBlock(Block& block);
         void compileParams(cells::Object& function, cells::Map& subTypesMap);
         void implicitInstantiationInAst(CellI& ast);
-        CellI& compileAst(CellI& ast, cells::Object& function);
+        CellI& compileAst(CellI& ast, cells::Object& function, Object& program, Scope& scope);
         List& parameters();
         CellI& returnType();
         Base& code();
@@ -1020,26 +1038,26 @@ public:
         return ret;
     }
 
-    void addMethods(Object&, Map&, Map&)
+    void addMethods(Object&, Ast::Scope&, Object&, Map&, Map&)
     {
         // Do nothing
     }
 
     template <typename... Args>
-    void addMethods(Object& structType, Map& asts, Map& methods, CellI& methodId, Ast::Function& method, Args&&... args)
+    void addMethods(Object& program, Ast::Scope& scope, Object& structType, Map& asts, Map& methods, CellI& methodId, Ast::Function& method, Args&&... args)
     {
         asts.add(methodId, method);
         method.set(method.kb.id.structType, structType);
-        methods.add(methodId, method.compile());
-        addMethods(structType, asts, methods, std::forward<Args>(args)...);
+        methods.add(methodId, method.compile(program, scope));
+        addMethods(program, scope, structType, asts, methods, std::forward<Args>(args)...);
     }
 
     template <typename... Args>
-    void registerMethods(Object& structType, CellI& methodId, Ast::Function& method, Args&&... args)
+    void registerMethods(Object& program, Ast::Scope& scope, Object& structType, CellI& methodId, Ast::Function& method, Args&&... args)
     {
         Map& asts = *new Map(*this, type.Cell, type.ast.Function, "Map<Cell, Type::Ast::Function>(...)");
         Map& methods = *new Map(*this, type.Cell, type.op.Function, "Map<Cell, Type::Op::Function>(...)");
-        addMethods(structType, asts, methods, methodId, method, std::forward<Args>(args)...);
+        addMethods(program, scope, structType, asts, methods, methodId, method, std::forward<Args>(args)...);
         structType.set(id.asts, asts);
         structType.set(id.methods, methods);
     }
