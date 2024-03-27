@@ -42,6 +42,8 @@ public:
     std::string label() const;
     void label(const std::string& label);
 
+    bool isA(CellI& cell, CellI& type) const;
+
     bool operator==(CellI& rhs);
     bool operator!=(CellI& rhs);
 
@@ -154,8 +156,8 @@ public:
     List(brain::Brain& kb, CellI& valueType, const std::string& label = "");
 
     template <typename T>
-    List(brain::Brain& kb, std::vector<T>& values) :
-        List(kb, util::ref(values.front()).type())
+    List(brain::Brain& kb, std::vector<T>& values, const std::string& label = "") :
+        List(kb, util::ref(values.front()).type(), label)
     {
         for (auto& valueT : values) {
             add(util::ref(valueT));
@@ -296,17 +298,17 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    bool hasKey(List& key);
-    CellI& getValue(List& key);
+    bool hasKey(CellI& key);
+    CellI& getValue(CellI& key);
 
-    void add(List& key, CellI& value);
+    void add(CellI& key, CellI& value);
     template <typename... Args>
-    void add(List& key, CellI& value, Args&&... args)
+    void add(CellI& key, CellI& value, Args&&... args)
     {
         add(key, value);
         add(std::forward<Args>(args)...);
     }
-    void remove(List& key);
+    void remove(CellI& key);
     bool empty() const;
     int size();
 

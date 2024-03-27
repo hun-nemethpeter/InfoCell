@@ -59,6 +59,7 @@ public:
     Object hasSlot;
     Object height;
     Object id;
+    Object incomplete;
     Object incompleteStructTypes;
     Object index;
     Object indexType;
@@ -125,7 +126,6 @@ public:
     Object status;
     Object stop;
     Object structs;
-    Object structTInstances;
     Object structTs;
     Object structType;
     Object subTypes;
@@ -411,8 +411,12 @@ public:
     {
     public:
         Scope(brain::Brain& kb, CellI& id, const std::string& label = "ast.scope");
+        Scope(brain::Brain& kb, const std::string& name);
+        Scope& addScope(const std::string& name);
         Scope& addScope(CellI& id, const std::string& label);
+        Function& addFunction(const std::string& name);
         Function& addFunction(CellI& id, const std::string& label);
+        FunctionT& addFunctionT(const std::string& name);
         FunctionT& addFunctionT(CellI& id, const std::string& label);
 
         bool hasVariable(CellI& id);
@@ -421,10 +425,8 @@ public:
 
         bool hasStruct(CellI& id);
         Struct& getStruct(CellI& id);
+        Struct& addStruct(const std::string& name);
         Struct& addStruct(CellI& id, const std::string& label);
-
-        bool hasStructTInstance(List& id);
-        Struct& getStructTInstance(List& id);
         void addStructTInstance(Struct& astStruct);
 
         bool hasIncompleteStructType(List& id);
@@ -432,23 +434,23 @@ public:
         void addIncompleteStruct(Struct& astStruct);
         Struct& addIncompleteStruct(List& id);
 
+        StructT& addStructT(const std::string& name);
         StructT& addStructT(CellI& id, const std::string& label);
 
         void implicitInstantiation();
         CellI& compile();
 
         template <typename... Args>
-        Struct& instantiateStructT(CellI& id, Args&&... args);
+        Struct& instantiateStructT(const std::string& name, Args&&... args);
 
         Struct& instantiateIncompleteStructT(CellI& id, List& parameters);
 
-        Map& variables();
-        Map& scopes();
-        Map& functions();
-        Map& functionTs();
-        Map& structs();
-        Map& structTs();
-        TrieMap& structTInstances();
+        TrieMap& variables();
+        TrieMap& scopes();
+        TrieMap& functions();
+        TrieMap& functionTs();
+        TrieMap& structs();
+        TrieMap& structTs();
         TrieMap& incompleteStructTypes();
     };
 
@@ -456,7 +458,9 @@ public:
     {
     public:
         StructBase(brain::Brain& kb, CellI& astType, CellI& cell, const std::string& label);
+        StructBase(brain::Brain& kb, CellI& astType, const std::string& name);
 
+        Function& addMethod(const std::string& name);
         Function& addMethod(CellI& id, const std::string& label);
 
         void members(Slot& param);
@@ -497,6 +501,7 @@ public:
     {
     public:
         Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
+        Struct(brain::Brain& kb, const std::string& name);
         void implicitInstantiation();
         Object& compile(Object& program, Scope& scope);
     };
@@ -507,6 +512,7 @@ public:
     public:
         using StructBase::kb;
         StructT(brain::Brain& kb, CellI& id, const std::string& label = "ast.structT");
+        StructT(brain::Brain& kb, const std::string& name);
 
         void templateParams(Slot& param);
 
@@ -534,6 +540,7 @@ public:
     {
     public:
         Function(brain::Brain& kb, CellI& name, const std::string& label = "ast.function");
+        Function(brain::Brain& kb, const std::string& name);
 
         void parameters(Slot& param);
 
@@ -565,6 +572,7 @@ public:
     {
     public:
         FunctionT(brain::Brain& kb, CellI& name, const std::string& label = "ast.functionT");
+        FunctionT(brain::Brain& kb, const std::string& name);
 
         void templateParams(Slot& param);
 
@@ -911,6 +919,17 @@ protected:
     brain::Brain& m_kb;
 };
 
+class Strings
+{
+public:
+    Strings(brain::Brain& kb);
+    String& get(const std::string& str);
+
+protected:
+    std::map<std::string, String> m_strings;
+    brain::Brain& m_kb;
+};
+
 } // namespace pools
 
 class Pools
@@ -920,6 +939,7 @@ public:
     pools::Chars chars;
     pools::Digits digits;
     pools::Numbers numbers;
+    pools::Strings strings;
 };
 
 class Arc
@@ -1078,12 +1098,13 @@ void Ast::Function::code(Args&&... args)
 }
 
 template <typename... Args>
-Ast::Struct& Ast::Scope::instantiateStructT(CellI& id, Args&&... args)
+Ast::Struct& Ast::Scope::instantiateStructT(const std::string& name, Args&&... args)
 {
+    auto& id = kb.pools.strings.get(name)[kb.id.value];
     if (!structTs().hasKey(id)) {
         throw "No such template!";
     }
-    auto& structT = static_cast<Ast::StructT&>(structTs().getValue(id));
+    auto& structT         = static_cast<Ast::StructT&>(structTs().getValue(id));
     Ast::Struct& instance = structT.instantiate(*this, std::forward<Args>(args)...);
     return instance;
 }

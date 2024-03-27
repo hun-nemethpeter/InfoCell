@@ -1088,7 +1088,7 @@ TEST_F(CellTest, TrieMapTest)
 {
     TrieMap trieMap(kb, kb.type.Number, kb.type.Number, "testTrieMap");
     EXPECT_EQ(&trieMap[id.size], &_0_);
-    auto& key1 = kb.list(kb._0_, kb._1_, kb._2_, kb._3_, kb._4_);
+    auto& key1   = kb.list(kb._0_, kb._1_, kb._2_, kb._3_, kb._4_);
     auto& value1 = kb.directions.down;
     trieMap.add(key1, value1);
     EXPECT_EQ(&trieMap[id.size], &_1_);
@@ -1097,6 +1097,19 @@ TEST_F(CellTest, TrieMapTest)
     trieMap.remove(key1);
     EXPECT_EQ(&trieMap[id.size], &_0_);
     EXPECT_FALSE(trieMap.hasKey(key1));
+}
+
+TEST_F(CellTest, StringTest)
+{
+    String& testStr1 = kb.pools.strings.get("test");
+    String& testStr2 = kb.pools.strings.get("test");
+    EXPECT_EQ(&testStr1, &testStr2);
+    EXPECT_EQ(&testStr1.type(), &kb.type.String);
+    EXPECT_EQ(&testStr1[kb.id.value].type(), &kb.type.ListOf(kb.type.Char));
+    EXPECT_EQ(&testStr1[kb.id.value], &testStr1[kb.id.value]);
+    EXPECT_EQ(&testStr1[kb.id.value], &testStr2[kb.id.value]);
+    printAs.value(testStr1[kb.id.value]);
+    printAs.cell(testStr1[kb.id.value]);
 }
 
 int main(int argc, char** argv)

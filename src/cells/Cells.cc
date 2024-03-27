@@ -70,6 +70,11 @@ void CellI::label(const std::string& label)
     m_label = label;
 }
 
+bool CellI::isA(CellI& cell, CellI& type) const
+{
+    return &cell == &type || (cell.has(kb.id.memberOf) && cell[kb.id.memberOf][kb.id.index].has(type));
+}
+
 bool CellI::operator==(CellI& rhs)
 {
     if (&type() != &rhs.type()) {
@@ -1353,9 +1358,13 @@ CellI& TrieMap::operator[](CellI& role)
     throw "No such role!";
 }
 
-bool TrieMap::hasKey(List& key)
+bool TrieMap::hasKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
+
+    if (isA(key, kb.type.List)) {
+        throw "Key is not a list!";
+    }
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
         CellI* children = nullptr;
@@ -1382,8 +1391,12 @@ bool TrieMap::hasKey(List& key)
     return true;
 }
 
-CellI& TrieMap::getValue(List& key)
+CellI& TrieMap::getValue(CellI& key)
 {
+    if (isA(key, kb.type.List)) {
+        throw "Key is not a list!";
+    }
+
     CellI* currentNode = &m_rootNode;
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
@@ -1411,8 +1424,12 @@ CellI& TrieMap::getValue(List& key)
     return (*currentNode)[kb.id.data][kb.id.value];
 }
 
-void TrieMap::add(List& key, CellI& value)
+void TrieMap::add(CellI& key, CellI& value)
 {
+    if (isA(key, kb.type.List)) {
+        throw "Key is not a list!";
+    }
+
     CellI* currentNode = &m_rootNode;
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
@@ -1436,11 +1453,16 @@ void TrieMap::add(List& key, CellI& value)
     ++m_size;
 }
 
-void TrieMap::remove(List& key)
+void TrieMap::remove(CellI& key)
 {
-    if (key.empty()) {
+    if (isA(key, kb.type.List)) {
+        throw "Key is not a list!";
+    }
+
+    if (&key[kb.id.size] == &kb._0_) {
         return;
     }
+
     CellI* currentNode    = &m_rootNode;
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
@@ -1723,7 +1745,7 @@ CellI& String::operator[](CellI& role)
     } else if (&role == &kb.id.value) {
         if (m_characters.empty()) {
             calculateCharacters();
-            m_charactersList.reset(new List(kb, m_characters));
+            m_charactersList.reset(new List(kb, m_characters, label()));
         }
 
         return *m_charactersList;
