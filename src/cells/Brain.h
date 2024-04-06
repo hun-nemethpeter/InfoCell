@@ -133,6 +133,7 @@ public:
     Object templateParams;
     Object then;
     Object type;
+    Object unknownStructs;
     Object value;
     Object variables;
     Object width;
@@ -195,7 +196,6 @@ public:
     Object Call;
     Object Cell;
     Object Delete;
-    Object DependentType;
     Object Divide;
     Object Do;
     Object Equal;
@@ -227,8 +227,11 @@ public:
     Object Slot;
     Object StaticCall;
     Object Struct;
+    Object StructRef;
     Object StructT;
     Object Subtract;
+    Object SubType;
+    Object TemplatedType;
     Object TemplateParam;
     Object Var;
     Object While;
@@ -303,6 +306,7 @@ public:
     Object Stack;
     Object StackFrame;
     Object Program;
+    Object ResolveState;
     Object ScopeData;
     Object Directions;
     Object Shape;
@@ -326,11 +330,23 @@ public:
 class Ast
 {
 public:
+    class Scope;
     class Base : public Object
     {
         Base(const Base&) = delete;
     public:
         Base(brain::Brain& kb, CellI& classCell, const std::string& label = "");
+
+        CellI& resolveType(CellI& typeAst, CellI& resolveState);
+        CellI& resolveStructId(CellI& structId, CellI& resolveState);
+        CellI& resolveTemplatedType(CellI& ast, CellI& resolveState);
+        List& generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState);
+
+        // TODO remove below
+        List& generateTemplateId(CellI& id, CellI& parameters);
+        CellI& resolveType(CellI& typeAst, Object& programData, Scope& currentScope);
+        CellI& resolveStructId(CellI& structId, Object& program, Scope& scope);
+        CellI& resolveTemplatedType(CellI& ast, Object& programData, Scope& scope);
     };
     template <typename T>
     class BaseT : public Base,
@@ -348,6 +364,11 @@ public:
     public:
         Cell(brain::Brain& kb, CellI& value);
         Get& operator/(Base& role);
+    };
+    class StructRef : public BaseT<StructRef>
+    {
+    public:
+        StructRef(brain::Brain& kb, CellI& value);
     };
     class Self : public BaseT<Self>
     {
@@ -410,12 +431,14 @@ public:
     class Scope : public BaseT<Scope>
     {
     public:
-        Scope(brain::Brain& kb, CellI& id, const std::string& label = "ast.scope");
         Scope(brain::Brain& kb, const std::string& name);
+
         Scope& addScope(const std::string& name);
-        Scope& addScope(CellI& id, const std::string& label);
+
         Function& addFunction(const std::string& name);
         Function& addFunction(CellI& id, const std::string& label);
+        void addFunction(Function& function);
+
         FunctionT& addFunctionT(const std::string& name);
         FunctionT& addFunctionT(CellI& id, const std::string& label);
 
@@ -425,8 +448,8 @@ public:
 
         bool hasStruct(CellI& id);
         Struct& getStruct(CellI& id);
+        void addStruct(Struct& struct_);
         Struct& addStruct(const std::string& name);
-        Struct& addStruct(CellI& id, const std::string& label);
         void addStructTInstance(Struct& astStruct);
 
         bool hasIncompleteStructType(List& id);
@@ -435,10 +458,12 @@ public:
         Struct& addIncompleteStruct(List& id);
 
         StructT& addStructT(const std::string& name);
-        StructT& addStructT(CellI& id, const std::string& label);
 
-        void implicitInstantiation();
+        void implicitInstantiation(Object& programData, Scope& parentScope);
+        void declare(Object& programData, Scope& parentScope);
         CellI& compile();
+        Ast::Scope& resolve();
+        void resolve(CellI& resolveState);
 
         template <typename... Args>
         Struct& instantiateStructT(const std::string& name, Args&&... args);
@@ -462,6 +487,7 @@ public:
 
         Function& addMethod(const std::string& name);
         Function& addMethod(CellI& id, const std::string& label);
+        void addMethod(Function& method);
 
         void members(Slot& param);
         template <typename... Args>
@@ -503,7 +529,9 @@ public:
         Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
         Struct(brain::Brain& kb, const std::string& name);
 
-        void implicitInstantiation();
+        void implicitInstantiation(Object& programData, Scope& scope);
+        Struct& resolve(CellI& resolveState);
+        Object& declare(Object& program, Scope& scope);
         Object& compile(Object& program, Scope& scope);
     };
 
@@ -532,7 +560,7 @@ public:
 
     protected:
         Struct& instantiateWith(Scope& scope, List& slotList);
-        CellI& instantiateTemplateParam(CellI& param, CellI& selfType, Map& inputParameters);
+        CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
         Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
         Map& templateParams();
     };
@@ -556,12 +584,17 @@ public:
         template <typename... Args>
         void code(Args&&... args);
 
-        void implicitInstantiation();
+        void implicitInstantiation(Object& programData, Scope& scope);
+        Ast::Function& resolve(CellI& resolveState);
+        CellI& declare(Object& program, Scope& scope);
         CellI& compile(Object& program, Scope& scope);
 
     protected:
+        Ast::Base& resolveCode(CellI& resolveState, CellI& ast);
         void addBlock(Block& block);
-        void compileParams(cells::Object& function, cells::Map& subTypesMap);
+        void declareParams(cells::Object& function, cells::Map& subTypesMap, Object& programData, Scope& scope);
+        void compileParams(cells::Object& function, cells::Map& subTypesMap, Object& program, Scope& scope);
+        CellI& getCompiledStruct(CellI& ast, Object& program, Scope& scope);
         void implicitInstantiationInAst(CellI& ast);
         CellI& compileAst(CellI& ast, cells::Object& function, Object& program, Scope& scope);
         List& parameters();
@@ -661,11 +694,33 @@ public:
         Call& call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
         Call& call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
     };
-    class DependentType : public BaseT<DependentType>
+    class SubType : public BaseT<SubType>
     {
     public:
-        DependentType(const DependentType&) = delete;
-        DependentType(brain::Brain& kb, CellI& id, CellI& type);
+        SubType(const SubType&) = delete;
+        SubType(brain::Brain& kb, CellI& id);
+    };
+    class TemplatedType : public BaseT<TemplatedType>
+    {
+    public:
+        TemplatedType(const TemplatedType&) = delete;
+        TemplatedType(brain::Brain& kb, CellI& id, CellI& type);
+
+        void addParam(CellI& role, CellI& type);
+        void addParam(CellI& role, const std::string& type);
+
+        template <typename... Args>
+        void addParam(CellI& role, CellI& type, Args&&... args)
+        {
+            addParam(role, type);
+            addParam(std::forward<Args>(args)...);
+        }
+        template <typename... Args>
+        void addParam(CellI& role, const std::string& type, Args&&... args)
+        {
+            addParam(role, type);
+            addParam(std::forward<Args>(args)...);
+        }
     };
     class TemplateParam : public BaseT<TemplateParam>
     {
@@ -778,6 +833,7 @@ public:
     Ast(brain::Brain& kb);
 
     Cell& cell(CellI& value);
+    StructRef& structRef(CellI& astStruct);
     Self& self();
     SelfFn& selfFn();
     Return& return_();
@@ -809,8 +865,13 @@ public:
     While& while_(Base& condition, Base& statement);
     Var& var(CellI& role);
     Member& member(CellI& role);
-    DependentType& dependentType(CellI& role, CellI& type);
-    DependentType& dependentType(CellI& role, CellI& type1, CellI& type2);
+    SubType& subType(CellI& role);
+    TemplatedType& templatedType(CellI& role, CellI& type);
+    template <typename... Args>
+    TemplatedType& templatedType(CellI& id, CellI& role, CellI& type, Args&&... args);
+    template <typename... Args>
+    TemplatedType& templatedType(CellI& id, CellI& role, const std::string& type, Args&&... args);
+
     TemplateParam& templateParam(CellI& role);
     New& new_(Base& objectType);
     New& new_(Base& objectType, Base& constructor);
@@ -818,6 +879,13 @@ public:
     New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2);
     New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3);
     New& new_(Base& objectType, Base& constructor, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+
+    template<typename... Args>
+    New& new_(Base& objectType, const std::string& constructor, Args&&... params);
+
+    template <typename... Args>
+    New& new_(const std::string& objectType, const std::string& constructor, Args&&... params);
+
     Same& same(Base& lhs, Base& rhs);
     NotSame& notSame(Base& lhs, Base& rhs);
     Equal& equal(Base& lhs, Base& rhs);
@@ -975,6 +1043,7 @@ public:
 protected:
     InitPhase m_initPhase = InitPhase::Init;
     friend class Types;
+    void createStd();
 
 public:
     Brain();
@@ -1090,6 +1159,39 @@ template <typename... Args>
 Ast::Block& Ast::block(Args&&... args)
 {
     return *new Block(kb, kb.list(std::forward<Args>(args)...));
+}
+
+
+template <typename... Args>
+Ast::New& Ast::new_(Base& objectType, const std::string& constructor, Args&&... params)
+{
+    return new_(objectType, kb.ast.structRef(kb.pools.strings.get(constructor)[kb.id.value]), std::forward<Args>(params)...);
+}
+
+template <typename... Args>
+Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor, Args&&... params)
+{
+    return new_(kb.ast.structRef(kb.pools.strings.get(objectType)[kb.id.value]), kb.ast.structRef(kb.pools.strings.get(constructor)[kb.id.value]), std::forward<Args>(params)...);
+}
+
+template <typename... Args>
+Ast::TemplatedType& Ast::templatedType(CellI& id, CellI& role, CellI& type, Args&&... args)
+{
+    auto& ret = templatedType(id, kb.ast.slot(role, type));
+    if constexpr (sizeof...(Args) > 0) {
+        ret.addParam(std::forward<Args>(args)...);
+    }
+    return ret;
+}
+
+template <typename... Args>
+Ast::TemplatedType& Ast::templatedType(CellI& id, CellI& role, const std::string& type, Args&&... args)
+{
+    auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structRef(kb.pools.strings.get(type)[kb.id.value])));
+    if constexpr (sizeof...(Args) > 0) {
+        ret.addParam(std::forward<Args>(args)...);
+    }
+    return ret;
 }
 
 template <typename... Args>

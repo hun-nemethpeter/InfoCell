@@ -129,6 +129,7 @@ ID::ID(brain::Brain& kb) :
     templateParams(kb, kb.type.Cell, "templateParams"),
     then(kb, kb.type.Cell, "then"),
     type(kb, kb.type.Cell, "type"),
+    unknownStructs(kb, kb.type.Cell, "unknownStructs"),
     value(kb, kb.type.Cell, "value"),
     variables(kb, kb.type.Cell, "variables"),
     width(kb, kb.type.Cell, "width")
@@ -363,7 +364,6 @@ Ast::Ast(brain::Brain& kb) :
     Call(kb, kb.type.Type_, "ast::Call"),
     Cell(kb, kb.type.Type_, "ast::Cell"),
     Delete(kb, kb.type.Type_, "ast::Delete"),
-    DependentType(kb, kb.type.Type_, "ast::DependentType"),
     Divide(kb, kb.type.Type_, "ast::Divide"),
     Do(kb, kb.type.Type_, "ast::Do"),
     Equal(kb, kb.type.Type_, "ast::Equal"),
@@ -395,8 +395,11 @@ Ast::Ast(brain::Brain& kb) :
     Slot(kb, kb.type.Type_, "ast::Slot"),
     StaticCall(kb, kb.type.Type_, "ast::StaticCall"),
     Struct(kb, kb.type.Type_, "ast::Struct"),
+    StructRef(kb, kb.type.Type_, "ast::StructRef"),
     StructT(kb, kb.type.Type_, "ast::StructT"),
+    SubType(kb, kb.type.Type_, "ast::SubType"),
     Subtract(kb, kb.type.Type_, "ast::Subtract"),
+    TemplatedType(kb, kb.type.Type_, "ast::TemplatedType"),
     TemplateParam(kb, kb.type.Type_, "ast::TemplateParam"),
     Var(kb, kb.type.Type_, "ast::Var"),
     While(kb, kb.type.Type_, "ast::While")
@@ -426,10 +429,6 @@ Ast::Ast(brain::Brain& kb) :
 
     map = &kb.slots(type.slot(id.cell, Base));
     Delete.set(id.slots, *map);
-
-    map = &kb.slots(type.slot(id.id, Base),
-                    type.slot(id.parameters, type.ListOf(Slot)));
-    DependentType.set(id.slots, *map);
 
     map = &kb.slots(type.slot(id.lhs, Base),
                     type.slot(id.rhs, Base));
@@ -567,6 +566,9 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot(id.memberOf, type.ListOf(type.Type_)));
     Struct.set(id.slots, *map);
 
+    map = &kb.slots(type.slot(id.value, type.Struct));
+    StructRef.set(id.slots, *map);
+
     map = &kb.slots(type.slot(id.id, type.Cell),
                     type.slot(id.scope, Base),
                     type.slot(id.methods, type.MapOf(type.Cell, type.ast.Function)),
@@ -576,9 +578,16 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot(id.templateParams, type.MapOf(type.Cell, type.Type_)));
     StructT.set(id.slots, *map);
 
+    map = &kb.slots(type.slot(id.id, type.Cell));
+    SubType.set(id.slots, *map);
+
     map = &kb.slots(type.slot(id.lhs, Base),
                     type.slot(id.rhs, Base));
     Subtract.set(id.slots, *map);
+
+    map = &kb.slots(type.slot(id.id, Base),
+                    type.slot(id.parameters, type.ListOf(Slot)));
+    TemplatedType.set(id.slots, *map);
 
     map = &kb.slots(type.slot(id.role, type.Cell));
     TemplateParam.set(id.slots, *map);
@@ -638,6 +647,7 @@ Types::Types(brain::Brain& kb) :
     Stack(kb, kb.type.Type_, "Stack"),
     StackFrame(kb, kb.type.Type_, "StackFrame"),
     Program(kb, kb.type.Type_, "Program"),
+    ResolveState(kb, kb.type.Type_, "ResolveState"),
     ScopeData(kb, kb.type.Type_, "ScopeData"),
     Directions(kb, kb.type.Enum, "Directions"),
     Shape(kb, kb.type.Struct, "Shape"),
@@ -654,6 +664,7 @@ Types::Types(brain::Brain& kb) :
     Slot.set(kb.id.slots, *mapPtr);
 
     mapPtr = &kb.slots(type.slot(id.slots, MapCellToSlot),
+                       type.slot(id.incomplete, type.Boolean),
                        type.slot(id.sharedObject, Slot),
                        type.slot(id.subTypes, MapCellToType),
                        type.slot(id.memberOf, MapTypeToType),
@@ -683,10 +694,20 @@ Types::Types(brain::Brain& kb) :
     type.Program.set(id.slots, *mapPtr);
 
     mapPtr = &kb.slots(type.slot(id.id, type.Cell),
+                       type.slot(id.self, type.ast.Struct),
+                       type.slot(id.scope, type.ast.Scope),
+                       type.slot(id.functions, type.TrieMap),
+                       type.slot(id.structs, type.TrieMap),
+                       type.slot(id.unknownStructs, type.TrieMap),
+                       type.slot(id.variables, type.ListOf(type.ast.Slot)));
+    type.ResolveState.set(id.slots, *mapPtr);
+
+    mapPtr = &kb.slots(type.slot(id.id, type.Cell),
                        type.slot(id.scopes, type.Map),
                        type.slot(id.parent, ScopeData),
                        type.slot(id.functions, type.TrieMap),
                        type.slot(id.structs, type.TrieMap),
+                       type.slot(id.unknownStructs, type.TrieMap),
                        type.slot(id.variables, type.ListOf(type.ast.Slot)));
     type.ScopeData.set(id.slots, *mapPtr);
 
@@ -805,6 +826,178 @@ Ast::Base::Base(brain::Brain& kb, CellI& classCell, const std::string& label) :
 {
 }
 
+// TODO remove this
+List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters)
+{
+    List& idCell = *new List(kb, kb.type.Cell);
+    std::stringstream ss;
+    Visitor::visitList(id, [this, &idCell, &ss](CellI& character, int, bool&) {
+        idCell.add(character);
+        ss << character.label();
+    });
+
+    ss << "<";
+    Visitor::visitList(parameters, [this, &idCell, &ss](CellI& slot, int i, bool&) {
+        if (i != 0) {
+            ss << ", ";
+        }
+        CellI& slotRole = slot[kb.id.slotRole];
+        CellI& slotType = slot[kb.id.slotType];
+
+        idCell.add(slotRole);
+
+        if (&slotType.type() == &kb.type.ast.Cell) {
+            CellI& paramType = slotType[kb.id.value];
+            ss << paramType.label();
+            idCell.add(paramType);
+        }
+        if (&slotType.type() == &kb.type.ast.TemplatedType) {
+            CellI& templateId         = slotType[kb.id.id];
+            CellI& templateParameters = slotType[kb.id.parameters];
+            CellI& templateGenId      = generateTemplateId(templateId, templateParameters);
+            Visitor::visitList(templateGenId, [this, &idCell, &ss](CellI& idItem, int i, bool& stop) {
+                ss << idItem.label();
+                idCell.add(idItem);
+            });
+        }
+        throw "Invalid template param type!";
+    });
+    ss << ">";
+    idCell.label(ss.str());
+
+    return idCell;
+}
+
+CellI& Ast::Base::resolveType(CellI& typeAst, CellI& resolveState)
+{
+    if (&typeAst.type() == &kb.type.ast.Cell) {
+        if (!typeAst[kb.id.value].isA(kb.type.Type_)) {
+            throw "Type AST referencing a non-type!";
+        }
+        return typeAst[kb.id.value];
+    }
+    if (&typeAst.type() == &kb.type.ast.StructRef) {
+        CellI& astStructId = typeAst[kb.id.value];
+        return resolveStructId(astStructId, resolveState);
+    }
+    if (&typeAst.type() == &kb.type.ast.TemplatedType) {
+        return resolveTemplatedType(typeAst, resolveState);
+    }
+    if (&typeAst.type() == &kb.type.ast.Self) {
+        return resolveStructId(resolveState[kb.id.self][kb.id.name], resolveState);
+    }
+
+    throw "Unknown ast type node!";
+}
+
+
+CellI& Ast::Base::resolveStructId(CellI& structId, CellI& resolveState)
+{
+    auto& id      = kb.id;
+    auto& structs = static_cast<TrieMap&>(resolveState[id.structs]);
+
+    if (structs.hasKey(structId)) {
+        return structs.getValue(structId);
+    } else {
+        auto& unknownStructs = static_cast<TrieMap&>(resolveState[id.unknownStructs]);
+        if (unknownStructs.hasKey(structId)) {
+            return unknownStructs.getValue(structId);
+        } else {
+            auto& unknownStruct = *new Object(kb, kb.type.Type_, std::format("{}", structId.label()));
+            unknownStruct.set(kb.id.incomplete, kb.boolean.true_);
+            unknownStructs.add(structId, unknownStruct);
+            return unknownStruct;
+        }
+    }
+}
+
+CellI& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
+{
+    auto& templateId     = ast[kb.id.id];
+    auto& templateParams = ast[kb.id.parameters];
+
+    List& idCell = generateTemplateId(templateId, templateParams, resolveState);
+    return resolveStructId(idCell, resolveState);
+}
+
+List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState)
+{
+    List& idCell = *new List(kb, kb.type.Cell);
+    std::stringstream ss;
+    Visitor::visitList(id, [this, &idCell, &ss](CellI& character, int, bool&) {
+        idCell.add(character);
+        ss << character.label();
+    });
+
+    ss << "<";
+    Visitor::visitList(parameters, [this, &idCell, &ss, &resolveState](CellI& slot, int i, bool&) {
+        if (i != 0) {
+            ss << ", ";
+        }
+        CellI& slotRole = slot[kb.id.slotRole];
+        CellI& slotType = slot[kb.id.slotType];
+        CellI& resolvedSlotType = resolveType(slotType, resolveState);
+
+        idCell.add(slotRole);
+        idCell.add(resolvedSlotType);
+
+        ss << std::format("{}={}", slotRole.label(), resolvedSlotType.label());
+    });
+    ss << ">";
+    idCell.label(ss.str());
+
+    return idCell;
+}
+
+CellI& Ast::Base::resolveType(CellI& typeAst, Object& programData, Scope& currentScope)
+{
+    if (&typeAst.type() == &kb.type.ast.Cell) {
+        if (!typeAst[kb.id.value].isA(kb.type.Type_)) {
+            throw "Type AST referencing a non-type!";
+        }
+        return typeAst[kb.id.value];
+    }
+    if (&typeAst.type() == &kb.type.ast.StructRef) {
+        if (!typeAst[kb.id.value].isA(kb.type.ast.Struct)) {
+            throw "Type StructRef AST referencing a non Ast::Struct type!";
+        }
+        return resolveStructId(typeAst[kb.id.value][kb.id.id], programData, currentScope);
+    }
+    if (&typeAst.type() == &kb.type.ast.TemplatedType) {
+        return resolveTemplatedType(typeAst, programData, currentScope);
+    }
+
+    throw "Unknown ast type node!";
+}
+
+CellI& Ast::Base::resolveStructId(CellI& structId, Object& programData, Scope& scope)
+{
+    auto& id      = kb.id;
+    auto& structs = static_cast<TrieMap&>(programData[id.structs]);
+
+    if (structs.hasKey(structId)) {
+        return structs.getValue(structId);
+    } else {
+        auto& unknownStructs = static_cast<TrieMap&>(programData[id.unknownStructs]);
+        if (unknownStructs.hasKey(structId)) {
+            return unknownStructs.getValue(structId);
+        } else {
+            auto& unknownStruct = *new Object(kb, kb.type.Type_, std::format("unknown {}", structId.label()));
+            unknownStructs.add(structId, unknownStruct);
+            return unknownStruct;
+        }
+    }
+}
+
+CellI& Ast::Base::resolveTemplatedType(CellI& ast, Object& programData, Scope& scope)
+{
+    auto& templateId     = ast[kb.id.id];
+    auto& templateParams = ast[kb.id.parameters];
+
+    List& idCell = generateTemplateId(templateId, templateParams);
+    return resolveStructId(idCell, programData, scope);
+}
+
 Ast::Parameter::Parameter(brain::Brain& kb, CellI& role) :
     BaseT<Parameter>(kb, kb.type.ast.Parameter)
 {
@@ -912,6 +1105,12 @@ Ast::Get& Ast::Cell::operator/(Base& role)
     return Get::New(kb, *this, role);
 }
 
+Ast::StructRef::StructRef(brain::Brain& kb, CellI& value) :
+    BaseT<StructRef>(kb, kb.type.ast.StructRef)
+{
+    set(kb.id.value, value);
+}
+
 Ast::Self::Self(brain::Brain& kb) :
     BaseT<Self>(kb, kb.type.ast.Self, "ast.self")
 {
@@ -939,12 +1138,6 @@ Ast::Block::Block(brain::Brain& kb, List& list) :
     set(kb.id.asts, list);
 }
 
-Ast::Scope::Scope(brain::Brain& kb, CellI& id, const std::string& label) :
-    BaseT<Scope>(kb, kb.type.ast.Scope, label)
-{
-    set(kb.id.id, id);
-}
-
 Ast::Scope::Scope(brain::Brain& kb, const std::string& name) :
     BaseT<Scope>(kb, kb.type.ast.Scope, name)
 {
@@ -953,18 +1146,14 @@ Ast::Scope::Scope(brain::Brain& kb, const std::string& name) :
 
 Ast::Scope& Ast::Scope::addScope(const std::string& name)
 {
-    return addScope(kb.pools.strings.get(name)[kb.id.value], name);
-}
-
-Ast::Scope& Ast::Scope::addScope(CellI& id, const std::string& label)
-{
+    CellI& id = kb.pools.strings.get(name)[kb.id.value];
     if (missing(kb.id.scopes)) {
         set(kb.id.scopes, *new Map(kb, kb.type.Cell, kb.type.ast.Scope, "Map<Cell, Type::Ast::Scope>(...)"));
     }
     if (scopes().hasKey(id)) {
         throw "Already registered!";
     }
-    auto& scope = *new Ast::Scope(kb, id, label);
+    auto& scope = *new Ast::Scope(kb, name);
     scope.set(kb.id.parent, *this);
     scopes().add(id, scope);
 
@@ -978,17 +1167,24 @@ Ast::Function& Ast::Scope::addFunction(const std::string& name)
 
 Ast::Function& Ast::Scope::addFunction(CellI& id, const std::string& label)
 {
+    auto& function = *new Ast::Function(kb, id, label);
+    addFunction(function);
+
+    return function;
+}
+
+void Ast::Scope::addFunction(Function& function)
+{
+    auto& name = function[kb.id.name];
+
     if (missing(kb.id.functions)) {
         set(kb.id.functions, *new Map(kb, kb.type.Cell, kb.type.ast.Function, "Map<Cell, Type::Ast::Function>(...)"));
     }
-    if (functions().hasKey(id)) {
+    if (functions().hasKey(name)) {
         throw "Already registered!";
     }
-    auto& function = *new Ast::Function(kb, id, label);
-    functions().add(id, function);
     function.set(kb.id.scope, *this);
-
-    return function;
+    functions().add(name, function);
 }
 
 Ast::FunctionT& Ast::Scope::addFunctionT(const std::string& name)
@@ -1094,40 +1290,40 @@ Ast::Struct& Ast::Scope::getStruct(CellI& id)
     }
 }
 
-Ast::Struct& Ast::Scope::addStruct(const std::string& name)
+void Ast::Scope::addStruct(Struct& struct_)
 {
-    return addStruct(kb.pools.strings.get(name)[kb.id.value], name);
-}
+    CellI& id = struct_[kb.id.id];
 
-Ast::Struct& Ast::Scope::addStruct(CellI& id, const std::string& label)
-{
     if (missing(kb.id.structs)) {
         set(kb.id.structs, *new Map(kb, kb.type.Cell, kb.type.ast.Struct, "Map<Cell, Type::Ast::Struct>(...)"));
     }
     if (structs().hasKey(id)) {
         throw "Already registered!";
     }
-    auto& struct_ = *new Ast::Struct(kb, id, label);
     structs().add(id, struct_);
     struct_.set(kb.id.scope, *this);
+}
+
+Ast::Struct& Ast::Scope::addStruct(const std::string& name)
+{
+    CellI& id = kb.pools.strings.get(name)[kb.id.value];
+
+    auto& struct_ = *new Ast::Struct(kb, id, name);
+    addStruct(struct_);
 
     return struct_;
 }
 
 Ast::StructT& Ast::Scope::addStructT(const std::string& name)
 {
-    return addStructT(kb.pools.strings.get(name)[kb.id.value], name);
-}
-
-Ast::StructT& Ast::Scope::addStructT(CellI& id, const std::string& label)
-{
+    CellI& id = kb.pools.strings.get(name)[kb.id.value];
     if (missing(kb.id.structTs)) {
         set(kb.id.structTs, *new Map(kb, kb.type.Cell, kb.type.ast.StructT, "Map<Cell, Type::Ast::StructT>(...)"));
     }
     if (structTs().hasKey(id)) {
         throw "Already registered!";
     }
-    auto& structT = *new Ast::StructT(kb, id, label);
+    auto& structT = *new Ast::StructT(kb, id, name);
     structTs().add(id, structT);
     structT.set(kb.id.scope, *this);
 
@@ -1147,41 +1343,50 @@ void Ast::Scope::addStructTInstance(Struct& astStruct)
     astStruct.set(kb.id.scope, *this);
 }
 
-void Ast::Scope::implicitInstantiation()
+void Ast::Scope::implicitInstantiation(Object& programData, Scope& scope)
 {
     if (has(kb.id.functions)) {
-        Visitor::visitList(functions()[kb.id.list], [this](CellI& function, int i, bool& stop) {
+        Visitor::visitList(functions()[kb.id.list], [this, &programData, &scope](CellI& function, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(function);
-            astFunction.implicitInstantiation();
+            astFunction.implicitInstantiation(programData, scope);
         });
     }
     if (has(kb.id.structs)) {
-        Visitor::visitList(structs()[kb.id.list], [this](CellI& struct_, int i, bool& stop) {
+        Visitor::visitList(structs()[kb.id.list], [this, &programData, &scope](CellI& struct_, int i, bool& stop) {
             Ast::Struct& astStruct = static_cast<Ast::Struct&>(struct_);
-            astStruct.implicitInstantiation();
+            astStruct.implicitInstantiation(programData, scope);
         });
     }
     if (has(kb.id.scopes)) {
-        Visitor::visitList(scopes()[kb.id.list], [this](CellI& scope, int i, bool& stop) {
-            Ast::Scope& astScope = static_cast<Ast::Scope&>(scope);
-            astScope.implicitInstantiation();
+        Visitor::visitList(scopes()[kb.id.list], [this, &programData, &scope](CellI& childScope, int i, bool& stop) {
+            Ast::Scope& astScope = static_cast<Ast::Scope&>(childScope);
+            astScope.implicitInstantiation(programData, scope);
         });
     }
 }
 
 CellI& Ast::Scope::compile()
 {
-    implicitInstantiation();
     auto& program           = *new Object(kb, kb.type.Program, "Program");
     auto& programData       = *new Object(kb, kb.type.ScopeData, "ProgramData");
-    program.set(kb.id.data, programData);
     auto& compiledFunctions = *new List(kb, kb.type.op.Function, "Functions");
     auto& compiledStructs   = *new TrieMap(kb, kb.type.Cell, kb.type.Type_, "Types");
+    auto& unknownStructs    = *new TrieMap(kb, kb.type.Cell, kb.type.Type_, "unknownStructs");
     auto& compiledVariables = *new TrieMap(kb, kb.type.Cell, kb.type.op.Var, "Variables");
+
+    program.set(kb.id.data, programData);
     programData.set(kb.id.functions, compiledFunctions);
     programData.set(kb.id.structs, compiledStructs);
+    programData.set(kb.id.unknownStructs, unknownStructs);
     programData.set(kb.id.variables, compiledVariables);
 
+    implicitInstantiation(programData, *this);
+
+    // first phase
+    // gather declarations
+    declare(programData, *this);
+
+    // TODO two phase compiling
     if (has(kb.id.functions)) {
         Visitor::visitList(functions()[kb.id.list], [this, &program, &compiledFunctions](CellI& function, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(function);
@@ -1220,6 +1425,111 @@ CellI& Ast::Scope::compile()
     return program;
 }
 
+Ast::Scope& Ast::Scope::resolve()
+{
+    Ast::Scope& ret = *new Ast::Scope(kb, label());
+
+    auto& resolveState   = *new Object(kb, kb.type.ResolveState, "ResolveState");
+    auto& functions      = *new List(kb, kb.type.op.Function, "Functions");
+    auto& structs        = *new TrieMap(kb, kb.type.Cell, kb.type.Type_, "Types");
+    auto& unknownStructs = *new TrieMap(kb, kb.type.Cell, kb.type.Type_, "unknownStructs");
+    auto& variables      = *new TrieMap(kb, kb.type.Cell, kb.type.op.Var, "Variables");
+
+    resolveState.set(kb.id.functions, functions);
+    resolveState.set(kb.id.structs, structs);
+    resolveState.set(kb.id.unknownStructs, unknownStructs);
+    resolveState.set(kb.id.variables, variables);
+    resolveState.set(kb.id.scope, ret);
+
+    resolve(resolveState);
+
+    Visitor::visitList(unknownStructs[kb.id.list], [this](CellI& unknownStruct, int i, bool& stop) {
+        std::cout << "unknown: " << unknownStruct.label() << std::endl;
+    });
+
+    return ret;
+}
+
+void Ast::Scope::resolve(CellI& resolveState)
+{
+    Ast::Scope& scope = static_cast<Ast::Scope&>(resolveState[kb.id.scope]);
+
+    if (has(kb.id.functions)) {
+        Visitor::visitList(functions()[kb.id.list], [this, &resolveState, &scope](CellI& origAstFunctionCell, int i, bool& stop) {
+            Ast::Function& origAstFunction = static_cast<Ast::Function&>(origAstFunctionCell);
+            Ast::Function& resolvedAstFunction = origAstFunction.resolve(resolveState);
+            scope.addFunction(resolvedAstFunction);
+            std::cout << resolvedAstFunction.label() << std::endl;
+        });
+    }
+    if (has(kb.id.structs)) {
+        Visitor::visitList(structs()[kb.id.list], [this, &resolveState, &scope](CellI& origAstStructCell, int i, bool& stop) {
+            Ast::Struct& origAstStruct = static_cast<Ast::Struct&>(origAstStructCell);
+            Ast::Struct& resolvedAstStruct = origAstStruct.resolve(resolveState);
+            scope.addStruct(resolvedAstStruct);
+        });
+    }
+    if (has(kb.id.variables)) {
+        Visitor::visitList(variables()[kb.id.list], [this, &resolveState, &scope](CellI& origAstVarCell, int i, bool& stop) {
+            Ast::Var& origAstVar = static_cast<Ast::Var&>(origAstVarCell);
+            auto& varName        = origAstVarCell[kb.id.role];
+            // TODO
+            // addVariable();
+        });
+    }
+    if (has(kb.id.scopes)) {
+        Visitor::visitList(scopes()[kb.id.list], [this, &resolveState, &scope](CellI& origAstScopeCell, int i, bool& stop) {
+            Ast::Scope& origAstScope = static_cast<Ast::Scope&>(origAstScopeCell);
+            resolveState.set(kb.id.scope, origAstScope);
+            origAstScope.resolve(resolveState);
+            resolveState.set(kb.id.scope, *this);
+            // TODO
+            // addScope(resolvedAstScope);
+        });
+    }
+}
+
+void Ast::Scope::declare(Object& programData, Scope& parentScope)
+{
+    if (&parentScope != this) {
+        programData.set(kb.id.parent, parentScope);
+    }
+
+    // first phase
+    // gather declarations
+    if (has(kb.id.functions)) {
+        auto& compiledFunctions = static_cast<List&>(programData[kb.id.functions]);
+        Visitor::visitList(functions()[kb.id.list], [this, &programData, &compiledFunctions](CellI& function, int i, bool& stop) {
+            Ast::Function& astFunction = static_cast<Ast::Function&>(function);
+            auto& compiledFunction     = astFunction.declare(programData, *this);
+            compiledFunctions.add(compiledFunction);
+        });
+    }
+    if (has(kb.id.structs)) {
+        auto& compiledStructs = static_cast<TrieMap&>(programData[kb.id.structs]);
+        Visitor::visitList(structs()[kb.id.list], [this, &programData, &compiledStructs](CellI& struct_, int i, bool& stop) {
+            Ast::Struct& astStruct = static_cast<Ast::Struct&>(struct_);
+            auto& compiledStruct   = astStruct.declare(programData, *this);
+            compiledStructs.add(astStruct.id(), compiledStruct);
+        });
+    }
+    if (has(kb.id.variables)) {
+        auto& compiledVariables = static_cast<TrieMap&>(programData[kb.id.variables]);
+        Visitor::visitList(variables()[kb.id.list], [this, &programData, &compiledVariables](CellI& var, int i, bool& stop) {
+            Ast::Var& astVar       = static_cast<Ast::Var&>(var);
+            auto& varName          = astVar[kb.id.role];
+            auto& compiledVariable = *new Object(kb, kb.type.op.Var);
+            compiledVariables.add(varName, compiledVariable);
+        });
+    }
+    if (has(kb.id.scopes)) {
+        Visitor::visitList(scopes()[kb.id.list], [this, &programData](CellI& scope, int i, bool& stop) {
+            Ast::Scope& astScope = static_cast<Ast::Scope&>(scope);
+            astScope.declare(programData, *this);
+        });
+    }
+}
+
 Ast::Struct& Ast::Scope::instantiateIncompleteStructT(CellI& id, List& parameters)
 {
     if (missing(kb.id.structTs)) {
@@ -1227,15 +1537,7 @@ Ast::Struct& Ast::Scope::instantiateIncompleteStructT(CellI& id, List& parameter
     }
 
     Ast::StructT& structT = static_cast<Ast::StructT&>(structTs().getValue(id));
-    List& idCell          = *new List(kb, kb.type.Cell);
-    Visitor::visitList(id, [this, &idCell](CellI& character, int i, bool& stop) {
-        idCell.add(character);
-    });
-
-    Visitor::visitList(parameters, [this, &idCell](CellI& slot, int, bool&) {
-        idCell.add(slot[kb.id.slotRole]);
-        idCell.add(slot[kb.id.slotType]);
-    });
+    List& idCell          = generateTemplateId(id, parameters);
 
     if (has(kb.id.structs)) {
         auto& existingStructs = structs();
@@ -1268,6 +1570,7 @@ Ast::Struct& Ast::Scope::addIncompleteStruct(List& id)
         return static_cast<Ast::Struct&>(incompleteStructTypes().getValue(id));
     }
     Struct& ret = *new Struct(kb, id);
+    ret.set(kb.id.incomplete, kb.boolean.true_);
     incompleteStructTypes().add(id, ret);
 
     return ret;
@@ -1355,17 +1658,24 @@ Ast::Function& Ast::StructBase::addMethod(const std::string& name)
 
 Ast::Function& Ast::StructBase::addMethod(CellI& id, const std::string& label)
 {
-    Ast::Function& function = *new Ast::Function(kb, id, label);
-    function.set(kb.id.structType, *this);
+    Ast::Function& method = *new Ast::Function(kb, id, label);
+    addMethod(method);
+
+    return method;
+}
+
+void Ast::StructBase::addMethod(Function& method)
+{
+    auto& name = method[kb.id.name];
+
     if (missing(kb.id.methods)) {
         set(kb.id.methods, *new Map(kb, kb.type.Cell, kb.type.ast.Function, "Map<Cell, Type::Ast::Function>(...)"));
     }
-    if (methods().hasKey(id)) {
+    if (methods().hasKey(name)) {
         throw "Already registered!";
     }
-    methods().add(id, function);
-
-    return function;
+    method.set(kb.id.structType, *this);
+    methods().add(name, method);
 }
 
 void Ast::StructBase::members(Slot& param)
@@ -1443,21 +1753,153 @@ Ast::Struct::Struct(brain::Brain& kb, const std::string& name) :
 {
 }
 
-void Ast::Struct::implicitInstantiation()
+void Ast::Struct::implicitInstantiation(Object& programData, Scope& scope)
 {
     if (has(kb.id.methods)) {
-        Visitor::visitList(methods()[kb.id.list], [this](CellI& function, int i, bool& stop) {
+        Visitor::visitList(methods()[kb.id.list], [this, &programData, &scope](CellI& function, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(function);
-            astFunction.implicitInstantiation();
+            astFunction.implicitInstantiation(programData, scope);
         });
     }
+}
+
+Ast::Struct& Ast::Struct::resolve(CellI& resolveState)
+{
+    auto& structId          = get(kb.id.id);
+    auto& structs           = static_cast<TrieMap&>(resolveState[kb.id.structs]);
+    auto& unknownStructs    = static_cast<TrieMap&>(resolveState[kb.id.unknownStructs]);
+    Ast::Struct* retPtr     = nullptr;
+
+    if (unknownStructs.hasKey(structId)) {
+        retPtr = &static_cast<Ast::Struct&>(unknownStructs.getValue(structId));
+        unknownStructs.remove(structId);
+    } else {
+        retPtr = new Ast::Struct(kb, structId, std::format("{}", label()));
+        structs.add(structId, *retPtr);
+    }
+    Ast::Struct& ret = *retPtr;
+
+    std::stringstream ss;
+    ss << std::format("struct {}", label());
+
+    // resolve memberOf list
+    if (has(kb.id.memberOf)) {
+        ss << " : ";
+        Visitor::visitList(memberOf(), [this, &ret, &resolveState, &ss](CellI& membershipType, int i, bool& stop) {
+            CellI& resolvedMembershipType = resolveType(membershipType, resolveState);
+            if (i > 0) {
+                ss << ", ";
+            }
+            ss << resolvedMembershipType.label();
+            ret.memberOf(resolvedMembershipType);
+        });
+    }
+    std::cout << ss.str() << " {" << std::endl;
+
+    // resolve sub types
+    if (has(kb.id.subTypes)) {
+        Visitor::visitList(subTypes(), [this, &ret, &resolveState](CellI& subTypeCell, int i, bool& stop) {
+            CellI& subTypeId           = subTypeCell[kb.id.slotRole];
+            CellI& subTypeType         = subTypeCell[kb.id.slotType];
+            CellI& resolvedSubTypeType = resolveType(subTypeType, resolveState);
+            ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
+            std::cout << std::format("    using {} = {};\n", subTypeId.label(), resolvedSubTypeType.label()) << std::endl;
+        });
+    }
+
+    // resolve methods
+    if (has(kb.id.methods)) {
+        Visitor::visitList(methods()[kb.id.list], [this, &ret, &resolveState](CellI& origAstFunctionCell, int i, bool& stop) {
+            auto& origAstFunction = static_cast<Ast::Function&>(origAstFunctionCell);
+            auto& resolvedAstFunction = origAstFunction.resolve(resolveState);
+            ret.addMethod(resolvedAstFunction);
+            std::cout << std::format("    {};\n", resolvedAstFunction.label());
+        });
+    }
+    // resolve members
+    if (has(kb.id.members)) {
+        Visitor::visitList(members(), [this, &ret, &resolveState](CellI& memberCell, int i, bool& stop) {
+            CellI& memberId   = memberCell[kb.id.slotRole];
+            CellI& memberType = memberCell[kb.id.slotType];
+            CellI& resolvedMemberType = resolveType(memberType, resolveState);
+            ret.members(kb.ast.slot(memberId, resolvedMemberType));
+            std::cout << std::format("    {}: {};", memberId.label(), resolvedMemberType.label()) << std::endl;
+        });
+    }
+
+    std::cout << "}" << std::endl;
+
+    return ret;
+}
+
+Object& Ast::Struct::declare(Object& programData, Scope& scope)
+{
+    Object& declaredStruct = *new Object(kb, kb.type.Type_, label());
+
+    // declare methods
+    if (has(kb.id.methods)) {
+        Map& declaredMethods = *new Map(kb, kb.type.Cell, kb.type.ast.Function);
+        Visitor::visitList(methods()[kb.id.list], [this, &declaredMethods, &programData, &scope](CellI& astFunction, int i, bool& stop) {
+            auto& compiledFunction = static_cast<Ast::Function&>(astFunction).declare(programData, scope);
+            declaredMethods.add(astFunction[kb.id.name], compiledFunction);
+        });
+        declaredStruct.set(kb.id.methods, declaredMethods);
+    }
+
+    // declare members
+    if (has(kb.id.members)) {
+        Map& compiledMembers = *new Map(kb, kb.type.Cell, kb.type.Slot, "members Map<Cell, Slot>(...)");
+        Visitor::visitList(members(), [this, &compiledMembers, &declaredStruct, &programData, &scope](CellI& slot, int i, bool& stop) {
+            CellI& slotRole = slot[kb.id.slotRole];
+            CellI& slotType = slot[kb.id.slotType];
+            if (&slotType.type() == &kb.type.ast.Cell) {
+                CellI& compiledSlotType = slotType[kb.id.value];
+                compiledMembers.add(slotRole, compiledSlotType);
+                return;
+            } else if (&slotType.type() == &kb.type.ast.StructRef) {
+                auto& astStruct = static_cast<Ast::Struct&>(slotType[kb.id.value]);
+                if (this == &astStruct) {
+                    compiledMembers.add(slotRole, declaredStruct);
+                    return;
+                }
+                auto& memberStruct = astStruct.compile(programData, scope);
+                compiledMembers.add(slotRole, memberStruct);
+                return;
+            }
+            throw "Unknown ast type!";
+        });
+        declaredStruct.set(kb.id.slots, compiledMembers);
+    }
+
+    // declare sub types
+    if (has(kb.id.subTypes)) {
+        Map& compiledSubTypes = *new Map(kb, kb.type.Cell, kb.type.Type_, "subTypes Map<Cell, Type>(...)");
+        Visitor::visitList(subTypes(), [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
+            CellI& slotRole = slot[kb.id.slotRole];
+            CellI& slotType = slot[kb.id.slotType];
+            // CellI& resolvedSlotType = slotType.resolve(programData, scope);
+            compiledSubTypes.add(slotRole, slotType);
+        });
+        declaredStruct.set(kb.id.subTypes, compiledSubTypes);
+    }
+
+    // declare memberOf list
+    if (has(kb.id.memberOf)) {
+        Map& compiledMemberOfs = *new Map(kb, kb.type.Type_, kb.type.Type_, "memberOf Map<Type, Type>(...)");
+        Visitor::visitList(memberOf(), [this, &compiledMemberOfs](CellI& membershipType, int i, bool& stop) {
+            compiledMemberOfs.add(membershipType, membershipType);
+        });
+        declaredStruct.set(kb.id.memberOf, compiledMemberOfs);
+    }
+
+    return declaredStruct;
 }
 
 Object& Ast::Struct::compile(Object& program, Scope& scope)
 {
     Object& compiledStruct = *new Object(kb, kb.type.Type_, label());
 
-        // instantiate methods
+    // compile methods
     if (has(kb.id.methods)) {
         Map& compiledMethods = *new Map(kb, kb.type.Cell, kb.type.ast.Function);
         Visitor::visitList(methods()[kb.id.list], [this, &compiledMethods, &program, &scope](CellI& astFunction, int i, bool& stop) {
@@ -1467,7 +1909,7 @@ Object& Ast::Struct::compile(Object& program, Scope& scope)
         compiledStruct.set(kb.id.methods, compiledMethods);
     }
 
-    // instantiate members
+    // compile members
     if (has(kb.id.members)) {
         Map& compiledMembers = *new Map(kb, kb.type.Cell, kb.type.Slot, "members Map<Cell, Slot>(...)");
         Visitor::visitList(members(), [this, &compiledMembers, &compiledStruct, &program, &scope](CellI& slot, int i, bool& stop) {
@@ -1477,8 +1919,8 @@ Object& Ast::Struct::compile(Object& program, Scope& scope)
                 CellI& compiledSlotType = slotType[kb.id.value];
                 compiledMembers.add(slotRole, compiledSlotType);
                 return;
-            } else if (&slotType.type() == &kb.type.ast.Struct) {
-                auto& astStruct = static_cast<Ast::Struct&>(slotType);
+            } else if (&slotType.type() == &kb.type.ast.StructRef) {
+                auto& astStruct = static_cast<Ast::Struct&>(slotType[kb.id.value]);
                 if (this == &astStruct) {
                     compiledMembers.add(slotRole, compiledStruct);
                     return;
@@ -1492,7 +1934,7 @@ Object& Ast::Struct::compile(Object& program, Scope& scope)
         compiledStruct.set(kb.id.slots, compiledMembers);
     }
 
-    // instantiate sub types
+    // compile sub types
     if (has(kb.id.subTypes)) {
         Map& compiledSubTypes = *new Map(kb, kb.type.Cell, kb.type.Type_, "subTypes Map<Cell, Type>(...)");
         Visitor::visitList(subTypes(), [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
@@ -1503,7 +1945,7 @@ Object& Ast::Struct::compile(Object& program, Scope& scope)
         compiledStruct.set(kb.id.subTypes, compiledSubTypes);
     }
 
-    // instantiate memberOf list
+    // compile memberOf list
     if (has(kb.id.memberOf)) {
         Map& compiledMemberOfs = *new Map(kb, kb.type.Type_, kb.type.Type_, "memberOf Map<Type, Type>(...)");
         Visitor::visitList(memberOf(), [this, &compiledMemberOfs](CellI& membershipType, int i, bool& stop) {
@@ -1530,7 +1972,16 @@ void Ast::StructT::templateParams(Slot& slot)
     if (missing(kb.id.templateParams)) {
         set(kb.id.templateParams, *new Map(kb, kb.type.Cell, kb.type.Type_));
     }
-    templateParams().add(slot[kb.id.slotRole], slot);
+    CellI& slotRole = slot[kb.id.slotRole];
+    CellI& slotType = slot[kb.id.slotType];
+    if (!(&slotType.type() == &kb.type.ast.Cell || &slotType.type() == &kb.type.ast.TemplatedType)) {
+        throw "Invalid template param type!";
+    }
+    CellI* paramType = nullptr;
+    if (&slotType.type() == &kb.type.ast.Cell) {
+        paramType = &slotType[kb.id.value];
+    }
+    templateParams().add(slotRole, *paramType);
 }
 
 Ast::Struct& Ast::StructT::declareType(List& parameters)
@@ -1578,6 +2029,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
     }
     if (scope.has(kb.id.incompleteStructTypes) && scope.incompleteStructTypes().hasKey(idCell)) {
         ret = &static_cast<Ast::Struct&>(scope.incompleteStructTypes().getValue(idCell));
+        ret->erase(kb.id.incomplete);
         ret->label(std::format("{}<{}>", id().label(), ss.str()));
     } else {
         ret = new Ast::Struct(kb, idCell, std::format("{}<{}>", id().label(), ss.str()));
@@ -1597,7 +2049,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
                 Visitor::visitList(astFunction[kb.id.parameters], [this, &inputParameters, &instantiatedParameters, ret](CellI& slot, int i, bool& stop) {
                     CellI& slotRole          = slot[kb.id.slotRole];
                     CellI& slotType          = slot[kb.id.slotType];
-                    CellI& instantiatedParam = instantiateTemplateParam(slotType, *ret, inputParameters);
+                    CellI& instantiatedParam = instantiateTemplateParamType(slotType, *ret, inputParameters);
                     instantiatedParameters.add(kb.ast.slot(slotRole, instantiatedParam));
                 });
                 instantiedFunction.set(kb.id.parameters, instantiatedParameters);
@@ -1605,7 +2057,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
             // return type
             if (astFunction.has(kb.id.returnType)) {
                 CellI& returnType             = astFunction[kb.id.returnType];
-                CellI& instantiatedReturnType = instantiateTemplateParam(returnType, *ret, inputParameters);
+                CellI& instantiatedReturnType = instantiateTemplateParamType(returnType, *ret, inputParameters);
                 instantiedFunction.set(kb.id.returnType, instantiatedReturnType);
             }
             // code
@@ -1622,7 +2074,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
         Visitor::visitList(members(), [this, &inputParameters, &instantiatedMembers, ret](CellI& slot, int i, bool& stop) {
             CellI& slotRole = slot[kb.id.slotRole];
             CellI& slotType = slot[kb.id.slotType];
-            CellI& instantiatedParam = instantiateTemplateParam(slotType, *ret, inputParameters);
+            CellI& instantiatedParam = instantiateTemplateParamType(slotType, *ret, inputParameters);
             instantiatedMembers.add(kb.ast.slot(slotRole, instantiatedParam));
         });
         ret->set(kb.id.members, instantiatedMembers);
@@ -1634,7 +2086,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
         Visitor::visitList(subTypes(), [this, &inputParameters, &instantiatedSubTypes, ret](CellI& slot, int i, bool& stop) {
             CellI& slotRole = slot[kb.id.slotRole];
             CellI& slotType = slot[kb.id.slotType];
-            CellI& instantiatedParam = instantiateTemplateParam(slotType, *ret, inputParameters);
+            CellI& instantiatedParam = instantiateTemplateParamType(slotType, *ret, inputParameters);
             instantiatedSubTypes.add(kb.ast.slot(slotRole, instantiatedParam));
         });
         ret->set(kb.id.subTypes, instantiatedSubTypes);
@@ -1644,7 +2096,7 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
     if (has(kb.id.memberOf)) {
         List& instantiatedMemberOfs = *new List(kb, kb.type.Type_);
         Visitor::visitList(memberOf(), [this, &inputParameters, &instantiatedMemberOfs, ret](CellI& membershipType, int i, bool& stop) {
-            CellI& instantiatedParam = instantiateTemplateParam(membershipType, *ret, inputParameters);
+            CellI& instantiatedParam = instantiateTemplateParamType(membershipType, *ret, inputParameters);
             instantiatedMemberOfs.add(instantiatedParam);
         });
         ret->set(kb.id.memberOf, instantiatedMemberOfs);
@@ -1654,19 +2106,19 @@ Ast::Struct& Ast::StructT::instantiateWith(Scope& scope, List& inputParams)
     return *ret;
 }
 
-CellI& Ast::StructT::instantiateTemplateParam(CellI& param, CellI& selfType, Map& inputParameters)
+CellI& Ast::StructT::instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters)
 {
     if (&param.type() == &kb.type.ast.TemplateParam) {
         CellI& paramValue = param[kb.id.role];
         if (&paramValue == &kb.id.self) {
-            return selfType;
+            return kb.ast.structRef(selfType);
         }
         if (!inputParameters.hasKey(paramValue)) {
             throw "Instantiating with unknown template parameter!";
         }
         return kb.ast.cell(inputParameters.getValue(paramValue));
     }
-    if (&param.type() == &kb.type.ast.DependentType) {
+    if (&param.type() == &kb.type.ast.TemplatedType) {
         Scope& scope = static_cast<Scope&>(get(kb.id.scope));
         if (scope.missing(kb.id.structTs)) {
             throw "No template in scope!";
@@ -1677,14 +2129,14 @@ CellI& Ast::StructT::instantiateTemplateParam(CellI& param, CellI& selfType, Map
         Visitor::visitList(parametersList, [this, &resolvedParameterList, &selfType, &inputParameters](CellI& slot, int, bool&) {
             CellI& slotRole = slot[kb.id.slotRole];
             CellI& slotType = slot[kb.id.slotType];
-            CellI& resolvedSlotType = instantiateTemplateParam(slotType, selfType, inputParameters);
+            CellI& resolvedSlotType = instantiateTemplateParamType(slotType, selfType, inputParameters);
             resolvedParameterList.add(kb.ast.slot(slotRole, resolvedSlotType));
         });
         auto& ret = structT.declareType(resolvedParameterList);
-        return ret;
+        return kb.ast.structRef(ret);
     }
     if (&param.type() == &kb.type.ast.Cell) {
-        return kb.ast.cell(param[kb.id.value]);
+        return param;
     }
 
     throw "Unknown template parameter!";
@@ -1705,7 +2157,7 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
             throw "Instantiating with unknown template parameter!";
         }
         return kb.ast.cell(inputParameters.getValue(paramValue));
-    } else if (&ast.type() == &kb.type.ast.DependentType) {
+    } else if (&ast.type() == &kb.type.ast.TemplatedType) {
         return kb.ast.cell(ast); // TODO
     } else if (&ast.type() == &kb.type.ast.Block) {
         auto& instantiedAsts = *new cells::List(kb, kb.type.ast.Base);
@@ -1715,6 +2167,8 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
         return *new Block(kb, instantiedAsts);
     } else if (&ast.type() == &kb.type.ast.Cell) {
         return kb.ast.cell(ast[id.value]);
+    } else if (&ast.type() == &kb.type.ast.StructRef) {
+        return kb.ast.structRef(ast[id.value]);
     } else if (&ast.type() == &kb.type.ast.SelfFn) {
         return kb.ast.selfFn();
     } else if (&ast.type() == &kb.type.ast.Self) {
@@ -1741,18 +2195,23 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
         return kb.ast.while_(instantiate(ast[id.condition]), instantiate(ast[id.statement]));
     } else if (&ast.type() == &kb.type.ast.New) {
         if (ast.has(id.constructor)) {
+            auto& constructor = ast[id.constructor];
             auto* objectType = &ast[id.objectType];
-            if (objectType == &kb.type.ast.DependentType) {
+            if (objectType == &kb.type.ast.TemplatedType) {
                 // implicit instantiation here
                 Scope& scope = static_cast<Scope&>(get(kb.id.scope));
                 if (scope.structTs().hasKey(objectType->get(kb.id.id))) {
                     std::cout << "";
                 }
             }
-            Ast::Base& ret = kb.ast.new_(static_cast<Base&>(instantiate(ast[id.objectType]), instantiate(ast[id.constructor])));
+            Ast::Base& ret = kb.ast.new_(static_cast<Base&>(instantiate(ast[id.objectType]), instantiate(constructor)));
             if (ast.has(id.parameters)) {
+                auto& newParameters = *new cells::List(kb, kb.type.ast.Slot);
+                Visitor::visitList(ast[id.parameters], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
+                    newParameters.add(kb.ast.slot(slot[kb.id.slotRole], instantiate(slot[kb.id.slotType])));
+                });
                 // TODO process parameters
-                ret.set(id.parameters, ast[id.parameters]);
+                ret.set(id.parameters, newParameters);
             }
             return ret;
         } else {
@@ -1861,9 +2320,251 @@ void Ast::Function::addBlock(Block& block)
     set(kb.id.code, block);
 }
 
-void Ast::Function::implicitInstantiation()
+void Ast::Function::implicitInstantiation(Object& programData, Scope& scope)
 {
-    implicitInstantiationInAst(code());
+    if (has(kb.id.parameters)) {
+        Visitor::visitList(parameters(), [this, &programData, &scope](CellI& slot, int i, bool& stop) {
+            CellI& slotType     = slot[kb.id.slotType];
+            CellI& resolvedType = resolveType(slotType, programData, scope);
+            std::cout << resolvedType.label();
+        });
+    }
+}
+
+Ast::Function& Ast::Function::resolve(CellI& resolveState)
+{
+    Ast::Function& ret = *new Ast::Function(kb, get(kb.id.name), std::format("{}", label()));
+    resolveState.set(kb.id.self, ret);
+    std::stringstream ss;
+
+    if (has(kb.id.static_)) {
+        ret.set(kb.id.static_, get(kb.id.static_));
+        ss << "static ";
+    }
+    ss << "fn";
+    if (has(kb.id.structType)) {
+        auto& structType = get(kb.id.structType);
+        ret.set(kb.id.structType, structType);
+        ss << std::format(" {}::{}(", structType.label(), get(kb.id.name).label());
+    } else {
+        ss << std::format(" {}(", get(kb.id.name).label());
+    }
+
+    if (has(kb.id.parameters)) {
+        Visitor::visitList(parameters(), [this, &resolveState, &ret, &ss](CellI& param, int i, bool& stop) {
+            CellI& paramId           = param[kb.id.slotRole];
+            CellI& paramType         = param[kb.id.slotType];
+            CellI& resolvedParamType = resolveType(paramType, resolveState);
+            if (i > 0) {
+                ss << ", ";
+            }
+            ss << std::format("{}: {}", paramId.label(), resolvedParamType.label());
+            ret.parameters(kb.ast.slot(paramId, resolvedParamType));
+        });
+    }
+    ss << ")";
+    if (has(kb.id.returnType)) {
+        ss << " -> ";
+        CellI& retType = returnType();
+        CellI& resolvedRetType = resolveType(retType, resolveState);
+        ss << resolvedRetType.label();
+        ret.returnType(resolvedRetType);
+    }
+    ret.label(ss.str());
+
+    CellI& resolvedCode = resolveCode(resolveState, code());
+    ret.set(kb.id.code, resolvedCode);
+
+    return ret;
+}
+
+CellI& Ast::Function::declare(Object& programData, Scope& scope)
+{
+    cells::Object& functionType = *new cells::Object(kb, kb.type.Type_);
+    functionType.set(kb.id.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.op.Function, kb.type.op.Function));
+    cells::Map& subTypesMap = kb.map(kb.type.Cell, kb.type.Type_,
+                                     kb.id.name, get(kb.id.name));
+    functionType.set(kb.id.subTypes, subTypesMap);
+    functionType.set(kb.id.slots, kb.type.op.Function[kb.id.slots]);
+
+    cells::Object& function = *new cells::Object(kb, functionType);
+    declareParams(function, subTypesMap, programData, scope);
+    functionType.label(std::format("Type for {}", function.label()));
+    function.set(kb.id.ast, *this);
+    if (has(kb.id.static_)) {
+        function.set(kb.id.static_, get(kb.id.static_));
+    }
+
+    return function;
+}
+
+Ast::Base& Ast::Function::resolveCode(CellI& resolveState, CellI& ast)
+{
+    auto& id = kb.id;
+
+    auto resolveNode = [this, &resolveState](CellI& ast) -> Ast::Base& { return resolveCode(resolveState, ast); };
+
+    if (&ast.type() == &kb.type.ast.New) {
+        CellI& objectType             = ast[id.objectType];
+        Ast::Base& resolvedObjectType = static_cast<Ast::Base&>(resolveType(objectType, resolveState));
+
+        if (ast.has(id.constructor)) {
+            Ast::Base& ret = kb.ast.new_(resolvedObjectType, static_cast<Base&>(ast[id.constructor]));
+
+            if (ast.has(id.parameters)) {
+                auto& newParameters = *new cells::List(kb, kb.type.ast.Slot);
+                Visitor::visitList(ast[id.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
+                    newParameters.add(kb.ast.slot(slot[kb.id.slotRole], resolveNode(slot[kb.id.slotType])));
+                });
+                ret.set(id.parameters, newParameters);
+            }
+            return ret;
+        } else {
+            return kb.ast.new_(resolvedObjectType);
+        }
+    }
+
+    if (&ast.type() == &kb.type.ast.Call || &ast.type() == &kb.type.ast.StaticCall) {
+
+        Ast::Base* retPtr = nullptr;
+        if (&ast.type() == &kb.type.ast.Call) {
+            retPtr = &kb.ast.call(resolveNode(ast[id.cell]), ast[id.method]);
+        } else {
+            retPtr = &kb.ast.scall(static_cast<Ast::Base&>(resolveType(ast[id.cell], resolveState)), ast[id.method]);
+        }
+        Ast::Base& ret = *retPtr;
+        if (ast.has(id.parameters)) {
+            auto& newParameters = *new cells::List(kb, kb.type.ast.Slot);
+            Visitor::visitList(ast[id.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
+                newParameters.add(kb.ast.slot(slot[kb.id.slotRole], resolveNode(slot[kb.id.slotType])));
+            });
+            ret.set(id.parameters, newParameters);
+        }
+        return ret;
+    }
+
+    // do nothing just traverse and copy the AST nodes
+    if (&ast.type() == &kb.type.ast.Block) {
+        auto& instantiedAsts = *new cells::List(kb, kb.type.ast.Base);
+        Visitor::visitList(ast[id.asts], [this, &instantiedAsts, &resolveNode](CellI& ast, int, bool&) {
+            instantiedAsts.add(resolveNode(ast));
+        });
+        return *new Block(kb, instantiedAsts);
+    } else if (&ast.type() == &kb.type.ast.Cell) {
+        return kb.ast.cell(ast[id.value]);
+    } else if (&ast.type() == &kb.type.ast.StructRef) {
+        return kb.ast.structRef(ast[id.value]);
+    } else if (&ast.type() == &kb.type.ast.SelfFn) {
+        return kb.ast.selfFn();
+    } else if (&ast.type() == &kb.type.ast.Self) {
+        return kb.ast.self();
+    } else if (&ast.type() == &kb.type.ast.Parameter) {
+        return kb.ast.parameter(ast[id.role]);
+    } else if (&ast.type() == &kb.type.ast.Var) {
+        return kb.ast.var(ast[id.role]);
+    } else if (&ast.type() == &kb.type.ast.Delete) {
+        return kb.ast.delete_(resolveNode(ast[id.cell]));
+    } else if (&ast.type() == &kb.type.ast.Set) {
+        return kb.ast.set(resolveNode(ast[id.cell]), resolveNode(ast[id.role]), resolveNode(ast[id.value]));
+    } else if (&ast.type() == &kb.type.ast.Erase) {
+        return kb.ast.erase(resolveNode(ast[id.cell]), resolveNode(ast[id.role]));
+    } else if (&ast.type() == &kb.type.ast.If) {
+        if (ast.has(id.else_)) {
+            return kb.ast.if_(resolveNode(ast[id.condition]), resolveNode(ast[id.then]), resolveNode(ast[id.else_]));
+        } else {
+            return kb.ast.if_(resolveNode(ast[id.condition]), resolveNode(ast[id.then]));
+        }
+    } else if (&ast.type() == &kb.type.ast.Do) {
+        return kb.ast.do_(resolveNode(ast[id.condition]), resolveNode(ast[id.statement]));
+    } else if (&ast.type() == &kb.type.ast.While) {
+        return kb.ast.while_(resolveNode(ast[id.condition]), resolveNode(ast[id.statement]));
+    } else if (&ast.type() == &kb.type.ast.And) {
+        return kb.ast.and_(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Or) {
+        return kb.ast.or_(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Not) {
+        return kb.ast.not_(resolveNode(ast[id.input]));
+    } else if (&ast.type() == &kb.type.ast.Add) {
+        return kb.ast.add(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Subtract) {
+        return kb.ast.subtract(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Multiply) {
+        return kb.ast.multiply(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Divide) {
+        return kb.ast.divide(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.LessThan) {
+        return kb.ast.lessThan(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.LessThanOrEqual) {
+        return kb.ast.lessThanOrEqual(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.GreaterThan) {
+        return kb.ast.greaterThan(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.GreaterThanOrEqual) {
+        return kb.ast.greaterThanOrEqual(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Same) {
+        return kb.ast.same(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.NotSame) {
+        return kb.ast.notSame(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Equal) {
+        return kb.ast.equal(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.NotEqual) {
+        return kb.ast.notEqual(resolveNode(ast[id.lhs]), resolveNode(ast[id.rhs]));
+    } else if (&ast.type() == &kb.type.ast.Has) {
+        return kb.ast.has(resolveNode(ast[id.cell]), resolveNode(ast[id.role]));
+    } else if (&ast.type() == &kb.type.ast.Missing) {
+        return kb.ast.missing(resolveNode(ast[id.cell]), resolveNode(ast[id.role]));
+    } else if (&ast.type() == &kb.type.ast.Get) {
+        return kb.ast.get(resolveNode(ast[id.cell]), resolveNode(ast[id.role]));
+    } else if (&ast.type() == &kb.type.ast.Member) {
+        return kb.ast.member(ast[id.role]);
+    } else if (&ast.type() == &kb.type.ast.Return) {
+        if (ast.has(id.value)) {
+            return kb.ast.return_(static_cast<Base&>(resolveNode(ast[id.value])));
+        }
+        return kb.ast.return_();
+    }
+
+    throw "Unknown AST to instantiate!";
+}
+
+void Ast::Function::declareParams(cells::Object& function, cells::Map& subTypesMap, Object& programData, Scope& scope)
+{
+    std::stringstream iss;
+    std::stringstream oss;
+    if (has(kb.id.parameters) || has(kb.id.structType)) {
+        cells::Object& parametersType = *new cells::Object(kb, kb.type.Type_);
+        Map& slots                    = *new Map(kb, kb.type.Cell, kb.type.Slot);
+        if (has(kb.id.structType)) {
+            CellI& type = get(kb.id.structType);
+            Object& var = *new Object(kb, kb.type.op.Var, "self");
+            var.set(kb.id.objectType, type);
+            slots.add(kb.id.self, kb.type.slot(kb.id.self, type));
+            iss << kb.id.self.label() << ": " << type.label();
+        }
+        if (has(kb.id.parameters)) {
+            Visitor::visitList(parameters(), [this, &slots, &iss, &programData, &scope](CellI& slot, int i, bool& stop) {
+                if (!slots.empty()) {
+                    iss << ", ";
+                }
+                CellI& slotType     = slot[kb.id.slotType];
+                CellI& resolvedType = resolveType(slotType, programData, scope);
+                iss << "p_" << slot[kb.id.slotRole].label() << ": " << resolvedType.label();
+                slots.add(slot[kb.id.slotRole], kb.type.slot(slot[kb.id.slotRole], resolvedType));
+            });
+        }
+        parametersType.set(kb.id.slots, slots);
+        subTypesMap.add(kb.id.parameters, parametersType);
+    }
+    if (has(kb.id.returnType)) {
+        CellI& retTypeAst = returnType();
+        CellI& retType    = resolveType(retTypeAst, programData, scope);
+        oss << retType.label();
+        subTypesMap.add(kb.id.returnType, retType);
+    }
+    if (has(kb.id.returnType)) {
+        function.label(std::format("fn {}({}) -> {}", label(), iss.str(), oss.str()));
+    } else {
+        function.label(std::format("fn {}({})", label(), iss.str()));
+    }
 }
 
 CellI& Ast::Function::compile(Object& program, Scope& scope)
@@ -1876,7 +2577,7 @@ CellI& Ast::Function::compile(Object& program, Scope& scope)
     functionType.set(kb.id.slots, kb.type.op.Function[kb.id.slots]);
 
     cells::Object& function = *new cells::Object(kb, functionType);
-    compileParams(function, subTypesMap);
+    compileParams(function, subTypesMap, program, scope);
     functionType.label(std::format("Type for {}", function.label()));
     function.set(kb.id.ast, *this);
     function.set(kb.id.op, compileAst(code(), function, program, scope));
@@ -1887,7 +2588,7 @@ CellI& Ast::Function::compile(Object& program, Scope& scope)
     return function;
 }
 
-void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesMap)
+void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesMap, Object& program, Scope& scope)
 {
     std::stringstream iss;
     std::stringstream oss;
@@ -1914,6 +2615,20 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
         subTypesMap.add(kb.id.parameters, parametersType);
     }
     if (has(kb.id.returnType)) {
+#if 0
+        CellI* retType    = nullptr;
+        CellI& retTypeAst = returnType();
+        if (&retTypeAst.type() == &kb.type.ast.StructRef) {
+            CellI& astStruct = retTypeAst[kb.id.value];
+            retType          = &getCompiledStruct(astStruct, program, scope);
+        } else if (&retTypeAst.type() == &kb.type.ast.Cell) {
+            retType = &retTypeAst[kb.id.value];
+        } else {
+            throw "Unknow AST type!";
+        }
+        oss << retType->label();
+        subTypesMap.add(kb.id.returnType, *retType);
+#endif
         oss << returnType().label();
         subTypesMap.add(kb.id.returnType, returnType());
     }
@@ -1921,116 +2636,6 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
         function.label(std::format("fn {}({}) -> {}", label(), iss.str(), oss.str()));
     } else {
         function.label(std::format("fn {}({})", label(), iss.str()));
-    }
-}
-
-void Ast::Function::implicitInstantiationInAst(CellI& ast)
-{
-    auto& id = kb.id;
-    if (&ast.type() == &kb.type.ast.Block) {
-        Visitor::visitList(ast[id.asts], [this](CellI& ast, int, bool&) {
-            implicitInstantiationInAst(ast);
-        });
-    } else if (&ast.type() == &kb.type.ast.Delete) {
-        implicitInstantiationInAst(ast[id.cell]);
-    } else if (&ast.type() == &kb.type.ast.Set) {
-        implicitInstantiationInAst(ast[id.cell]);
-        implicitInstantiationInAst(ast[id.role]);
-        implicitInstantiationInAst(ast[id.value]);
-    } else if (&ast.type() == &kb.type.ast.Erase) {
-        implicitInstantiationInAst(ast[id.cell]);
-        implicitInstantiationInAst(ast[id.role]);
-    } else if (&ast.type() == &kb.type.ast.If) {
-        implicitInstantiationInAst(ast[id.condition]);
-        implicitInstantiationInAst(ast[id.then]);
-        if (ast.has(id.else_)) {
-            implicitInstantiationInAst(ast[id.else_]);
-        }
-    } else if (&ast.type() == &kb.type.ast.Do) {
-        implicitInstantiationInAst(ast[id.condition]);
-        implicitInstantiationInAst(ast[id.statement]);
-    } else if (&ast.type() == &kb.type.ast.While) {
-        implicitInstantiationInAst(ast[id.condition]);
-        implicitInstantiationInAst(ast[id.statement]);
-    } else if (&ast.type() == &kb.type.ast.Set) {
-        implicitInstantiationInAst(ast[id.cell]);
-        implicitInstantiationInAst(ast[id.role]);
-        implicitInstantiationInAst(ast[id.value]);
-    } else if (&ast.type() == &kb.type.ast.New) {
-        if (&ast[id.objectType].type() == &kb.type.ast.DependentType) {
-            // implicit instantiation here
-            auto& dependentType        = static_cast<Ast::DependentType&>(ast[id.objectType]);
-            auto& templateId           = dependentType[id.id];
-            auto& templateParams       = static_cast<List&>(dependentType[id.parameters]);
-            Scope& scope               = static_cast<Scope&>(get(kb.id.scope));
-            auto& structT              = static_cast<Ast::StructT&>(scope.structTs().getValue(templateId));
-            auto& instantiatedTemplate = structT.instantiate(scope, templateParams);
-            ast.set(id.objectType, instantiatedTemplate);
-        }
-        if (ast.has(id.parameters)) {
-            Visitor::visitList(ast[kb.id.parameters], [this](CellI& slot, int i, bool& stop) {
-                CellI& slotRole = slot[kb.id.slotRole];
-                CellI& slotType = slot[kb.id.slotType];
-                implicitInstantiationInAst(slotType);
-            });
-        }
-    } else if (&ast.type() == &kb.type.ast.And) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.Or) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.Not) {
-        implicitInstantiationInAst(ast[id.input]);
-    } else if (&ast.type() == &kb.type.ast.Add) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.Subtract) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.Multiply) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.Divide) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.LessThan) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.LessThanOrEqual) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.GreaterThan) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.GreaterThanOrEqual) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.Same) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.NotSame) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.Equal) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.NotEqual) {
-        implicitInstantiationInAst(ast[id.lhs]);
-        implicitInstantiationInAst(ast[id.rhs]);
-    } else if (&ast.type() == &kb.type.ast.Has) {
-        implicitInstantiationInAst(ast[id.cell]);
-        implicitInstantiationInAst(ast[id.role]);
-    } else if (&ast.type() == &kb.type.ast.Missing) {
-        implicitInstantiationInAst(ast[id.cell]);
-        implicitInstantiationInAst(ast[id.role]);
-    } else if (&ast.type() == &kb.type.ast.Get) {
-        implicitInstantiationInAst(ast[id.cell]);
-        implicitInstantiationInAst(ast[id.role]);
-    } else if (&ast.type() == &kb.type.ast.Return) {
-        if (ast.has(id.value)) {
-            implicitInstantiationInAst(ast[id.value]);
-        }
     }
 }
 
@@ -2427,24 +3032,30 @@ block {
         }
         return retOp;
     } else if (&ast.type() == &kb.type.ast.Struct) {
-        auto& structs = static_cast<TrieMap&>(program[id.data][id.structs]);
-        auto& structId = ast[id.id];
-        if (structs.hasKey(structId)) {
-            return structs.getValue(structId);
-        } else {
-            auto& astStruct = scope.getStruct(ast[id.id]);
-            if (astStruct.has(kb.id.incomplete)) {
-                std::cout << "";
-            }
-            auto& compiledStruct = astStruct.compile(program, scope);
-            structs.add(structId, compiledStruct);
-            return compiledStruct;
-        }
+        return getCompiledStruct(ast, program, scope);
     } else if (&ast.type() == &kb.type.ast.Scope) {
         return ast; // TODO
     }
 
     throw "Unknown function AST!";
+}
+
+CellI& Ast::Function::getCompiledStruct(CellI& ast, Object& program, Scope& scope)
+{
+    auto& id       = kb.id;
+    auto& structs  = static_cast<TrieMap&>(program[id.data][id.structs]);
+    auto& structId = ast[id.id];
+    if (structs.hasKey(structId)) {
+        return structs.getValue(structId);
+    } else {
+        auto& astStruct = scope.getStruct(ast[id.id]);
+        if (astStruct.has(kb.id.incomplete)) {
+            std::cout << "";
+        }
+        auto& compiledStruct = astStruct.compile(program, scope);
+        structs.add(structId, compiledStruct);
+        return compiledStruct;
+    }
 }
 
 List& Ast::Function::parameters()
@@ -2651,11 +3262,28 @@ Ast::Call& Ast::Member::call(CellI& method, Slot& slot1, Slot& slot2, Slot& slot
     return Call::New(kb, *this, method, slot1, slot2, slot3, slot4);
 }
 
-Ast::DependentType::DependentType(brain::Brain& kb, CellI& id, CellI& typeList) :
-    BaseT<DependentType>(kb, kb.type.ast.DependentType, "ast.dependentType")
+Ast::SubType::SubType(brain::Brain& kb, CellI& id) :
+    BaseT<SubType>(kb, kb.type.ast.SubType, "ast.subType")
+{
+    set(kb.id.id, id);
+}
+
+Ast::TemplatedType::TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList) :
+    BaseT<TemplatedType>(kb, kb.type.ast.TemplatedType, "ast.templatedType")
 {
     set(kb.id.id, id);
     set(kb.id.parameters, typeList);
+}
+
+void Ast::TemplatedType::addParam(CellI& role, CellI& type)
+{
+    List& paramList = static_cast<List&>(get(kb.id.parameters));
+    paramList.add(kb.ast.slot(role, type));
+}
+
+void Ast::TemplatedType::addParam(CellI& role, const std::string& type)
+{
+    addParam(role, kb.ast.structRef(kb.pools.strings.get(type)[kb.id.value]));
 }
 
 Ast::TemplateParam::TemplateParam(brain::Brain& kb, CellI& role) :
@@ -2849,6 +3477,11 @@ Ast::Cell& Ast::cell(CellI& cell)
     return Cell::New(kb, cell);
 }
 
+Ast::StructRef& Ast::structRef(CellI& cell)
+{
+    return StructRef::New(kb, cell);
+}
+
 Ast::Self& Ast::self()
 {
     return Self::New(kb);
@@ -2974,13 +3607,13 @@ Ast::Member& Ast::member(CellI& role)
 {
     return Member::New(kb, role);
 }
-Ast::DependentType& Ast::dependentType(CellI& role, CellI& type)
+Ast::SubType& Ast::subType(CellI& role)
 {
-    return DependentType::New(kb, role, kb.list(type));
+    return SubType::New(kb, role);
 }
-Ast::DependentType& Ast::dependentType(CellI& role, CellI& type1, CellI& type2)
+Ast::TemplatedType& Ast::templatedType(CellI& role, CellI& type)
 {
-    return DependentType::New(kb, role, kb.list(type1, type2));
+    return TemplatedType::New(kb, role, kb.list(type));
 }
 Ast::TemplateParam& Ast::templateParam(CellI& role)
 {
@@ -3278,6 +3911,416 @@ Test::Test(brain::Brain& kb) :
 {
 }
 
+void Brain::createStd()
+{
+    const auto _      = [this](CellI& cell) -> Ast::Cell& { return ast.cell(cell); };
+    const auto p_     = [this](CellI& role) -> Ast::Parameter& { return ast.parameter(role); };
+    const auto m_     = [this](CellI& role) -> Ast::Member& { return ast.member(role); };
+    const auto var_   = [this](CellI& role) -> Ast::Var& { return ast.var(role); };
+    const auto param  = [this](CellI& role, CellI& value) -> Ast::Slot& { return ast.slot(role, value); };
+    const auto member = [this](CellI& role, CellI& value) -> Ast::Slot& { return ast.slot(role, value); };
+    const auto st_    = [this](const std::string& name, auto&... param) -> Ast::SubType& { return ast.subType(pools.strings.get(name)[id.value], param...); };
+    const auto tp_    = [this](CellI& role) -> Ast::TemplateParam& { return ast.templateParam(role); };
+    const auto tt_    = [this](const std::string& name, auto&... param) -> Ast::TemplatedType& { return ast.templatedType(pools.strings.get(name)[id.value], param...); };
+
+    auto& globalScope = *new Ast::Scope(*this, "global");
+
+/*
+    Compiler steps:
+    Resolve template related references in normal functions or structs:
+      - where templated types is used, for example tt_("List", id.objectType, _(type.Slot))
+        it must be resolved to a StructRef, with id L,i,s,t,id.objectType,type.Slot
+      - create a shadow ast tree with subtituted nodes
+      - create a list of candidates for template instantiation with method names
+        instantiate structT without methods
+        instantiate structT with listed method
+      - templates are instantied to a dedicated place
+
+*/
+
+#pragma region ListItem
+    auto& listItemStructT = globalScope.addStructT("ListItem");
+    listItemStructT.templateParams(
+        param(id.objectType, _(type.Type_)));
+    listItemStructT.members(
+        member(id.previous, tp_(id.self)),
+        member(id.next, tp_(id.self)),
+        member(id.value, tp_(id.objectType)));
+
+    auto& listItemConstructor = listItemStructT.addMethod("constructor");
+    listItemConstructor.parameters(
+        param(id.value, tp_(id.objectType)));
+    listItemConstructor.code(
+        m_(id.value) = p_(id.value));
+#pragma endregion
+#pragma region List
+    auto& listStructT = globalScope.addStructT("List");
+    listStructT.templateParams(
+        param(id.objectType, _(type.Type_)));
+    listStructT.memberOf(
+        _(type.Container));
+    listStructT.subTypes(
+        param(id.itemType, tt_("ListItem", id.objectType, tp_(id.objectType))),
+        param(id.objectType, tp_(id.objectType)));
+    listStructT.members(
+        member(id.itemType, tt_("ListItem", id.objectType, tp_(id.objectType))),
+        member(id.objectType, tp_(id.objectType)),
+        member(id.first, tt_("ListItem", id.objectType, tp_(id.objectType))),
+        member(id.last, tt_("ListItem", id.objectType, tp_(id.objectType))),
+        member(id.size, _(type.Number)));
+
+    Ast::Function& listCtor = listStructT.addMethod("constructor");
+    listCtor.code(
+        m_(id.size) = _(_0_));
+
+    Ast::Function& listAdd = listStructT.addMethod("add");
+    listAdd.parameters(
+        param(id.value, tp_(id.objectType)));
+    listAdd.returnType(tt_("ListItem", id.objectType, tp_(id.objectType)));
+    listAdd.code(
+        var_(id.item) = ast.new_(m_(id.itemType), "constructor", param(_(id.value), p_(id.value))),
+        ast.if_(ast.not_(m_(id.first).exist()),
+                m_(id.first) = *var_(id.item),                              // then
+                ast.block(ast.set(m_(id.last), _(id.next), *var_(id.item)), // else
+                          ast.set(*var_(id.item), _(id.previous), m_(id.last)))),
+        m_(id.last) = *var_(id.item),
+        m_(id.size) = ast.add(m_(id.size), _(_1_)),
+        ast.return_(*var_(id.item)));
+
+    /*
+    void List::removeItem(Item* item)
+    {
+        if (item->m_previous) {
+            item->m_previous->m_next = item->m_next;
+        } else {
+            m_firstItem = item->m_next;
+        }
+        if (item->m_next) {
+            item->m_next->m_previous = item->m_previous;
+        } else {
+            m_lastItem = item->m_previous;
+        }
+        --m_size;
+    }
+    */
+    Ast::Function& listRemove = listStructT.addMethod("remove");
+    listRemove.parameters(
+        param(id.item, _(type.Cell)));
+    listRemove.code(
+        ast.if_(ast.has(p_(id.item), _(id.previous)),
+                ast.if_(ast.has(p_(id.item), _(id.next)),
+                        ast.set(p_(id.item) / _(id.previous), _(id.next), p_(id.item) / _(id.next)),
+                        ast.erase(p_(id.item) / _(id.previous), _(id.next))),
+                ast.if_(ast.has(p_(id.item), _(id.next)),
+                        m_(id.first) = p_(id.item) / _(id.next),
+                        ast.erase(ast.self(), _(id.first)))),
+        ast.if_(ast.has(p_(id.item), _(id.next)),
+                ast.if_(ast.has(p_(id.item), _(id.previous)),
+                        ast.set(p_(id.item) / _(id.next), _(id.previous), p_(id.item) / _(id.previous)),
+                        ast.erase(p_(id.item) / _(id.next), _(id.previous))),
+                ast.if_(ast.has(p_(id.item), _(id.previous)),
+                        m_(id.last) = p_(id.item) / _(id.previous),
+                        ast.erase(ast.self(), _(id.last)))),
+        m_(id.size) = ast.subtract(m_(id.size), _(_1_)));
+
+    Ast::Function& listSize = listStructT.addMethod("size");
+    listSize.returnType(_(type.Number));
+    listSize.code(
+        ast.return_(m_(id.size)));
+
+    Ast::Function& listEmpty = listStructT.addMethod("empty");
+    listEmpty.returnType(_(type.Boolean));
+    listEmpty.code(
+        ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+#pragma endregion
+#pragma region Type
+    auto& typeStruct = globalScope.addStruct("Type");
+
+    Ast::Function& typeCtor = typeStruct.addMethod("constructor");
+    typeCtor.code(
+        m_(id.slots) = ast.new_(tt_("Map", id.keyType, _(type.Cell), id.objectType, _(type.Slot)), "constructor"));
+
+    Ast::Function& typeCtorWithRecursiveType = typeStruct.addMethod("constructorWithRecursiveType");
+    typeCtorWithRecursiveType.code(
+        m_(id.slots) = ast.new_(tt_("Map", id.keyType, _(type.Cell), id.objectType, _(type.Slot)), "constructorWithIndexType", param(_(id.indexType), ast.self())));
+
+    Ast::Function& typeAddSubType = typeStruct.addMethod("addSubType");
+    typeAddSubType.parameters(
+        param(id.slotRole, _(type.Cell)),
+        param(id.slotType, _(type.Type_)));
+    typeAddSubType.code(
+        ast.if_(m_(id.subTypes).missing(), m_(id.subTypes) = ast.new_(_(type.MapCellToType), "constructor")),
+        ast.call(m_(id.subTypes), _(id.add), param(_(id.key), p_(id.slotRole)), param(_(id.value), p_(id.slotType))));
+
+    Ast::Function& typeAddMembership = typeStruct.addMethod("addMembership");
+    typeAddMembership.parameters(
+        param(id.cell, _(type.Type_)));
+    typeAddMembership.code(
+        ast.if_(m_(id.memberOf).missing(), m_(id.memberOf) = ast.new_(tt_("Map", id.keyType, "Type", id.objectType, "Type"), "constructor")),
+        ast.call(m_(id.memberOf), _(id.add), param(_(id.key), p_(id.cell)), param(_(id.value), p_(id.cell))));
+
+    auto& test = tt_("Map", id.keyType, "Type", id.objectType, "Type");
+
+    Ast::Function& typeAddSlot = typeStruct.addMethod("addSlot");
+    typeAddSlot.parameters(
+        param(id.slotRole, _(type.Cell)),
+        param(id.slotType, _(type.Slot)));
+    typeAddSlot.code(
+        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(tt_("Map", id.keyType, _(type.Cell), id.objectType, _(type.Slot)), "constructor")),
+        var_(id.slot) = ast.new_(_(type.Slot)),
+        ast.set(*var_(id.slot), _(id.slotRole), p_(id.slotRole)),
+        ast.set(*var_(id.slot), _(id.slotType), p_(id.slotType)),
+        ast.call(m_(id.slots), _(id.add), param(_(id.key), p_(id.slotRole)), param(_(id.value), *var_(id.slot))));
+
+    Ast::Function& typeAddSlots = typeStruct.addMethod("addSlots");
+    typeAddSlots.parameters(
+        param(id.list, tt_("List", id.objectType, _(type.Slot))));
+    typeAddSlots.code(
+        ast.if_(ast.equal(p_(id.list) / _(id.size), _(_0_)), ast.return_()),
+        var_(id.item) = p_(id.list) / _(id.first),
+        ast.if_(m_(id.slots).missing(), m_(id.slots) = ast.new_(tt_("Map", id.keyType, _(type.Cell), id.objectType, _(type.Slot)), "constructor")),
+        ast.do_(ast.block(
+                    var_(id.next) = _(boolean.true_),
+                    ast.call(m_(id.slots), _(id.add), param(_(id.key), *var_(id.item) / _(id.value) / _(id.slotRole)), param(_(id.value), *var_(id.item) / _(id.value))),
+                    ast.if_(ast.has(*var_(id.item), _(id.next)),
+                            var_(id.item) = *var_(id.item) / _(id.next),
+                            var_(id.next) = _(boolean.false_))),
+                ast.same(*var_(id.next), _(boolean.true_))));
+
+    Ast::Function& typeHasSlot = typeStruct.addMethod("hasSlot");
+    typeHasSlot.parameters(
+        param(id.slotRole, _(type.Cell)));
+    typeHasSlot.returnType(_(type.Boolean));
+    typeHasSlot.code(
+        ast.if_(m_(id.slots).missing(), ast.return_(_(boolean.false_))),
+        ast.return_(ast.call(m_(id.slots), _(id.hasKey), param(_(id.key), p_(id.slotRole)))));
+
+    Ast::Function& typeRemoveSlot = typeStruct.addMethod("removeSlot");
+    typeRemoveSlot.parameters(
+        param(id.slotRole, _(type.Cell)));
+    typeRemoveSlot.code(
+        ast.if_(m_(id.slots).missing(), ast.return_()),
+        ast.call(m_(id.slots), _(id.remove), param(_(id.key), p_(id.slotRole))));
+#pragma endregion
+#pragma region Index
+    auto& indexStruct = globalScope.addStruct("Index");
+    indexStruct.memberOf(_(type.Type_));
+
+    Ast::Function& indexCtor = indexStruct.addMethod("constructor");
+    indexCtor.code(
+        ast.set(ast.self(), _(id.type), ast.new_("Type", "constructorWithRecursiveType")),
+        ast.set(m_(id.type), _(id.methods), _(type.Index) / _(id.methods)),
+        ast.set(m_(id.type), _(id.memberOf), _(map(type.Type_, type.Type_, type.Index, type.Index))));
+
+    Ast::Function& indexCtorWithSelfType = indexStruct.addMethod("constructorWithSelfType");
+    indexCtorWithSelfType.parameters(
+        param(id.indexType, _(type.Type_)));
+    indexCtorWithSelfType.code(
+        ast.if_(ast.missing(p_(id.indexType), _(id.sharedObject)),
+                ast.block(ast.set(p_(id.indexType), _(id.sharedObject), ast.new_(_(type.Slot))),
+                          ast.set(p_(id.indexType) / _(id.sharedObject), _(id.slotRole), ast.self()),
+                          ast.set(p_(id.indexType) / _(id.sharedObject), _(id.slotType), _(type.Index)))),
+        ast.set(ast.self(), _(id.type), p_(id.indexType)));
+
+    /*
+    void Index::insert(CellI& key, CellI& value)
+    {
+        if (&key == &kb.id.type) {
+            throw "The type key can not be changed!";
+        }
+        m_slots[&key] = &value;
+        if (m_recursiveType) {
+            return;
+        }
+        Object& slot = *new Object(kb, kb.type.Slot);
+        slot.set(kb.id.slotRole, key);
+        slot.set(kb.id.slotType, kb.type.Slot);
+        m_type->addSlot(key, slot);
+    }
+    */
+    Ast::Function& indexInsert = indexStruct.addMethod("insert");
+    indexInsert.parameters(
+        param(id.key, _(type.Cell)),
+        param(id.value, _(type.Cell)));
+    indexInsert.code(
+        ast.if_(ast.same(p_(id.key), _(id.type)), ast.return_()),
+        ast.set(ast.self(), p_(id.key), p_(id.value)),
+        ast.if_(ast.and_(ast.has(m_(id.type), _(id.sharedObject)), ast.same(m_(id.type) / _(id.sharedObject) / _(id.slotRole), ast.self())),
+                ast.return_()),
+        ast.call(m_(id.type), _(id.addSlot), param(_(id.slotRole), p_(id.key)), param(_(id.slotType), _(type.Slot))));
+
+    Ast::Function& indexEmpty = indexStruct.addMethod("empty");
+    indexEmpty.returnType(_(type.Boolean));
+    indexEmpty.code(
+        ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.empty))));
+
+    /*
+    void Index::erase(CellI& role)
+    {
+        if (!m_type->hasSlot(role)) {
+            return;
+        }
+        m_slots.erase(&role);
+        m_type->removeSlot(role);
+    }
+    */
+    Ast::Function& indexRemove = indexStruct.addMethod("remove");
+    indexRemove.parameters(
+        param(id.key, _(type.Cell)));
+    indexRemove.code(
+        ast.if_(ast.not_(ast.call(m_(id.type), _(id.hasSlot), param(_(id.slotRole), p_(id.key)))),
+                ast.return_()),
+        ast.erase(ast.self(), p_(id.key)),
+        ast.call(m_(id.type), _(id.removeSlot), param(_(id.slotRole), p_(id.key))));
+
+    Ast::Function& indexSize = indexStruct.addMethod("size");
+    indexSize.returnType(_(type.Number));
+    indexSize.code(
+        ast.return_(ast.call(m_(id.type) / _(id.slots), _(id.size))));
+#pragma endregion
+#pragma region Map
+    CellI* mapPtr = nullptr;
+    mapPtr = &slots(type.slot(id.keyType, type.Cell),
+                    type.slot(id.objectType, type.Cell),
+                    type.slot(id.list, type.ListOf(type.Cell)),
+                    type.slot(id.listType, type.List),
+                    type.slot(id.index, type.Index),
+                    type.slot(id.size, type.Number));
+    type.Map.set(id.slots, *mapPtr);
+    mapPtr = &map(type.Cell, type.Type_,
+                  id.keyType, type.Cell,
+                  id.objectType, type.Cell,
+                  id.listType, type.ListOf(type.Cell));
+    type.Map.set(id.subTypes, *mapPtr);
+
+    auto& mapStructT = globalScope.addStructT("Map");
+    mapStructT.templateParams(
+        param(id.keyType, _(type.Type_)),
+        param(id.objectType, _(type.Type_)));
+    mapStructT.subTypes(
+        param(id.keyType, tp_(id.keyType)),
+        param(id.objectType, tp_(id.objectType)),
+        param(id.listType, tt_("List", id.objectType, tp_(id.objectType))));
+    mapStructT.memberOf(_(type.Type_), _(type.Container));
+
+    Ast::Function& mapCtor = mapStructT.addMethod("constructor");
+    mapCtor.code(
+        m_(id.size)       = _(_0_),
+        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType) / _(id.value),
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
+        m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value),
+        m_(id.list)       = ast.new_(m_(id.listType), "constructor"),
+        m_(id.index)      = ast.new_("Index", "constructor"));
+
+    Ast::Function& mapCtorWithIndexType = mapStructT.addMethod("constructorWithIndexType");
+    mapCtorWithIndexType.parameters(
+        param(id.indexType, _(type.Type_)));
+    mapCtorWithIndexType.code(
+        m_(id.size)       = _(_0_),
+        m_(id.keyType)    = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.keyType) / _(id.value),
+        m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
+        m_(id.listType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.listType) / _(id.value),
+        m_(id.list)       = ast.new_(m_(id.listType), "constructor"),
+        m_(id.index)      = ast.new_("Index", "constructorWithSelfType", param(_(id.indexType), p_(id.indexType))));
+
+    /*
+    bool Map::hasKey(CellI& key)
+    {
+        return m_index.has(key);
+    }
+    */
+    Ast::Function& mapHasKey = mapStructT.addMethod("hasKey");
+    mapHasKey.parameters(
+        param(id.key, tp_(id.keyType)));
+    mapHasKey.returnType(_(type.Boolean));
+    mapHasKey.code(
+        ast.if_(ast.has(m_(id.index), p_(id.key)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+
+    /*
+    CellI& Map::getValue(CellI& key)
+    {
+        if (m_index.has(key)) {
+            return m_index[key][kb.id.value];
+        }
+        throw "No such role!";
+    }
+    */
+    Ast::Function& mapGetValue = mapStructT.addMethod("getValue");
+    mapGetValue.parameters(
+        param(id.key, tp_(id.keyType)));
+    mapGetValue.code(
+        ast.if_(ast.has(m_(id.index), p_(id.key)), ast.return_(m_(id.index) / p_(id.key) / _(id.value)), ast.return_(_(id.emptyObject))));
+
+    /*
+    void Map::add(CellI& key, CellI& value)
+    {
+        if (&key == &kb.id.type) {
+            throw "id.type can not be stored in a map!";
+        }
+        if (m_index.has(key)) {
+            throw "A value already registered with this role";
+        }
+        List::Item& item = *m_list.add(value);
+        m_index.insert(key, item);
+        ++m_size;
+    }
+    */
+    Ast::Function& mapAdd = mapStructT.addMethod("add");
+    mapAdd.parameters(
+        param(id.key, tp_(id.keyType)),
+        param(id.value, tp_(id.objectType)));
+    mapAdd.code(
+        ast.if_(ast.same(p_(id.key), _(id.type)), ast.return_()),
+        ast.if_(ast.has(m_(id.index), p_(id.key)), ast.return_()),
+        m_(id.size)   = ast.add(m_(id.size), _(_1_)),
+        var_(id.item) = m_(id.list).call(_(id.add), param(_(id.value), p_(id.value))),
+        ast.call(m_(id.index), _(id.insert), param(_(id.key), p_(id.key)), param(_(id.value), *var_(id.item))));
+
+    /*
+    void Map::remove(CellI& key)
+    {
+        if (!m_index.has(key)) {
+            return;
+        }
+        List::Item* item = &static_cast<List::Item&>(m_index[key]);
+        m_list.removeItem(item);
+        m_index.erase(key);
+        --m_size;
+    }
+    */
+    Ast::Function& mapRemove = mapStructT.addMethod("remove");
+    mapRemove.parameters(
+        param(id.key, tp_(id.keyType)));
+    mapRemove.code(
+        ast.if_(ast.missing(m_(id.index), p_(id.key)),
+                ast.return_()),
+        ast.call(m_(id.list), _(id.remove), param(_(id.item), m_(id.index) / p_(id.key))),
+        ast.call(m_(id.index), _(id.remove), param(_(id.key), p_(id.key))),
+        m_(id.size) = ast.subtract(m_(id.size), _(_1_)));
+
+    Ast::Function& mapSize = mapStructT.addMethod("size");
+    mapSize.returnType(_(type.Number));
+    mapSize.code(
+        ast.return_(m_(id.size)));
+
+    Ast::Function& mapEmpty = mapStructT.addMethod("empty");
+    mapEmpty.returnType(_(type.Boolean));
+    mapEmpty.code(
+        ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+#pragma endregion
+
+//    auto& listItemNumberStruct = globalScope.instantiateStructT("ListItem", param(id.objectType, type.Number));
+//    auto& listNumberStruct     = globalScope.instantiateStructT("List", param(id.objectType, type.Number)); // explicit instantiation
+
+    auto& testCreateNewListOfNumbers = globalScope.addFunction("testCreateNewListOfNumbers");
+    testCreateNewListOfNumbers.code(
+        var_(id.result) = ast.new_(tt_("List", id.objectType, _(type.Number)))); // implicit instantiation
+
+//    auto& compiledGlobalScope = globalScope.compile();
+    auto& resolvedGlobalScope = globalScope.resolve();
+    std::cout << "";
+}
+
 Brain::Brain() :
     m_initPhase(InitPhase::Init),
     id(*this),
@@ -3303,6 +4346,8 @@ Brain::Brain() :
     _9_(pools.numbers.get(9))
 
 {
+    createStd();
+
     const auto _      = [this](CellI& cell) -> Ast::Cell& { return ast.cell(cell); };
     const auto p_     = [this](CellI& role) -> Ast::Parameter& { return ast.parameter(role); };
     const auto m_     = [this](CellI& role) -> Ast::Member& { return ast.member(role); };
@@ -3312,124 +4357,8 @@ Brain::Brain() :
 
     CellI* mapPtr = nullptr;
 
-#if 1
-#pragma region Struct test
-    {
-        const auto t_  = [this](CellI& role) -> Ast::TemplateParam& { return ast.templateParam(role); };
-        const auto dt_ = [this](const std::string& name, auto&... param) -> Ast::DependentType& { return ast.dependentType(pools.strings.get(name)[id.value], param...); };
-
-        auto& globalScope     = *new Ast::Scope(*this, "global");
-        auto& listItemStructT = globalScope.addStructT("ListItem");
-        listItemStructT.templateParams(
-            param(id.objectType, type.Type_));
-        listItemStructT.members(
-            member(id.previous, t_(id.self)),
-            member(id.next, t_(id.self)),
-            member(id.value, t_(id.objectType)));
-
-        auto& listItemConstructor = listItemStructT.addMethod("constructor");
-        listItemConstructor.parameters(
-            param(id.value, t_(id.objectType)));
-        listItemConstructor.code(
-            m_(id.value) = p_(id.value));
-
-        auto& listItemNumberStruct = globalScope.instantiateStructT("ListItem", param(id.objectType, type.Number));
-
-        auto& listStructT = globalScope.addStructT("List");
-        listStructT.templateParams(
-            param(id.objectType, type.Type_));
-        listStructT.memberOf(
-            _(type.Container));
-        listStructT.subTypes(
-            param(id.itemType, dt_("ListItem", param(id.objectType, t_(id.objectType)))),
-            param(id.objectType, t_(id.objectType)));
-        listStructT.members(
-            member(id.itemType, dt_("ListItem", param(id.objectType, t_(id.objectType)))),
-            member(id.objectType, t_(id.objectType)),
-            member(id.first, dt_("ListItem", param(id.objectType, t_(id.objectType)))),
-            member(id.last, dt_("ListItem", param(id.objectType, t_(id.objectType)))),
-            member(id.size, _(type.Number)));
-
-        ////
-        Ast::Function& listCtor = listStructT.addMethod("constructor");
-        listCtor.code(
-            m_(id.size)       = _(_0_),
-            m_(id.objectType) = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.objectType) / _(id.value),
-            m_(id.itemType)   = m_(id.type) / _(id.subTypes) / _(id.index) / _(id.itemType) / _(id.value));
-
-        Ast::Function& listAdd = listStructT.addMethod("add");
-        listAdd.parameters(
-            param(id.value, t_(id.objectType)));
-        listAdd.returnType(dt_("ListItem", param(id.objectType, t_(id.objectType))));
-        listAdd.code(
-            var_(id.item) = ast.new_(m_(id.itemType), _(id.constructor), param(_(id.value), p_(id.value))),
-            ast.if_(ast.not_(m_(id.first).exist()),
-                    m_(id.first) = *var_(id.item),                              // then
-                    ast.block(ast.set(m_(id.last), _(id.next), *var_(id.item)), // else
-                              ast.set(*var_(id.item), _(id.previous), m_(id.last)))),
-            m_(id.last) = *var_(id.item),
-            m_(id.size) = ast.add(m_(id.size), _(_1_)),
-            ast.return_(*var_(id.item)));
-        /*
-        void List::removeItem(Item* item)
-        {
-            if (item->m_previous) {
-                item->m_previous->m_next = item->m_next;
-            } else {
-                m_firstItem = item->m_next;
-            }
-            if (item->m_next) {
-                item->m_next->m_previous = item->m_previous;
-            } else {
-                m_lastItem = item->m_previous;
-            }
-            --m_size;
-        }
-        */
-        Ast::Function& listRemove = listStructT.addMethod("remove");
-        listRemove.parameters(
-            param(id.item, _(type.Cell)));
-        listRemove.code(
-            ast.if_(ast.has(p_(id.item), _(id.previous)),
-                    ast.if_(ast.has(p_(id.item), _(id.next)),
-                            ast.set(p_(id.item) / _(id.previous), _(id.next), p_(id.item) / _(id.next)),
-                            ast.erase(p_(id.item) / _(id.previous), _(id.next))),
-                    ast.if_(ast.has(p_(id.item), _(id.next)),
-                            m_(id.first) = p_(id.item) / _(id.next),
-                            ast.erase(ast.self(), _(id.first)))),
-            ast.if_(ast.has(p_(id.item), _(id.next)),
-                    ast.if_(ast.has(p_(id.item), _(id.previous)),
-                            ast.set(p_(id.item) / _(id.next), _(id.previous), p_(id.item) / _(id.previous)),
-                            ast.erase(p_(id.item) / _(id.next), _(id.previous))),
-                    ast.if_(ast.has(p_(id.item), _(id.previous)),
-                            m_(id.last) = p_(id.item) / _(id.previous),
-                            ast.erase(ast.self(), _(id.last)))),
-            m_(id.size) = ast.subtract(m_(id.size), _(_1_)));
-
-        Ast::Function& listSize = listStructT.addMethod("size");
-        listSize.returnType(_(type.Number));
-        listSize.code(
-            ast.return_(m_(id.size)));
-
-        Ast::Function& listEmpty = listStructT.addMethod("empty");
-        listEmpty.returnType(_(type.Boolean));
-        listEmpty.code(
-            ast.if_(ast.equal(m_(id.size), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
-        ////
-
-        auto& listNumberStruct = globalScope.instantiateStructT("List", param(id.objectType, type.Number)); // explicit instantiation
-
-        auto& testCreateNewListOfNumbers = globalScope.addFunction("testCreateNewListOfNumbers");
-        testCreateNewListOfNumbers.code(
-            var_(id.result) = ast.new_(dt_("List", param(id.objectType, type.Number)))); // implicit instantiation
-
-        auto& compiledGlobalScope = globalScope.compile();
-        std::cout << "";
-    }
-#pragma endregion
-#endif
     auto& program     = *new Object(*this, type.Program);
-    auto& globalScope = *new Ast::Scope(*this, id.global, "global");
+    auto& globalScope = *new Ast::Scope(*this, "global");
     auto registerMethods = [this, &program, &globalScope](Object& structType, CellI& methodId, Ast::Function& method, auto&... param) { this->registerMethods(program, globalScope, structType, methodId, method, param...); };
 
 #pragma region ListItem

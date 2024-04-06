@@ -42,6 +42,7 @@ public:
     std::string label() const;
     void label(const std::string& label);
 
+    bool isA(CellI& type);
     bool isA(CellI& cell, CellI& type) const;
 
     bool operator==(CellI& rhs);

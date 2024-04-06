@@ -70,6 +70,11 @@ void CellI::label(const std::string& label)
     m_label = label;
 }
 
+bool CellI::isA(CellI& ptype)
+{
+    return &type() == &ptype || (has(kb.id.memberOf) && (*this)[kb.id.memberOf][kb.id.index].has(ptype));
+}
+
 bool CellI::isA(CellI& cell, CellI& type) const
 {
     return &cell == &type || (cell.has(kb.id.memberOf) && cell[kb.id.memberOf][kb.id.index].has(type));
