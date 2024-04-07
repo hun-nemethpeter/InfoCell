@@ -39,6 +39,8 @@ public:
     Object contains;
     Object continue_;
     Object current;
+    Object currentFn;
+    Object currentStruct;
     Object data;
     Object destructor;
     Object direction;
@@ -60,12 +62,12 @@ public:
     Object height;
     Object id;
     Object incomplete;
-    Object incompleteStructTypes;
     Object index;
     Object indexType;
     Object input;
     Object inputPixels;
     Object insert;
+    Object instances;
     Object item;
     Object itemType;
     Object key;
@@ -101,6 +103,7 @@ public:
     Object recursiveType;
     Object remove;
     Object removeSlot;
+    Object resolvedScope;
     Object result;
     Object returnType;
     Object returnValue;
@@ -130,9 +133,11 @@ public:
     Object structType;
     Object subTypes;
     Object template_;
+    Object templateId;
     Object templateParams;
     Object then;
     Object type;
+    Object unknownInstances;
     Object unknownStructs;
     Object value;
     Object variables;
@@ -306,7 +311,8 @@ public:
     Object Stack;
     Object StackFrame;
     Object Program;
-    Object ResolveState;
+    Object StructReference;
+    Object CompileState;
     Object ScopeData;
     Object Directions;
     Object Shape;
@@ -338,15 +344,13 @@ public:
         Base(brain::Brain& kb, CellI& classCell, const std::string& label = "");
 
         CellI& resolveType(CellI& typeAst, CellI& resolveState);
-        CellI& resolveStructId(CellI& structId, CellI& resolveState);
-        CellI& resolveTemplatedType(CellI& ast, CellI& resolveState);
-        List& generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState);
 
-        // TODO remove below
-        List& generateTemplateId(CellI& id, CellI& parameters);
-        CellI& resolveType(CellI& typeAst, Object& programData, Scope& currentScope);
-        CellI& resolveStructId(CellI& structId, Object& program, Scope& scope);
-        CellI& resolveTemplatedType(CellI& ast, Object& programData, Scope& scope);
+    protected:
+        CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<void(CellI& structReference)> unknownCb);
+        CellI& resolveStructId(CellI& structId, CellI& resolveState);
+        CellI& resolveTemplateInstanceId(CellI& structId, CellI& resolveState, CellI& templateId, CellI& templateParams);
+        CellI& resolveTemplatedType(CellI& ast, CellI& resolveState);
+        List& generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState, List& resolvedParams);
     };
     template <typename T>
     class BaseT : public Base,
@@ -450,25 +454,13 @@ public:
         Struct& getStruct(CellI& id);
         void addStruct(Struct& struct_);
         Struct& addStruct(const std::string& name);
-        void addStructTInstance(Struct& astStruct);
 
-        bool hasIncompleteStructType(List& id);
-        Struct& getIncompleteStructType(List& id);
-        void addIncompleteStruct(Struct& astStruct);
-        Struct& addIncompleteStruct(List& id);
-
+        bool hasStructT(CellI& id);
+        StructT& getStructT(CellI& id);
         StructT& addStructT(const std::string& name);
 
-        void implicitInstantiation(Object& programData, Scope& parentScope);
-        void declare(Object& programData, Scope& parentScope);
         CellI& compile();
-        Ast::Scope& resolve();
-        void resolve(CellI& resolveState);
-
-        template <typename... Args>
-        Struct& instantiateStructT(const std::string& name, Args&&... args);
-
-        Struct& instantiateIncompleteStructT(CellI& id, List& parameters);
+        void resolveTypes(CellI& state);
 
         TrieMap& variables();
         TrieMap& scopes();
@@ -476,7 +468,6 @@ public:
         TrieMap& functionTs();
         TrieMap& structs();
         TrieMap& structTs();
-        TrieMap& incompleteStructTypes();
     };
 
     class StructBase : public Base
@@ -529,10 +520,9 @@ public:
         Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
         Struct(brain::Brain& kb, const std::string& name);
 
-        void implicitInstantiation(Object& programData, Scope& scope);
-        Struct& resolve(CellI& resolveState);
-        Object& declare(Object& program, Scope& scope);
-        Object& compile(Object& program, Scope& scope);
+        void implicitInstantiation(CellI& state);
+        Struct& resolveTypes(CellI& resolveState);
+        Object& compile(CellI& state);
     };
 
     class StructT : public StructBase,
@@ -552,16 +542,11 @@ public:
             templateParams(std::forward<Args>(args)...);
         }
 
-        Struct& declareType(List& parameters);
-
-        template <typename... Args>
-        Struct& instantiate(Scope& scope, Args&&... args);
-        Struct& instantiate(Scope& scope, List& parameters);
+        Struct& instantiateWith(Scope& scope, List& slotList, CellI& state);
 
     protected:
-        Struct& instantiateWith(Scope& scope, List& slotList);
-        CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
-        Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
+        CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, CellI& state);
+        Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, CellI& state);
         Map& templateParams();
     };
 
@@ -584,19 +569,14 @@ public:
         template <typename... Args>
         void code(Args&&... args);
 
-        void implicitInstantiation(Object& programData, Scope& scope);
-        Ast::Function& resolve(CellI& resolveState);
-        CellI& declare(Object& program, Scope& scope);
-        CellI& compile(Object& program, Scope& scope);
+        Ast::Function& resolveTypes(CellI& resolveState);
+        CellI& compile(CellI& state);
 
     protected:
-        Ast::Base& resolveCode(CellI& resolveState, CellI& ast);
+        Ast::Base& resolveTypesInCode(CellI& resolveState, CellI& ast);
         void addBlock(Block& block);
-        void declareParams(cells::Object& function, cells::Map& subTypesMap, Object& programData, Scope& scope);
-        void compileParams(cells::Object& function, cells::Map& subTypesMap, Object& program, Scope& scope);
-        CellI& getCompiledStruct(CellI& ast, Object& program, Scope& scope);
-        void implicitInstantiationInAst(CellI& ast);
-        CellI& compileAst(CellI& ast, cells::Object& function, Object& program, Scope& scope);
+        void compileParams(cells::Object& function, cells::Map& subTypesMap, CellI& state);
+        CellI& compileAst(CellI& ast, cells::Object& function, CellI& state);
         List& parameters();
         CellI& returnType();
         Base& code();
@@ -704,7 +684,7 @@ public:
     {
     public:
         TemplatedType(const TemplatedType&) = delete;
-        TemplatedType(brain::Brain& kb, CellI& id, CellI& type);
+        TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList);
 
         void addParam(CellI& role, CellI& type);
         void addParam(CellI& role, const std::string& type);
@@ -1138,7 +1118,7 @@ public:
     {
         asts.add(methodId, method);
         method.set(method.kb.id.structType, structType);
-        methods.add(methodId, method.compile(program, scope));
+        // methods.add(methodId, method.compile(program, scope)); TODO
         addMethods(program, scope, structType, asts, methods, std::forward<Args>(args)...);
     }
 
@@ -1198,24 +1178,6 @@ template <typename... Args>
 void Ast::Function::code(Args&&... args)
 {
     addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
-}
-
-template <typename... Args>
-Ast::Struct& Ast::Scope::instantiateStructT(const std::string& name, Args&&... args)
-{
-    auto& id = kb.pools.strings.get(name)[kb.id.value];
-    if (!structTs().hasKey(id)) {
-        throw "No such template!";
-    }
-    auto& structT         = static_cast<Ast::StructT&>(structTs().getValue(id));
-    Ast::Struct& instance = structT.instantiate(*this, std::forward<Args>(args)...);
-    return instance;
-}
-
-template <typename... Args>
-Ast::Struct& Ast::StructT::instantiate(Ast::Scope& scope, Args&&... args)
-{
-    return instantiateWith(scope, kb.list(std::forward<Args>(args)...));
 }
 
 } // namespace brain
