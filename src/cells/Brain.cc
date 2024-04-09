@@ -1628,19 +1628,17 @@ Ast::Struct::Struct(brain::Brain& kb, const std::string& name) :
 
 Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
 {
-    auto& structId          = get(kb.id.id);
-    auto& structs           = static_cast<TrieMap&>(state[kb.id.structs]);
-    auto& unknownStructs    = static_cast<TrieMap&>(state[kb.id.unknownStructs]);
-    Ast::Struct* retPtr     = nullptr;
+    auto& structId       = get(kb.id.id);
+    auto& structs        = static_cast<TrieMap&>(state[kb.id.structs]);
+    auto& unknownStructs = static_cast<TrieMap&>(state[kb.id.unknownStructs]);
+    Ast::Struct& ret     = *new Ast::Struct(kb, structId, std::format("{}", label()));
 
     if (unknownStructs.hasKey(structId)) {
-        retPtr = &static_cast<Ast::Struct&>(unknownStructs.getValue(structId));
         unknownStructs.remove(structId);
-    } else {
-        retPtr = new Ast::Struct(kb, structId, std::format("{}", label()));
-        structs.add(structId, *retPtr);
     }
-    Ast::Struct& ret = *retPtr;
+    auto& resolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", structId.label()));
+    structs.add(structId, resolvedStruct);
+
     state.set(kb.id.currentStruct, ret);
 
     std::stringstream ss;
@@ -1667,7 +1665,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& subTypeType         = subTypeCell[kb.id.slotType];
             CellI& resolvedSubTypeType = resolveType(subTypeType, state);
             ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
-            std::cout << std::format("    using {} = {};", subTypeId.label(), resolvedSubTypeType.label()) << std::endl;
+            std::cout << std::format("    alias {} = {};", subTypeId.label(), resolvedSubTypeType.label()) << std::endl;
         });
         if (has(kb.id.methods) || has(kb.id.members)) {
             std::cout << std::endl;
