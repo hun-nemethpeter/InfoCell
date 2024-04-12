@@ -409,6 +409,15 @@ public:
         Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
         Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3);
         Call(brain::Brain& kb, CellI& cell, CellI& method, Slot& slot1, Slot& slot2, Slot& slot3, Slot& slot4);
+
+        void addParam(Slot& slot);
+
+        template <typename... Args>
+        void addParam(Slot& slot, Args&&... args)
+        {
+            addParam(slot);
+            addParam(std::forward<Args>(args)...);
+        }
     };
 
     class StaticCall : public BaseT<StaticCall>
@@ -438,6 +447,7 @@ public:
         Scope(brain::Brain& kb, const std::string& name);
 
         Scope& addScope(const std::string& name);
+        void addScope(Scope& scope);
 
         Function& addFunction(const std::string& name);
         Function& addFunction(CellI& id, const std::string& label);
@@ -460,7 +470,11 @@ public:
         StructT& addStructT(const std::string& name);
 
         CellI& compile();
+
+    protected:
         void resolveTypes(CellI& state);
+        void resolveFunctionCalls(CellI& state);
+        void compileTheResolvedAsts(CellI& programData, CellI& state);
 
         TrieMap& variables();
         TrieMap& scopes();
@@ -668,6 +682,10 @@ public:
         Get& operator/(Base& role);
         Has& exist();
         Missing& missing();
+        Call& call(const std::string& method);
+        template <typename... Args>
+        Call& call(const std::string& method, Args&&... args);
+
         Call& call(CellI& method);
         Call& call(CellI& method, Slot& slot1);
         Call& call(CellI& method, Slot& slot1, Slot& slot2);
@@ -820,6 +838,11 @@ public:
     Return& return_(Base& value);
     Parameter& parameter(CellI& role);
     Slot& slot(CellI& role, CellI& type);
+
+    Call& call(CellI& object, const std::string& method);
+    template <typename... Args>
+    Call& call(CellI& object, const std::string& method, Args&&... args);
+
     Call& call(CellI& cell, CellI& method);
     Call& call(CellI& cell, CellI& method, Slot& slot1);
     Call& call(CellI& cell, CellI& method, Slot& slot1, Slot& slot2);
@@ -973,6 +996,7 @@ class Strings
 public:
     Strings(brain::Brain& kb);
     String& get(const std::string& str);
+    List& getCharList(const std::string& str);
 
 protected:
     std::map<std::string, String> m_strings;
@@ -1145,13 +1169,29 @@ Ast::Block& Ast::block(Args&&... args)
 template <typename... Args>
 Ast::New& Ast::new_(Base& objectType, const std::string& constructor, Args&&... params)
 {
-    return new_(objectType, kb.ast.structRef(kb.pools.strings.get(constructor)[kb.id.value]), std::forward<Args>(params)...);
+    return new_(objectType, kb.ast.cell(kb.pools.strings.getCharList(constructor)), std::forward<Args>(params)...);
 }
 
 template <typename... Args>
 Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor, Args&&... params)
 {
-    return new_(kb.ast.structRef(kb.pools.strings.get(objectType)[kb.id.value]), kb.ast.structRef(kb.pools.strings.get(constructor)[kb.id.value]), std::forward<Args>(params)...);
+    return new_(kb.ast.structRef(kb.pools.strings.getCharList(objectType)), kb.ast.cell(kb.pools.strings.getCharList(constructor)), std::forward<Args>(params)...);
+}
+
+template <typename... Args>
+Ast::Call& Ast::Member::call(const std::string& method, Args&&... args)
+{
+    return kb.ast.call(*this, method, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+Ast::Call& Ast::call(CellI& object, const std::string& method, Args&&... args)
+{
+    auto& ret = call(object, method);
+    if constexpr (sizeof...(Args) > 0) {
+        ret.addParam(std::forward<Args>(args)...);
+    }
+    return ret;
 }
 
 template <typename... Args>

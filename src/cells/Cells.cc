@@ -216,7 +216,7 @@ void Object::set(CellI& role, CellI& value)
         return;
     }
     auto is = [this](CellI& rhsType) -> bool { return &type() == &rhsType || (type().has(kb.id.memberOf) && type()[kb.id.memberOf][kb.id.index].has(rhsType)); };
-    if (is(kb.type.Index) || type()[kb.id.slots][kb.id.index].has(role)) {
+    if (is(kb.type.Index) || type().label() == "Index" || type()[kb.id.slots][kb.id.index].has(role)) {
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
