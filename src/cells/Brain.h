@@ -1095,8 +1095,20 @@ public:
     Ast::Scope globalScope;
     TrieMap* compiledStructsPtr = nullptr;
 
- public:
+public:
     CellI& id(const std::string& str);
+    template <typename... Args>
+    CellI& templateId(const std::string& str, Args&&... args)
+    {
+        List& idCell = *new List(*this, type.Cell);
+        for (const auto& character : str) {
+            idCell.add(pools.chars.get(character));
+        }
+        idCell.add(std::forward<Args>(args)...);
+
+        return idCell;
+    }
+
     CellI& toKbBool(bool value);
 
     template <typename... Args>

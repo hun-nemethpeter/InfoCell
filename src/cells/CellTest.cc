@@ -106,29 +106,38 @@ TEST_F(CellTest, PrintMethod)
 {
     const auto printOp = [this](CellI& type, CellI& method) { printAs.value(type[ids.methods][ids.index][method][ids.value]); };
 
-    auto& compiledTypeStruct = (*kb.compiledStructsPtr).getValue(kb.id("Type"));
-
 #if 1
-//    printOp(kb.type.Map, ids.constructor);
-//    printOp(kb.type.Map, ids.size);
-//    printOp(kb.type.Map, ids.add);
-//    printOp(kb.type.Map, ids.empty);
+    auto& mapStruct      = (*kb.compiledStructsPtr).getValue(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& typeStruct     = (*kb.compiledStructsPtr).getValue(kb.id("Type"));
+    auto& ListStruct     = (*kb.compiledStructsPtr).getValue(kb.templateId("List", ids.objectType, kb.type.Number));
+    auto& ListItemStruct = (*kb.compiledStructsPtr).getValue(kb.templateId("ListItem", ids.objectType, kb.type.Number));
 
-    printOp(compiledTypeStruct, kb.id("constructor"));
-    printOp(compiledTypeStruct, kb.id("constructorWithRecursiveType"));
-    printOp(compiledTypeStruct, kb.id("addMembership"));
-    printOp(compiledTypeStruct, kb.id("addSlot"));
-    printOp(compiledTypeStruct, kb.id("addSlots"));
-    printOp(compiledTypeStruct, kb.id("addSubType"));
-    printOp(compiledTypeStruct, kb.id("hasSlot"));
-    printOp(compiledTypeStruct, kb.id("removeSlot"));
+    printOp(mapStruct, kb.id("constructor"));
+    printOp(mapStruct, kb.id("constructorWithIndexType"));
+    printOp(mapStruct, kb.id("add"));
+    printOp(mapStruct, kb.id("empty"));
+    printOp(mapStruct, kb.id("getValue"));
+    printOp(mapStruct, kb.id("hasKey"));
+    printOp(mapStruct, kb.id("remove"));
+    printOp(mapStruct, kb.id("size"));
 
-    printOp(kb.type.ListItem, ids.constructor);
+    printOp(typeStruct, kb.id("constructor"));
+    printOp(typeStruct, kb.id("constructorWithRecursiveType"));
+    printOp(typeStruct, kb.id("addMembership"));
+    printOp(typeStruct, kb.id("addSlot"));
+    printOp(typeStruct, kb.id("addSlots"));
+    printOp(typeStruct, kb.id("addSubType"));
+    printOp(typeStruct, kb.id("hasSlot"));
+    printOp(typeStruct, kb.id("removeSlot"));
 
-    printOp(kb.type.List, kb.id("constructor"));
-    printOp(kb.type.List, ids.add);
-    printOp(kb.type.List, ids.size);
-    printOp(kb.type.List, ids.empty);
+    printOp(ListItemStruct, kb.id("constructor"));
+
+    printOp(ListStruct, kb.id("constructor"));
+    printOp(ListStruct, kb.id("add"));
+    printOp(ListStruct, kb.id("remove"));
+    printOp(ListStruct, kb.id("size"));
+    printOp(ListStruct, kb.id("empty"));
+
     printOp(kb.type.Number, kb.test.factorial);
 #endif
 }
