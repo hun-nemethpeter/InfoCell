@@ -67,6 +67,7 @@ public:
     Object input;
     Object inputPixels;
     Object insert;
+    Object instanceOf;
     Object instances;
     Object item;
     Object itemType;
@@ -344,6 +345,7 @@ public:
         Base(brain::Brain& kb, CellI& classCell, const std::string& label = "");
 
         CellI& resolveType(CellI& typeAst, CellI& resolveState);
+        CellI& getResolvedTypeById(CellI& id, bool isInstance, CellI& resolveState);
 
     protected:
         CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<void(CellI& structReference)> unknownCb);
@@ -474,7 +476,6 @@ public:
 
     protected:
         void resolveTypes(CellI& state);
-        void resolveFunctionCalls(CellI& state);
         void compileTheResolvedAsts(CellI& programData, CellI& state);
 
         TrieMap& variables();
@@ -537,7 +538,7 @@ public:
 
         void implicitInstantiation(CellI& state);
         Struct& resolveTypes(CellI& resolveState);
-        Object& compile(CellI& state);
+        CellI& compile(CellI& state);
     };
 
     class StructT : public StructBase,
@@ -586,6 +587,7 @@ public:
 
         Ast::Function& resolveTypes(CellI& resolveState);
         CellI& compile(CellI& state);
+        std::string shortName();
 
     protected:
         Ast::Base& resolveTypesInCode(CellI& resolveState, CellI& ast);

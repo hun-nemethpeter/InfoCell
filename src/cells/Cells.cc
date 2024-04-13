@@ -204,7 +204,7 @@ bool Object::has(CellI& role)
 
 void Object::set(CellI& role, CellI& value)
 {
-    if ((&role == &kb.id.type) && (&type() != &kb.type.Index)) {
+    if ((&role == &kb.id.type) && !((&type() == &kb.type.Index) || (type().label() == "Index"))) {
         throw "Type change not allowed.";
     }
     if ((&role == &kb.id.type) && (&type() == &kb.type.Index)) {
@@ -289,7 +289,7 @@ void Object::operator()()
             if (s_debugFunctionCalls) {
                 printIndent();
                 s_indent++;
-                std::cout << label() << " selfType: " << stackFrameBeforeSelf.type().label() << std::endl;
+                std::cout << label() << std::endl;
             }
             op();
             if (s_debugFunctionCalls) {
@@ -952,6 +952,10 @@ bool List::empty() const
     return m_size == 0;
 }
 
+int List::size()
+{
+    return m_size;
+}
 #pragma endregion
 #pragma region Type
 // ============================================================================
