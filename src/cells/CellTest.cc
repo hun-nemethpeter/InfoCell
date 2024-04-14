@@ -1,3 +1,20 @@
+namespace A {
+struct AStruct
+{
+    int a;
+};
+} // namespace A
+
+namespace B {
+namespace A {
+struct AStruct
+{
+    int a;
+};
+} // namespace A
+A::AStruct test;
+} // namespace B
+
 #include "Cells.h"
 #include "SVGPrinter.h"
 #include "SVGStructPrinter.h"
@@ -104,72 +121,80 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
 TEST_F(CellTest, PrintMethod)
 {
-    const auto printOp = [this](CellI& type, CellI& method) { printAs.value(type[ids.methods][ids.index][method][ids.value]); };
+    const auto printOp     = [this](CellI& type, const std::string& method) { printAs.value(type[ids.methods][ids.index][kb.id(method)][ids.value]); };
+    const auto getStruct   = [this](CellI& id) -> CellI& { return static_cast<TrieMap&>((*kb.compiledGlobalScopePtr)[ids.structs]).getValue(id); };
 
 #if 1
-    auto& mapStruct      = (*kb.compiledStructsPtr).getValue(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
-    auto& typeStruct     = (*kb.compiledStructsPtr).getValue(kb.id("Type"));
-    auto& ListStruct     = (*kb.compiledStructsPtr).getValue(kb.templateId("List", ids.objectType, kb.type.Number));
-    auto& ListItemStruct = (*kb.compiledStructsPtr).getValue(kb.templateId("ListItem", ids.objectType, kb.type.Number));
+    auto& MapStruct      = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& TestStruct     = getStruct(kb.id("Test"));
+    auto& TypeStruct     = getStruct(kb.id("Type"));
+    auto& ListStruct     = getStruct(kb.templateId("List", ids.objectType, kb.type.Number));
+    auto& ListItemStruct = getStruct(kb.templateId("ListItem", ids.objectType, kb.type.Number));
 
-    printOp(mapStruct, kb.id("constructor"));
-    printOp(mapStruct, kb.id("constructorWithIndexType"));
-    printOp(mapStruct, kb.id("add"));
-    printOp(mapStruct, kb.id("empty"));
-    printOp(mapStruct, kb.id("getValue"));
-    printOp(mapStruct, kb.id("hasKey"));
-    printOp(mapStruct, kb.id("remove"));
-    printOp(mapStruct, kb.id("size"));
+    printOp(MapStruct, "constructor");
+    printOp(MapStruct, "constructorWithIndexType");
+    printOp(MapStruct, "add");
+    printOp(MapStruct, "empty");
+    printOp(MapStruct, "getValue");
+    printOp(MapStruct, "hasKey");
+    printOp(MapStruct, "remove");
+    printOp(MapStruct, "size");
 
-    printOp(typeStruct, kb.id("constructor"));
-    printOp(typeStruct, kb.id("constructorWithRecursiveType"));
-    printOp(typeStruct, kb.id("addMembership"));
-    printOp(typeStruct, kb.id("addSlot"));
-    printOp(typeStruct, kb.id("addSlots"));
-    printOp(typeStruct, kb.id("addSubType"));
-    printOp(typeStruct, kb.id("hasSlot"));
-    printOp(typeStruct, kb.id("removeSlot"));
+    printOp(TypeStruct, "constructor");
+    printOp(TypeStruct, "constructorWithRecursiveType");
+    printOp(TypeStruct, "addMembership");
+    printOp(TypeStruct, "addSlot");
+    printOp(TypeStruct, "addSlots");
+    printOp(TypeStruct, "addSubType");
+    printOp(TypeStruct, "hasSlot");
+    printOp(TypeStruct, "removeSlot");
 
-    printOp(ListItemStruct, kb.id("constructor"));
+    printOp(ListItemStruct, "constructor");
 
-    printOp(ListStruct, kb.id("constructor"));
-    printOp(ListStruct, kb.id("add"));
-    printOp(ListStruct, kb.id("remove"));
-    printOp(ListStruct, kb.id("size"));
-    printOp(ListStruct, kb.id("empty"));
+    printOp(ListStruct, "constructor");
+    printOp(ListStruct, "add");
+    printOp(ListStruct, "remove");
+    printOp(ListStruct, "size");
+    printOp(ListStruct, "empty");
 
-    printOp(kb.type.Number, kb.test.factorial);
+    printOp(TestStruct, "factorial");
 #endif
 }
 
 TEST_F(CellTest, RecursiveCall)
 {
-    Object testNumber(kb, kb.type.Number, "testNumber");
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { ids.input, _0_ }), &_1_);
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { ids.input, _1_ }), &_1_);
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { ids.input, _2_ }), &_2_);
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { ids.input, _3_ }), &_6_);
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { ids.input, _4_ }), &kb.pools.numbers.get(24));
-    EXPECT_EQ(&testNumber.method(kb.test.factorial, { ids.input, _5_ }), &kb.pools.numbers.get(120));
+    const auto getStruct = [this](CellI& id) -> CellI& { return static_cast<TrieMap&>((*kb.compiledGlobalScopePtr)[ids.structs]).getValue(id); };
+    auto& TestStruct     = getStruct(kb.id("Test"));
+
+    Object testNumber(kb, TestStruct, "TestStruct");
+    EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _0_ }), &_1_);
+    EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _1_ }), &_1_);
+    EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _2_ }), &_2_);
+    EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _3_ }), &_6_);
+    EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _4_ }), &kb.pools.numbers.get(24));
+    EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _5_ }), &kb.pools.numbers.get(120));
 }
 
 TEST_F(CellTest, List)
 {
-    Object list(kb, kb.type.List, ids.constructor);
+    const auto getStruct = [this](CellI& id) -> CellI& { return static_cast<TrieMap&>((*kb.compiledGlobalScopePtr)[ids.structs]).getValue(id); };
+    auto& ListStruct = getStruct(kb.templateId("List", ids.objectType, kb.type.Number));
+
+    Object list(kb, ListStruct, kb.id("constructor"));
 
     printAs.value(list);
     printAs.cell(list);
     EXPECT_EQ(&list[ids.size], &_0_);
-    EXPECT_EQ(&list.method(ids.size), &_0_);
-    EXPECT_EQ(&list.method(ids.empty), &true_);
-    EXPECT_EQ(&list[ids.objectType], &kb.type.Cell);
+    EXPECT_EQ(&list.method(kb.id("size")), &_0_);
+    EXPECT_EQ(&list.method(kb.id("empty")), &true_);
+    EXPECT_EQ(&list.type()[ids.subTypes][kb.ids.index][ids.objectType][kb.ids.value], &kb.type.Number);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
 
-    list.method(ids.add, { ids.value, _1_ });
+    list.method(kb.id("add"), { ids.value, _1_ });
     EXPECT_EQ(&list[ids.size], &_1_);
-    EXPECT_EQ(&list.method(ids.size), &_1_);
-    EXPECT_EQ(&list.method(ids.empty), &false_);
+    EXPECT_EQ(&list.method(kb.id("size")), &_1_);
+    EXPECT_EQ(&list.method(kb.id("empty")), &false_);
     EXPECT_TRUE(list.has(ids.first));
     EXPECT_TRUE(list.has(ids.last));
 
@@ -180,10 +205,10 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&firstItem[ids.value], &_1_);
     printAs.value(list);
 
-    list.method(ids.add, { ids.value, kb.pools.numbers.get(2) });
+    list.method(kb.id("add"), { ids.value, kb.pools.numbers.get(2) });
     EXPECT_EQ(&list[ids.size], &_2_);
-    EXPECT_EQ(&list.method(ids.size), &_2_);
-    EXPECT_EQ(&list.method(ids.empty), &false_);
+    EXPECT_EQ(&list.method(kb.id("size")), &_2_);
+    EXPECT_EQ(&list.method(kb.id("empty")), &false_);
 
     CellI& secondItem = list[ids.last];
     EXPECT_EQ(&firstItem, &list[ids.first]);
@@ -198,10 +223,10 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&secondItem[ids.value], &_2_);
     printAs.value(list);
 
-    list.method(ids.add, { ids.value, _3_ });
+    list.method(kb.id("add"), { ids.value, _3_ });
     EXPECT_EQ(&list[ids.size], &_3_);
-    EXPECT_EQ(&list.method(ids.size), &_3_);
-    EXPECT_EQ(&list.method(ids.empty), &false_);
+    EXPECT_EQ(&list.method(kb.id("size")), &_3_);
+    EXPECT_EQ(&list.method(kb.id("empty")), &false_);
 
     CellI& thirdItem = list[ids.last];
     EXPECT_EQ(&firstItem, &list[ids.first]);
@@ -220,10 +245,10 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&thirdItem[ids.value], &_3_);
     printAs.value(list);
 
-    list.method(ids.remove, { ids.item, thirdItem });
+    list.method(kb.id("remove"), { ids.item, thirdItem });
     EXPECT_EQ(&list[ids.size], &_2_);
-    EXPECT_EQ(&list.method(ids.size), &_2_);
-    EXPECT_EQ(&list.method(ids.empty), &false_);
+    EXPECT_EQ(&list.method(kb.id("size")), &_2_);
+    EXPECT_EQ(&list.method(kb.id("empty")), &false_);
     {
         CellI& secondItem = list[ids.last];
         EXPECT_EQ(&firstItem, &list[ids.first]);
@@ -239,10 +264,10 @@ TEST_F(CellTest, List)
     }
     printAs.value(list);
 
-    list.method(ids.remove, { ids.item, secondItem });
+    list.method(kb.id("remove"), { ids.item, secondItem });
     EXPECT_EQ(&list[ids.size], &_1_);
-    EXPECT_EQ(&list.method(ids.size), &_1_);
-    EXPECT_EQ(&list.method(ids.empty), &false_);
+    EXPECT_EQ(&list.method(kb.id("size")), &_1_);
+    EXPECT_EQ(&list.method(kb.id("empty")), &false_);
     {
         CellI& firstItem = list[ids.first];
         EXPECT_EQ(&firstItem, &list[ids.last]);
@@ -252,115 +277,48 @@ TEST_F(CellTest, List)
     }
     printAs.value(list);
 
-    list.method(ids.remove, { ids.item, firstItem });
+    list.method(kb.id("remove"), { ids.item, firstItem });
     EXPECT_EQ(&list[ids.size], &_0_);
-    EXPECT_EQ(&list.method(ids.size), &_0_);
-    EXPECT_EQ(&list.method(ids.empty), &true_);
-    EXPECT_EQ(&list[ids.objectType], &kb.type.Cell);
+    EXPECT_EQ(&list.method(kb.id("size")), &_0_);
+    EXPECT_EQ(&list.method(kb.id("empty")), &true_);
+    EXPECT_EQ(&list.type()[ids.subTypes][kb.ids.index][ids.objectType][kb.ids.value], &kb.type.Number);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
     printAs.value(list);
 
-    CellI& size = list.method(ids.size);
-    printAs.value(size);
-}
-
-TEST_F(CellTest, ListOfNumber)
-{
-    CellI& ListOfNumber = kb.type.List.smethod(ids.template_, { ids.objectType, kb.type.Number });
-    Object list(kb, ListOfNumber, ids.constructor);
-
-    printAs.value(list);
-    printAs.cell(list);
-    EXPECT_EQ(&list[ids.size], &_0_);
-    EXPECT_EQ(&list.method(ids.size), &_0_);
-    EXPECT_EQ(&list.method(ids.empty), &true_);
-    EXPECT_EQ(&list[ids.objectType], &kb.type.Number);
-
-    list.method(ids.add, { ids.value, _1_ });
-    EXPECT_EQ(&list[ids.size], &_1_);
-    EXPECT_EQ(&list.method(ids.size), &_1_);
-    EXPECT_EQ(&list.method(ids.empty), &false_);
-
-    CellI& firstItem = list[ids.first];
-    EXPECT_EQ(&firstItem, &list[ids.last]);
-    EXPECT_EQ(firstItem.has(ids.previous), false);
-    EXPECT_EQ(firstItem.has(ids.next), false);
-    EXPECT_EQ(&firstItem[ids.value], &_1_);
-    printAs.value(list);
-
-    list.method(ids.add, { ids.value, kb.pools.numbers.get(2) });
-    EXPECT_EQ(&list[ids.size], &_2_);
-    EXPECT_EQ(&list.method(ids.size), &_2_);
-    EXPECT_EQ(&list.method(ids.empty), &false_);
-
-    CellI& secondItem = list[ids.last];
-    EXPECT_EQ(&firstItem, &list[ids.first]);
-    EXPECT_NE(&firstItem, &list[ids.last]);
-
-    EXPECT_EQ(firstItem.has(ids.previous), false);
-    EXPECT_EQ(&firstItem[ids.next], &secondItem);
-    EXPECT_EQ(&firstItem[ids.value], &_1_);
-
-    EXPECT_EQ(&secondItem[ids.previous], &firstItem);
-    EXPECT_EQ(secondItem.has(ids.next), false);
-    EXPECT_EQ(&secondItem[ids.value], &_2_);
-
-    printAs.value(list);
-    list.method(ids.add, { ids.value, _3_ });
-    EXPECT_EQ(&list[ids.size], &_3_);
-    EXPECT_EQ(&list.method(ids.size), &_3_);
-    EXPECT_EQ(&list.method(ids.empty), &false_);
-
-    CellI& thirdItem = list[ids.last];
-    EXPECT_EQ(&firstItem, &list[ids.first]);
-    EXPECT_NE(&firstItem, &list[ids.last]);
-
-    EXPECT_EQ(firstItem.has(ids.previous), false);
-    EXPECT_EQ(&firstItem[ids.next], &secondItem);
-    EXPECT_EQ(&firstItem[ids.value], &_1_);
-
-    EXPECT_EQ(&secondItem[ids.previous], &firstItem);
-    EXPECT_EQ(&secondItem[ids.next], &thirdItem);
-    EXPECT_EQ(&secondItem[ids.value], &_2_);
-
-    EXPECT_EQ(&thirdItem[ids.previous], &secondItem);
-    EXPECT_EQ(thirdItem.has(ids.next), false);
-    EXPECT_EQ(&thirdItem[ids.value], &_3_);
-
-    printAs.value(list);
-    CellI& size = list.method(ids.size);
+    CellI& size = list.method(kb.id("size"));
     printAs.value(size);
 }
 
 TEST_F(CellTest, Map)
 {
-    Object map(kb, kb.type.Map, ids.constructor);
+    const auto getStruct = [this](CellI& id) -> CellI& { return static_cast<TrieMap&>((*kb.compiledGlobalScopePtr)[ids.structs]).getValue(id); };
+    auto& MapStruct      = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    Object map(kb, MapStruct, kb.id("constructor"));
 
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[ids.size], &_0_);
-    EXPECT_EQ(&map.method(ids.size), &_0_);
-    EXPECT_EQ(&map.method(ids.empty), &true_);
-    EXPECT_EQ(&map[ids.keyType], &kb.type.Cell);
-    EXPECT_EQ(&map[ids.objectType], &kb.type.Cell);
+    EXPECT_EQ(&map.method(kb.id("size")), &_0_);
+    EXPECT_EQ(&map.method(kb.id("empty")), &true_);
+    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.keyType][kb.ids.value], &kb.type.Cell);
+    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.objectType][kb.ids.value], &kb.type.Slot);
 
-    map.method(ids.add, { ids.key, _1_ }, { ids.value, kb.colors.red });
+    map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.colors.red });
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[ids.size], &_1_);
-    EXPECT_EQ(&map.method(ids.size), &_1_);
+    EXPECT_EQ(&map.method(kb.id("size")), &_1_);
     EXPECT_EQ(&map[ids.list][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.list][ids.objectType], &kb.type.Cell);
     EXPECT_EQ(&map[ids.list][ids.first][ids.value], &kb.colors.red);
     EXPECT_EQ(&map[ids.list][ids.first], &map[ids.list][ids.last]);
     EXPECT_TRUE(map[ids.index].has(_1_));
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.colors.red);
-    EXPECT_EQ(&map.method(ids.empty), &false_);
+    EXPECT_EQ(&map.method(kb.id("empty")), &false_);
     EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.type.Index));
 
-    map.method(ids.add, { ids.key, _2_ }, { ids.value, kb.colors.green });
-    map.method(ids.add, { ids.key, _3_ }, { ids.value, kb.colors.blue });
+    map.method(kb.id("add"), { ids.key, _2_ }, { ids.value, kb.colors.green });
+    map.method(kb.id("add"), { ids.key, _3_ }, { ids.value, kb.colors.blue });
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.colors.red);
     EXPECT_EQ(&map[ids.index][_2_][ids.value], &kb.colors.green);
     EXPECT_EQ(&map[ids.index][_3_][ids.value], &kb.colors.blue);
@@ -370,12 +328,14 @@ TEST_F(CellTest, Map)
 
 TEST_F(CellTest, MapTypes)
 {
-    Object map(kb, kb.type.Map, ids.constructor);
+    const auto getStruct = [this](CellI& id) -> CellI& { return static_cast<TrieMap&>((*kb.compiledGlobalScopePtr)[ids.structs]).getValue(id); };
+    auto& MapStruct      = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    Object map(kb, MapStruct, kb.id("constructor"));
     printAs.value(map.type());
     printAs.value(map[ids.list].type());
     printAs.value(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index].type(), "map[ids.index].type()");
-    map.method(ids.add, { ids.key, _1_ }, { ids.value, kb.colors.red });
+    map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.colors.red });
     printAs.value(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index].type(), "map[ids.index].type()");
     printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
@@ -429,14 +389,14 @@ TEST_F(CellTest, BuiltInMap)
 
 TEST_F(CellTest, MapTemplateTypes)
 {
-    CellI& MapNumberToColor = kb.type.Map.smethod(ids.template_, { ids.keyType, kb.type.Number }, { ids.objectType, kb.type.Color });
+    CellI& MapNumberToColor = kb.type.Map.smethod(kb.id("template_"), { ids.keyType, kb.type.Number }, { ids.objectType, kb.type.Color });
     Object map(kb, MapNumberToColor, ids.constructor);
     printAs.value(map.type());
     printAs.value(map[ids.list].type());
     printAs.cell(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index].type(), "map[ids.index].type()");
-    map.method(ids.add, { ids.key, _1_ }, { ids.value, kb.colors.red });
+    map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.colors.red });
     printAs.value(map, "map");
     printAs.cell(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index], "map[ids.index]");
@@ -472,33 +432,33 @@ TEST_F(CellTest, MapTemplateTypes)
 
 TEST_F(CellTest, MapNumberToColor)
 {
-    CellI& MapNumberToColor = kb.type.Map.smethod(ids.template_, { ids.keyType, kb.type.Number }, { ids.objectType, kb.type.Color });
+    CellI& MapNumberToColor = kb.type.Map.smethod(kb.id("template_"), { ids.keyType, kb.type.Number }, { ids.objectType, kb.type.Color });
     Object map(kb, MapNumberToColor, ids.constructor);
 
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[ids.size], &_0_);
-    EXPECT_EQ(&map.method(ids.size), &_0_);
-    EXPECT_EQ(&map.method(ids.empty), &true_);
+    EXPECT_EQ(&map.method(kb.id("size")), &_0_);
+    EXPECT_EQ(&map.method(kb.id("empty")), &true_);
     EXPECT_EQ(&map[ids.keyType], &kb.type.Number);
     EXPECT_EQ(&map[ids.objectType], &kb.type.Color);
 
-    map.method(ids.add, { ids.key, _1_}, { ids.value, kb.colors.red });
+    map.method(kb.id("add"), { ids.key, _1_}, { ids.value, kb.colors.red });
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[ids.size], &_1_);
-    EXPECT_EQ(&map.method(ids.size), &_1_);
+    EXPECT_EQ(&map.method(kb.id("size")), &_1_);
     EXPECT_EQ(&map[ids.list][ids.size], &_1_);
     EXPECT_EQ(&map[ids.list][ids.objectType], &kb.type.Color);
     EXPECT_EQ(&map[ids.list][ids.first][ids.value], &kb.colors.red);
     EXPECT_EQ(&map[ids.list][ids.first], &map[ids.list][ids.last]);
     EXPECT_TRUE(map[ids.index].has(_1_));
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.colors.red);
-    EXPECT_EQ(&map.method(ids.empty), &false_);
+    EXPECT_EQ(&map.method(kb.id("empty")), &false_);
     EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.type.Index));
 
-    map.method(ids.add, { ids.key, _2_ }, { ids.value, kb.colors.green });
-    map.method(ids.add, { ids.key, _3_ }, { ids.value, kb.colors.blue });
+    map.method(kb.id("add"), { ids.key, _2_ }, { ids.value, kb.colors.green });
+    map.method(kb.id("add"), { ids.key, _3_ }, { ids.value, kb.colors.blue });
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.colors.red);
     EXPECT_EQ(&map[ids.index][_2_][ids.value], &kb.colors.green);
     EXPECT_EQ(&map[ids.index][_3_][ids.value], &kb.colors.blue);
@@ -526,7 +486,7 @@ TEST_F(CellTest, ListItem)
 
 TEST_F(CellTest, ListItemTemplate)
 {
-    CellI& ListItemNumber = kb.type.ListItem.smethod(ids.template_, { ids.objectType, kb.type.Number });
+    CellI& ListItemNumber = kb.type.ListItem.smethod(kb.id("template_"), { ids.objectType, kb.type.Number });
     Object listItemNumber(kb, ListItemNumber, ids.constructor, { ids.value, _1_ });
 
     EXPECT_EQ(&listItemNumber[ids.value], &_1_);
@@ -549,7 +509,7 @@ TEST_F(CellTest, ListItemTemplate)
 
 TEST_F(CellTest, ListTemplate)
 {
-    CellI& ListOfNumbers = kb.type.List.smethod(ids.template_, { ids.objectType, kb.type.Number });
+    CellI& ListOfNumbers = kb.type.List.smethod(kb.id("template_"), { ids.objectType, kb.type.Number });
 
     EXPECT_EQ(&ListOfNumbers[ids.subTypes][ids.size], &_2_);
     EXPECT_TRUE(ListOfNumbers[ids.subTypes][ids.index].has(ids.objectType));
@@ -621,10 +581,10 @@ TEST_F(CellTest, HybridPicture)
     EXPECT_EQ(&picture[ids.height], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[ids.pixels][ids.type], &kb.type.ListOf(kb.type.Pixel));
 
-    CellI& ListOfPixels = kb.type.List.smethod(ids.template_, { ids.objectType, kb.type.Pixel });
+    CellI& ListOfPixels = kb.type.List.smethod(kb.id("template_"), { ids.objectType, kb.type.Pixel });
     Object listOfPixels(kb, ListOfPixels, ids.constructor, "listOfPixels");
-    listOfPixels.method(ids.add, { ids.value, picture[ids.pixels][ids.first][ids.value] });
-    listOfPixels.method(ids.add, { ids.value, picture[ids.pixels][ids.first][ids.next][ids.value] });
+    listOfPixels.method(kb.id("add"), { ids.value, picture[ids.pixels][ids.first][ids.value] });
+    listOfPixels.method(kb.id("add"), { ids.value, picture[ids.pixels][ids.first][ids.next][ids.value] });
     printAs.value(listOfPixels);
 }
 
@@ -633,9 +593,9 @@ TEST_F(CellTest, BasicObjectTest)
     Object testType(kb, kb.type.Type_, "Test");
     Object emptyList(kb, kb.type.List, ids.constructor);
 
-    testType.method(ids.addSlots, { ids.list, emptyList });
+    testType.method(kb.id("addSlots"), { ids.list, emptyList });
 
-    testType.method(ids.addSlots, { ids.list, kb.list(
+    testType.method(kb.id("addSlots"), { ids.list, kb.list(
         kb.type.slot(ids.result, kb.type.Digit),
         kb.type.slot(ids.value, kb.type.Number))}); // TODO implement type checking
 
@@ -706,7 +666,7 @@ TEST_F(CellTest, CreatingCustomType)
     colorClass.set(ids.slots, *slotMapPtr);
 #endif
 
-    colorClass.method(ids.addSlots, { ids.list, kb.list(kb.type.slot(colorRed, kb.type.Number), kb.type.slot(colorGreen, kb.type.Number), kb.type.slot(colorBlue, kb.type.Number)) });
+    colorClass.method(kb.id("addSlots"), { ids.list, kb.list(kb.type.slot(colorRed, kb.type.Number), kb.type.slot(colorGreen, kb.type.Number), kb.type.slot(colorBlue, kb.type.Number)) });
 
     Object redColor(kb, colorClass, "redColor");
     redColor.set(colorRed, kb.pools.numbers.get(255));
@@ -886,8 +846,8 @@ TEST_F(CellTest, NextgenBrainType)
 {
     Object map(kb, kb.type.Map, ids.constructor);
     EXPECT_EQ(&map[ids.size], &_0_);
-    EXPECT_EQ(&map.method(ids.size), &_0_);
-    EXPECT_EQ(&map.method(ids.empty), &true_);
+    EXPECT_EQ(&map.method(kb.id("size")), &_0_);
+    EXPECT_EQ(&map.method(kb.id("empty")), &true_);
     EXPECT_EQ(&map[ids.keyType], &kb.type.Cell);
     EXPECT_EQ(&map[ids.objectType], &kb.type.Cell);
     printAs.value(map.type());
@@ -895,43 +855,43 @@ TEST_F(CellTest, NextgenBrainType)
     printAs.value(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index].type(), "map[ids.index].type()");
 
-    map.method(ids.add, { ids.key, _1_ }, { ids.value, kb.colors.red });
+    map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.colors.red });
     printAs.value(map[ids.index], "map[ids.index]");
     printAs.value(map[ids.index].type(), "map[ids.index].type()");
     printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
     printAs.cell(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
     printAs.value(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
     EXPECT_EQ(&map[ids.size], &_1_);
-    EXPECT_EQ(&map.method(ids.size), &_1_);
+    EXPECT_EQ(&map.method(kb.id("size")), &_1_);
     EXPECT_EQ(&map[ids.list][ids.size], &_1_);
     EXPECT_EQ(&map[ids.list][ids.objectType], &kb.type.Cell);
     EXPECT_EQ(&map[ids.list][ids.first][ids.value], &kb.colors.red);
     EXPECT_EQ(&map[ids.list][ids.first], &map[ids.list][ids.last]);
     EXPECT_TRUE(map[ids.index].has(_1_));
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.colors.red);
-    EXPECT_EQ(&map.method(ids.empty), &false_);
+    EXPECT_EQ(&map.method(kb.id("empty")), &false_);
     EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.type.Index));
 
-    map.method(ids.add, { ids.key, _2_ }, { ids.value, kb.colors.green });
-    map.method(ids.add, { ids.key, _3_ }, { ids.value, kb.colors.blue });
+    map.method(kb.id("add"), { ids.key, _2_ }, { ids.value, kb.colors.green });
+    map.method(kb.id("add"), { ids.key, _3_ }, { ids.value, kb.colors.blue });
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.colors.red);
     EXPECT_EQ(&map[ids.index][_2_][ids.value], &kb.colors.green);
     EXPECT_EQ(&map[ids.index][_3_][ids.value], &kb.colors.blue);
     printAs.value(map);
     printAs.cell(map);
 
-    map.method(ids.remove, { ids.key, _3_ });
-    map.method(ids.remove, { ids.key, _2_ });
+    map.method(kb.id("remove"), { ids.key, _3_ });
+    map.method(kb.id("remove"), { ids.key, _2_ });
 
     EXPECT_EQ(&map[ids.size], &_1_);
-    EXPECT_EQ(&map.method(ids.size), &_1_);
+    EXPECT_EQ(&map.method(kb.id("size")), &_1_);
     EXPECT_EQ(&map[ids.list][ids.size], &_1_);
     EXPECT_EQ(&map[ids.list][ids.objectType], &kb.type.Cell);
     EXPECT_EQ(&map[ids.list][ids.first][ids.value], &kb.colors.red);
     EXPECT_EQ(&map[ids.list][ids.first], &map[ids.list][ids.last]);
     EXPECT_TRUE(map[ids.index].has(_1_));
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.colors.red);
-    EXPECT_EQ(&map.method(ids.empty), &false_);
+    EXPECT_EQ(&map.method(kb.id("empty")), &false_);
     EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.type.Index));
 }
 

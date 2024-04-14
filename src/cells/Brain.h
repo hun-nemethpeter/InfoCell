@@ -265,6 +265,7 @@ class Types
 public:
     Types(brain::Brain& kb);
 
+    cells::CellI& slot(const std::string& role, cells::CellI& type);
     cells::CellI& slot(cells::CellI& role, cells::CellI& type);
     Object& ListOf(CellI& type);
     Object& MapOf(CellI& keyType, CellI& valueType);
@@ -350,7 +351,7 @@ public:
     protected:
         CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<void(CellI& structReference)> unknownCb);
         CellI& resolveStructId(CellI& structId, CellI& resolveState);
-        CellI& resolveTemplateInstanceId(CellI& structId, CellI& resolveState, CellI& templateId, CellI& templateParams);
+        CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
         CellI& resolveTemplatedType(CellI& ast, CellI& resolveState);
         List& generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState, List& resolvedParams);
     };
@@ -449,6 +450,8 @@ public:
     public:
         Scope(brain::Brain& kb, const std::string& name);
 
+        bool hasScope(CellI& id);
+        Scope& getScope(CellI& id);
         Scope& addScope(const std::string& name);
         void addScope(Scope& scope);
 
@@ -472,6 +475,9 @@ public:
         StructT& getStructT(CellI& id);
         StructT& addStructT(const std::string& name);
 
+        Scope* resolveFullTemplateId(CellI& scopeList, CellI& id);
+        Scope* getRootScope();
+
         CellI& compile();
 
     protected:
@@ -493,9 +499,9 @@ public:
         StructBase(brain::Brain& kb, CellI& astType, const std::string& name);
 
         Function& addMethod(const std::string& name);
-        Function& addMethod(CellI& id, const std::string& label);
         void addMethod(Function& method);
 
+    public:
         void members(Slot& param);
         template <typename... Args>
         void members(Slot& param, Args&&... args)
@@ -536,7 +542,6 @@ public:
         Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
         Struct(brain::Brain& kb, const std::string& name);
 
-        void implicitInstantiation(CellI& state);
         Struct& resolveTypes(CellI& resolveState);
         CellI& compile(CellI& state);
     };
@@ -866,11 +871,11 @@ public:
     Var& var(CellI& role);
     Member& member(CellI& role);
     SubType& subType(CellI& role);
-    TemplatedType& templatedType(CellI& role, CellI& type);
+    TemplatedType& templatedType(const std::string& id, CellI& type);
     template <typename... Args>
-    TemplatedType& templatedType(CellI& id, CellI& role, CellI& type, Args&&... args);
+    TemplatedType& templatedType(const std::string& id, CellI& role, CellI& type, Args&&... args);
     template <typename... Args>
-    TemplatedType& templatedType(CellI& id, CellI& role, const std::string& type, Args&&... args);
+    TemplatedType& templatedType(const std::string& id, CellI& role, const std::string& type, Args&&... args);
 
     TemplateParam& templateParam(CellI& role);
     New& new_(Base& objectType);
@@ -1047,31 +1052,23 @@ protected:
 protected:
     Ast::Cell& _(CellI& cell);
     Ast::Parameter& p_(CellI& role);
-    Ast::Member& m_(CellI&);
-    Ast::Var& var_(CellI&);
-    Ast::Slot& param(CellI&, CellI&);
-    Ast::Slot& member(CellI&, CellI&);
+    Ast::Member& m_(CellI& role);
+    Ast::Var& var_(const std::string& name);
+    Ast::Slot& param(CellI& role, CellI& value);
+    Ast::Slot& member(CellI& role, CellI& type);
     template <typename... Args>
-    Ast::Cell& st_(const std::string& name, Args&&... args)
-    {
-        return ast.subType(pools.strings.get(name)[ids.value], std::forward<Args>(args)...);
-    }
+    Ast::Cell& st_(const std::string& name, Args&&... args);
     Ast::TemplateParam& tp_(CellI&);
-
     template <typename... Args>
-    Ast::TemplatedType& tt_(const std::string& name, Args&&... args)
-    {
-        return ast.templatedType(pools.strings.get(name)[ids.value], std::forward<Args>(args)...);
-    }
-
-    Ast::StructRef& struct_(const std::string&);
+    Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
+    Ast::StructRef& struct_(const std::string& name);
 
 public:
     Brain();
     ~Brain();
     ID ids;
-    Types type;
     Pools pools;
+    Types type;
     Ast ast;
     Directions directions;
     Coordinates coordinates;
@@ -1093,57 +1090,23 @@ public:
     CellI& _9_;
 
     Ast::Scope globalScope;
-    TrieMap* compiledStructsPtr = nullptr;
+    CellI* compiledGlobalScopePtr = nullptr;
 
 public:
     CellI& id(const std::string& str);
     template <typename... Args>
-    CellI& templateId(const std::string& str, Args&&... args)
-    {
-        List& idCell = *new List(*this, type.Cell);
-        for (const auto& character : str) {
-            idCell.add(pools.chars.get(character));
-        }
-        idCell.add(std::forward<Args>(args)...);
-
-        return idCell;
-    }
+    CellI& templateId(const std::string& str, Args&&... args);
 
     CellI& toKbBool(bool value);
 
     template <typename... Args>
-    List& list(CellI& value, Args&&... args)
-    {
-        List& ret = *new List(*this, value.type());
-        ret.add(value);
-        if constexpr (sizeof...(Args) > 0) {
-            ret.add(std::forward<Args>(args)...);
-        }
-
-        return ret;
-    }
+    List& list(CellI& value, Args&&... args);
 
     template <typename... Args>
-    Map& map(CellI& key, CellI& value, Args&&... args)
-    {
-        Map& ret = *new Map(*this, key.type(), value.type(), std::format("Map<{}, {}>(...)", key.type().label(), value.type().label()));
-        if constexpr (sizeof...(Args) > 0) {
-            ret.add(std::forward<Args>(args)...);
-        }
-
-        return ret;
-    }
+    Map& map(CellI& key, CellI& value, Args&&... args);
 
     template <typename... Args>
-    Set& set(CellI& value, Args&&... args)
-    {
-        Set& ret = *new Set(*this, value.type(), std::format("Map<{}, {}>(...)", value.type().label()));
-        if constexpr (sizeof...(Args) > 0) {
-            ret.add(std::forward<Args>(args)...);
-        }
-
-        return ret;
-    }
+    Set& set(CellI& value, Args&&... args);
 
     void addSlots(Map&)
     {
@@ -1151,24 +1114,90 @@ public:
     }
 
     template <typename... Args>
-    void addSlots(Map& map, CellI& value, Args&&... args)
-    {
-        map.add(value[ids.slotRole], value);
-        addSlots(map, std::forward<Args>(args)...);
-    }
+    void addSlots(Map& map, CellI& value, Args&&... args);
 
     template <typename... Args>
-    Map& slots(CellI& value, Args&&... args)
-    {
-        Map& ret = *new Map(*this, type.Cell, type.Slot, "Map<Cell, Slot>(...)");
-        addSlots(ret, value, std::forward<Args>(args)...);
-
-        return ret;
-    }
+    Map& slots(CellI& value, Args&&... args);
 
     InitPhase initPhase();
 };
 
+#pragma region Brain
+template <typename... Args>
+Ast::Cell& Brain::st_(const std::string& name, Args&&... args)
+{
+    return ast.subType(id(name), std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+Ast::TemplatedType& Brain::tt_(const std::string& name, Args&&... args)
+{
+    return ast.templatedType(name, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+CellI& Brain::templateId(const std::string& str, Args&&... args)
+{
+    List& idCell = *new List(*this, type.Cell);
+    for (const auto& character : str) {
+        idCell.add(pools.chars.get(character));
+    }
+    idCell.add(std::forward<Args>(args)...);
+
+    return idCell;
+}
+
+template <typename... Args>
+List& Brain::list(CellI& value, Args&&... args)
+{
+    List& ret = *new List(*this, value.type());
+    ret.add(value);
+    if constexpr (sizeof...(Args) > 0) {
+        ret.add(std::forward<Args>(args)...);
+    }
+
+    return ret;
+}
+
+template <typename... Args>
+Map& Brain::map(CellI& key, CellI& value, Args&&... args)
+{
+    Map& ret = *new Map(*this, key.type(), value.type(), std::format("Map<{}, {}>(...)", key.type().label(), value.type().label()));
+    if constexpr (sizeof...(Args) > 0) {
+        ret.add(std::forward<Args>(args)...);
+    }
+
+    return ret;
+}
+
+template <typename... Args>
+Set& Brain::set(CellI& value, Args&&... args)
+{
+    Set& ret = *new Set(*this, value.type(), std::format("Map<{}, {}>(...)", value.type().label()));
+    if constexpr (sizeof...(Args) > 0) {
+        ret.add(std::forward<Args>(args)...);
+    }
+
+    return ret;
+}
+
+template <typename... Args>
+void Brain::addSlots(Map& map, CellI& value, Args&&... args)
+{
+    map.add(value[ids.slotRole], value);
+    addSlots(map, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+Map& Brain::slots(CellI& value, Args&&... args)
+{
+    Map& ret = *new Map(*this, type.Cell, type.Slot, "Map<Cell, Slot>(...)");
+    addSlots(ret, value, std::forward<Args>(args)...);
+
+    return ret;
+}
+#pragma endregion
+#pragma region Ast
 template <typename... Args>
 Ast::Block& Ast::block(Args&&... args)
 {
@@ -1223,7 +1252,7 @@ Ast::StaticCall& Ast::scall(CellI& object, const std::string& method, Args&&... 
 }
 
 template <typename... Args>
-Ast::TemplatedType& Ast::templatedType(CellI& id, CellI& role, CellI& type, Args&&... args)
+Ast::TemplatedType& Ast::templatedType(const std::string& id, CellI& role, CellI& type, Args&&... args)
 {
     auto& ret = templatedType(id, kb.ast.slot(role, type));
     if constexpr (sizeof...(Args) > 0) {
@@ -1233,7 +1262,7 @@ Ast::TemplatedType& Ast::templatedType(CellI& id, CellI& role, CellI& type, Args
 }
 
 template <typename... Args>
-Ast::TemplatedType& Ast::templatedType(CellI& id, CellI& role, const std::string& type, Args&&... args)
+Ast::TemplatedType& Ast::templatedType(const std::string& id, CellI& role, const std::string& type, Args&&... args)
 {
     auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structRef(kb.id(type))));
     if constexpr (sizeof...(Args) > 0) {
@@ -1247,6 +1276,7 @@ void Ast::Function::code(Args&&... args)
 {
     addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
 }
+#pragma endregion
 
 } // namespace brain
 } // namespace cells
