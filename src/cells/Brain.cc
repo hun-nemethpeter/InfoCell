@@ -784,6 +784,7 @@ Object& Types::ListOf(CellI& type)
         listType.set(kb.ids.subTypes, kb.map(kb.type.Cell, kb.type.Type_, kb.ids.objectType, type, kb.ids.itemType, itemType));
         listType.set(kb.ids.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.List, kb.type.List));
         itemType.set(kb.ids.memberOf, kb.map(kb.type.Type_, kb.type.Type_, kb.type.ListItem, kb.type.ListItem));
+        itemType.set(kb.ids.subTypes, kb.map(kb.type.Cell, kb.type.Type_, kb.ids.objectType, type, kb.ids.itemType, itemType));
 
         CellI* map = nullptr;
 
@@ -2104,7 +2105,7 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
             return kb.ast.if_(instantiate(ast[ids.condition]), instantiate(ast[ids.then]));
         }
     } else if (&ast.type() == &kb.type.ast.Do) {
-        return kb.ast.do_(instantiate(ast[ids.condition]), instantiate(ast[ids.statement]));
+        return kb.ast.do_(instantiate(ast[ids.statement]), instantiate(ast[ids.condition]));
     } else if (&ast.type() == &kb.type.ast.While) {
         return kb.ast.while_(instantiate(ast[ids.condition]), instantiate(ast[ids.statement]));
     } else if (&ast.type() == &kb.type.ast.And) {
@@ -2327,7 +2328,7 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
             return kb.ast.if_(resolveNode(ast[ids.condition]), resolveNode(ast[ids.then]));
         }
     } else if (&ast.type() == &kb.type.ast.Do) {
-        return kb.ast.do_(resolveNode(ast[ids.condition]), resolveNode(ast[ids.statement]));
+        return kb.ast.do_(resolveNode(ast[ids.statement]), resolveNode(ast[ids.condition]));
     } else if (&ast.type() == &kb.type.ast.While) {
         return kb.ast.while_(resolveNode(ast[ids.condition]), resolveNode(ast[ids.statement]));
     } else if (&ast.type() == &kb.type.ast.And) {
@@ -3000,7 +3001,7 @@ Ast::While::While(brain::Brain& kb, Base& condition, Base& statement) :
 }
 
 Ast::Var::Var(brain::Brain& kb, CellI& role) :
-    BaseT<Var>(kb, kb.type.ast.Var, "ast.var")
+    BaseT<Var>(kb, kb.type.ast.Var, std::format("var {}", role.label()))
 {
     set(kb.ids.role, role);
 }
@@ -4149,8 +4150,11 @@ void Brain::createTests()
     auto& testStruct                 = testScope.addStruct("Test");
     auto& testCreateNewListOfNumbers = testStruct.addMethod("testCreateNewListOfNumbers");
     testCreateNewListOfNumbers.code(
-        var_("result1") = ast.new_(tt_("std::List", ids.objectType, _(type.Number))), // implicit instantiation
-        var_("result2") = ast.new_(tt_("std::Set", ids.objectType, _(type.Number)))); // implicit instantiation
+        var_("result") = ast.new_(tt_("std::List", ids.objectType, _(type.Number))),
+        var_("result") = ast.new_(tt_("std::List", ids.objectType, _(type.Cell))),
+        var_("result") = ast.new_(tt_("std::List", ids.objectType, _(type.Pixel))),
+        var_("result") = ast.new_(tt_("std::Set", ids.objectType, _(type.Number))),
+        var_("result") = ast.new_(tt_("std::Map", ids.keyType, _(type.Number), ids.objectType, _(type.Color))));
 
     CellI* mapPtr = nullptr;
     mapPtr        = &slots(type.slot(ids.value, type.ListOf(type.Digit)),
@@ -4435,9 +4439,13 @@ Brain::Brain() :
     m_initPhase               = InitPhase::FullyConstructed;
 
     // Test should be removed from here
-    auto& compiledStructs     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]);
-    auto& compiledTypeStruct  = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("Type"));
-    auto& compiledIndexStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("Index"));
+    auto& compiledStructs        = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]);
+    auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("ListItem", ids.objectType, type.Cell));
+    auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("List", ids.objectType, type.Cell));
+    auto& compiledTypeStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("Type"));
+    auto& compiledIndexStruct    = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("Index"));
+    type.ListItem.set(ids.methods, compiledListItemStruct[ids.methods]);
+    type.List.set(ids.methods, compiledListStruct[ids.methods]);
     type.Type_.set(ids.methods, compiledTypeStruct[ids.methods]);
 
     Object testType(*this, compiledTypeStruct, id("constructor"), "testType");

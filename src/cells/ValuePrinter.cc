@@ -518,9 +518,17 @@ void CellValuePrinter::printTypeName(CellI& cell)
         m_ss << std::format("Map<{}, {}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label(), cell[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label());
         return;
     } else if (isA(kb.type.ListItem)) {
+        if (&cell == &kb.type.ListItem) {
+            m_ss << "ListItem";
+            return;
+        }
         m_ss << std::format("ListItem<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label());
         return;
     } else if (isA(kb.type.List)) {
+        if (&cell == &kb.type.List) {
+            m_ss << "List";
+            return;
+        }
         m_ss << std::format("List<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label());
         return;
     }

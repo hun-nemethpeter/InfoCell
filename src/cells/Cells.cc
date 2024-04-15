@@ -307,6 +307,9 @@ void Object::operator()()
         CellI& inputCell = get(kb.ids.cell);
         inputCell();
         CellI& cell      = inputCell[kb.ids.value];
+        if (cell.label() == "var next") {
+            std::cout << "";
+        }
         CellI& inputRole = get(kb.ids.role);
         inputRole();
         CellI& role       = inputRole[kb.ids.value];
@@ -740,9 +743,10 @@ void Object::initLocalVars(CellI& method)
     CellI& stackFrame      = method[kb.ids.stack][kb.ids.value];
     stackFrame.set(kb.ids.localVars, localVarsIndex);
     Visitor::visitList(localVarsType[kb.ids.slots][kb.ids.list], [this, &localVarsIndex](CellI& slot, int i, bool&) {
-        Object& localVar = *new Object(kb, kb.type.op.Var, "localVar");
+        auto& slotRole   = slot[kb.ids.slotRole];
+        Object& localVar = *new Object(kb, kb.type.op.Var, std::format("var {}", slotRole.label()));
         localVar.set(kb.ids.objectType, slot[kb.ids.slotType]);
-        localVarsIndex.set(slot[kb.ids.slotRole], localVar);
+        localVarsIndex.set(slotRole, localVar);
     });
 }
 
