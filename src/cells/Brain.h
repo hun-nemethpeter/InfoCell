@@ -308,10 +308,14 @@ public:
     public:
         StructRef(brain::Brain& kb, CellI& value);
     };
+    class Call;
     class Self : public BaseT<Self>
     {
     public:
         Self(brain::Brain& kb);
+        Call& call(const std::string& method);
+        template <typename... Args>
+        Call& call(const std::string& method, Args&&... args);
     };
     class SelfFn : public BaseT<SelfFn>
     {
@@ -1161,6 +1165,12 @@ Ast::New& Ast::new_(const std::string& objectType, const std::string& constructo
         ret.addParam(std::forward<Args>(args)...);
     }
     return ret;
+}
+
+template <typename... Args>
+Ast::Call& Ast::Self::call(const std::string& method, Args&&... args)
+{
+    return kb.ast.call(*this, method, std::forward<Args>(args)...);
 }
 
 template <typename... Args>

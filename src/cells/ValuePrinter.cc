@@ -63,6 +63,9 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         if (&ast[kb.ids.cell].type() == &kb.type.ast.Member) {
             m_ss << "m_" << ast[kb.ids.cell][kb.ids.role].label();
         }
+        if (&ast[kb.ids.cell].type() == &kb.type.ast.Parameter) {
+            m_ss << "p_" << ast[kb.ids.cell][kb.ids.role].label();
+        }
         if (ast.has(kb.ids.method)) {
             if (&ast.type() == &kb.type.ast.Call) {
                 m_ss << ".";
@@ -249,7 +252,7 @@ void CellValuePrinter::printOpDo(CellI& cell)
 void CellValuePrinter::printOpWhile(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << "while )";
+    m_ss << "while (";
     printImpl(cell[kb.ids.condition]);
     m_ss << ") ";
     printImpl(cell[kb.ids.statement]);
@@ -555,6 +558,10 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         return;
     } else if (is(kb.type.List)) {
+        if (&cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value] == &kb.type.Char) {
+            m_ss << cell.label();
+            return;
+        }
         printTypeName(cell.type());
         m_ss << "[";
         visitList(cell, [this](CellI& value, int i, bool&) {
@@ -577,8 +584,9 @@ void CellValuePrinter::printImpl(CellI& cell)
                 m_ss << ", ";
             }
             value[kb.ids.slotRole].accept(*this);
-            m_ss << ": ";
+            m_ss << ": {";
             cell[kb.ids.index][value[kb.ids.slotRole]][kb.ids.value].accept(*this);
+            m_ss << "}";
         });
         m_ss << "}";
         return;

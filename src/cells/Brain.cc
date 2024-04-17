@@ -1040,6 +1040,11 @@ Ast::Self::Self(brain::Brain& kb) :
 {
 }
 
+Ast::Call& Ast::Self::call(const std::string& method)
+{
+    return kb.ast.call(*this, method);
+}
+
 Ast::SelfFn::SelfFn(brain::Brain& kb) :
     BaseT<SelfFn>(kb, kb.type.ast.SelfFn, "ast.selfFn")
 {
@@ -1341,6 +1346,8 @@ Ast::Scope* Ast::Scope::getRootScope()
     return currentScope;
 }
 
+static bool debugCompiledStructs = false;
+
 CellI& Ast::Scope::compile()
 {
     auto& program     = *new Object(kb, kb.type.Program, "Program");
@@ -1378,17 +1385,21 @@ CellI& Ast::Scope::compile()
     resolveTypes(compileState);
 
     Visitor::visitList(unknownStructs["list"], [this](CellI& unknownStruct, int i, bool& stop) {
-        std::cout << "unknown struct: " << unknownStruct["value"].label() << std::endl;
+        if (debugCompiledStructs) {
+            std::cout << "unknown struct: " << unknownStruct["value"].label() << std::endl;
+        }
     });
     int instantiedNum = 0;
     Visitor::visitList(unknownInstances["list"], [this, &compileState, &instantiedNum](CellI& unknownInstance, int i, bool& stop) {
         auto& unknownInstanceId = unknownInstance["id"];
-        std::cout << "unknown instance: " << unknownInstanceId.label() << std::endl;
-        if (unknownInstance.has("currentStruct")) {
-            std::cout << "     from struct: " << unknownInstance["currentStruct"].label() << std::endl;
-        }
-        if (unknownInstance.has("currentFn")) {
-            std::cout << "   from function: " << unknownInstance["currentFn"].label() << std::endl;
+        if (debugCompiledStructs) {
+            std::cout << "unknown instance: " << unknownInstanceId.label() << std::endl;
+            if (unknownInstance.has("currentStruct")) {
+                std::cout << "     from struct: " << unknownInstance["currentStruct"].label() << std::endl;
+            }
+            if (unknownInstance.has("currentFn")) {
+                std::cout << "   from function: " << unknownInstance["currentFn"].label() << std::endl;
+            }
         }
         std::stringstream ss;
 
@@ -1405,9 +1416,9 @@ CellI& Ast::Scope::compile()
             ss << std::format("{}: {}", paramId.label(), paramType.label());
         });
         ss << ">";
-        std::cout << ss.str() << "\n" << std::endl;
-        if (unknownInstanceId.label() == "ListItem<objectType=Slot>") {
-            std::cout << "";
+        if (debugCompiledStructs) {
+            std::cout << ss.str() << "\n"
+                      << std::endl;
         }
 
         auto& scope = static_cast<Scope&>(unknownInstance["scope"]);
@@ -1701,7 +1712,9 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     state.set("currentStruct", ret);
 
     std::stringstream ss;
-    ss << std::format("struct {}", label());
+    if (debugCompiledStructs) {
+        ss << std::format("struct {}", label());
+    }
 
     // resolve memberOf list
     if (has("memberOf")) {
@@ -1715,7 +1728,9 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             ret.memberOf(resolvedMembershipType);
         });
     }
-    std::cout << ss.str() << " {" << std::endl;
+    if (debugCompiledStructs) {
+        std::cout << ss.str() << " {" << std::endl;
+    }
 
     // resolve sub types
     if (has("subTypes")) {
@@ -1724,10 +1739,14 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& subTypeType         = subTypeCell["slotType"];
             CellI& resolvedSubTypeType = resolveType(subTypeType, state);
             ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
-            std::cout << std::format("    alias {} = {};", subTypeId.label(), resolvedSubTypeType.label()) << std::endl;
+            if (debugCompiledStructs) {
+                std::cout << std::format("    alias {} = {};", subTypeId.label(), resolvedSubTypeType.label()) << std::endl;
+            }
         });
-        if (has("methods") || has("members")) {
-            std::cout << std::endl;
+        if (debugCompiledStructs) {
+            if (has("methods") || has("members")) {
+                std::cout << std::endl;
+            }
         }
     }
 
@@ -1737,10 +1756,14 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             auto& origAstFunction = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = origAstFunction.resolveTypes(state);
             ret.addMethod(resolvedAstFunction);
-            std::cout << std::format("    {};\n", resolvedAstFunction.shortName());
+            if (debugCompiledStructs) {
+                std::cout << std::format("    {};\n", resolvedAstFunction.shortName());
+            }
         });
-        if (has("members")) {
-            std::cout << std::endl;
+        if (debugCompiledStructs) {
+            if (has("members")) {
+                std::cout << std::endl;
+            }
         }
     }
     // resolve members
@@ -1750,11 +1773,15 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& memberType = memberCell["slotType"];
             CellI& resolvedMemberType = resolveType(memberType, state);
             ret.members(kb.ast.slot(memberId, resolvedMemberType));
-            std::cout << std::format("    {}: {};", memberId.label(), resolvedMemberType.label()) << std::endl;
+            if (debugCompiledStructs) {
+                std::cout << std::format("    {}: {};", memberId.label(), resolvedMemberType.label()) << std::endl;
+            }
         });
     }
 
-    std::cout << "}" << std::endl;
+    if (debugCompiledStructs) {
+        std::cout << "}" << std::endl;
+    }
 
     return ret;
 }
@@ -1763,6 +1790,7 @@ CellI& Ast::Struct::compile(CellI& state)
 {
     auto& structId        = get("id");
     CellI& compiledStruct = getResolvedTypeById(structId, has("instanceOf"), state);
+    compiledStruct.erase("incomplete");
     // std::cout << std::format("DDDD compile {} resolved at {:p}\n", structId.label(), (void*)&compiledStruct) << std::endl;
 
     // compile methods
@@ -4196,7 +4224,7 @@ void Brain::createTests()
     numberFactorial.returnType(_(type.Number));
     numberFactorial.code(
         ast.if_(ast.greaterThanOrEqual(p_("input"), _(_1_)),
-                ast.return_(ast.multiply(p_("input"), ast.call(ast.self(), "factorial", param("input", ast.subtract(p_("input"), _(_1_)))))),
+                ast.return_(ast.multiply(p_("input"), ast.self().call("factorial", param("input", ast.subtract(p_("input"), _(_1_)))))),
                 ast.return_(_(_1_))));
 
     // TODO
@@ -4215,25 +4243,24 @@ void Brain::createArcSolver()
 
     auto& pixelStruct = arcScope.addStruct("Pixel");
     pixelStruct.members(
-        member("up", struct_("Pixel")),
-        member("down", struct_("Pixel")),
-        member("left", struct_("Pixel")),
-        member("right", struct_("Pixel")),
         member("x", _(type.Number)),
         member("y", _(type.Number)));
 
-    auto& pictureStruct = arcScope.addStruct("Picture");
-    pictureStruct.members(
-        member("width", _(type.Number)),
-        member("height", _(type.Number)),
-        member("pixels", tt_("std::List", "objectType", "Pixel")));
+    Ast::Function& pixelCtor = pixelStruct.addMethod("constructor");
+    pixelCtor.parameters(
+        param("x", _(type.Number)),
+        param("y", _(type.Number)));
+    pixelCtor.code(
+        m_("x") = p_("x"),
+        m_("y") = p_("y"));
 
     auto& shapeStruct = arcScope.addStruct("Shape");
     shapeStruct.members(
         member("color", struct_("Color")),
         member("width", _(type.Number)),
         member("height", _(type.Number)),
-        member("pixels", tt_("std::List", "objectType", "Pixel")));
+        member("hybridPixels", tt_("std::Set", "objectType", _(type.Pixel))),
+        member("pixels", tt_("std::List", "objectType", struct_("Pixel"))));
 
     auto& shaperStruct = arcScope.addStruct("Shaper");
     shaperStruct.members(
@@ -4241,7 +4268,7 @@ void Brain::createArcSolver()
         member("height", _(type.Number)),
         member("picture", _(type.Picture)),
         member("shapes", tt_("std::List", "objectType", "Shape")),
-        member("inputPixels", tt_("std::List", "objectType", "Pixel")));
+        member("inputPixels", tt_("std::Set", "objectType", _(type.Pixel))));
 
     /*
     * class Shape
@@ -4273,7 +4300,8 @@ public:
     shapeAddPixel.parameters(
         param("pixel", struct_("Pixel")));
     shapeAddPixel.code(
-        m_("pixels").call("add", param("value", p_("pixel"))));
+        m_("pixels").call("add", param("value", p_("pixel"))),
+        m_("hybridPixels").call("add", param("value", p_("pixel"))));
 
     /*
     bool Shape::hasPixel(cells::hybrid::Pixel& pixel) const
@@ -4283,9 +4311,10 @@ public:
     */
     Ast::Function& shapeHasPixel = shapeStruct.addMethod("hasPixel");
     shapeHasPixel.parameters(
-        param("pixel", struct_("Pixel")));
+        param("pixel", _(type.Pixel)));
+    shapeHasPixel.returnType(_(type.Boolean)); // maybe hybrid pixel?!
     shapeHasPixel.code(
-        m_("pixels") / "index" / p_("pixel")); // TODO we need a Set class
+        ast.return_(m_("hybridPixels").call("contains", param("value", p_("pixel")))));
 
     /*
     Shaper::Shaper(const cells::hybrid::Picture& picture) :
@@ -4301,12 +4330,12 @@ public:
     shaperCtor.parameters(
         param("width", _(type.Number)),
         param("height", _(type.Number)),
-        param("picture", struct_("Picture")));
+        param("picture", _(type.Picture)));
     shaperCtor.code(
         m_("width")   = p_("width"),
         m_("height")  = p_("height"),
         m_("picture") = p_("picture"),
-        ast.call(ast.self(), _("processInputPixels")));
+        ast.self().call("processInputPixels"));
     /*
     void Shaper::processInputPixels()
     {
@@ -4362,7 +4391,7 @@ public:
                        ast.while_(ast.not_(ast.call(*var_("checkPixels"), _("empty"))),
                                   ast.block(
                                       var_("checkPixel") = ast.call(*var_("checkPixels"), "first"),
-                                      ast.call(ast.self(), "processPixel", param("shape", *var_("shape")), param("checkPixels", *var_("checkPixels")), param("checkPixel", *var_("checkPixel"))),
+                                      ast.self().call("processPixel", param("shape", *var_("shape")), param("checkPixels", *var_("checkPixels")), param("checkPixel", *var_("checkPixel"))),
                                       ast.call(*var_("checkPixels"), "erase", param("value", *var_("firstPixel"))))),
                        ast.call(*var_("shape"), _("sortPixels")))));
 
@@ -4387,21 +4416,21 @@ public:
     Ast::Function& shaperProcessPixel = shaperStruct.addMethod("processPixel");
     shaperProcessPixel.parameters(
         param("shape", struct_("Shape")),
-        param("checkPixels", tt_("std::List", "objectType", "Pixel")),
+        param("checkPixels", tt_("std::Set", "objectType", "Pixel")),
         param("checkPixel", struct_("Pixel")));
     shaperProcessPixel.code(
         ast.call(p_("shape"), "addPixel", param("pixel", p_("checkPixel"))),
         m_("inputPixels").call("erase", param("pixel", p_("checkPixel"))),
-        ast.if_(var_("pixel") = ast.call(ast.self(), "processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+        ast.if_(var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
                 ast.block(
-                    ast.call(ast.self(), "processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
-                    ast.call(ast.self(), "processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
-        ast.if_(var_("pixel") = ast.call(ast.self(), "processAdjacentPixel", param("direction", _(directions.down)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+                    ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
+                    ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
+        ast.if_(var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.down)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
                 ast.block(
-                    ast.call(ast.self(), "processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
-                    ast.call(ast.self(), "processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
-        ast.call(ast.self(), "processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
-        ast.call(ast.self(), "processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))));
+                    ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
+                    ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
+        ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+        ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))));
 
     /*
     cells::hybrid::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)

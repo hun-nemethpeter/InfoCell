@@ -93,6 +93,11 @@ protected:
     {
     }
 
+    void printMethodInType(CellI& type, const std::string& method)
+    {
+        printAs.value(type[ids.methods][ids.index][kb.id(method)][ids.value]);
+    };
+
     CellI& getStruct(CellI& id)
     {
         return static_cast<TrieMap&>((*kb.compiledGlobalScopePtr)[ids.structs]).getValue(id);
@@ -124,45 +129,80 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 // create an own type for every function to able to save return values to the fn object
 // remove .label() from CellI
 
-TEST_F(CellTest, PrintMethod)
+TEST_F(CellTest, PrintStdCodes)
 {
-    const auto printOp = [this](CellI& type, const std::string& method) { printAs.value(type[ids.methods][ids.index][kb.id(method)][ids.value]); };
-
 #if 1
-    auto& MapStruct      = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
-    auto& TestStruct     = getStruct(kb.id("Test"));
-    auto& TypeStruct     = getStruct(kb.id("Type"));
-    auto& ListStruct     = getStruct(kb.templateId("List", ids.objectType, kb.type.Number));
     auto& ListItemStruct = getStruct(kb.templateId("ListItem", ids.objectType, kb.type.Number));
+    auto& ListStruct     = getStruct(kb.templateId("List", ids.objectType, kb.type.Number));
+    auto& MapStruct      = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& SetStruct     =  getStruct(kb.templateId("Set", ids.objectType, kb.type.Number));
+    auto& TypeStruct     = getStruct(kb.id("Type"));
 
-    printOp(MapStruct, "constructor");
-    printOp(MapStruct, "constructorWithIndexType");
-    printOp(MapStruct, "add");
-    printOp(MapStruct, "empty");
-    printOp(MapStruct, "getValue");
-    printOp(MapStruct, "hasKey");
-    printOp(MapStruct, "remove");
-    printOp(MapStruct, "size");
+    printAs.value(ListItemStruct);
+    printMethodInType(ListItemStruct, "constructor");
 
-    printOp(TypeStruct, "constructor");
-    printOp(TypeStruct, "constructorWithRecursiveType");
-    printOp(TypeStruct, "addMembership");
-    printOp(TypeStruct, "addSlot");
-    printOp(TypeStruct, "addSlots");
-    printOp(TypeStruct, "addSubType");
-    printOp(TypeStruct, "hasSlot");
-    printOp(TypeStruct, "removeSlot");
+    printAs.value(ListStruct);
+    printMethodInType(ListStruct, "constructor");
+    printMethodInType(ListStruct, "add");
+    printMethodInType(ListStruct, "remove");
+    printMethodInType(ListStruct, "size");
+    printMethodInType(ListStruct, "empty");
 
-    printOp(ListItemStruct, "constructor");
+    printAs.value(MapStruct);
+    printMethodInType(MapStruct, "constructor");
+    printMethodInType(MapStruct, "constructorWithIndexType");
+    printMethodInType(MapStruct, "add");
+    printMethodInType(MapStruct, "empty");
+    printMethodInType(MapStruct, "getValue");
+    printMethodInType(MapStruct, "hasKey");
+    printMethodInType(MapStruct, "remove");
+    printMethodInType(MapStruct, "size");
 
-    printOp(ListStruct, "constructor");
-    printOp(ListStruct, "add");
-    printOp(ListStruct, "remove");
-    printOp(ListStruct, "size");
-    printOp(ListStruct, "empty");
+    printAs.value(SetStruct);
+    printMethodInType(SetStruct, "constructor");
+    printMethodInType(SetStruct, "add");
+    printMethodInType(SetStruct, "contains");
+    printMethodInType(SetStruct, "erase");
+    printMethodInType(SetStruct, "size");
+    printMethodInType(SetStruct, "empty");
 
-    printOp(TestStruct, "factorial");
+    printAs.value(TypeStruct);
+    printMethodInType(TypeStruct, "constructor");
+    printMethodInType(TypeStruct, "constructorWithRecursiveType");
+    printMethodInType(TypeStruct, "addMembership");
+    printMethodInType(TypeStruct, "addSlot");
+    printMethodInType(TypeStruct, "addSlots");
+    printMethodInType(TypeStruct, "addSubType");
+    printMethodInType(TypeStruct, "hasSlot");
+    printMethodInType(TypeStruct, "removeSlot");
+
 #endif
+}
+
+TEST_F(CellTest, PrintTestCodes)
+{
+#if 0
+    auto& TestStruct = getStruct(kb.id("Test"));
+    printMethodInType(TestStruct, "factorial");
+#endif
+}
+
+TEST_F(CellTest, PrintArcCodes)
+{
+    auto& ShapeStruct  = getStruct(kb.id("Shape"));
+    auto& ShaperStruct = getStruct(kb.id("Shaper"));
+
+    printAs.value(ShapeStruct);
+    printMethodInType(ShapeStruct, "constructor");
+    printMethodInType(ShapeStruct, "addPixel");
+    printMethodInType(ShapeStruct, "hasPixel");
+
+    printAs.value(ShaperStruct);
+    printMethodInType(ShaperStruct, "constructor");
+    printMethodInType(ShaperStruct, "processInputPixels");
+    printMethodInType(ShaperStruct, "process");
+    printMethodInType(ShaperStruct, "processPixel");
+    printMethodInType(ShaperStruct, "processAdjacentPixel");
 }
 
 TEST_F(CellTest, RecursiveCall)
