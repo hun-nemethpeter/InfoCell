@@ -831,6 +831,7 @@ public:
     Equal& equal(Base& lhs, Base& rhs);
     NotEqual& notEqual(Base& lhs, Base& rhs);
     Has& has(Base& cell, Base& role);
+    Has& has(Base& cell, const std::string& role);
     Missing& missing(Base& cell, Base& role);
     Get& get(Base& cell, Base& role);
     And& and_(Base& lhs, Base& rhs);

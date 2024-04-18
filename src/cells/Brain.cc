@@ -3374,6 +3374,11 @@ Ast::Has& Ast::has(Base& cell, Base& role)
     return Has::New(kb, cell, role);
 }
 
+Ast::Has& Ast::has(Base& cell, const std::string& role)
+{
+    return Has::New(kb, cell, kb._(role));
+}
+
 Ast::Missing& Ast::missing(Base& cell, Base& role)
 {
     return Missing::New(kb, cell, role);
@@ -3829,18 +3834,18 @@ void Brain::createStd()
     listRemove.parameters(
         param("item", _(type.Cell)));
     listRemove.code(
-        ast.if_(ast.has(p_("item"), _("previous")),
-                ast.if_(ast.has(p_("item"), _("next")),
+        ast.if_(ast.has(p_("item"), "previous"),
+                ast.if_(ast.has(p_("item"), "next"),
                         ast.set(p_("item") / "previous", _("next"), p_("item") / "next"),
                         ast.erase(p_("item") / "previous", _("next"))),
-                ast.if_(ast.has(p_("item"), _("next")),
+                ast.if_(ast.has(p_("item"), "next"),
                         m_("first") = p_("item") / "next",
                         ast.erase(ast.self(), _("first")))),
-        ast.if_(ast.has(p_("item"), _("next")),
-                ast.if_(ast.has(p_("item"), _("previous")),
+        ast.if_(ast.has(p_("item"), "next"),
+                ast.if_(ast.has(p_("item"), "previous"),
                         ast.set(p_("item") / "next", _("previous"), p_("item") / "previous"),
                         ast.erase(p_("item") / "next", _("previous"))),
-                ast.if_(ast.has(p_("item"), _("previous")),
+                ast.if_(ast.has(p_("item"), "previous"),
                         m_("last") = p_("item") / "previous",
                         ast.erase(ast.self(), _("last")))),
         m_("size") = ast.subtract(m_("size"), _(_1_)));
@@ -3910,7 +3915,7 @@ void Brain::createStd()
         ast.do_(ast.block(
                     var_("next") = _(boolean.true_),
                     m_("slots").call("add", param("key", *var_("item") / "value" / "slotRole"), param("value", *var_("item") / "value")),
-                    ast.if_(ast.has(*var_("item"), _("next")),
+                    ast.if_(ast.has(*var_("item"), "next"),
                             var_("item") = *var_("item") / "next",
                             var_("next") = _(boolean.false_))),
                 ast.same(*var_("next"), _(boolean.true_))));
@@ -3973,7 +3978,7 @@ void Brain::createStd()
     indexInsert.code(
         ast.if_(ast.same(p_("key"), _("type")), ast.return_()),
         ast.set(ast.self(), p_("key"), p_("value")),
-        ast.if_(ast.and_(ast.has(m_("type"), _("sharedObject")), ast.same(m_("type") / "sharedObject" / "slotRole", ast.self())),
+        ast.if_(ast.and_(ast.has(m_("type"), "sharedObject"), ast.same(m_("type") / "sharedObject" / "slotRole", ast.self())),
                 ast.return_()),
         m_("type").call("addSlot", param("slotRole", p_("key")), param("slotType", _(type.Slot))));
 
@@ -4340,12 +4345,15 @@ public:
     Ast::Function& shaperProcessInputPixels = shaperStruct.addMethod("processInputPixels");
     shaperProcessInputPixels.code(
         var_("pixels") = m_("picture") / "pixels",
-        var_("pixel")  = *var_("pixels") / "first",
-        ast.while_(ast.not_(ast.same(*var_("pixel"), *var_("pixels") / "last")),
+        var_("pixel")  = _(ids.emptyObject),
+        ast.if_(ast.has(*var_("pixels"), "first"),
+                var_("pixel") = *var_("pixels") / "first"),
+        ast.while_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
                    ast.block(
                        m_("inputPixels").call("add", param("value", *var_("pixel"))),
-                       var_("pixel") = *var_("pixels") / "next")),
-        ast.if_(ast.same(*var_("pixel"), *var_("pixels") / "last"), m_("inputPixels").call("add", param("value", *var_("pixel")))));
+                       ast.if_(ast.has(*var_("pixels"), "next"),
+                               var_("pixel") = *var_("pixels") / "next",
+                               var_("pixel") = _(ids.emptyObject)))));
 
     /*
     void Shaper::process()
