@@ -617,10 +617,7 @@ Types::Types(brain::Brain& kb) :
                        type.slot("value", type.Cell));
     type.ListItem.set("slots", *mapPtr);
 
-    mapPtr = &kb.slots(type.slot("keyType", type.Cell),
-                       type.slot("objectType", type.Cell),
-                       type.slot("list", type.ListOf(type.Cell)),
-                       type.slot("listType", type.List),
+    mapPtr = &kb.slots(type.slot("list", type.ListOf(type.Cell)),
                        type.slot("rootNode", type.TrieMapNode),
                        type.slot("size", type.Number));
     type.TrieMap.set("slots", *mapPtr);
@@ -717,9 +714,7 @@ Object& Types::ListOf(CellI& type)
 
         map = &kb.slots(kb.type.slot("first", itemType),
                         kb.type.slot("last", itemType),
-                        kb.type.slot("size", kb.type.Number),
-                        kb.type.slot("itemType", itemType),
-                        kb.type.slot("objectType", type));
+                        kb.type.slot("size", kb.type.Number));
         listType.set("slots", *map);
 
         map = &kb.slots(kb.type.slot("previous", itemType),
@@ -759,9 +754,6 @@ Object& Types::MapOf(CellI& keyType, CellI& valueType)
 
     map = &kb.slots(kb.type.slot("list", ListOf(valueType)),
                     kb.type.slot("index", kb.type.Index),
-                    kb.type.slot("indexType", kb.type.Type_),
-                    kb.type.slot("keyType", keyType),
-                    kb.type.slot("objectType", valueType),
                     kb.type.slot("size", kb.type.Number));
     mapType.set("slots", *map);
 
@@ -787,8 +779,6 @@ Object& Types::SetOf(CellI& valueType)
 
     map = &kb.slots(kb.type.slot("list", ListOf(valueType)),
                     kb.type.slot("index", kb.type.Index),
-                    kb.type.slot("indexType", kb.type.Type_),
-                    kb.type.slot("objectType", valueType),
                     kb.type.slot("size", kb.type.Number));
     setType.set("slots", *map);
 
@@ -4349,10 +4339,11 @@ public:
     shaperProcessInputPixels.code(
         var_("pixels") = m_("picture") / "pixels",
         var_("pixel")  = *var_("pixels") / "first",
-        ast.while_(ast.same(*var_("pixel"), *var_("pixels") / "last"),
+        ast.while_(ast.not_(ast.same(*var_("pixel"), *var_("pixels") / "last")),
                    ast.block(
                        m_("inputPixels").call("add", param("value", *var_("pixel"))),
-                       var_("pixel") = *var_("pixels") / "first")));
+                       var_("pixel") = *var_("pixels") / "next")),
+        ast.if_(ast.same(*var_("pixel"), *var_("pixels") / "last"), m_("inputPixels").call("add", param("value", *var_("pixel")))));
 
     /*
     void Shaper::process()

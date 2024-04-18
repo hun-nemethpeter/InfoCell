@@ -900,9 +900,6 @@ bool List::has(CellI& role)
     if (&role == &kb.ids.last && m_lastItem) {
         return true;
     }
-    if (&role == &kb.ids.objectType) {
-        return true;
-    }
 
     return false;
 }
@@ -937,9 +934,6 @@ CellI& List::operator[](CellI& role)
         int size = (int)m_size;
 
         return kb.pools.numbers.get(size);
-    }
-    if (&role == &kb.ids.objectType) {
-        return m_valueType;
     }
 
     throw "No such role!";
@@ -1208,16 +1202,7 @@ bool Map::has(CellI& role)
     if (&role == &kb.ids.list) {
         return true;
     }
-    if (&role == &kb.ids.listType) {
-        return true;
-    }
     if (&role == &kb.ids.index) {
-        return true;
-    }
-    if (&role == &kb.ids.keyType) {
-        return true;
-    }
-    if (&role == &kb.ids.objectType) {
         return true;
     }
     if (&role == &kb.ids.size) {
@@ -1252,15 +1237,6 @@ CellI& Map::operator[](CellI& role)
     }
     if (&role == &kb.ids.index) {
         return m_index;
-    }
-    if (&role == &kb.ids.listType) {
-        return kb.type.ListOf(kb.type.Slot);
-    }
-    if (&role == &kb.ids.keyType) {
-        return m_keyType;
-    }
-    if (&role == &kb.ids.objectType) {
-        return m_valueType;
     }
     if (&role == &kb.ids.size) {
         return kb.pools.numbers.get(m_size);
@@ -1340,16 +1316,7 @@ bool TrieMap::has(CellI& role)
     if (&role == &kb.ids.list) {
         return true;
     }
-    if (&role == &kb.ids.listType) {
-        return true;
-    }
     if (&role == &kb.ids.index) {
-        return true;
-    }
-    if (&role == &kb.ids.keyType) {
-        return true;
-    }
-    if (&role == &kb.ids.objectType) {
         return true;
     }
     if (&role == &kb.ids.size) {
@@ -1384,15 +1351,6 @@ CellI& TrieMap::operator[](CellI& role)
     }
     if (&role == &kb.ids.rootNode) {
         return m_rootNode;
-    }
-    if (&role == &kb.ids.listType) {
-        return kb.type.ListOf(kb.type.Slot);
-    }
-    if (&role == &kb.ids.keyType) {
-        return m_keyType;
-    }
-    if (&role == &kb.ids.objectType) {
-        return m_valueType;
     }
     if (&role == &kb.ids.size) {
         return kb.pools.numbers.get(m_size);

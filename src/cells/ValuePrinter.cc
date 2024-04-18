@@ -208,32 +208,43 @@ void CellValuePrinter::printOpErase(CellI& cell)
 void CellValuePrinter::printOpIf(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
+
+    auto isBlock = [this, &kb, &cell](CellI& ast) -> bool {
+        if (&ast.type() == &kb.type.op.Block) {
+            auto& astType = ast[kb.ids.ast].type();
+            if (&astType == &kb.type.ast.Call || &astType == &kb.type.ast.StaticCall || &astType == &kb.type.ast.New) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    };
     m_ss << "if ";
     printImpl(cell[kb.ids.condition]);
     m_ss << " then ";
-    if (&cell[kb.ids.then].type() != &kb.type.op.Block) {
+    if (!isBlock(cell[kb.ids.then])) {
         m_ss << "\n";
         m_indent++;
         printIndent();
     }
     printImpl(cell[kb.ids.then]);
-    if (&cell[kb.ids.then].type() != &kb.type.op.Block) {
+    if (!isBlock(cell[kb.ids.then])) {
         m_indent--;
     }
 
     if (cell.has(kb.ids.else_)) {
-        if (&cell[kb.ids.then].type() != &kb.type.op.Block) {
+        if (!isBlock(cell[kb.ids.then])) {
             m_ss << ";\n";
             printIndent();
         }
         m_ss << " else ";
-        if (&cell[kb.ids.else_].type() != &kb.type.op.Block) {
+        if (!isBlock(cell[kb.ids.else_])) {
             m_ss << "\n";
             m_indent++;
             printIndent();
         }
         printImpl(cell[kb.ids.else_]);
-        if (&cell[kb.ids.else_].type() != &kb.type.op.Block) {
+        if (!isBlock(cell[kb.ids.else_])) {
             m_indent--;
         }
     }

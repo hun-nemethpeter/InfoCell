@@ -400,9 +400,6 @@ TEST_F(CellTest, BuiltInMap)
     printAs.cell(map[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
     EXPECT_EQ(&map[ids.index][_1_], &map[ids.list][ids.first]);
     EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.keyType], &kb.type.Cell);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.objectType], &kb.type.Slot);
-    EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.listType], &kb.type.ListOf(kb.type.Slot));
     EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.list][ids.size], &_1_);
     EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
     EXPECT_EQ(&map[ids.index].type()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.type.Slot);
@@ -770,7 +767,6 @@ TEST_F(CellTest, NextgenList)
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
     EXPECT_EQ(&list[ids.size], &_0_);
-    EXPECT_EQ(&list[ids.objectType], &kb.type.Number);
     EXPECT_TRUE(list.empty());
     printAs.value(list);
 
