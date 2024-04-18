@@ -2515,7 +2515,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Object& block = *new Object(kb, kb.type.op.Block);
         block.set("ast", ast);
         block.set("ops", compiledAsts);
-        Object& opSet = *new Object(kb, kb.type.op.Set, "block.value = new objectType()");
+        Object& opSet = *new Object(kb, kb.type.op.Set, "New { block.value = new objectType(); }");
         opSet.set("ast", ast);
         opSet.set("cell", compile(kb.ast.cell(block)));
         opSet.set("role", compile(kb.ast.cell(kb.id("value"))));
@@ -2532,7 +2532,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             if (ast.has("parameters")) {
                 callAst.set("parameters", ast["parameters"]);
             }
-            compiledAsts.add(compile(callAst));
+            CellI& callConstructor = compile(callAst);
+            callConstructor.label("New { call constructor; }");
+            compiledAsts.add(callConstructor);
         }
         return block;
     } else if (&ast.type() == &kb.type.ast.Call || &ast.type() == &kb.type.ast.StaticCall) {

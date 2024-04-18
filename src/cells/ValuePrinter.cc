@@ -51,7 +51,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
     brain::Brain& kb = cell.kb;
     CellI& ast       = cell[kb.ids.ast];
     if (&ast.type() == &kb.type.ast.Call || &ast.type() == &kb.type.ast.StaticCall) {
-        if (&ast[kb.ids.cell].type() == &kb.type.ast.Get) {
+        if (&ast[kb.ids.cell].type() == &kb.type.ast.Get && cell.label() != "New { call constructor; }") {
             printImpl(ast[kb.ids.cell]);
         }
         if (&ast[kb.ids.cell].type() == &kb.type.ast.Self) {
@@ -75,13 +75,19 @@ void CellValuePrinter::printOpBlock(CellI& cell)
             m_ss << ast[kb.ids.method][kb.ids.value].label();
             m_ss << "(";
             if (ast.has(kb.ids.parameters)) {
-                visitList(ast[kb.ids.parameters], [this, &kb](CellI& slot, int i, bool&) {
-                    if (i != 0) {
-                        m_ss << ", ";
+                auto& opsList = cell[kb.ids.ops];
+                int paramNum  = 0;
+                visitList(opsList, [this, &kb, &paramNum](CellI& op, int i, bool&) {
+                    if (op.label() == "Call { setParam; }") {
+                        if (paramNum++ > 0) {
+                            m_ss << ", ";
+                        }
+                        auto& paramRole = op[kb.ids.role][kb.ids.value];
+                        auto& paramValue = op[kb.ids.value];
+                        m_ss << paramRole.label();
+                        m_ss << ": ";
+                        printImpl(paramValue);
                     }
-                    m_ss << slot[kb.ids.slotRole].label();
-                    m_ss << ": ";
-                    printImpl(slot[kb.ids.slotType]);
                 });
             }
             m_ss << ")";
@@ -92,21 +98,8 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         m_ss << "new ";
         printImpl(ast[kb.ids.objectType]);
         if (ast.has(kb.ids.constructor)) {
-            m_ss << ".";
-            m_ss << ast[kb.ids.constructor][kb.ids.value].label();
-            m_ss << "(";
-            if (ast.has(kb.ids.parameters)) {
-                visitList(ast[kb.ids.parameters], [this, &kb](CellI& slot, int i, bool&) {
-                    if (i != 0) {
-                        m_ss << ", ";
-                    }
-                    m_ss << slot[kb.ids.slotRole].label();
-                    m_ss << ": ";
-                    printImpl(slot[kb.ids.slotType]);
-                });
-
-            }
-            m_ss << ")";
+            CellI& constructorOps = cell[kb.ids.ops][kb.ids.first][kb.ids.next][kb.ids.value];
+            printOpBlock(constructorOps);
         }
         return;
     }
