@@ -100,6 +100,8 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
+    CellI& method(const std::string& role);
+
     CellI& method(CellI& role);
     CellI& method(CellI& role, Param param1);
     CellI& method(CellI& role, Param param1, Param param2);

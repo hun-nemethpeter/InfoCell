@@ -673,6 +673,11 @@ Types::Types(brain::Brain& kb) :
                        type.slot("localVars", type.Index));
     type.StackFrame.set("slots", *mapPtr);
 
+    mapPtr = &kb.slots(type.slot(kb.colors.red, type.Color),
+                       type.slot(kb.colors.green, type.Color),
+                       type.slot(kb.colors.blue, type.Color));
+    type.Color.set("slots", *mapPtr);
+
     kb.m_initPhase = Brain::InitPhase::SlotTypeInitialzed;
 }
 
@@ -3864,6 +3869,26 @@ void Brain::createStd()
     listEmpty.returnType(_(type.Boolean));
     listEmpty.code(
         ast.if_(ast.equal(m_("size"), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+
+    Ast::Function& listFirst = listStructT.addMethod("first");
+    listFirst.returnType(tp_("objectType"));
+    listFirst.code(
+        ast.return_(m_("first") / "value"));
+
+    Ast::Function& listLast = listStructT.addMethod("last");
+    listLast.returnType(tp_("objectType"));
+    listLast.code(
+        ast.return_(m_("last") / "value"));
+
+    Ast::Function& listBegin = listStructT.addMethod("begin");
+    listBegin.returnType(tt_("ListItem", "objectType", tp_("objectType")));
+    listBegin.code(
+        ast.return_(m_("first")));
+
+    Ast::Function& listEnd = listStructT.addMethod("end");
+    listEnd.returnType(tt_("ListItem", "objectType", tp_("objectType")));
+    listEnd.code(
+        ast.return_(m_("last")));
 #pragma endregion
 #pragma region Type
     auto& typeStruct = stdScope.addStruct("Type");
@@ -4130,6 +4155,26 @@ void Brain::createStd()
     mapEmpty.returnType(_(type.Boolean));
     mapEmpty.code(
         ast.if_(ast.equal(m_("size"), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+
+    Ast::Function& mapFirst = mapStructT.addMethod("first");
+    mapFirst.returnType(tp_("objectType"));
+    mapFirst.code(
+        ast.return_(m_("list") / "first" / "value"));
+
+    Ast::Function& mapLast = mapStructT.addMethod("last");
+    mapLast.returnType(tp_("objectType"));
+    mapLast.code(
+        ast.return_(m_("list") / "last" / "value"));
+
+    Ast::Function& mapBegin = mapStructT.addMethod("begin");
+    mapBegin.returnType(tt_("ListItem", "objectType", tp_("objectType")));
+    mapBegin.code(
+        ast.return_(m_("list") / "first"));
+
+    Ast::Function& mapEnd = mapStructT.addMethod("end");
+    mapEnd.returnType(tt_("ListItem", "objectType", tp_("objectType")));
+    mapEnd.code(
+        ast.return_(m_("list") / "last"));
 #pragma endregion
 #pragma region Set
     auto& setStructT = stdScope.addStructT("Set");
@@ -4141,28 +4186,22 @@ void Brain::createStd()
         param("listType", tt_("List", "objectType", tp_("objectType"))));
     setStructT.memberOf(_(type.Container));
     setStructT.members(
-        member("list", tt_("List", "objectType", tp_("objectType"))),
         member("index", struct_("Index")),
         member("size", _(type.Number)));
 
     Ast::Function& setCtor = setStructT.addMethod("constructor");
     setCtor.code(
         m_("size")  = _(_0_),
-        m_("list")  = ast.new_(tt_("List", "objectType", tp_("objectType")), "constructor"),
         m_("index") = ast.new_(struct_("Index"), "constructor"));
 
     Ast::Function& setAdd = setStructT.addMethod("add");
     setAdd.parameters(
         param("value", tp_("objectType")));
-    setAdd.returnType(tt_("ListItem", "objectType", tp_("objectType")));
     setAdd.code(
         ast.if_(ast.has(m_("index"), p_("value")),
-                ast.return_(m_("index") / p_("value"))),
-        var_("listItem") = m_("list").call("add", param("value", p_("value"))),
-        m_("size")     = ast.add(m_("size"), _(_1_)),
-        ast.call(m_("indexType") / "slots", "add", param("key", p_("value")), param("value", *var_("listItem"))),
-        ast.set(m_("index"), p_("value"), *var_("listItem")),
-        ast.return_(*var_("listItem")));
+                ast.return_()),
+        ast.call(m_("index"), "insert", param("key", p_("value")), param("value", p_("value"))),
+        m_("size") = ast.add(m_("size"), _(_1_)));
 
     Ast::Function& setContains = setStructT.addMethod("contains");
     setContains.parameters(
@@ -4179,8 +4218,28 @@ void Brain::createStd()
     setErase.code(
         ast.if_(ast.missing(m_("index"), p_("value")),
                 ast.return_()),
-        ast.erase(m_("index"), p_("value")),
+        ast.call(m_("index"), "remove", param("key", p_("value"))),
         m_("size") = ast.subtract(m_("size"), _(_1_)));
+
+    Ast::Function& setFirst = setStructT.addMethod("first");
+    setFirst.returnType(tp_("objectType"));
+    setFirst.code(
+        ast.return_(m_("index") / "type" / "slots" / "list" / "first" / "value" / "slotRole"));
+
+    Ast::Function& setLast = setStructT.addMethod("last");
+    setLast.returnType(tp_("objectType"));
+    setLast.code(
+        ast.return_(m_("index") / "type" / "slots" / "list" / "last" / "value" / "slotRole"));
+
+    Ast::Function& setBegin = setStructT.addMethod("begin");
+    setBegin.returnType(tt_("ListItem", "objectType", tp_("objectType")));
+    setBegin.code(
+        ast.return_(m_("index") / "type" / "slots" / "list" / "last"));
+
+    Ast::Function& setEnd = setStructT.addMethod("end");
+    setEnd.returnType(tt_("ListItem", "objectType", tp_("objectType")));
+    setEnd.code(
+        ast.return_(m_("list") / "last"));
 
     Ast::Function& setSize = setStructT.addMethod("size");
     setSize.returnType(_(type.Number));
@@ -4243,6 +4302,7 @@ void Brain::createArcSolver()
         member("green", _(type.Number)),
         member("blue", _(type.Number)));
 
+    // struct Pixel
     auto& pixelStruct = arcScope.addStruct("Pixel");
     pixelStruct.members(
         member("x", _(type.Number)),
@@ -4256,26 +4316,19 @@ void Brain::createArcSolver()
         m_("x") = p_("x"),
         m_("y") = p_("y"));
 
+
+    // struct Shape
     auto& shapeStruct = arcScope.addStruct("Shape");
     shapeStruct.members(
+        member("id", _(type.Number)),
         member("color", struct_("Color")),
         member("width", _(type.Number)),
         member("height", _(type.Number)),
         member("hybridPixels", tt_("std::Set", "objectType", _(type.Pixel))),
         member("pixels", tt_("std::List", "objectType", struct_("Pixel"))));
 
-    auto& shaperStruct = arcScope.addStruct("Shaper");
-    shaperStruct.members(
-        member("width", _(type.Number)),
-        member("height", _(type.Number)),
-        member("picture", _(type.Picture)),
-        member("shapes", tt_("std::List", "objectType", "Shape")),
-        member("inputPixels", tt_("std::Set", "objectType", _(type.Pixel))));
 
     /*
-    * class Shape
-{
-public:
     Shape(int id, input::Color color, int width, int height) :
         m_id(id), m_color(color), m_width(width), m_height(height) { }
     */
@@ -4286,10 +4339,12 @@ public:
         param("width", _(type.Number)),
         param("height", _(type.Number)));
     shapeCtor.code(
-        m_("id")     = p_("id"),
-        m_("color")  = p_("color"),
-        m_("width")  = p_("width"),
-        m_("height") = p_("height"));
+        m_("id")           = p_("id"),
+        m_("color")        = p_("color"),
+        m_("width")        = p_("width"),
+        m_("height")       = p_("height"),
+        m_("hybridPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
+        m_("pixels")       = ast.new_(tt_("std::List", "objectType", struct_("Pixel")), "constructor"));
 
     /*
     void Shape::addPixel(cells::hybrid::Pixel& pixel)
@@ -4319,6 +4374,27 @@ public:
         ast.return_(m_("hybridPixels").call("contains", param("value", p_("pixel")))));
 
     /*
+    void Shape::sortPixels()
+    {
+        int width = m_width;
+        std::sort(m_pixels.begin(), m_pixels.end(), [width](const Pixel& p1, const Pixel& p2) {
+            return p1.y * width + p1.x < p2.y * width + p2.x;
+        });
+    }
+    */
+    Ast::Function& shapeSortPixels = shapeStruct.addMethod("sortPixels");
+    shapeSortPixels.code(ast.return_()); // TODO sorting
+
+
+    // struct Shaper
+    auto& shaperStruct = arcScope.addStruct("Shaper");
+    shaperStruct.members(
+        member("width", _(type.Number)),
+        member("height", _(type.Number)),
+        member("picture", _(type.Picture)),
+        member("shapes", tt_("std::List", "objectType", "Shape")),
+        member("inputPixels", tt_("std::Set", "objectType", _(type.Pixel))));
+    /*
     Shaper::Shaper(const cells::hybrid::Picture& picture) :
         m_width(picture.width()),
         m_height(picture.height()),
@@ -4330,13 +4406,13 @@ public:
     */
     Ast::Function& shaperCtor = shaperStruct.addMethod("constructor");
     shaperCtor.parameters(
-        param("width", _(type.Number)),
-        param("height", _(type.Number)),
         param("picture", _(type.Picture)));
     shaperCtor.code(
-        m_("width")   = p_("width"),
-        m_("height")  = p_("height"),
-        m_("picture") = p_("picture"),
+        m_("picture")     = p_("picture"),
+        m_("width")       = p_("picture") / "width",
+        m_("height")      = p_("picture") / "height",
+        m_("shapes")      = ast.new_(tt_("std::List", "objectType", "Shape"), "constructor"),
+        m_("inputPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
         ast.self().call("processInputPixels"));
     /*
     void Shaper::processInputPixels()
@@ -4355,9 +4431,9 @@ public:
                 var_("pixel") = *var_("pixels") / "first"),
         ast.while_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
                    ast.block(
-                       m_("inputPixels").call("add", param("value", *var_("pixel"))),
-                       ast.if_(ast.has(*var_("pixels"), "next"),
-                               var_("pixel") = *var_("pixels") / "next",
+                       m_("inputPixels").call("add", param("value", *var_("pixel") / "value")),
+                       ast.if_(ast.has(*var_("pixel"), "next"),
+                               var_("pixel") = *var_("pixel") / "next",
                                var_("pixel") = _(ids.emptyObject)))));
 
     /*
@@ -4389,16 +4465,17 @@ public:
         var_("shapeId") = _(_1_),
         ast.while_(ast.not_(m_("inputPixels").call("empty")),
                    ast.block(
-                       var_("firstPixel") = m_("inputPixels").call("first", param("pixel", p_("checkPixel"))), // TODO
+                       var_("firstPixel") = m_("inputPixels").call("first"),
                        m_("shapes").call("add", param("value", ast.new_("Shape", "constructor", param("id", *var_("shapeId")), param("color", *var_("firstPixel") / "color"), param("width", m_("width")), param("height", m_("height"))))),
+                       var_("shapeId")     = ast.add(*var_("shapeId"), _(_1_)),
                        var_("shape")       = m_("shapes").call("last"),
-                       var_("checkPixels") = ast.new_(tt_("std::List", "objectType", "Pixel"), "constructor"),
+                       var_("checkPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
                        ast.call(*var_("checkPixels"), "add", param("value", *var_("firstPixel"))),
                        ast.while_(ast.not_(ast.call(*var_("checkPixels"), _("empty"))),
                                   ast.block(
                                       var_("checkPixel") = ast.call(*var_("checkPixels"), "first"),
                                       ast.self().call("processPixel", param("shape", *var_("shape")), param("checkPixels", *var_("checkPixels")), param("checkPixel", *var_("checkPixel"))),
-                                      ast.call(*var_("checkPixels"), "erase", param("value", *var_("firstPixel"))))),
+                                      ast.call(*var_("checkPixels"), "erase", param("value", *var_("checkPixel"))))),
                        ast.call(*var_("shape"), _("sortPixels")))));
 
     /*
@@ -4426,7 +4503,7 @@ public:
         param("checkPixel", struct_("Pixel")));
     shaperProcessPixel.code(
         ast.call(p_("shape"), "addPixel", param("pixel", p_("checkPixel"))),
-        m_("inputPixels").call("erase", param("pixel", p_("checkPixel"))),
+        m_("inputPixels").call("erase", param("value", p_("checkPixel"))),
         ast.if_(var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
                 ast.block(
                     ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
@@ -4456,16 +4533,16 @@ public:
     shaperProcessAdjacentPixel.parameters(
         param("direction", _(type.Directions)),
         param("shape", struct_("Shape")),
-        param("checkPixels", tt_("std::List", "objectType", "Pixel")),
-        param("checkPixel", struct_("Pixel")));
-    shaperProcessAdjacentPixel.returnType(struct_("Pixel")); // maybe hybrid pixel?!
+        param("checkPixels", tt_("std::Set", "objectType", _(type.Pixel))),
+        param("checkPixel", _(type.Pixel)));
+    shaperProcessAdjacentPixel.returnType(_(type.Pixel));
     shaperProcessAdjacentPixel.code(
-        ast.if_(ast.call(*var_("checkPixel"), "has", param("direction", p_("direction"))),
+        ast.if_(ast.has(p_("checkPixel"), p_("direction")),
                 ast.block(
-                    var_("pixel") = _("checkPixel") / _("direction"),
-                    ast.if_(ast.and_(ast.same(*var_("pixel") / "color", *var_("shape") / "color"), ast.not_(ast.call(*var_("shape"), "hasPixel", param("pixel", *var_("pixel"))))),
-                            ast.call(*var_("checkPixels"), "insert", param("pixel", *var_("pixel")))),
-                    ast.return_(_("pixel"))),
+                    var_("pixel") = p_("checkPixel") / p_("direction"),
+                    ast.if_(ast.and_(ast.equal(*var_("pixel") / "color", p_("shape") / "color"), ast.not_(ast.call(p_("shape"), "hasPixel", param("pixel", *var_("pixel"))))),
+                            ast.call(p_("checkPixels"), "add", param("value", *var_("pixel")))),
+                    ast.return_(*var_("pixel"))),
                 ast.return_(_("emptyObject"))));
 }
 

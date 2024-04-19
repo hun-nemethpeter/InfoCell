@@ -282,7 +282,7 @@ void Object::resetIndent()
 
 void Object::operator()()
 {
-    static bool s_debugFunctionCalls = false;
+    static bool s_debugFunctionCalls = true;
 
     if (&m_type == &kb.type.op.Block) {
         Visitor::visitList(get(kb.ids.ops), [this](CellI& op, int, bool& stop) {
@@ -336,8 +336,9 @@ void Object::operator()()
     } else if (&m_type == &kb.type.op.Set) {
         CellI& inputCell = get(kb.ids.cell);
         inputCell();
+
         CellI& cell      = inputCell[kb.ids.value];
-        if (cell.label() == "var next") {
+        if (cell.label() == "var shapeId") {
             std::cout << "";
         }
         CellI& inputRole = get(kb.ids.role);
@@ -346,6 +347,26 @@ void Object::operator()()
         CellI& inputValue = get(kb.ids.value);
         inputValue();
         CellI& value = inputValue[kb.ids.value];
+        if (inputCell.has(kb.ids.ast)) {
+            CellI& ast = inputCell.get(kb.ids.ast);
+            if (&ast.type() == &kb.type.ast.Var) {
+                if (ast[kb.ids.role].label() == "DDDDpixel1") {
+//                    std::cout << "DDDD1 dir = " << value.label() << std::endl;
+                }
+                if (ast[kb.ids.role].label() == "DDDDpixel2") {
+//                    std::cout << "DDDD2 result = " << value.label() << std::endl;
+                }
+                if (ast[kb.ids.role].label() == "DDDDpixel3") {
+//                    std::cout << "DDDD3 pixel = " << value.label() << std::endl;
+                }
+                if (ast[kb.ids.role].label() == "DDDDpixel4") {
+//                    std::cout << "DDDD4 pixel.color = " << &value << ", [ r: " << value[kb.colors.red].label() << ", g: " << value[kb.colors.green].label() << ", b: " << value[kb.colors.blue].label() << "]" << std::endl;
+                }
+                if (ast[kb.ids.role].label() == "DDDDpixel5") {
+//                    std::cout << "DDDD5 shape.color = " << &value << ", [ r: " << value[kb.colors.red].label() << ", g: " << value[kb.colors.green].label() << ", b: " << value[kb.colors.blue].label() << "]" << std::endl;
+                }
+            }
+        }
         if (label() == "Call { storeMethod; }") {
 //            std::cout << "DDDD storeMethod " << value.label() << std::endl;
         }
@@ -486,6 +507,14 @@ void Object::operator()()
             CellI& debugCell3Cell = get(kb.ids.cell)[kb.ids.cell][kb.ids.cell][kb.ids.cell][kb.ids.value];
             CellI& debugCell3Role = get(kb.ids.cell)[kb.ids.cell][kb.ids.cell][kb.ids.role][kb.ids.value];
         }
+        if (has(kb.ids.ast)) {
+            CellI& ast = get(kb.ids.ast);
+            if (&ast.type() == &kb.type.ast.Var) {
+                if (ast[kb.ids.role].label() == "DDDDpixel1") {
+                    std::cout << "";
+                }
+            }
+        }
         CellI& inputCell = get(kb.ids.cell);
         inputCell();
         CellI& cell      = inputCell[kb.ids.value];
@@ -604,6 +633,11 @@ void Object::accept(Visitor& visitor)
 void Object::destructor()
 {
     getMethod(kb.ids.destructor)();
+}
+
+CellI& Object::method(const std::string& role)
+{
+    return method(kb.id(role));
 }
 
 CellI& Object::method(CellI& role)

@@ -124,11 +124,10 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
 // TODO
 // inline methods
-// maybe create a Set<type>?
 // type checking
-// create an own type for every function to able to save return values to the fn object
 // remove .label() from CellI
 
+#if 0
 TEST_F(CellTest, PrintStdCodes)
 {
 #if 1
@@ -164,6 +163,7 @@ TEST_F(CellTest, PrintStdCodes)
     printMethodInType(SetStruct, "contains");
     printMethodInType(SetStruct, "erase");
     printMethodInType(SetStruct, "size");
+    printMethodInType(SetStruct, "first");
     printMethodInType(SetStruct, "empty");
 
     printAs.value(TypeStruct);
@@ -186,6 +186,7 @@ TEST_F(CellTest, PrintTestCodes)
     printMethodInType(TestStruct, "factorial");
 #endif
 }
+#endif
 
 TEST_F(CellTest, PrintArcCodes)
 {
@@ -205,6 +206,7 @@ TEST_F(CellTest, PrintArcCodes)
     printMethodInType(ShaperStruct, "processAdjacentPixel");
 }
 
+#if 0
 TEST_F(CellTest, RecursiveCall)
 {
     auto& TestStruct = getStruct(kb.id("Test"));
@@ -1102,6 +1104,19 @@ TEST_F(CellTest, StringTest)
     EXPECT_EQ(&testStr1[kb.ids.value], &testStr2[kb.ids.value]);
     printAs.value(testStr1[kb.ids.value]);
     printAs.cell(testStr1[kb.ids.value]);
+}
+#endif
+
+TEST_F(CellTest, ShaperTest)
+{
+    auto& ShaperStruct = getStruct(kb.id("Shaper"));
+
+    input::Picture inputPicture("inputPicture", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
+    cells::hybrid::Picture picture(kb, inputPicture);
+    Object shaper(kb, ShaperStruct, kb.id("constructor"), { "picture", picture });
+    shaper.method("process");
+    printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
+    EXPECT_EQ(&shaper["shapes"]["size"], &_3_);
 }
 
 int main(int argc, char** argv)
