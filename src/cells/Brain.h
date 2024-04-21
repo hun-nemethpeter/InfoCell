@@ -20,6 +20,7 @@ public:
     List children;
     List code;
     List color;
+    List compiled;
     List condition;
     List constructor;
     List continue_;
@@ -171,6 +172,7 @@ public:
     Object NotSame;
     Object Or;
     Object Parameter;
+    Object ResolvedType;
     Object Return;
     Object Same;
     Object Scope;
@@ -286,21 +288,26 @@ class Ast
 {
 public:
     class Scope;
+    class ResolvedType;
     class Base : public Object
     {
         Base(const Base&) = delete;
     public:
         Base(brain::Brain& kb, CellI& classCell, const std::string& label = "");
 
-        CellI& resolveType(CellI& typeAst, CellI& resolveState);
+        Base& resolveType(CellI& typeAst, CellI& resolveState);
+        CellI& getCompiledTypeFromResolvedType(CellI& ast);
         CellI& getResolvedTypeById(CellI& id, bool isInstance, CellI& resolveState);
 
     protected:
         CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<void(CellI& structReference)> unknownCb);
         CellI& resolveStructId(CellI& structId, CellI& resolveState);
+        CellI& resolveStructIdAsAst(CellI& structId, CellI& resolveState);
         CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
-        CellI& resolveTemplatedType(CellI& ast, CellI& resolveState);
+        CellI& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
+        Base& resolveTemplatedType(CellI& ast, CellI& resolveState);
         List& generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState, List& resolvedParams);
+        ResolvedType& resolvedType(CellI& astType, CellI& compiledType);
     };
     template <typename T>
     class BaseT : public Base,
@@ -351,6 +358,11 @@ public:
         Parameter(brain::Brain& kb, CellI& role);
         Get& operator/(Base& role);
         Get& operator/(const std::string& role);
+    };
+    class ResolvedType : public BaseT<ResolvedType>
+    {
+    public:
+        ResolvedType(brain::Brain& kb, CellI& astType, CellI& compiledType);
     };
     class Slot : public BaseT<Slot>
     {
@@ -518,7 +530,7 @@ public:
             templateParams(std::forward<Args>(args)...);
         }
 
-        Struct& instantiateWith(Scope& scope, List& slotList, CellI& state);
+        Struct& instantiateWith(List& slotList, CellI& state);
 
     protected:
         CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, CellI& state);
@@ -554,7 +566,7 @@ public:
         void addBlock(Block& block);
         void compileParams(cells::Object& function, cells::Map& subTypesMap, CellI& state);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI& state);
-        void checkMethodCall(CellI& type, CellI& astMethodId, CellI& state);
+        void checkMethodCall(CellI& astType, CellI& astMethodId, CellI& state);
         List& parameters();
         CellI& returnType();
         Base& code();
