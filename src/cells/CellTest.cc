@@ -382,6 +382,16 @@ TEST_F(CellTest, MapTypes)
     printAs.value(map[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
 }
 
+TEST_F(CellTest, BuiltInType)
+{
+    std::string testTypeName = "Test1234";
+    Type type(kb, testTypeName);
+
+    EXPECT_EQ(&type[ids.type], &kb.type.Type_);
+    EXPECT_EQ(&type[ids.name], &kb.id(testTypeName));
+    EXPECT_EQ(&type[ids.name], &kb.id(testTypeName)); // query twice to trigger cache
+}
+
 TEST_F(CellTest, BuiltInMap)
 {
     Map map(kb, kb.type.Number, kb.type.Color);

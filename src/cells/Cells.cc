@@ -1038,6 +1038,9 @@ bool Type::has(CellI& role)
     if (&role == &kb.ids.type) {
         return true;
     }
+    if (&role == &kb.ids.name) {
+        return true;
+    }
     if (&role == &kb.ids.slots) {
         return true;
     }
@@ -1076,6 +1079,14 @@ CellI& Type::operator[](CellI& role)
 {
     if (&role == &kb.ids.type) {
         return kb.type.Type_;
+    }
+    if (&role == &kb.ids.name) {
+        if (m_name) {
+            return *m_name;
+        } else {
+            m_name = &kb.id(label());
+            return *m_name;
+        }
     }
     if (&role == &kb.ids.slots) {
         return m_slots;

@@ -623,7 +623,8 @@ Types::Types(brain::Brain& kb) :
                        type.slot("slotRole", type.Cell));
     Slot.set("slots", *mapPtr);
 
-    mapPtr = &kb.slots(type.slot("slots", MapCellToSlot),
+    mapPtr = &kb.slots(type.slot("name", type.ListOf(type.Char)),
+                       type.slot("slots", MapCellToSlot),
                        type.slot("incomplete", type.Boolean),
                        type.slot("sharedObject", Slot),
                        type.slot("subTypes", MapCellToType),
@@ -833,8 +834,8 @@ Ast::Base& Ast::Base::resolveType(CellI& typeAst, CellI& resolveState)
     }
     if (&typeAst.type() == &kb.type.ast.StructRef) {
         CellI& astStructId          = typeAst[kb.ids.value];
-        auto& resolveCompiledStruct = resolveStructId(astStructId, resolveState);
         auto& resolveAstStruct      = resolveStructIdAsAst(astStructId, resolveState);
+        auto& resolveCompiledStruct = resolveStructId(astStructId, resolveState);
         auto& reslvedTypeNode       = resolvedType(resolveAstStruct, resolveCompiledStruct);
 
         return reslvedTypeNode;
@@ -873,7 +874,7 @@ CellI& Ast::Base::getResolvedTypeById(CellI& id, bool isInstance, CellI& resolve
     }
 }
 
-CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<void(CellI& structReference)> unknownCb)
+CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<CellI&(CellI& structReference)> unknownCb)
 {
     auto& container = static_cast<TrieMap&>(resolveState[containerId]);
 
@@ -884,10 +885,9 @@ CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownC
         if (unresolvedContainer.hasKey(structId)) {
             return unresolvedContainer.getValue(structId)[kb.ids.value];
         } else {
-            auto& unresolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", structId.label()));
-            unresolvedStruct.set("incomplete", kb.boolean.true_);
 
             auto& structReference = *new Object(kb, kb.type.StructReference);
+            auto& unresolvedStruct = unknownCb(structReference);
             structReference.set("value", unresolvedStruct);
             structReference.set("id", structId);
             structReference.set("scope", resolveState[kb.ids.scope]);
@@ -899,9 +899,8 @@ CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownC
             if (resolveState.has("currentStruct")) {
                 structReference.set("currentStruct", resolveState[kb.ids.currentStruct]);
             }
-            unknownCb(structReference);
-
             unresolvedContainer.add(structId, structReference);
+
             return unresolvedStruct;
         }
     }
@@ -910,12 +909,16 @@ CellI& Ast::Base::resolveId(CellI& structId, CellI& containerId, CellI& unknownC
 CellI& Ast::Base::resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams)
 {
     auto& templateId = ast[kb.ids.id];
-    return resolveId(structId, kb.id("instances"), kb.id("unknownInstances"), resolveState, [this, &resolveState, &templateId, &templateParams, &ast, &idScope](CellI& structReference) {
+    return resolveId(structId, kb.id("instances"), kb.id("unknownInstances"), resolveState, [this, &resolveState, &templateId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
         structReference.set("templateId", templateId);
         structReference.set("templateParams", templateParams);
         if (ast.has("scopes")) {
             structReference.set(kb.id("idScope"), idScope);
         }
+        auto& unresolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", templateId.label()));
+        unresolvedStruct.set("incomplete", kb.boolean.true_);
+
+        return unresolvedStruct;
     });
 }
 
@@ -923,45 +926,26 @@ CellI& Ast::Base::resolveTemplateInstanceId(CellI& structId, CellI& idScope, Cel
 CellI& Ast::Base::resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams)
 {
     auto& templateId = ast[kb.ids.id];
-    auto& container  = static_cast<TrieMap&>(resolveState[kb.id("instanceAsts")]);
-
-    if (container.hasKey(structId)) {
-        return container.getValue(structId);
-    } else {
-        auto& unresolvedContainer = static_cast<TrieMap&>(resolveState[kb.id("unknownInstanceAsts")]);
-        if (unresolvedContainer.hasKey(structId)) {
-            return unresolvedContainer.getValue(structId)[kb.ids.value];
-        } else {
-            auto& unresolvedStruct = *new Ast::Struct(kb, structId, std::format("{}", structId.label()));
-            auto& structReference  = *new Object(kb, kb.type.StructReference);
-            structReference.set("value", unresolvedStruct);
-            structReference.set("id", structId);
-            structReference.set("scope", resolveState[kb.ids.scope]);
-            structReference.set("resolvedScope", resolveState[kb.ids.resolvedScope]);
-
-            if (resolveState.has("currentFn")) {
-                structReference.set("currentFn", resolveState[kb.ids.currentFn]);
-            }
-            if (resolveState.has("currentStruct")) {
-                structReference.set("currentStruct", resolveState[kb.ids.currentStruct]);
-            }
-            structReference.set("templateId", templateId);
-            structReference.set("templateParams", templateParams);
-            if (ast.has("scopes")) {
-                structReference.set(kb.id("idScope"), idScope);
-            }
-            unresolvedContainer.add(structId, structReference);
-            return unresolvedStruct;
+    return resolveId(structId, kb.id("instanceAsts"), kb.id("unknownInstanceAsts"), resolveState, [this, &resolveState, &templateId, &structId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
+        structReference.set("templateId", templateId);
+        structReference.set("templateParams", templateParams);
+        if (ast.has("scopes")) {
+            structReference.set(kb.id("idScope"), idScope);
         }
-    }
- 
+        auto& unresolvedStruct = *new Ast::Struct(kb, structId, std::format("{}", structId.label()));
+
+        return unresolvedStruct;
+    });
 }
 
 CellI& Ast::Base::resolveStructId(CellI& structId, CellI& resolveState)
 {
-    static std::function<void(CellI&)> emptyCb = [](CellI&) {};
+    return resolveId(structId, kb.ids.structs, kb.ids.unknownStructs, resolveState, [this, &structId](CellI& structReference) -> CellI& {
+        auto& unresolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", structId.label()));
+        unresolvedStruct.set("incomplete", kb.boolean.true_);
 
-    return resolveId(structId, kb.ids.structs, kb.ids.unknownStructs, resolveState, emptyCb);
+        return unresolvedStruct;
+    });
 }
 
 CellI& Ast::Base::resolveStructIdAsAst(CellI& structId, CellI& resolveState)

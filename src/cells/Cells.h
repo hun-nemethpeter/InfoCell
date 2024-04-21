@@ -261,6 +261,7 @@ public:
     bool hasSlot(CellI& role);
     void removeSlot(CellI& role);
 
+    CellI* m_name = nullptr;
     Map& m_slots;
     Map* m_subTypes = nullptr;
     Map* m_memberOf = nullptr;

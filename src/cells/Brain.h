@@ -300,7 +300,7 @@ public:
         CellI& getResolvedTypeById(CellI& id, bool isInstance, CellI& resolveState);
 
     protected:
-        CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<void(CellI& structReference)> unknownCb);
+        CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<CellI&(CellI& structReference)> unknownCb);
         CellI& resolveStructId(CellI& structId, CellI& resolveState);
         CellI& resolveStructIdAsAst(CellI& structId, CellI& resolveState);
         CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
