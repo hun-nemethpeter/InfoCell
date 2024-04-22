@@ -221,6 +221,7 @@ public:
         add(value);
         add(std::forward<Args>(args)...);
     }
+    Item* addFront(CellI& value);
     void removeItem(Item* item);
     bool empty() const;
     int size();
@@ -580,6 +581,7 @@ public:
     virtual void visit(hybrid::Picture&) = 0;
 
     static void visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
+    static void visitListInReverse(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
 };
 
 bool tryVisitWith(CellI& cell, Visitor& visitor);

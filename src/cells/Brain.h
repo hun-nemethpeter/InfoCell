@@ -182,7 +182,7 @@ public:
     Object Slot;
     Object StaticCall;
     Object Struct;
-    Object StructRef;
+    Object StructName;
     Object StructT;
     Object Subtract;
     Object SubType;
@@ -216,6 +216,7 @@ public:
 
     cells::CellI& slot(const std::string& role, cells::CellI& type);
     cells::CellI& slot(cells::CellI& role, cells::CellI& type);
+    cells::CellI& kvPair(cells::CellI& key, cells::CellI& value);
     Object& ListOf(CellI& type);
     Object& MapOf(CellI& keyType, CellI& valueType);
     Object& SetOf(CellI& valueType);
@@ -239,6 +240,7 @@ public:
     Object List;
     Object ListOfSlot;
     Object ListItem;
+    Object KVPair;
     Object Map;
     Object MapCellToSlot;
     Object MapCellToType;
@@ -288,6 +290,7 @@ class Ast
 {
 public:
     class Scope;
+    class Struct;
     class ResolvedType;
     class Base : public Object
     {
@@ -302,9 +305,9 @@ public:
     protected:
         CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<CellI&(CellI& structReference)> unknownCb);
         CellI& resolveStructId(CellI& structId, CellI& resolveState);
-        CellI& resolveStructIdAsAst(CellI& structId, CellI& resolveState);
+        Struct& resolveStructIdAsAst(CellI& structId, CellI& resolveState);
         CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
-        CellI& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
+        Struct& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
         Base& resolveTemplatedType(CellI& ast, CellI& resolveState);
         List& generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState, List& resolvedParams);
         ResolvedType& resolvedType(CellI& astType, CellI& compiledType);
@@ -327,10 +330,10 @@ public:
         Get& operator/(Base& role);
         Get& operator/(const std::string& role);
     };
-    class StructRef : public BaseT<StructRef>
+    class StructName : public BaseT<StructName>
     {
     public:
-        StructRef(brain::Brain& kb, CellI& value);
+        StructName(brain::Brain& kb, CellI& name);
     };
     class Call;
     class Self : public BaseT<Self>
@@ -432,6 +435,8 @@ public:
         Var& getVariable(CellI& id);
         Var& addVariable(CellI& id);
 
+        Ast::Struct& resolveStructName(CellI& name);
+        Ast::Struct& resolveStructNameImpl(CellI& name);
         bool hasStruct(CellI& id);
         Struct& getStruct(const std::string& name);
         Struct& getStruct(CellI& id);
@@ -442,8 +447,9 @@ public:
         StructT& getStructT(CellI& id);
         StructT& addStructT(const std::string& name);
 
+        Struct& resolveFullStructId(CellI& scopeList, CellI& id);
         Scope* resolveFullTemplateId(CellI& scopeList, CellI& id);
-        Scope* getRootScope();
+        Scope& getRootScope();
 
         CellI& compile();
 
@@ -509,6 +515,7 @@ public:
         Struct(brain::Brain& kb, CellI& id, const std::string& label = "ast.struct");
         Struct(brain::Brain& kb, const std::string& name);
 
+        CellI& getFullId();
         Struct& resolveTypes(CellI& resolveState);
         CellI& compile(CellI& state);
     };
@@ -808,7 +815,8 @@ public:
     Ast(brain::Brain& kb);
 
     Cell& cell(CellI& value);
-    StructRef& structRef(CellI& astStruct);
+    StructName& structName(CellI& id);
+    StructName& structName(const std::string& idStr);
     Self& self();
     SelfFn& selfFn();
     Return& return_();
@@ -878,6 +886,7 @@ public:
     GreaterThanOrEqual& greaterThanOrEqual(Base& lhs, Base& rhs);
 
 protected:
+    CellI& processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb);
     brain::Brain& kb;
 };
 
@@ -1034,7 +1043,7 @@ public:
     Ast::TemplateParam& tp_(const std::string& name);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
-    Ast::StructRef& struct_(const std::string& name);
+    Ast::StructName& struct_(const std::string& name);
 
 public:
     Brain();
@@ -1192,7 +1201,7 @@ Ast::New& Ast::new_(Base& objectType, const std::string& constructor, Args&&... 
 template <typename... Args>
 Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor, Args&&... args)
 {
-    auto& ret = new_(kb.ast.structRef(kb.id(objectType)), kb.ast.cell(kb.id(constructor)));
+    auto& ret = new_(kb.ast.structName(kb.id(objectType)), kb.ast.cell(kb.id(constructor)));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
@@ -1244,7 +1253,7 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 template <typename... Args>
 Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& role, const std::string& type, Args&&... args)
 {
-    auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structRef(kb.id(type))));
+    auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structName(kb.id(type))));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }

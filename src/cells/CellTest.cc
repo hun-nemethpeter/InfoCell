@@ -130,11 +130,11 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 TEST_F(CellTest, PrintStdCodes)
 {
 #if 1
-    auto& ListItemStruct = getStruct(kb.templateId("ListItem", ids.objectType, kb.type.Number));
-    auto& ListStruct     = getStruct(kb.templateId("List", ids.objectType, kb.type.Number));
-    auto& MapStruct      = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
-    auto& SetStruct     =  getStruct(kb.templateId("Set", ids.objectType, kb.type.Number));
-    auto& TypeStruct     = getStruct(kb.id("Type"));
+    auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.objectType, kb.type.Number));
+    auto& ListStruct     = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Number));
+    auto& MapStruct      = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& SetStruct     =  getStruct(kb.templateId("std::Set", ids.objectType, kb.type.Number));
+    auto& TypeStruct     = getStruct(kb.id("std::Type"));
 
     printAs.value(ListItemStruct);
     printMethodInType(ListItemStruct, "constructor");
@@ -180,16 +180,17 @@ TEST_F(CellTest, PrintStdCodes)
 
 TEST_F(CellTest, PrintTestCodes)
 {
-#if 0
-    auto& TestStruct = getStruct(kb.id("Test"));
+#if 1
+    auto& TestStruct = getStruct(kb.id("test::Test"));
     printMethodInType(TestStruct, "factorial");
+    printMethodInType(TestStruct, "testCreateNewListOfNumbers");
 #endif
 }
 
 TEST_F(CellTest, PrintArcCodes)
 {
-    auto& ShapeStruct  = getStruct(kb.id("Shape"));
-    auto& ShaperStruct = getStruct(kb.id("Shaper"));
+    auto& ShapeStruct  = getStruct(kb.id("arc::Shape"));
+    auto& ShaperStruct = getStruct(kb.id("arc::Shaper"));
 
     printAs.value(ShapeStruct);
     printMethodInType(ShapeStruct, "constructor");
@@ -206,7 +207,7 @@ TEST_F(CellTest, PrintArcCodes)
 
 TEST_F(CellTest, RecursiveCall)
 {
-    auto& TestStruct = getStruct(kb.id("Test"));
+    auto& TestStruct = getStruct(kb.id("test::Test"));
     Object testNumber(kb, TestStruct, "TestStruct");
 
     EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _0_ }), &_1_);
@@ -219,7 +220,7 @@ TEST_F(CellTest, RecursiveCall)
 
 TEST_F(CellTest, List)
 {
-    auto& ListStruct = getStruct(kb.templateId("List", ids.objectType, kb.type.Number));
+    auto& ListStruct = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Number));
     Object list(kb, ListStruct, kb.id("constructor"));
 
     printAs.value(list);
@@ -332,7 +333,7 @@ TEST_F(CellTest, List)
 
 TEST_F(CellTest, Map)
 {
-    auto& MapStruct = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& MapStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
     Object map(kb, MapStruct, kb.id("constructor"));
 
     printAs.value(map);
@@ -367,7 +368,7 @@ TEST_F(CellTest, Map)
 
 TEST_F(CellTest, MapTypes)
 {
-    auto& MapStruct = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& MapStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
     Object map(kb, MapStruct, kb.id("constructor"));
 
     printAs.value(map.type());
@@ -436,7 +437,7 @@ TEST_F(CellTest, BuiltInMap)
 
 TEST_F(CellTest, MapTemplateTypes)
 {
-    auto& MapNumberToColor = getStruct(kb.templateId("Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
+    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
     Object map(kb, MapNumberToColor, kb.id("constructor"));
 
     printAs.value(map.type());
@@ -477,7 +478,7 @@ TEST_F(CellTest, MapTemplateTypes)
 
 TEST_F(CellTest, MapNumberToColor)
 {
-    auto& MapNumberToColor = getStruct(kb.templateId("Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
+    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
     Object map(kb, MapNumberToColor, kb.id("constructor"));
 
     EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.keyType][kb.ids.value], &kb.type.Number);
@@ -513,7 +514,7 @@ TEST_F(CellTest, MapNumberToColor)
 
 TEST_F(CellTest, ListItem)
 {
-    auto& ListItemStruct = getStruct(kb.templateId("ListItem", ids.objectType, kb.type.Color));
+    auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.objectType, kb.type.Color));
     Object listItem(kb, ListItemStruct, kb.id("constructor"), { ids.value, kb.colors.green });
 
     EXPECT_EQ(&listItem[ids.value], &kb.colors.green);
@@ -531,7 +532,7 @@ TEST_F(CellTest, ListItem)
 
 TEST_F(CellTest, ListItemTemplate)
 {
-    auto& ListItemNumber  = getStruct(kb.templateId("ListItem", ids.objectType, kb.type.Number));
+    auto& ListItemNumber  = getStruct(kb.templateId("std::ListItem", ids.objectType, kb.type.Number));
     Object listItemNumber(kb, ListItemNumber, kb.id("constructor"), { ids.value, _1_ });
 
     EXPECT_EQ(&listItemNumber[ids.value], &_1_);
@@ -554,7 +555,7 @@ TEST_F(CellTest, ListItemTemplate)
 
 TEST_F(CellTest, ListTemplate)
 {
-    auto& ListOfNumbers = getStruct(kb.templateId("List", ids.objectType, kb.type.Number));
+    auto& ListOfNumbers = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Number));
 
     EXPECT_EQ(&ListOfNumbers[ids.subTypes][ids.size], &_2_);
     EXPECT_TRUE(ListOfNumbers[ids.subTypes][ids.index].has(ids.objectType));
@@ -611,7 +612,7 @@ TEST_F(CellTest, HybridPicture)
     EXPECT_EQ(&picture[ids.height], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[ids.pixels][ids.type], &kb.type.ListOf(kb.type.Pixel));
 
-    auto& ListOfPixels  = getStruct(kb.templateId("List", ids.objectType, kb.type.Pixel));
+    auto& ListOfPixels  = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Pixel));
     Object listOfPixels(kb, ListOfPixels, kb.id("constructor"), "listOfPixels");
     listOfPixels.method(kb.id("add"), { ids.value, picture[ids.pixels][ids.first][ids.value] });
     listOfPixels.method(kb.id("add"), { ids.value, picture[ids.pixels][ids.first][ids.next][ids.value] });
@@ -620,8 +621,8 @@ TEST_F(CellTest, HybridPicture)
 
 TEST_F(CellTest, BasicObjectTest)
 {
-    auto& Type_ = getStruct(kb.id("Type"));
-    auto& List = getStruct(kb.templateId("List", ids.objectType, kb.type.Cell));
+    auto& Type_ = getStruct(kb.id("std::Type"));
+    auto& List = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Cell));
     Object testType(kb, Type_, "Test");
     Object emptyList(kb, List, kb.id("constructor"));
 
@@ -694,7 +695,7 @@ TEST_F(CellTest, CreatingCustomType)
 
     Object colorClass(kb, kb.type.Type_, "Color");
 #if 1 // TODO
-    auto& MapCellToSlot = getStruct(kb.templateId("Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& MapCellToSlot = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
     Object* slotMapPtr  = new Object(kb, MapCellToSlot, kb.id("constructor"));
     colorClass.set(ids.slots, *slotMapPtr);
 #endif
@@ -876,7 +877,7 @@ TEST_F(CellTest, NextgenType)
 
 TEST_F(CellTest, NextgenBrainType)
 {
-    auto& MapNumberToColor = getStruct(kb.templateId("Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
+    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
     Object map(kb, MapNumberToColor, kb.id("constructor"));
 
     EXPECT_EQ(&map[ids.size], &_0_);
@@ -1115,7 +1116,7 @@ TEST_F(CellTest, StringTest)
 
 TEST_F(CellTest, ShaperTest)
 {
-    auto& ShaperStruct = getStruct(kb.id("Shaper"));
+    auto& ShaperStruct = getStruct(kb.id("arc::Shaper"));
 
     // 0 7 7
     // 7 7 7

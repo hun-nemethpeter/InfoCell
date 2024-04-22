@@ -994,6 +994,23 @@ List::Item* List::add(CellI& value)
     return item;
 }
 
+
+List::Item* List::addFront(CellI& value)
+{
+    Item* item = new Item(kb, *this, value);
+    if (m_firstItem) {
+        m_firstItem->m_previous = item;
+        item->m_next            = m_firstItem;
+    }
+    m_firstItem = item;
+    if (!m_lastItem) {
+        m_lastItem = item;
+    }
+    ++m_size;
+
+    return item;
+}
+
 void List::removeItem(Item* item)
 {
     if (item->m_previous) {
@@ -1467,7 +1484,7 @@ CellI& TrieMap::getValue(CellI& key)
         throw "No such key!";
     }
 
-    return (*currentNode)[kb.ids.data][kb.ids.value];
+    return (*currentNode)[kb.ids.data][kb.ids.value][kb.ids.value];
 }
 
 void TrieMap::add(CellI& key, CellI& value)
@@ -1494,7 +1511,7 @@ void TrieMap::add(CellI& key, CellI& value)
         currentNode = child;
     });
 
-    List::Item& item = *m_list.add(value);
+    List::Item& item = *m_list.add(kb.type.kvPair(key, value));
     currentNode->set(kb.ids.data, item);
     ++m_size;
 }
@@ -2189,6 +2206,27 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
         }
 
         currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
+    }
+}
+
+
+void Visitor::visitListInReverse(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
+{
+    brain::Brain& kb = list.kb;
+    int i            = 0;
+
+    CellI* currentListItemPtr = list.has(kb.ids.last) ? &list[kb.ids.last] : nullptr;
+    while (currentListItemPtr) {
+        CellI& currentListItem = *currentListItemPtr;
+        CellI& value           = currentListItem[kb.ids.value];
+        bool stop              = false;
+
+        visitFn(value, i++, stop);
+        if (stop) {
+            return;
+        }
+
+        currentListItemPtr = currentListItem.has(kb.ids.previous) ? &currentListItem[kb.ids.previous] : nullptr;
     }
 }
 
