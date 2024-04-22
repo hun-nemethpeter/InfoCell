@@ -1007,7 +1007,7 @@ Ast::Base& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
     List& idCell                   = generateTemplateId(templateId, templateParams, resolveState, resolvedTemplateParams);
     auto& resolvedAstInstance      = resolveTemplateInstanceIdAsAst(idCell, scope, resolveState, ast, resolvedTemplateParams);
     resolvedAstInstance.set("instanceOf", scope.getStructT(templateId));
-    resolvedAstInstance.set("templateParams", templateParams);
+    resolvedAstInstance.set("templateParams", resolvedTemplateParams);
     auto& resolvedCompiledInstance = resolveTemplateInstanceId(resolvedAstInstance.getFullId(), scope, resolveState, ast, resolvedTemplateParams);
 
     // std::cout << std::format("DDDD {} resolved at {:p}\n", idCell.label(), (void*)&resolvedInstance) << std::endl;
