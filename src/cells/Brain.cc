@@ -1807,28 +1807,34 @@ void Ast::StructBase::addMethod(Function& method)
     methods().add(name, method);
 }
 
-void Ast::StructBase::members(Slot& slot)
+Ast::StructBase& Ast::StructBase::members(Slot& slot)
 {
     if (missing("members")) {
         set("members", *new Map(kb, kb.type.Cell, kb.type.ast.Slot));
     }
     members().add(slot[kb.ids.slotRole], slot);
+
+    return *this;
 }
 
-void Ast::StructBase::subTypes(Slot& param)
+Ast::StructBase& Ast::StructBase::subTypes(Slot& param)
 {
     if (missing("subTypes")) {
         set("subTypes", *new List(kb, kb.type.ast.Slot));
     }
     subTypes().add(param);
+
+    return *this;
 }
 
-void Ast::StructBase::memberOf(CellI& type)
+Ast::StructBase& Ast::StructBase::memberOf(CellI& type)
 {
     if (missing("memberOf")) {
         set("memberOf", *new List(kb, kb.type.Type_));
     }
     memberOf().add(type);
+
+    return *this;
 }
 
 Map& Ast::StructBase::methods()
@@ -2093,7 +2099,7 @@ Ast::StructT::StructT(brain::Brain& kb, const std::string& name) :
 {
 }
 
-void Ast::StructT::templateParams(Slot& slot)
+Ast::StructT& Ast::StructT::templateParams(Slot& slot)
 {
     if (missing("templateParams")) {
         set("templateParams", *new Map(kb, kb.type.Cell, kb.type.Type_));
@@ -2110,6 +2116,8 @@ void Ast::StructT::templateParams(Slot& slot)
         throw "TODO";
     }
     templateParams().add(slotRole, *paramType);
+
+    return *this;
 }
 
 Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
@@ -2402,17 +2410,21 @@ Ast::Function::Function(brain::Brain& kb, const std::string& name) :
     label(name);
 }
 
-void Ast::Function::parameters(Slot& param)
+Ast::Function& Ast::Function::parameters(Slot& param)
 {
     if (missing("parameters")) {
         set("parameters", *new List(kb, kb.type.Slot));
     }
     parameters().add(param);
+
+    return *this;
 }
 
-void Ast::Function::returnType(CellI& type)
+Ast::Function& Ast::Function::returnType(CellI& type)
 {
     set("returnType", type);
+
+    return *this;
 }
 
 void Ast::Function::addBlock(Block& block)
@@ -4215,56 +4227,58 @@ void Brain::createStd()
     */
 
 #pragma region ListItem
-    auto& listItemStructT = stdScope.addStructT("ListItem");
-    listItemStructT.templateParams(
-        param("objectType", _(type.Type_)));
-    listItemStructT.memberOf(
-        _(type.ListItem));
-    listItemStructT.subTypes(
-        param("objectType", tp_("objectType")));
-    listItemStructT.members(
-        member("previous", tt_("ListItem", "objectType", tp_("objectType"))),
-        member("next", tt_("ListItem", "objectType", tp_("objectType"))),
-        member("value", tp_("objectType")));
+    auto& listItemStructT
+        = stdScope.addStructT("ListItem")
+              .templateParams(
+                  param("objectType", _(type.Type_)))
+              .memberOf(
+                  _(type.ListItem))
+              .subTypes(
+                  param("objectType", tp_("objectType")))
+              .members(
+                  member("previous", tt_("ListItem", "objectType", tp_("objectType"))),
+                  member("next", tt_("ListItem", "objectType", tp_("objectType"))),
+                  member("value", tp_("objectType")));
 
-    auto& listItemConstructor = listItemStructT.addMethod("constructor");
-    listItemConstructor.parameters(
-        param("value", tp_("objectType")));
-    listItemConstructor.code(
-        m_("value") = p_("value"));
+    listItemStructT.addMethod("constructor")
+        .parameters(
+            param("value", tp_("objectType")))
+        .code(
+            m_("value") = p_("value"));
 #pragma endregion
 #pragma region List
-    auto& listStructT = stdScope.addStructT("List");
-    listStructT.templateParams(
-        param("objectType", _(type.Type_)));
-    listStructT.memberOf(
-        _(type.Container),
-        _(type.List));
-    listStructT.subTypes(
-        param("itemType", tt_("ListItem", "objectType", tp_("objectType"))),
-        param("objectType", tp_("objectType")));
-    listStructT.members(
-        member("first", tt_("ListItem", "objectType", tp_("objectType"))),
-        member("last", tt_("ListItem", "objectType", tp_("objectType"))),
-        member("size", _(type.Number)));
+    auto& listStructT
+        = stdScope.addStructT("List")
+              .templateParams(
+                  param("objectType", _(type.Type_)))
+              .memberOf(
+                  _(type.Container),
+                  _(type.List))
+              .subTypes(
+                  param("itemType", tt_("ListItem", "objectType", tp_("objectType"))),
+                  param("objectType", tp_("objectType")))
+              .members(
+                  member("first", tt_("ListItem", "objectType", tp_("objectType"))),
+                  member("last", tt_("ListItem", "objectType", tp_("objectType"))),
+                  member("size", _(type.Number)));
 
-    Ast::Function& listCtor = listStructT.addMethod("constructor");
-    listCtor.code(
-        m_("size") = _(_0_));
+    listStructT.addMethod("constructor")
+        .code(
+            m_("size") = _(_0_));
 
-    Ast::Function& listAdd = listStructT.addMethod("add");
-    listAdd.parameters(
-        param("value", tp_("objectType")));
-    listAdd.returnType(tt_("ListItem", "objectType", tp_("objectType")));
-    listAdd.code(
-        var_("item") = ast.new_(tt_("ListItem", "objectType", tp_("objectType")), "constructor", param("value", p_("value"))),
-        ast.if_(ast.not_(m_("first").exist()),
-                m_("first") = *var_("item"),                               // then
-                ast.block(ast.set(m_("last"), "next", *var_("item")), // else
-                          ast.set(*var_("item"), "previous", m_("last")))),
-        m_("last") = *var_("item"),
-        m_("size") = ast.add(m_("size"), _(_1_)),
-        ast.return_(*var_("item")));
+    listStructT.addMethod("add")
+        .parameters(
+            param("value", tp_("objectType")))
+        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .code(
+            var_("item") = ast.new_(tt_("ListItem", "objectType", tp_("objectType")), "constructor", param("value", p_("value"))),
+            ast.if_(ast.not_(m_("first").exist()),
+                    m_("first") = *var_("item"),                          // then
+                    ast.block(ast.set(m_("last"), "next", *var_("item")), // else
+                              ast.set(*var_("item"), "previous", m_("last")))),
+            m_("last") = *var_("item"),
+            m_("size") = ast.add(m_("size"), _(_1_)),
+            ast.return_(*var_("item")));
 
     /*
     void List::removeItem(Item* item)
@@ -4282,150 +4296,158 @@ void Brain::createStd()
         --m_size;
     }
     */
-    Ast::Function& listRemove = listStructT.addMethod("remove");
-    listRemove.parameters(
-        param("item", _(type.Cell)));
-    listRemove.code(
-        ast.if_(ast.has(p_("item"), "previous"),
-                ast.if_(ast.has(p_("item"), "next"),
-                        ast.set(p_("item") / "previous", "next", p_("item") / "next"),
-                        ast.erase(p_("item") / "previous", _("next"))),
-                ast.if_(ast.has(p_("item"), "next"),
-                        m_("first") = p_("item") / "next",
-                        ast.erase(ast.self(), _("first")))),
-        ast.if_(ast.has(p_("item"), "next"),
-                ast.if_(ast.has(p_("item"), "previous"),
-                        ast.set(p_("item") / "next", "previous", p_("item") / "previous"),
-                        ast.erase(p_("item") / "next", _("previous"))),
-                ast.if_(ast.has(p_("item"), "previous"),
-                        m_("last") = p_("item") / "previous",
-                        ast.erase(ast.self(), _("last")))),
-        m_("size") = ast.subtract(m_("size"), _(_1_)));
+    listStructT.addMethod("remove")
+        .parameters(
+            param("item", _(type.Cell)))
+        .code(
+            ast.if_(ast.has(p_("item"), "previous"),
+                    ast.if_(ast.has(p_("item"), "next"),
+                            ast.set(p_("item") / "previous", "next", p_("item") / "next"),
+                            ast.erase(p_("item") / "previous", _("next"))),
+                    ast.if_(ast.has(p_("item"), "next"),
+                            m_("first") = p_("item") / "next",
+                            ast.erase(ast.self(), _("first")))),
+            ast.if_(ast.has(p_("item"), "next"),
+                    ast.if_(ast.has(p_("item"), "previous"),
+                            ast.set(p_("item") / "next", "previous", p_("item") / "previous"),
+                            ast.erase(p_("item") / "next", _("previous"))),
+                    ast.if_(ast.has(p_("item"), "previous"),
+                            m_("last") = p_("item") / "previous",
+                            ast.erase(ast.self(), _("last")))),
+            m_("size") = ast.subtract(m_("size"), _(_1_)));
 
-    Ast::Function& listSize = listStructT.addMethod("size");
-    listSize.returnType(_(type.Number));
-    listSize.code(
-        ast.return_(m_("size")));
+    listStructT.addMethod("size")
+        .returnType(_(type.Number))
+        .code(
+            ast.return_(m_("size")));
 
-    Ast::Function& listEmpty = listStructT.addMethod("empty");
-    listEmpty.returnType(_(type.Boolean));
-    listEmpty.code(
-        ast.if_(ast.equal(m_("size"), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+    listStructT.addMethod("empty")
+        .returnType(_(type.Boolean))
+        .code(
+            ast.return_(ast.equal(m_("size"), _(_0_))));
 
-    Ast::Function& listFirst = listStructT.addMethod("first");
-    listFirst.returnType(tp_("objectType"));
-    listFirst.code(
-        ast.return_(m_("first") / "value"));
+    listStructT.addMethod("first")
+        .returnType(tp_("objectType"))
+        .code(
+            ast.return_(m_("first") / "value"));
 
-    Ast::Function& listLast = listStructT.addMethod("last");
-    listLast.returnType(tp_("objectType"));
-    listLast.code(
-        ast.return_(m_("last") / "value"));
+    listStructT.addMethod("last")
+        .returnType(tp_("objectType"))
+        .code(
+            ast.return_(m_("last") / "value"));
 
-    Ast::Function& listBegin = listStructT.addMethod("begin");
-    listBegin.returnType(tt_("ListItem", "objectType", tp_("objectType")));
-    listBegin.code(
-        ast.return_(m_("first")));
+    listStructT.addMethod("begin")
+        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .code(
+            ast.return_(m_("first")));
 
-    Ast::Function& listEnd = listStructT.addMethod("end");
-    listEnd.returnType(tt_("ListItem", "objectType", tp_("objectType")));
-    listEnd.code(
-        ast.return_(m_("last")));
+    listStructT.addMethod("end")
+        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .code(
+            ast.return_(m_("last")));
 #pragma endregion
 #pragma region Type
-    auto& typeStruct = stdScope.addStruct("Type");
-    typeStruct.members(
-        member("slots", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot))),
-        member("incomplete", _(type.Boolean)),
-        member("sharedObject", _(type.Slot)),
-        member("subTypes", tt_("Map", "keyType", _(type.Cell), "objectType", "Type")),
-        member("memberOf", tt_("Map", "keyType", "Type", "objectType", "Type")),
-        member("asts", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.ast.Function))),
-        member("methods", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.op.Function))));
+    auto& typeStruct
+        = stdScope.addStruct("Type")
+              .members(
+                  member("slots", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot))),
+                  member("incomplete", _(type.Boolean)),
+                  member("sharedObject", _(type.Slot)),
+                  member("subTypes", tt_("Map", "keyType", _(type.Cell), "objectType", "Type")),
+                  member("memberOf", tt_("Map", "keyType", "Type", "objectType", "Type")),
+                  member("asts", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.ast.Function))),
+                  member("methods", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.op.Function))));
 
-    Ast::Function& typeCtor = typeStruct.addMethod("constructor");
-    typeCtor.code(
-        m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor"));
+    typeStruct.addMethod("constructor")
+        .code(
+            m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor"));
 
-    Ast::Function& typeCtorWithRecursiveType = typeStruct.addMethod("constructorWithRecursiveType");
-    typeCtorWithRecursiveType.code(
-        m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructorWithIndexType", param("indexType", ast.self())));
+    typeStruct.addMethod("constructorWithRecursiveType")
+        .code(
+            m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructorWithIndexType", param("indexType", ast.self())));
 
-    Ast::Function& typeAddSubType = typeStruct.addMethod("addSubType");
-    typeAddSubType.parameters(
-        param("slotRole", _(type.Cell)),
-        param("slotType", _(type.Type_)));
-    typeAddSubType.code(
-        ast.if_(m_("subTypes").missing(), m_("subTypes") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", "Type"), "constructor")),
-        m_("subTypes").call("add", param("key", p_("slotRole")), param("value", p_("slotType"))));
+    typeStruct.addMethod("addSubType")
+        .parameters(
+            param("slotRole", _(type.Cell)),
+            param("slotType", _(type.Type_)))
+        .code(
+            ast.if_(m_("subTypes").missing(),
+                    m_("subTypes") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", "Type"), "constructor")),
+            m_("subTypes").call("add", param("key", p_("slotRole")), param("value", p_("slotType"))));
 
-    Ast::Function& typeAddMembership = typeStruct.addMethod("addMembership");
-    typeAddMembership.parameters(
-        param("cell", _(type.Type_)));
-    typeAddMembership.code(
-        ast.if_(m_("memberOf").missing(), m_("memberOf") = ast.new_(tt_("Map", "keyType", "Type", "objectType", "Type"), "constructor")),
-        m_("memberOf").call("add", param("key", p_("cell")), param("value", p_("cell"))));
+    typeStruct.addMethod("addMembership")
+        .parameters(
+            param("cell", _(type.Type_)))
+        .code(
+            ast.if_(m_("memberOf").missing(),
+                    m_("memberOf") = ast.new_(tt_("Map", "keyType", "Type", "objectType", "Type"), "constructor")),
+            m_("memberOf").call("add", param("key", p_("cell")), param("value", p_("cell"))));
 
-    Ast::Function& typeAddSlot = typeStruct.addMethod("addSlot");
-    typeAddSlot.parameters(
-        param("slotRole", _(type.Cell)),
-        param("slotType", _(type.Slot)));
-    typeAddSlot.code(
-        ast.if_(m_("slots").missing(), m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor")),
-        var_("slot") = ast.new_(_(type.Slot)),
-        ast.set(*var_("slot"), "slotRole", p_("slotRole")),
-        ast.set(*var_("slot"), "slotType", p_("slotType")),
-        m_("slots").call("add", param("key", p_("slotRole")), param("value", *var_("slot"))));
+    typeStruct.addMethod("addSlot")
+        .parameters(
+            param("slotRole", _(type.Cell)),
+            param("slotType", _(type.Slot)))
+        .code(
+            ast.if_(m_("slots").missing(),
+                    m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor")),
+            var_("slot") = ast.new_(_(type.Slot)),
+            ast.set(*var_("slot"), "slotRole", p_("slotRole")),
+            ast.set(*var_("slot"), "slotType", p_("slotType")),
+            m_("slots").call("add", param("key", p_("slotRole")), param("value", *var_("slot"))));
 
-    Ast::Function& typeAddSlots = typeStruct.addMethod("addSlots");
-    typeAddSlots.parameters(
-        param("list", tt_("List", "objectType", _(type.Slot))));
-    typeAddSlots.code(
-        ast.if_(ast.equal(p_("list") / "size", _(_0_)), ast.return_()),
-        var_("item") = p_("list") / "first",
-        ast.if_(m_("slots").missing(), m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor")),
-        ast.do_(ast.block(
-                    var_("next") = _(boolean.true_),
-                    m_("slots").call("add", param("key", *var_("item") / "value" / "slotRole"), param("value", *var_("item") / "value")),
-                    ast.if_(ast.has(*var_("item"), "next"),
-                            var_("item") = *var_("item") / "next",
-                            var_("next") = _(boolean.false_))),
-                ast.same(*var_("next"), _(boolean.true_))));
+    typeStruct.addMethod("addSlots")
+        .parameters(
+            param("list", tt_("List", "objectType", _(type.Slot))))
+        .code(
+            ast.if_(ast.equal(p_("list") / "size", _(_0_)),
+                    ast.return_()),
+            var_("item") = p_("list") / "first",
+            ast.if_(m_("slots").missing(),
+                    m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor")),
+            ast.do_(ast.block(
+                        var_("next") = _(boolean.true_),
+                        m_("slots").call("add", param("key", *var_("item") / "value" / "slotRole"), param("value", *var_("item") / "value")),
+                        ast.if_(ast.has(*var_("item"), "next"),
+                                var_("item") = *var_("item") / "next",
+                                var_("next") = _(boolean.false_))),
+                    ast.same(*var_("next"), _(boolean.true_))));
 
-    Ast::Function& typeHasSlot = typeStruct.addMethod("hasSlot");
-    typeHasSlot.parameters(
-        param("slotRole", _(type.Cell)));
-    typeHasSlot.returnType(_(type.Boolean));
-    typeHasSlot.code(
-        ast.if_(m_("slots").missing(), ast.return_(_(boolean.false_))),
-        ast.return_(m_("slots").call("hasKey", param("key", p_("slotRole")))));
+    typeStruct.addMethod("hasSlot")
+        .parameters(
+            param("slotRole", _(type.Cell)))
+        .returnType(_(type.Boolean))
+        .code(
+            ast.if_(m_("slots").missing(),
+                    ast.return_(_(boolean.false_))),
+            ast.return_(m_("slots").call("hasKey", param("key", p_("slotRole")))));
 
-    Ast::Function& typeRemoveSlot = typeStruct.addMethod("removeSlot");
-    typeRemoveSlot.parameters(
-        param("slotRole", _(type.Cell)));
-    typeRemoveSlot.code(
-        ast.if_(m_("slots").missing(), ast.return_()),
-        m_("slots").call("remove", param("key", p_("slotRole"))));
+    typeStruct.addMethod("removeSlot")
+        .parameters(
+            param("slotRole", _(type.Cell)))
+        .code(
+            ast.if_(m_("slots").missing(), ast.return_()),
+            m_("slots").call("remove", param("key", p_("slotRole"))));
 #pragma endregion
 #pragma region Index
-    auto& indexStruct = stdScope.addStruct("Index");
-    indexStruct.memberOf(_(type.Type_));
+    auto& indexStruct
+        = stdScope.addStruct("Index")
+              .memberOf(_(type.Type_));
 
-    Ast::Function& indexCtor = indexStruct.addMethod("constructor");
-    indexCtor.code(
-        ast.set(ast.self(), "type", ast.new_("Type", "constructorWithRecursiveType")),
-        ast.set(m_("type"), "methods", ast.get(struct_("Index"), _("methods"))),
-        ast.set(m_("type"), "memberOf", _(map(type.Type_, type.Type_, type.Index, type.Index))));
+    indexStruct.addMethod("constructor")
+        .code(
+            ast.set(ast.self(), "type", ast.new_("Type", "constructorWithRecursiveType")),
+            ast.set(m_("type"), "methods", ast.get(struct_("Index"), _("methods"))),
+            ast.set(m_("type"), "memberOf", _(map(type.Type_, type.Type_, type.Index, type.Index))));
 
-    Ast::Function& indexCtorWithSelfType = indexStruct.addMethod("constructorWithSelfType");
-    indexCtorWithSelfType.parameters(
-        param("indexType", _(type.Type_)));
-    indexCtorWithSelfType.code(
-        ast.if_(ast.missing(p_("indexType"), _("sharedObject")),
-                ast.block(ast.set(p_("indexType"), "sharedObject", ast.new_(_(type.Slot))),
-                          ast.set(p_("indexType") / "sharedObject", "slotRole", ast.self()),
-                          ast.set(p_("indexType") / "sharedObject", "slotType", struct_("Index")))),
-        ast.set(ast.self(), "type", p_("indexType")));
+    indexStruct.addMethod("constructorWithSelfType")
+        .parameters(
+            param("indexType", _(type.Type_)))
+        .code(
+            ast.if_(ast.missing(p_("indexType"), _("sharedObject")),
+                    ast.block(ast.set(p_("indexType"), "sharedObject", ast.new_(_(type.Slot))),
+                              ast.set(p_("indexType") / "sharedObject", "slotRole", ast.self()),
+                              ast.set(p_("indexType") / "sharedObject", "slotType", struct_("Index")))),
+            ast.set(ast.self(), "type", p_("indexType")));
 
     /*
     void Index::insert(CellI& key, CellI& value)
@@ -4443,21 +4465,22 @@ void Brain::createStd()
         m_type->addSlot(key, slot);
     }
     */
-    Ast::Function& indexInsert = indexStruct.addMethod("insert");
-    indexInsert.parameters(
-        param("key", _(type.Cell)),
-        param("value", _(type.Cell)));
-    indexInsert.code(
-        ast.if_(ast.same(p_("key"), _("type")), ast.return_()),
-        ast.set(ast.self(), p_("key"), p_("value")),
-        ast.if_(ast.and_(ast.has(m_("type"), "sharedObject"), ast.same(m_("type") / "sharedObject" / "slotRole", ast.self())),
-                ast.return_()),
-        m_("type").call("addSlot", param("slotRole", p_("key")), param("slotType", _(type.Slot))));
+    indexStruct.addMethod("insert")
+        .parameters(
+            param("key", _(type.Cell)),
+            param("value", _(type.Cell)))
+        .code(
+            ast.if_(ast.same(p_("key"), _("type")),
+                    ast.return_()),
+            ast.set(ast.self(), p_("key"), p_("value")),
+            ast.if_(ast.and_(ast.has(m_("type"), "sharedObject"), ast.same(m_("type") / "sharedObject" / "slotRole", ast.self())),
+                    ast.return_()),
+            m_("type").call("addSlot", param("slotRole", p_("key")), param("slotType", _(type.Slot))));
 
-    Ast::Function& indexEmpty = indexStruct.addMethod("empty");
-    indexEmpty.returnType(_(type.Boolean));
-    indexEmpty.code(
-        ast.return_(ast.call(m_("type") / "slots", "empty")));
+    indexStruct.addMethod("empty")
+        .returnType(_(type.Boolean))
+        .code(
+            ast.return_(ast.call(m_("type") / "slots", "empty")));
 
     /*
     void Index::erase(CellI& role)
@@ -4469,48 +4492,49 @@ void Brain::createStd()
         m_type->removeSlot(role);
     }
     */
-    Ast::Function& indexRemove = indexStruct.addMethod("remove");
-    indexRemove.parameters(
-        param("key", _(type.Cell)));
-    indexRemove.code(
-        ast.if_(ast.not_(m_("type").call("hasSlot", param("slotRole", p_("key")))),
-                ast.return_()),
-        ast.erase(ast.self(), p_("key")),
-        m_("type").call("removeSlot", param("slotRole", p_("key"))));
+    indexStruct.addMethod("remove")
+        .parameters(
+            param("key", _(type.Cell)))
+        .code(
+            ast.if_(ast.not_(m_("type").call("hasSlot", param("slotRole", p_("key")))),
+                    ast.return_()),
+            ast.erase(ast.self(), p_("key")),
+            m_("type").call("removeSlot", param("slotRole", p_("key"))));
 
-    Ast::Function& indexSize = indexStruct.addMethod("size");
-    indexSize.returnType(_(type.Number));
-    indexSize.code(
-        ast.return_(ast.call(m_("type") / "slots", "size")));
+    indexStruct.addMethod("size")
+        .returnType(_(type.Number))
+        .code(
+            ast.return_(ast.call(m_("type") / "slots", "size")));
 #pragma endregion
 #pragma region Map
-    auto& mapStructT = stdScope.addStructT("Map");
-    mapStructT.templateParams(
-        param("keyType", _(type.Type_)),
-        param("objectType", _(type.Type_)));
-    mapStructT.subTypes(
-        param("keyType", tp_("keyType")),
-        param("objectType", tp_("objectType")),
-        param("listType", tt_("List", "objectType", tp_("objectType"))));
-    mapStructT.memberOf(_(type.Container), _(type.Map));
-    mapStructT.members(
-        member("list", tt_("List", "objectType", tp_("objectType"))),
-        member("index", struct_("Index")),
-        member("size", _(type.Number)));
+    auto& mapStructT
+        = stdScope.addStructT("Map")
+              .templateParams(
+                  param("keyType", _(type.Type_)),
+                  param("objectType", _(type.Type_)))
+              .subTypes(
+                  param("keyType", tp_("keyType")),
+                  param("objectType", tp_("objectType")),
+                  param("listType", tt_("List", "objectType", tp_("objectType"))))
+              .memberOf(_(type.Container), _(type.Map))
+              .members(
+                  member("list", tt_("List", "objectType", tp_("objectType"))),
+                  member("index", struct_("Index")),
+                  member("size", _(type.Number)));
 
-    Ast::Function& mapCtor = mapStructT.addMethod("constructor");
-    mapCtor.code(
-        m_("size")  = _(_0_),
-        m_("list")  = ast.new_(tt_("List", "objectType", tp_("objectType")), "constructor"),
-        m_("index") = ast.new_("Index", "constructor"));
+    mapStructT.addMethod("constructor")
+        .code(
+            m_("size")  = _(_0_),
+            m_("list")  = ast.new_(tt_("List", "objectType", tp_("objectType")), "constructor"),
+            m_("index") = ast.new_("Index", "constructor"));
 
-    Ast::Function& mapCtorWithIndexType = mapStructT.addMethod("constructorWithIndexType");
-    mapCtorWithIndexType.parameters(
-        param("indexType", _(type.Type_)));
-    mapCtorWithIndexType.code(
-        m_("size")  = _(_0_),
-        m_("list")  = ast.new_(tt_("List", "objectType", tp_("objectType")), "constructor"),
-        m_("index") = ast.new_("Index", "constructorWithSelfType", param("indexType", p_("indexType"))));
+    mapStructT.addMethod("constructorWithIndexType")
+        .parameters(
+            param("indexType", _(type.Type_)))
+        .code(
+            m_("size")  = _(_0_),
+            m_("list")  = ast.new_(tt_("List", "objectType", tp_("objectType")), "constructor"),
+            m_("index") = ast.new_("Index", "constructorWithSelfType", param("indexType", p_("indexType"))));
 
     /*
     bool Map::hasKey(CellI& key)
@@ -4518,12 +4542,12 @@ void Brain::createStd()
         return m_index.has(key);
     }
     */
-    Ast::Function& mapHasKey = mapStructT.addMethod("hasKey");
-    mapHasKey.parameters(
-        param("key", tp_("keyType")));
-    mapHasKey.returnType(_(type.Boolean));
-    mapHasKey.code(
-        ast.if_(ast.has(m_("index"), p_("key")), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+    mapStructT.addMethod("hasKey")
+        .parameters(
+            param("key", tp_("keyType")))
+        .returnType(_(type.Boolean))
+        .code(
+            ast.return_(ast.has(m_("index"), p_("key"))));
 
     /*
     CellI& Map::getValue(CellI& key)
@@ -4534,12 +4558,14 @@ void Brain::createStd()
         throw "No such role!";
     }
     */
-    Ast::Function& mapGetValue = mapStructT.addMethod("getValue");
-    mapGetValue.parameters(
-        param("key", tp_("keyType")));
-    mapGetValue.returnType(tp_("objectType"));
-    mapGetValue.code(
-        ast.if_(ast.has(m_("index"), p_("key")), ast.return_(m_("index") / p_("key") / "value"), ast.return_(_("emptyObject"))));
+    mapStructT.addMethod("getValue")
+        .parameters(
+            param("key", tp_("keyType")))
+        .returnType(tp_("objectType"))
+        .code(
+            ast.if_(ast.has(m_("index"), p_("key")),
+                    ast.return_(m_("index") / p_("key") / "value"),
+                    ast.return_(_("emptyObject"))));
 
     /*
     void Map::add(CellI& key, CellI& value)
@@ -4555,16 +4581,18 @@ void Brain::createStd()
         ++m_size;
     }
     */
-    Ast::Function& mapAdd = mapStructT.addMethod("add");
-    mapAdd.parameters(
-        param("key", tp_("keyType")),
-        param("value", tp_("objectType")));
-    mapAdd.code(
-        ast.if_(ast.same(p_("key"), _("type")), ast.return_()),
-        ast.if_(ast.has(m_("index"), p_("key")), ast.return_()),
-        m_("size")   = ast.add(m_("size"), _(_1_)),
-        var_("item") = m_("list").call("add", param("value", p_("value"))),
-        m_("index").call("insert", param("key", p_("key")), param("value", *var_("item"))));
+    mapStructT.addMethod("add")
+        .parameters(
+            param("key", tp_("keyType")),
+            param("value", tp_("objectType")))
+        .code(
+            ast.if_(ast.same(p_("key"), _("type")),
+                    ast.return_()),
+            ast.if_(ast.has(m_("index"), p_("key")),
+                    ast.return_()),
+            m_("size")   = ast.add(m_("size"), _(_1_)),
+            var_("item") = m_("list").call("add", param("value", p_("value"))),
+            m_("index").call("insert", param("key", p_("key")), param("value", *var_("item"))));
 
     /*
     void Map::remove(CellI& key)
@@ -4578,120 +4606,119 @@ void Brain::createStd()
         --m_size;
     }
     */
-    Ast::Function& mapRemove = mapStructT.addMethod("remove");
-    mapRemove.parameters(
-        param("key", tp_("keyType")));
-    mapRemove.code(
-        ast.if_(ast.missing(m_("index"), p_("key")),
-                ast.return_()),
-        m_("list").call("remove", param("item", m_("index") / p_("key"))),
-        m_("index").call("remove", param("key", p_("key"))),
-        m_("size") = ast.subtract(m_("size"), _(_1_)));
+    mapStructT.addMethod("remove")
+        .parameters(
+            param("key", tp_("keyType")))
+        .code(
+            ast.if_(ast.missing(m_("index"), p_("key")),
+                    ast.return_()),
+            m_("list").call("remove", param("item", m_("index") / p_("key"))),
+            m_("index").call("remove", param("key", p_("key"))),
+            m_("size") = ast.subtract(m_("size"), _(_1_)));
 
-    Ast::Function& mapSize = mapStructT.addMethod("size");
-    mapSize.returnType(_(type.Number));
-    mapSize.code(
-        ast.return_(m_("size")));
+    mapStructT.addMethod("size")
+        .returnType(_(type.Number))
+        .code(
+            ast.return_(m_("size")));
 
-    Ast::Function& mapEmpty = mapStructT.addMethod("empty");
-    mapEmpty.returnType(_(type.Boolean));
-    mapEmpty.code(
-        ast.if_(ast.equal(m_("size"), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+    mapStructT.addMethod("empty")
+        .returnType(_(type.Boolean))
+        .code(
+            ast.return_(ast.equal(m_("size"), _(_0_))));
 
-    Ast::Function& mapFirst = mapStructT.addMethod("first");
-    mapFirst.returnType(tp_("objectType"));
-    mapFirst.code(
-        ast.return_(m_("list") / "first" / "value"));
+    mapStructT.addMethod("first")
+        .returnType(tp_("objectType"))
+        .code(
+            ast.return_(m_("list") / "first" / "value"));
 
-    Ast::Function& mapLast = mapStructT.addMethod("last");
-    mapLast.returnType(tp_("objectType"));
-    mapLast.code(
-        ast.return_(m_("list") / "last" / "value"));
+    mapStructT.addMethod("last")
+        .returnType(tp_("objectType"))
+        .code(
+            ast.return_(m_("list") / "last" / "value"));
 
-    Ast::Function& mapBegin = mapStructT.addMethod("begin");
-    mapBegin.returnType(tt_("ListItem", "objectType", tp_("objectType")));
-    mapBegin.code(
-        ast.return_(m_("list") / "first"));
+    mapStructT.addMethod("begin")
+        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .code(
+            ast.return_(m_("list") / "first"));
 
-    Ast::Function& mapEnd = mapStructT.addMethod("end");
-    mapEnd.returnType(tt_("ListItem", "objectType", tp_("objectType")));
-    mapEnd.code(
-        ast.return_(m_("list") / "last"));
+    mapStructT.addMethod("end")
+        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .code(
+            ast.return_(m_("list") / "last"));
 #pragma endregion
 #pragma region Set
-    auto& setStructT = stdScope.addStructT("Set");
-    setStructT.templateParams(
-        param("keyType", _(type.Type_)),
-        param("objectType", _(type.Type_)));
-    setStructT.subTypes(
-        param("objectType", tp_("objectType")),
-        param("listType", tt_("List", "objectType", tp_("objectType"))));
-    setStructT.memberOf(_(type.Container));
-    setStructT.members(
-        member("index", struct_("Index")),
-        member("size", _(type.Number)));
+    auto& setStructT
+        = stdScope.addStructT("Set")
+              .templateParams(
+                  param("keyType", _(type.Type_)),
+                  param("objectType", _(type.Type_)))
+              .subTypes(
+                  param("objectType", tp_("objectType")),
+                  param("listType", tt_("List", "objectType", tp_("objectType"))))
+              .memberOf(_(type.Container))
+              .members(
+                  member("index", struct_("Index")),
+                  member("size", _(type.Number)));
 
-    Ast::Function& setCtor = setStructT.addMethod("constructor");
-    setCtor.code(
-        m_("size")  = _(_0_),
-        m_("index") = ast.new_(struct_("Index"), "constructor"));
+    setStructT.addMethod("constructor")
+        .code(
+            m_("size")  = _(_0_),
+            m_("index") = ast.new_(struct_("Index"), "constructor"));
 
-    Ast::Function& setAdd = setStructT.addMethod("add");
-    setAdd.parameters(
-        param("value", tp_("objectType")));
-    setAdd.code(
-        ast.if_(ast.has(m_("index"), p_("value")),
-                ast.return_()),
-        ast.call(m_("index"), "insert", param("key", p_("value")), param("value", p_("value"))),
-        m_("size") = ast.add(m_("size"), _(_1_)));
+    setStructT.addMethod("add")
+        .parameters(
+            param("value", tp_("objectType")))
+        .code(
+            ast.if_(ast.has(m_("index"), p_("value")),
+                    ast.return_()),
+            ast.call(m_("index"), "insert", param("key", p_("value")), param("value", p_("value"))),
+            m_("size") = ast.add(m_("size"), _(_1_)));
 
-    Ast::Function& setContains = setStructT.addMethod("contains");
-    setContains.parameters(
-        param("value", tp_("objectType")));
-    setContains.returnType(_(type.Boolean));
-    setContains.code(
-        ast.if_(ast.has(m_("index"), p_("value")),
-                ast.return_(_(boolean.true_)),
-                ast.return_(_(boolean.false_))));
+    setStructT.addMethod("contains")
+        .parameters(
+            param("value", tp_("objectType")))
+        .returnType(_(type.Boolean))
+        .code(
+            ast.return_(ast.has(m_("index"), p_("value"))));
 
-    Ast::Function& setErase = setStructT.addMethod("erase");
-    setErase.parameters(
-        param("value", tp_("objectType")));
-    setErase.code(
-        ast.if_(ast.missing(m_("index"), p_("value")),
-                ast.return_()),
-        ast.call(m_("index"), "remove", param("key", p_("value"))),
-        m_("size") = ast.subtract(m_("size"), _(_1_)));
+    setStructT.addMethod("remove")
+        .parameters(
+            param("value", tp_("objectType")))
+        .code(
+            ast.if_(ast.missing(m_("index"), p_("value")),
+                    ast.return_()),
+            ast.call(m_("index"), "remove", param("key", p_("value"))),
+            m_("size") = ast.subtract(m_("size"), _(_1_)));
 
-    Ast::Function& setFirst = setStructT.addMethod("first");
-    setFirst.returnType(tp_("objectType"));
-    setFirst.code(
-        ast.return_(m_("index") / "type" / "slots" / "list" / "first" / "value" / "slotRole"));
+    setStructT.addMethod("first")
+        .returnType(tp_("objectType"))
+        .code(
+            ast.return_(m_("index") / "type" / "slots" / "list" / "first" / "value" / "slotRole"));
 
-    Ast::Function& setLast = setStructT.addMethod("last");
-    setLast.returnType(tp_("objectType"));
-    setLast.code(
-        ast.return_(m_("index") / "type" / "slots" / "list" / "last" / "value" / "slotRole"));
+    setStructT.addMethod("last")
+        .returnType(tp_("objectType"))
+        .code(
+            ast.return_(m_("index") / "type" / "slots" / "list" / "last" / "value" / "slotRole"));
 
-    Ast::Function& setBegin = setStructT.addMethod("begin");
-    setBegin.returnType(tt_("ListItem", "objectType", tp_("objectType")));
-    setBegin.code(
-        ast.return_(m_("index") / "type" / "slots" / "list" / "last"));
+    setStructT.addMethod("begin")
+        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .code(
+            ast.return_(m_("index") / "type" / "slots" / "list" / "last"));
 
-    Ast::Function& setEnd = setStructT.addMethod("end");
-    setEnd.returnType(tt_("ListItem", "objectType", tp_("objectType")));
-    setEnd.code(
-        ast.return_(m_("list") / "last"));
+    setStructT.addMethod("end")
+        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .code(
+            ast.return_(m_("list") / "last"));
 
-    Ast::Function& setSize = setStructT.addMethod("size");
-    setSize.returnType(_(type.Number));
-    setSize.code(
-        ast.return_(m_("size")));
+    setStructT.addMethod("size")
+        .returnType(_(type.Number))
+        .code(
+            ast.return_(m_("size")));
 
-    Ast::Function& setEmpty = setStructT.addMethod("empty");
-    setEmpty.returnType(_(type.Boolean));
-    setEmpty.code(
-        ast.if_(ast.equal(m_("size"), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+    setStructT.addMethod("empty")
+        .returnType(_(type.Boolean))
+        .code(
+            ast.if_(ast.equal(m_("size"), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
 #pragma endregion
 }
 
@@ -4713,30 +4740,31 @@ void Brain::createTests()
 
     auto& testVariable = testScope.addVariable(id("testVariable"));
 
-    auto& testStruct                 = testScope.addStruct("Test");
-    CellI& fullId = testStruct.getFullId();
-    auto& testCreateNewListOfNumbers = testStruct.addMethod("testCreateNewListOfNumbers");
-    testCreateNewListOfNumbers.code(
-        var_("result") = ast.new_(struct_("std::Index")),
-        var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Number))),
-        var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Cell))),
-        var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Pixel))),
-        var_("result") = ast.new_(tt_("std::Set", "objectType", _(type.Number))),
-        var_("result") = ast.new_(tt_("std::Map", "keyType", _(type.Number), "objectType", _(type.Color))));
+    auto& testStruct = testScope.addStruct("Test");
+    CellI& fullId    = testStruct.getFullId();
+
+    testStruct.addMethod("testCreateNewListOfNumbers")
+        .code(
+            var_("result") = ast.new_(struct_("std::Index")),
+            var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Number))),
+            var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Cell))),
+            var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Pixel))),
+            var_("result") = ast.new_(tt_("std::Set", "objectType", _(type.Number))),
+            var_("result") = ast.new_(tt_("std::Map", "keyType", _(type.Number), "objectType", _(type.Color))));
 
     CellI* mapPtr = nullptr;
     mapPtr        = &slots(type.slot("value", type.ListOf(type.Digit)),
                            type.slot("sign", type.Number)); // TODO sign has no class currently
     type.Number.set("slots", *mapPtr);
 
-    Ast::Function& numberFactorial = testStruct.addMethod("factorial");
-    numberFactorial.parameters(
-        param("input", _(type.Number)));
-    numberFactorial.returnType(_(type.Number));
-    numberFactorial.code(
-        ast.if_(ast.greaterThanOrEqual(p_("input"), _(_1_)),
-                ast.return_(ast.multiply(p_("input"), ast.self().call("factorial", param("input", ast.subtract(p_("input"), _(_1_)))))),
-                ast.return_(_(_1_))));
+    testStruct.addMethod("factorial")
+        .parameters(
+            param("input", _(type.Number)))
+        .returnType(_(type.Number))
+        .code(
+            ast.if_(ast.greaterThanOrEqual(p_("input"), _(_1_)),
+                    ast.return_(ast.multiply(p_("input"), ast.self().call("factorial", param("input", ast.subtract(p_("input"), _(_1_)))))),
+                    ast.return_(_(_1_))));
 
     // TODO
 //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
@@ -4746,55 +4774,57 @@ void Brain::createArcSolver()
 {
     auto& arcScope = globalScope.addScope("arc");
 
-    auto& colorStruct = arcScope.addStruct("Color");
-    colorStruct.members(
-        member("red", _(type.Number)),
-        member("green", _(type.Number)),
-        member("blue", _(type.Number)));
+    auto& colorStruct
+        = arcScope.addStruct("Color")
+              .members(
+                  member("red", _(type.Number)),
+                  member("green", _(type.Number)),
+                  member("blue", _(type.Number)));
 
     // struct Pixel
-    auto& pixelStruct = arcScope.addStruct("Pixel");
-    pixelStruct.members(
-        member("x", _(type.Number)),
-        member("y", _(type.Number)));
+    auto& pixelStruct
+        = arcScope.addStruct("Pixel")
+              .members(
+                  member("x", _(type.Number)),
+                  member("y", _(type.Number)));
 
-    Ast::Function& pixelCtor = pixelStruct.addMethod("constructor");
-    pixelCtor.parameters(
-        param("x", _(type.Number)),
-        param("y", _(type.Number)));
-    pixelCtor.code(
-        m_("x") = p_("x"),
-        m_("y") = p_("y"));
-
+    pixelStruct.addMethod("constructor")
+        .parameters(
+            param("x", _(type.Number)),
+            param("y", _(type.Number)))
+        .code(
+            m_("x") = p_("x"),
+            m_("y") = p_("y"));
 
     // struct Shape
-    auto& shapeStruct = arcScope.addStruct("Shape");
-    shapeStruct.members(
-        member("id", _(type.Number)),
-        member("color", struct_("Color")),
-        member("width", _(type.Number)),
-        member("height", _(type.Number)),
-        member("hybridPixels", tt_("std::Set", "objectType", _(type.Pixel))),
-        member("pixels", tt_("std::List", "objectType", struct_("Pixel"))));
+    auto& shapeStruct
+        = arcScope.addStruct("Shape")
+              .members(
+                  member("id", _(type.Number)),
+                  member("color", struct_("Color")),
+                  member("width", _(type.Number)),
+                  member("height", _(type.Number)),
+                  member("hybridPixels", tt_("std::Set", "objectType", _(type.Pixel))),
+                  member("pixels", tt_("std::List", "objectType", struct_("Pixel"))));
 
 
     /*
     Shape(int id, input::Color color, int width, int height) :
         m_id(id), m_color(color), m_width(width), m_height(height) { }
     */
-    Ast::Function& shapeCtor = shapeStruct.addMethod("constructor");
-    shapeCtor.parameters(
-        param("id", _(type.Number)),
-        param("color", struct_("Color")),
-        param("width", _(type.Number)),
-        param("height", _(type.Number)));
-    shapeCtor.code(
-        m_("id")           = p_("id"),
-        m_("color")        = p_("color"),
-        m_("width")        = p_("width"),
-        m_("height")       = p_("height"),
-        m_("hybridPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
-        m_("pixels")       = ast.new_(tt_("std::List", "objectType", struct_("Pixel")), "constructor"));
+    shapeStruct.addMethod("constructor")
+        .parameters(
+            param("id", _(type.Number)),
+            param("color", struct_("Color")),
+            param("width", _(type.Number)),
+            param("height", _(type.Number)))
+        .code(
+            m_("id")           = p_("id"),
+            m_("color")        = p_("color"),
+            m_("width")        = p_("width"),
+            m_("height")       = p_("height"),
+            m_("hybridPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
+            m_("pixels")       = ast.new_(tt_("std::List", "objectType", struct_("Pixel")), "constructor"));
 
     /*
     void Shape::addPixel(cells::hybrid::Pixel& pixel)
@@ -4803,12 +4833,12 @@ void Brain::createArcSolver()
         m_hybridPixels.insert(&pixel);
     }
     */
-    Ast::Function& shapeAddPixel = shapeStruct.addMethod("addPixel");
-    shapeAddPixel.parameters(
-        param("pixel", struct_("Pixel")));
-    shapeAddPixel.code(
-        m_("pixels").call("add", param("value", p_("pixel"))),
-        m_("hybridPixels").call("add", param("value", p_("pixel"))));
+    shapeStruct.addMethod("addPixel")
+        .parameters(
+            param("pixel", struct_("Pixel")))
+        .code(
+            m_("pixels").call("add", param("value", p_("pixel"))),
+            m_("hybridPixels").call("add", param("value", p_("pixel"))));
 
     /*
     bool Shape::hasPixel(cells::hybrid::Pixel& pixel) const
@@ -4816,12 +4846,12 @@ void Brain::createArcSolver()
         return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
     }
     */
-    Ast::Function& shapeHasPixel = shapeStruct.addMethod("hasPixel");
-    shapeHasPixel.parameters(
-        param("pixel", _(type.Pixel)));
-    shapeHasPixel.returnType(_(type.Boolean)); // maybe hybrid pixel?!
-    shapeHasPixel.code(
-        ast.return_(m_("hybridPixels").call("contains", param("value", p_("pixel")))));
+    shapeStruct.addMethod("hasPixel")
+        .parameters(
+            param("pixel", _(type.Pixel)))
+        .returnType(_(type.Boolean))
+        .code(
+            ast.return_(m_("hybridPixels").call("contains", param("value", p_("pixel")))));
 
     /*
     void Shape::sortPixels()
@@ -4832,18 +4862,20 @@ void Brain::createArcSolver()
         });
     }
     */
-    Ast::Function& shapeSortPixels = shapeStruct.addMethod("sortPixels");
-    shapeSortPixels.code(ast.return_()); // TODO sorting
+    shapeStruct.addMethod("sortPixels")
+        .code(ast.return_()); // TODO sorting
 
 
     // struct Shaper
-    auto& shaperStruct = arcScope.addStruct("Shaper");
-    shaperStruct.members(
-        member("width", _(type.Number)),
-        member("height", _(type.Number)),
-        member("picture", _(type.Picture)),
-        member("shapes", tt_("std::List", "objectType", "Shape")),
-        member("inputPixels", tt_("std::Set", "objectType", _(type.Pixel))));
+    auto& shaperStruct
+        = arcScope.addStruct("Shaper")
+              .members(
+                  member("width", _(type.Number)),
+                  member("height", _(type.Number)),
+                  member("picture", _(type.Picture)),
+                  member("shapes", tt_("std::List", "objectType", "Shape")),
+                  member("inputPixels", tt_("std::Set", "objectType", _(type.Pixel))));
+
     /*
     Shaper::Shaper(const cells::hybrid::Picture& picture) :
         m_width(picture.width()),
@@ -4854,16 +4886,16 @@ void Brain::createArcSolver()
         processInputPixels();
     }
     */
-    Ast::Function& shaperCtor = shaperStruct.addMethod("constructor");
-    shaperCtor.parameters(
-        param("picture", _(type.Picture)));
-    shaperCtor.code(
-        m_("picture")     = p_("picture"),
-        m_("width")       = p_("picture") / "width",
-        m_("height")      = p_("picture") / "height",
-        m_("shapes")      = ast.new_(tt_("std::List", "objectType", "Shape"), "constructor"),
-        m_("inputPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
-        ast.self().call("processInputPixels"));
+    shaperStruct.addMethod("constructor")
+        .parameters(
+            param("picture", _(type.Picture)))
+        .code(
+            m_("picture")     = p_("picture"),
+            m_("width")       = p_("picture") / "width",
+            m_("height")      = p_("picture") / "height",
+            m_("shapes")      = ast.new_(tt_("std::List", "objectType", "Shape"), "constructor"),
+            m_("inputPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
+            ast.self().call("processInputPixels"));
     /*
     void Shaper::processInputPixels()
     {
@@ -4873,18 +4905,18 @@ void Brain::createArcSolver()
         }
     }
     */
-    Ast::Function& shaperProcessInputPixels = shaperStruct.addMethod("processInputPixels");
-    shaperProcessInputPixels.code(
-        var_("pixels") = m_("picture") / "pixels",
-        var_("pixel")  = _(ids.emptyObject),
-        ast.if_(ast.has(*var_("pixels"), "first"),
-                var_("pixel") = *var_("pixels") / "first"),
-        ast.while_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
-                   ast.block(
-                       m_("inputPixels").call("add", param("value", *var_("pixel") / "value")),
-                       ast.if_(ast.has(*var_("pixel"), "next"),
-                               var_("pixel") = *var_("pixel") / "next",
-                               var_("pixel") = _(ids.emptyObject)))));
+    shaperStruct.addMethod("processInputPixels")
+        .code(
+            var_("pixels") = m_("picture") / "pixels",
+            var_("pixel")  = _(ids.emptyObject),
+            ast.if_(ast.has(*var_("pixels"), "first"),
+                    var_("pixel") = *var_("pixels") / "first"),
+            ast.while_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
+                       ast.block(
+                           m_("inputPixels").call("add", param("value", *var_("pixel") / "value")),
+                           ast.if_(ast.has(*var_("pixel"), "next"),
+                                   var_("pixel") = *var_("pixel") / "next",
+                                   var_("pixel") = _(ids.emptyObject)))));
 
     /*
     void Shaper::process()
@@ -4910,23 +4942,23 @@ void Brain::createArcSolver()
         );
     }
     */
-    Ast::Function& shaperProcess = shaperStruct.addMethod("process");
-    shaperProcess.code(
-        var_("shapeId") = _(_1_),
-        ast.while_(ast.not_(m_("inputPixels").call("empty")),
-                   ast.block(
-                       var_("firstPixel") = m_("inputPixels").call("first"),
-                       m_("shapes").call("add", param("value", ast.new_("Shape", "constructor", param("id", *var_("shapeId")), param("color", *var_("firstPixel") / "color"), param("width", m_("width")), param("height", m_("height"))))),
-                       var_("shapeId")     = ast.add(*var_("shapeId"), _(_1_)),
-                       var_("shape")       = m_("shapes").call("last"),
-                       var_("checkPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
-                       ast.call(*var_("checkPixels"), "add", param("value", *var_("firstPixel"))),
-                       ast.while_(ast.not_(ast.call(*var_("checkPixels"), _("empty"))),
-                                  ast.block(
-                                      var_("checkPixel") = ast.call(*var_("checkPixels"), "first"),
-                                      ast.self().call("processPixel", param("shape", *var_("shape")), param("checkPixels", *var_("checkPixels")), param("checkPixel", *var_("checkPixel"))),
-                                      ast.call(*var_("checkPixels"), "erase", param("value", *var_("checkPixel"))))),
-                       ast.call(*var_("shape"), _("sortPixels")))));
+    shaperStruct.addMethod("process")
+        .code(
+            var_("shapeId") = _(_1_),
+            ast.while_(ast.not_(m_("inputPixels").call("empty")),
+                       ast.block(
+                           var_("firstPixel") = m_("inputPixels").call("first"),
+                           m_("shapes").call("add", param("value", ast.new_("Shape", "constructor", param("id", *var_("shapeId")), param("color", *var_("firstPixel") / "color"), param("width", m_("width")), param("height", m_("height"))))),
+                           var_("shapeId")     = ast.add(*var_("shapeId"), _(_1_)),
+                           var_("shape")       = m_("shapes").call("last"),
+                           var_("checkPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
+                           ast.call(*var_("checkPixels"), "add", param("value", *var_("firstPixel"))),
+                           ast.while_(ast.not_(ast.call(*var_("checkPixels"), _("empty"))),
+                                      ast.block(
+                                          var_("checkPixel") = ast.call(*var_("checkPixels"), "first"),
+                                          ast.self().call("processPixel", param("shape", *var_("shape")), param("checkPixels", *var_("checkPixels")), param("checkPixel", *var_("checkPixel"))),
+                                          ast.call(*var_("checkPixels"), "remove", param("value", *var_("checkPixel"))))),
+                           ast.call(*var_("shape"), _("sortPixels")))));
 
     /*
     void Shaper::processPixel(Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
@@ -4946,26 +4978,26 @@ void Brain::createArcSolver()
         processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
     }
     */
-    Ast::Function& shaperProcessPixel = shaperStruct.addMethod("processPixel");
-    shaperProcessPixel.parameters(
-        param("shape", struct_("Shape")),
-        param("checkPixels", tt_("std::Set", "objectType", "Pixel")),
-        param("checkPixel", struct_("Pixel")));
-    shaperProcessPixel.code(
-        ast.call(p_("shape"), "addPixel", param("pixel", p_("checkPixel"))),
-        m_("inputPixels").call("erase", param("value", p_("checkPixel"))),
-        var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
-        ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
-                ast.block(
-                    ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
-                    ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
-        var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.down)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
-        ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
-                ast.block(
-                    ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
-                    ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
-        ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
-        ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))));
+    shaperStruct.addMethod("processPixel")
+        .parameters(
+            param("shape", struct_("Shape")),
+            param("checkPixels", tt_("std::Set", "objectType", "Pixel")),
+            param("checkPixel", struct_("Pixel")))
+        .code(
+            ast.call(p_("shape"), "addPixel", param("pixel", p_("checkPixel"))),
+            m_("inputPixels").call("remove", param("value", p_("checkPixel"))),
+            var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+            ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
+                    ast.block(
+                        ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
+                        ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
+            var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.down)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+            ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
+                    ast.block(
+                        ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
+                        ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
+            ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+            ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))));
 
     /*
     cells::hybrid::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
@@ -4981,21 +5013,21 @@ void Brain::createArcSolver()
         return nullptr;
     }
     */
-    Ast::Function& shaperProcessAdjacentPixel = shaperStruct.addMethod("processAdjacentPixel");
-    shaperProcessAdjacentPixel.parameters(
-        param("direction", _(type.Directions)),
-        param("shape", struct_("Shape")),
-        param("checkPixels", tt_("std::Set", "objectType", _(type.Pixel))),
-        param("checkPixel", _(type.Pixel)));
-    shaperProcessAdjacentPixel.returnType(_(type.Pixel));
-    shaperProcessAdjacentPixel.code(
-        ast.if_(ast.has(p_("checkPixel"), p_("direction")),
-                ast.block(
-                    var_("pixel") = p_("checkPixel") / p_("direction"),
-                    ast.if_(ast.and_(ast.equal(*var_("pixel") / "color", p_("shape") / "color"), ast.not_(ast.call(p_("shape"), "hasPixel", param("pixel", *var_("pixel"))))),
-                            ast.call(p_("checkPixels"), "add", param("value", *var_("pixel")))),
-                    ast.return_(*var_("pixel"))),
-                ast.return_(_(ids.emptyObject))));
+    shaperStruct.addMethod("processAdjacentPixel")
+        .parameters(
+            param("direction", _(type.Directions)),
+            param("shape", struct_("Shape")),
+            param("checkPixels", tt_("std::Set", "objectType", _(type.Pixel))),
+            param("checkPixel", _(type.Pixel)))
+        .returnType(_(type.Pixel))
+        .code(
+            ast.if_(ast.has(p_("checkPixel"), p_("direction")),
+                    ast.block(
+                        var_("pixel") = p_("checkPixel") / p_("direction"),
+                        ast.if_(ast.and_(ast.equal(*var_("pixel") / "color", p_("shape") / "color"), ast.not_(ast.call(p_("shape"), "hasPixel", param("pixel", *var_("pixel"))))),
+                                ast.call(p_("checkPixels"), "add", param("value", *var_("pixel")))),
+                        ast.return_(*var_("pixel"))),
+                    ast.return_(_(ids.emptyObject))));
 }
 
 Brain::Brain() :

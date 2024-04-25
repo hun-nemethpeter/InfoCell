@@ -477,28 +477,31 @@ public:
         void addMethod(Function& method);
 
     public:
-        void members(Slot& slot);
+        StructBase& members(Slot& slot);
         template <typename... Args>
-        void members(Slot& slot, Args&&... args)
+        StructBase& members(Slot& slot, Args&&... args)
         {
             members(slot);
             members(std::forward<Args>(args)...);
+            return *this;
         }
 
-        void subTypes(Slot& param);
+        StructBase& subTypes(Slot& param);
         template <typename... Args>
-        void subTypes(Slot& param, Args&&... args)
+        StructBase& subTypes(Slot& param, Args&&... args)
         {
             subTypes(param);
             subTypes(std::forward<Args>(args)...);
+            return *this;
         }
 
-        void memberOf(CellI& type);
+        StructBase& memberOf(CellI& type);
         template <typename... Args>
-        void memberOf(CellI& type, Args&&... args)
+        StructBase& memberOf(CellI& type, Args&&... args)
         {
             memberOf(type);
             memberOf(std::forward<Args>(args)...);
+            return *this;
         }
 
         CellI& id();
@@ -530,13 +533,15 @@ public:
         StructT(brain::Brain& kb, CellI& id, const std::string& label = "ast.structT");
         StructT(brain::Brain& kb, const std::string& name);
 
-        void templateParams(Slot& param);
+        Ast::StructT& templateParams(Slot& param);
 
         template <typename... Args>
-        void templateParams(Slot& param, Args&&... args)
+        Ast::StructT& templateParams(Slot& param, Args&&... args)
         {
             templateParams(param);
             templateParams(std::forward<Args>(args)...);
+
+            return *this;
         }
 
         Struct& instantiateWith(List& slotList, CellI& state);
@@ -553,15 +558,18 @@ public:
         Function(brain::Brain& kb, CellI& name, const std::string& label = "ast.function");
         Function(brain::Brain& kb, const std::string& name);
 
-        void parameters(Slot& param);
+        Function& parameters(Slot& param);
 
         template <typename... Args>
-        void parameters(Slot& param, Args&&... args)
+        Function& parameters(Slot& param, Args&&... args)
         {
             parameters(param);
             parameters(std::forward<Args>(args)...);
+
+            return *this;
         }
-        void returnType(CellI& type);
+
+        Function& returnType(CellI& type);
 
         template <typename... Args>
         void code(Args&&... args);

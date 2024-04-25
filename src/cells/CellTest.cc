@@ -160,7 +160,7 @@ TEST_F(CellTest, PrintStdCodes)
     printMethodInType(SetStruct, "constructor");
     printMethodInType(SetStruct, "add");
     printMethodInType(SetStruct, "contains");
-    printMethodInType(SetStruct, "erase");
+    printMethodInType(SetStruct, "remove");
     printMethodInType(SetStruct, "size");
     printMethodInType(SetStruct, "first");
     printMethodInType(SetStruct, "empty");
@@ -924,6 +924,51 @@ TEST_F(CellTest, NextgenBrainType)
     EXPECT_EQ(&map[ids.index][_1_][ids.value], &kb.colors.red);
     EXPECT_EQ(&map.method(kb.id("empty")), &false_);
     EXPECT_TRUE(map[ids.index][ids.type][ids.memberOf][ids.index].has(kb.type.Index));
+}
+
+
+TEST_F(CellTest, Set)
+{
+    auto& SetOfNumbers = getStruct(kb.templateId("std::Set", ids.objectType, kb.type.Number));
+    Object set(kb, SetOfNumbers, kb.id("constructor"));
+
+    EXPECT_EQ(&set[ids.size], &_0_);
+    EXPECT_EQ(&set.method(kb.id("size")), &_0_);
+    EXPECT_EQ(&set.method(kb.id("empty")), &true_);
+    printAs.value(set.type());
+    printAs.value(set[ids.index], "map[ids.index]");
+    printAs.value(set[ids.index].type(), "map[ids.index].type()");
+
+    set.method(kb.id("add"), { ids.value, _1_ });
+    printAs.value(set[ids.index], "map[ids.index]");
+    printAs.value(set[ids.index].type(), "map[ids.index].type()");
+    printAs.cell(set[ids.index].type()[ids.slots], "map[ids.index].type()[ids.slots]");
+    printAs.cell(set[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
+    printAs.value(set[ids.index].type()[ids.slots][ids.index], "map[ids.index].type()[ids.slots][ids.index]");
+    EXPECT_EQ(&set[ids.size], &_1_);
+    EXPECT_EQ(&set.method(kb.id("size")), &_1_);
+    EXPECT_TRUE(set[ids.index].has(_1_));
+    EXPECT_EQ(&set[ids.index][_1_], &_1_);
+    EXPECT_EQ(&set.method(kb.id("empty")), &false_);
+    EXPECT_TRUE(set[ids.index][ids.type][ids.memberOf][ids.index].has(kb.type.Index));
+
+    set.method(kb.id("add"), { ids.value, _2_ });
+    set.method(kb.id("add"), { ids.value, _3_ });
+    EXPECT_EQ(&set[ids.index][_1_], &_1_);
+    EXPECT_EQ(&set[ids.index][_2_], &_2_);
+    EXPECT_EQ(&set[ids.index][_3_], &_3_);
+    printAs.value(set);
+    printAs.cell(set);
+
+    set.method(kb.id("remove"), { ids.value, _3_ });
+    set.method(kb.id("remove"), { ids.value, _2_ });
+
+    EXPECT_EQ(&set[ids.size], &_1_);
+    EXPECT_EQ(&set.method(kb.id("size")), &_1_);
+    EXPECT_TRUE(set[ids.index].has(_1_));
+    EXPECT_EQ(&set[ids.index][_1_], &_1_);
+    EXPECT_EQ(&set.method(kb.id("empty")), &false_);
+    EXPECT_TRUE(set[ids.index][ids.type][ids.memberOf][ids.index].has(kb.type.Index));
 }
 
 ////////////
