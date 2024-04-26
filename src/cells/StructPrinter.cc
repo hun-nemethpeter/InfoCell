@@ -94,11 +94,11 @@ void CellStructPrinter::printImpl(CellI& cell)
     }
 
     if (is(kb.type.List)) {
-        m_ss << "List<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label() << ">";
+        m_ss << "List<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
     } else if (is(kb.type.ListItem)) {
-        m_ss << "ListItem<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label() << ">";
+        m_ss << "ListItem<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
     } else if (is(kb.type.Map)) {
-        m_ss << "Map<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label() << ", " << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label() << ">";
+        m_ss << "Map<" << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label() << ", " << cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
     } else {
         m_ss << "(" << type.label() << ")";
     }

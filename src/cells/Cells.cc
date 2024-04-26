@@ -809,7 +809,7 @@ void Object::initLocalVars(CellI& method)
     Visitor::visitList(localVarsType[kb.ids.slots][kb.ids.list], [this, &localVarsIndex](CellI& slot, int i, bool&) {
         auto& slotRole   = slot[kb.ids.slotRole];
         Object& localVar = *new Object(kb, kb.type.op.Var, std::format("var {}", slotRole.label()));
-        localVar.set(kb.ids.objectType, slot[kb.ids.slotType]);
+        localVar.set(kb.ids.valueType, slot[kb.ids.slotType]);
         localVarsIndex.set(slotRole, localVar);
     });
 }

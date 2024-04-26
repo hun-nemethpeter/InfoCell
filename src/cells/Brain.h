@@ -89,6 +89,7 @@ public:
     List unknownInstances;
     List unknownStructs;
     List value;
+    List valueType;
     List variables;
     List width;
 };
@@ -185,7 +186,7 @@ public:
     Object StructName;
     Object StructT;
     Object Subtract;
-    Object SubType;
+    Object SubTypeName;
     Object TemplatedType;
     Object TemplateParam;
     Object Var;
@@ -304,8 +305,9 @@ public:
 
     protected:
         CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<CellI&(CellI& structReference)> unknownCb);
-        CellI& resolveStructId(CellI& structId, CellI& resolveState);
-        Struct& resolveStructIdAsAst(CellI& structId, CellI& resolveState);
+        CellI& resolveStructName(CellI& structName, CellI& resolveState);
+        Struct& resolveStructNameAsAst(CellI& structName, CellI& resolveState);
+        Base& resolveSubTypeNameAsAst(CellI& subTypeName, CellI& resolveState);
         CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
         Struct& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
         Base& resolveTemplatedType(CellI& ast, CellI& resolveState);
@@ -506,10 +508,12 @@ public:
 
         CellI& id();
 
+        Base& getSubType(CellI& name);
+
     protected:
         Map& methods();
         Map& members();
-        List& subTypes();
+        Map& subTypes();
         List& memberOf();
     };
 
@@ -685,7 +689,7 @@ public:
     {
     public:
         SubType(const SubType&) = delete;
-        SubType(brain::Brain& kb, CellI& id);
+        SubType(brain::Brain& kb, CellI& name);
     };
     class TemplatedType : public BaseT<TemplatedType>
     {
@@ -1038,8 +1042,8 @@ protected:
     InitPhase m_initPhase = InitPhase::Init;
     friend class Types;
     void createStd();
-    void createTests();
     void createArcSolver();
+    void createTests();
 
 public:
     Ast::Cell& _(CellI& cell);
@@ -1050,7 +1054,7 @@ public:
     Ast::Slot& param(const std::string& name, CellI& value);
     Ast::Slot& member(const std::string& name, CellI& type);
     template <typename... Args>
-    Ast::Cell& st_(const std::string& name, Args&&... args);
+    Ast::SubType& st_(const std::string& name, Args&&... args);
     Ast::TemplateParam& tp_(const std::string& name);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
@@ -1118,7 +1122,7 @@ public:
 
 #pragma region Brain
 template <typename... Args>
-Ast::Cell& Brain::st_(const std::string& name, Args&&... args)
+Ast::SubType& Brain::st_(const std::string& name, Args&&... args)
 {
     return ast.subType(id(name), std::forward<Args>(args)...);
 }

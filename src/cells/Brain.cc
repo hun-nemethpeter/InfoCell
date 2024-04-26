@@ -86,6 +86,7 @@ ID::ID(brain::Brain& kb) :
     unknownInstances(kb, kb.type.Char, "unknownInstances"),
     unknownStructs(kb, kb.type.Char, "unknownStructs"),
     value(kb, kb.type.Char, "value"),
+    valueType(kb, kb.type.Char, "valueType"),
     variables(kb, kb.type.Char, "variables"),
     width(kb, kb.type.Char, "width")
 {
@@ -298,7 +299,7 @@ Op::Op(brain::Brain& kb) :
     Subtract.set("slots", *map);
 
     map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("objectType", type.Type_),
+                    type.slot("valueType", type.Type_),
                     type.slot("value", type.Cell));
     Var.set("slots", *map);
 
@@ -352,7 +353,7 @@ Ast::Ast(brain::Brain& kb) :
     Struct(kb, kb.type.Type_, "ast::Struct"),
     StructName(kb, kb.type.Type_, "ast::StructName"),
     StructT(kb, kb.type.Type_, "ast::StructT"),
-    SubType(kb, kb.type.Type_, "ast::SubType"),
+    SubTypeName(kb, kb.type.Type_, "ast::SubTypeName"),
     Subtract(kb, kb.type.Type_, "ast::Subtract"),
     TemplatedType(kb, kb.type.Type_, "ast::TemplatedType"),
     TemplateParam(kb, kb.type.Type_, "ast::TemplateParam"),
@@ -529,7 +530,7 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot("memberOf", type.ListOf(type.Type_)));
     Struct.set("slots", *map);
 
-    map = &kb.slots(type.slot("value", type.Struct),
+    map = &kb.slots(type.slot("name", type.Cell),
                     type.slot("scopes", type.List));
     StructName.set("slots", *map);
 
@@ -542,8 +543,8 @@ Ast::Ast(brain::Brain& kb) :
                     type.slot("templateParams", type.MapOf(type.Cell, type.Type_)));
     StructT.set("slots", *map);
 
-    map = &kb.slots(type.slot("id", type.Cell));
-    SubType.set("slots", *map);
+    map = &kb.slots(type.slot("name", type.Cell));
+    SubTypeName.set("slots", *map);
 
     map = &kb.slots(type.slot("lhs", Base),
                     type.slot("rhs", Base));
@@ -756,10 +757,10 @@ Object& Types::ListOf(CellI& type)
                                                std::forward_as_tuple(kb, kb.type.Type_, std::format("List<{}>", type.label())));
         Object& listType = it.first->second;
         Object& itemType = *new Object(kb, kb.type.Type_, std::format("ListItem<{}>", type.label()));
-        listType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.objectType, type, kb.ids.itemType, itemType));
+        listType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.valueType, type, kb.ids.itemType, itemType));
         listType.set("memberOf", kb.map(kb.type.Type_, kb.type.Type_, kb.type.List, kb.type.List));
         itemType.set("memberOf", kb.map(kb.type.Type_, kb.type.Type_, kb.type.ListItem, kb.type.ListItem));
-        itemType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.objectType, type, kb.ids.itemType, itemType));
+        itemType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.valueType, type, kb.ids.itemType, itemType));
 
         CellI* map = nullptr;
 
@@ -801,7 +802,7 @@ Object& Types::MapOf(CellI& keyType, CellI& valueType)
         mapType.set("methods", kb.type.Map[kb.ids.methods]); // TODO
     }
     mapType.set("memberOf", kb.map(kb.type.Type_, kb.type.Type_, kb.type.Map, kb.type.Map));
-    mapType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.keyType, keyType, kb.ids.objectType, valueType));
+    mapType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.keyType, keyType, kb.ids.valueType, valueType));
 
     map = &kb.slots(kb.type.slot("list", ListOf(valueType)),
                     kb.type.slot("index", kb.type.Index),
@@ -826,7 +827,7 @@ Object& Types::SetOf(CellI& valueType)
 
     setType.set("methods", kb.type.Set[kb.ids.methods]);
     setType.set("memberOf", kb.map(kb.type.Type_, kb.type.Type_, kb.type.Set, kb.type.Set));
-    setType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.objectType, valueType));
+    setType.set("subTypes", kb.map(kb.type.Cell, kb.type.Type_, kb.ids.valueType, valueType));
 
     map = &kb.slots(kb.type.slot("list", ListOf(valueType)),
                     kb.type.slot("index", kb.type.Index),
@@ -853,12 +854,16 @@ Ast::Base& Ast::Base::resolveType(CellI& typeAst, CellI& resolveState)
         return cell;
     }
     if (&typeAst.type() == &kb.type.ast.StructName) {
-        CellI& astStructId          = typeAst[kb.ids.value];
-        auto& resolveAstStruct      = resolveStructIdAsAst(typeAst, resolveState);
-        auto& resolveCompiledStruct = resolveStructId(resolveAstStruct.getFullId(), resolveState);
+        auto& resolveAstStruct      = resolveStructNameAsAst(typeAst, resolveState);
+        auto& resolveCompiledStruct = resolveStructName(resolveAstStruct.getFullId(), resolveState);
         auto& reslvedTypeNode       = resolvedType(resolveAstStruct, resolveCompiledStruct);
 
         return reslvedTypeNode;
+    }
+    if (&typeAst.type() == &kb.type.ast.SubTypeName) {
+        auto& resolveAstStruct = resolveSubTypeNameAsAst(typeAst, resolveState);
+
+        return resolveAstStruct;
     }
     if (&typeAst.type() == &kb.type.ast.TemplatedType) {
         return resolveTemplatedType(typeAst, resolveState);
@@ -963,7 +968,7 @@ Ast::Struct& Ast::Base::resolveTemplateInstanceIdAsAst(CellI& structId, CellI& i
     return static_cast<Ast::Struct&>(ret);
 }
 
-CellI& Ast::Base::resolveStructId(CellI& structId, CellI& resolveState)
+CellI& Ast::Base::resolveStructName(CellI& structId, CellI& resolveState)
 {
     return resolveId(structId, kb.ids.structs, kb.ids.unknownStructs, resolveState, [this, &structId](CellI& structReference) -> CellI& {
         auto& unresolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", structId.label()));
@@ -973,11 +978,18 @@ CellI& Ast::Base::resolveStructId(CellI& structId, CellI& resolveState)
     });
 }
 
-Ast::Struct& Ast::Base::resolveStructIdAsAst(CellI& structName, CellI& resolveState)
+Ast::Struct& Ast::Base::resolveStructNameAsAst(CellI& structName, CellI& resolveState)
 {
     Scope& currentScope = static_cast<Scope&>(resolveState[kb.ids.scope]);
     return currentScope.resolveStructName(structName);
 
+}
+
+Ast::Base& Ast::Base::resolveSubTypeNameAsAst(CellI& subTypeName, CellI& resolveState)
+{
+    Struct& currentStruct = static_cast<Struct&>(resolveState[kb.ids.currentStruct]);
+    auto& subTypeAst      = currentStruct.getSubType(subTypeName[kb.ids.name]);
+    return subTypeAst;
 }
 
 Ast::Base& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
@@ -1040,8 +1052,17 @@ List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters, CellI& resolve
         idCell.add(slotRole);
         idCell.add(compiledSlotType);
         resolvedParams.add(kb.ast.slot(slotRole, compiledSlotType));
-
-        ss << std::format("{}={}", slotRole.label(), compiledSlotType.label());
+        std::string paramNamespace;
+        if (&resolvedSlotType.type() == &kb.type.ast.ResolvedType) {
+            auto& paramTypeAst = static_cast<Struct&>(resolvedSlotType[kb.ids.ast]);
+            Scope& scope       = static_cast<Scope&>(paramTypeAst[kb.ids.scope]);
+            CellI& typeScopeId = scope.getFullId();
+            paramNamespace     = typeScopeId.label();
+            if (!paramNamespace.empty()) {
+                paramNamespace += "::";
+            }
+        }
+        ss << std::format("{}={}{}", slotRole.label(), paramNamespace, compiledSlotType.label());
     });
     ss << ">";
     idCell.label(ss.str());
@@ -1133,10 +1154,10 @@ Ast::Get& Ast::Cell::operator/(const std::string& role)
 {
     return Get::New(kb, *this, kb._(role));
 }
-Ast::StructName::StructName(brain::Brain& kb, CellI& value) :
+Ast::StructName::StructName(brain::Brain& kb, CellI& name) :
     BaseT<StructName>(kb, kb.type.ast.StructName)
 {
-    set("value", value);
+    set("name", name);
 }
 
 Ast::Self::Self(brain::Brain& kb) :
@@ -1325,7 +1346,7 @@ Ast::Var& Ast::Scope::addVariable(CellI& id)
 
 Ast::Struct& Ast::Scope::resolveStructName(CellI& structName)
 {
-    auto& name = structName[kb.ids.value];
+    auto& name = structName[kb.ids.name];
     if (structName.has(kb.ids.scopes)) {
         auto& scopes = structName[kb.ids.scopes];
         return resolveFullStructId(scopes, name);
@@ -1534,7 +1555,7 @@ CellI& Ast::Scope::getFullId()
     return fullId;
 }
 
-static bool debugCompiledStructs = false;
+static bool debugCompiledStructs = true;
 
 CellI& Ast::Scope::compile()
 {
@@ -1817,12 +1838,15 @@ Ast::StructBase& Ast::StructBase::members(Slot& slot)
     return *this;
 }
 
-Ast::StructBase& Ast::StructBase::subTypes(Slot& param)
+Ast::StructBase& Ast::StructBase::subTypes(Slot& slot)
 {
     if (missing("subTypes")) {
-        set("subTypes", *new List(kb, kb.type.ast.Slot));
+        set("subTypes", *new Map(kb, kb.type.Cell, kb.type.ast.Base));
     }
-    subTypes().add(param);
+    CellI& slotRole = slot[kb.ids.slotRole];
+    CellI& slotType = slot[kb.ids.slotType];
+
+    subTypes().add(slotRole, slot);
 
     return *this;
 }
@@ -1855,12 +1879,12 @@ Map& Ast::StructBase::members()
     }
 }
 
-List& Ast::StructBase::subTypes()
+Map& Ast::StructBase::subTypes()
 {
     if (missing("subTypes")) {
         throw "No subTypes!";
     } else {
-        return static_cast<List&>(get("subTypes"));
+        return static_cast<Map&>(get("subTypes"));
     }
 }
 
@@ -1876,6 +1900,11 @@ List& Ast::StructBase::memberOf()
 CellI& Ast::StructBase::id()
 {
     return get("id");
+}
+
+Ast::Base& Ast::StructBase::getSubType(CellI& name)
+{
+    return static_cast<Ast::Base&>(subTypes().getValue(name)[kb.ids.slotType]);
 }
 
 Ast::Struct::Struct(brain::Brain& kb, CellI& id, const std::string& label) :
@@ -1961,8 +1990,27 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     state.set("currentStruct", ret);
 
     std::stringstream ss;
+    std::stringstream subTypesSs;
     if (debugCompiledStructs) {
         ss << std::format("struct {}", label());
+    }
+
+    // resolve sub types
+    if (has("subTypes")) {
+        Visitor::visitList(subTypes()[kb.ids.list], [this, &ret, &state, &subTypesSs](CellI& subTypeCell, int i, bool& stop) {
+            CellI& subTypeId           = subTypeCell[kb.ids.slotRole];
+            CellI& subTypeType         = subTypeCell[kb.ids.slotType];
+            CellI& resolvedSubTypeType = resolveType(subTypeType, state);
+            ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
+            if (debugCompiledStructs) {
+                subTypesSs << std::format("    alias {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()) << std::endl;
+            }
+        });
+        if (debugCompiledStructs) {
+            if (has("methods") || has("members")) {
+                subTypesSs << std::endl;
+            }
+        }
     }
 
     // resolve memberOf list
@@ -1973,30 +2021,13 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             if (i > 0) {
                 ss << ", ";
             }
-            ss << resolvedMembershipType.label();
+            ss << getCompiledTypeFromResolvedType(resolvedMembershipType).label();
             ret.memberOf(resolvedMembershipType);
         });
     }
     if (debugCompiledStructs) {
         std::cout << ss.str() << " {" << std::endl;
-    }
-
-    // resolve sub types
-    if (has("subTypes")) {
-        Visitor::visitList(subTypes(), [this, &ret, &state](CellI& subTypeCell, int i, bool& stop) {
-            CellI& subTypeId           = subTypeCell[kb.ids.slotRole];
-            CellI& subTypeType         = subTypeCell[kb.ids.slotType];
-            CellI& resolvedSubTypeType = resolveType(subTypeType, state);
-            ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
-            if (debugCompiledStructs) {
-                std::cout << std::format("    alias {} = {};", subTypeId.label(), resolvedSubTypeType.label()) << std::endl;
-            }
-        });
-        if (debugCompiledStructs) {
-            if (has("methods") || has("members")) {
-                std::cout << std::endl;
-            }
-        }
+        std::cout << subTypesSs.str();
     }
 
     // resolve methods
@@ -2024,7 +2055,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& resolvedMemberType = resolveType(memberType, state);
             ret.members(kb.ast.slot(memberId, resolvedMemberType));
             if (debugCompiledStructs) {
-                std::cout << std::format("    {}: {};", memberId.label(), resolvedMemberType.label()) << std::endl;
+                std::cout << std::format("    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label()) << std::endl;
             }
         });
     }
@@ -2041,6 +2072,18 @@ CellI& Ast::Struct::compile(CellI& state)
     CellI& compiledStruct = getResolvedTypeById(getFullId(), has("instanceOf"), state);
     compiledStruct.erase("incomplete");
     // std::cout << std::format("DDDD compile {} resolved at {:p}\n", structId.label(), (void*)&compiledStruct) << std::endl;
+
+    // compile sub types
+    if (has("subTypes")) {
+        Map& compiledSubTypes = *new Map(kb, kb.type.Cell, kb.type.Type_, "subTypes Map<Cell, Type>(...)");
+        Visitor::visitList(subTypes()[kb.ids.list], [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
+            CellI& slotRole        = slot[kb.ids.slotRole];
+            CellI& slotType        = slot[kb.ids.slotType];
+            auto& compiledSlotType = getCompiledTypeFromResolvedType(slotType);
+            compiledSubTypes.add(slotRole, compiledSlotType);
+        });
+        compiledStruct.set("subTypes", compiledSubTypes);
+    }
 
     // compile methods
     if (has("methods")) {
@@ -2062,18 +2105,6 @@ CellI& Ast::Struct::compile(CellI& state)
             compiledMembers.add(slotRole, kb.type.slot(slotRole, compiledSlotType));
         });
         compiledStruct.set("slots", compiledMembers);
-    }
-
-    // compile sub types
-    if (has("subTypes")) {
-        Map& compiledSubTypes = *new Map(kb, kb.type.Cell, kb.type.Type_, "subTypes Map<Cell, Type>(...)");
-        Visitor::visitList(subTypes(), [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
-            CellI& slotRole          = slot[kb.ids.slotRole];
-            CellI& slotType          = slot[kb.ids.slotType];
-            auto& compiledSlotType   = getCompiledTypeFromResolvedType(slotType);
-            compiledSubTypes.add(slotRole, compiledSlotType);
-        });
-        compiledStruct.set("subTypes", compiledSubTypes);
     }
 
     // compile memberOf list
@@ -2162,6 +2193,18 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
     ret.set("templateParams", inputParams);
     ret.set("scope", static_cast<Scope&>(get("scope")));
 
+    // instantiate sub types
+    if (has("subTypes")) {
+        Map& instantiatedSubTypes = *new Map(kb, kb.type.Cell, kb.type.ast.Base);
+        Visitor::visitList(subTypes()[kb.ids.list], [this, &inputParameters, &instantiatedSubTypes, &ret, &state](CellI& slot, int i, bool& stop) {
+            CellI& slotRole          = slot[kb.ids.slotRole];
+            CellI& slotType          = slot[kb.ids.slotType];
+            CellI& instantiatedParam = instantiateTemplateParamType(slotType, ret, inputParameters, state);
+            instantiatedSubTypes.add(slotRole, kb.ast.slot(slotRole, instantiatedParam));
+        });
+        ret.set("subTypes", instantiatedSubTypes);
+    }
+
     // instantiate methods
     if (has("methods")) {
         Visitor::visitList(methods()[kb.ids.list], [this, &inputParameters, &ret, &state](CellI& astFunction, int i, bool& stop) {
@@ -2204,18 +2247,6 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
         ret.set("members", instantiatedMembers);
     }
 
-    // instantiate sub types
-    if (has("subTypes")) {
-        List& instantiatedSubTypes = *new List(kb, kb.type.Type_);
-        Visitor::visitList(subTypes(), [this, &inputParameters, &instantiatedSubTypes, &ret, &state](CellI& slot, int i, bool& stop) {
-            CellI& slotRole = slot[kb.ids.slotRole];
-            CellI& slotType = slot[kb.ids.slotType];
-            CellI& instantiatedParam = instantiateTemplateParamType(slotType, ret, inputParameters, state);
-            instantiatedSubTypes.add(kb.ast.slot(slotRole, instantiatedParam));
-        });
-        ret.set("subTypes", instantiatedSubTypes);
-    }
-
     // instantiate memberOf list
     if (has("memberOf")) {
         List& instantiatedMemberOfs = *new List(kb, kb.type.Type_);
@@ -2252,7 +2283,7 @@ CellI& Ast::StructT::instantiateTemplateParamType(CellI& param, CellI& selfType,
 
         return ret;
     }
-    if (&param.type() == &kb.type.ast.Cell || &param.type() == &kb.type.ast.StructName) {
+    if (&param.type() == &kb.type.ast.Cell || &param.type() == &kb.type.ast.StructName || &param.type() == &kb.type.ast.SubTypeName) {
         return param;
     }
 
@@ -2645,12 +2676,12 @@ std::string Ast::Function::shortName()
                 if (i > 0) {
                     iss << ", ";
                 }
-                iss << "p_" << slot[kb.ids.slotRole].label() << ": " << slot[kb.ids.slotType].label();
+                iss << "p_" << slot[kb.ids.slotRole].label() << ": " << getCompiledTypeFromResolvedType(slot[kb.ids.slotType]).label();
             });
         }
     }
     if (has("returnType")) {
-        oss << returnType().label();
+        oss << getCompiledTypeFromResolvedType(returnType()).label();
     }
     if (has("returnType")) {
         return std::format("fn {}({}) -> {}", get("name").label(), iss.str(), oss.str());
@@ -2706,7 +2737,7 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
         if (has("structType")) {
             CellI& type = get("structType");
             Object& var = *new Object(kb, kb.type.op.Var, "self");
-            var.set("objectType", type);
+            var.set("valueType", type);
             slots.add(kb.id("self"), kb.type.slot("self", type));
             structTypeStr = std::format("{}::", type.label());
         }
@@ -2998,24 +3029,24 @@ block {
         block.set("ast", ast);
         block.set("ops", compiledAsts);
         Object& varMethod = *new Object(kb, kb.type.op.Var, "Call { var_method; }");
-        varMethod.set("objectType", kb.type.op.Function);
+        varMethod.set("valueType", kb.type.op.Function);
         CellI& storeMethod     = compile(kb.ast.set(_(varMethod), _("value"), getMethod));
         CellI& setCurrentStack = compile(kb.ast.set(_(varMethod) / "value", _("stack"), kb.ast.get(_(function), _("stack"))));
 
         Object& varNewStackItem = *new Object(kb, kb.type.op.Var, "Call { var_newStackItem; }");
-        varNewStackItem.set("objectType", kb.type.ListItem);
+        varNewStackItem.set("valueType", kb.type.ListItem);
         Object& varNewStackFrame = *new Object(kb, kb.type.op.Var, "Call { var_newStackFrame; }");
-        varNewStackFrame.set("objectType", kb.type.StackFrame);
+        varNewStackFrame.set("valueType", kb.type.StackFrame);
 
         Object& varInputIndex = *new Object(kb, kb.type.Index, "Call { var_inputIndex; }");
         Object& varLocalVars = *new Object(kb, kb.type.op.Var, "Call { var_localVars; }");
-        varLocalVars.set("objectType", kb.type.Index);
+        varLocalVars.set("valueType", kb.type.Index);
         Object& varLocalVarsList = *new Object(kb, kb.type.op.Var, "Call { var_localVarsList; }");
-        varLocalVarsList.set("objectType", kb.type.List);
+        varLocalVarsList.set("valueType", kb.type.List);
         Object& varLocalVarsListItem = *new Object(kb, kb.type.op.Var, "Call { var_localVarsListItem; }");
-        varLocalVarsListItem.set("objectType", kb.type.ListItem);
+        varLocalVarsListItem.set("valueType", kb.type.ListItem);
         Object& varLocalVarsListItemHasNext = *new Object(kb, kb.type.op.Var, "Call { var_localVarsListItemHasNext; }");
-        varLocalVarsListItemHasNext.set("objectType", kb.type.Boolean);
+        varLocalVarsListItemHasNext.set("valueType", kb.type.Boolean);
 
         CellI& storeStackItem     = compile(kb.ast.set(_(varNewStackItem), _("value"), kb.ast.new_(_(kb.type.ListItem))));
         CellI& storeStackFrame    = compile(kb.ast.set(_(varNewStackFrame), _("value"), kb.ast.new_(_(kb.type.StackFrame))));
@@ -3044,7 +3075,7 @@ block {
         CellI& setStackToNew = compile(kb.ast.set(_(varMethod) / "value", _("stack"), _(varNewStackItem) / "value"));
         CellI& setRetValue   = compile(kb.ast.if_(kb.ast.has(_(varMethod) / "value" / "type" / "subTypes" / "index", _("returnType")),
                                                   kb.ast.block(kb.ast.set(_(varNewStackFrame) / "value", _("output"), kb.ast.new_(_(kb.type.op.Var))),
-                                                               kb.ast.set(_(varNewStackFrame) / "value" / "output", _("objectType"), _(varMethod) / "value" / "type" / "subTypes" / "index" / "returnType" / "value"))));
+                                                               kb.ast.set(_(varNewStackFrame) / "value" / "output", _("valueType"), _(varMethod) / "value" / "type" / "subTypes" / "index" / "returnType" / "value"))));
         CellI& getResult     = compile(kb.ast.if_(kb.ast.has(_(varMethod) / _("value") / _("type") / _("subTypes") / _("index"), _("returnType")),
                                                   kb.ast.set(_(block), _("value"), _(varMethod) / "value" / "stack" / "value" / "output" / "value")));
         CellI& setStackToOld = compile(kb.ast.set(_(varMethod) / "value" / "stack" / "previous" / "value" / "method", _("stack"), _(varMethod) / "value" / "stack" / "previous"));
@@ -3427,10 +3458,10 @@ Ast::Call& Ast::Member::call(const std::string& method) {
     return kb.ast.call(*this, method);
 }
 
-Ast::SubType::SubType(brain::Brain& kb, CellI& id) :
-    BaseT<SubType>(kb, kb.type.ast.SubType, "ast.subType")
+Ast::SubType::SubType(brain::Brain& kb, CellI& name) :
+    BaseT<SubType>(kb, kb.type.ast.SubTypeName, "ast.subTypeName")
 {
-    set("id", id);
+    set("name", name);
 }
 
 Ast::TemplatedType::TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList) :
@@ -4095,6 +4126,7 @@ Strings::Strings(brain::Brain& kb) :
         { "unknownInstances", kb.ids.unknownInstances },
         { "unknownStructs", kb.ids.unknownStructs },
         { "value", kb.ids.value },
+        { "valueType", kb.ids.valueType },
         { "variables", kb.ids.variables },
         { "width", kb.ids.width }
     };
@@ -4217,8 +4249,8 @@ void Brain::createStd()
     /*
     Compiler steps:
     Resolve template related references in normal functions or structs:
-      - where templated types is used, for example tt_("List", ids.objectType, _(type.Slot))
-        it must be resolved to a StructName, with id L,i,s,t,ids.objectType,type.Slot
+      - where templated types is used, for example tt_("List", ids.valueType, _(type.Slot))
+        it must be resolved to a StructName, with id L,i,s,t,ids.valueType,type.Slot
       - create a shadow ast tree with subtituted nodes
       - create a list of candidates for template instantiation with method names
         instantiate structT without methods
@@ -4230,19 +4262,19 @@ void Brain::createStd()
     auto& listItemStructT
         = stdScope.addStructT("ListItem")
               .templateParams(
-                  param("objectType", _(type.Type_)))
+                  param("valueType", _(type.Type_)))
               .memberOf(
                   _(type.ListItem))
               .subTypes(
-                  param("objectType", tp_("objectType")))
+                  param("valueType", tp_("valueType")))
               .members(
-                  member("previous", tt_("ListItem", "objectType", tp_("objectType"))),
-                  member("next", tt_("ListItem", "objectType", tp_("objectType"))),
-                  member("value", tp_("objectType")));
+                  member("previous", tt_("ListItem", "valueType", tp_("valueType"))),
+                  member("next", tt_("ListItem", "valueType", tp_("valueType"))),
+                  member("value", tp_("valueType")));
 
     listItemStructT.addMethod("constructor")
         .parameters(
-            param("value", tp_("objectType")))
+            param("value", tp_("valueType")))
         .code(
             m_("value") = p_("value"));
 #pragma endregion
@@ -4250,16 +4282,16 @@ void Brain::createStd()
     auto& listStructT
         = stdScope.addStructT("List")
               .templateParams(
-                  param("objectType", _(type.Type_)))
+                  param("valueType", _(type.Type_)))
               .memberOf(
                   _(type.Container),
                   _(type.List))
               .subTypes(
-                  param("itemType", tt_("ListItem", "objectType", tp_("objectType"))),
-                  param("objectType", tp_("objectType")))
+                  param("itemType", tt_("ListItem", "valueType", tp_("valueType"))),
+                  param("valueType", tp_("valueType")))
               .members(
-                  member("first", tt_("ListItem", "objectType", tp_("objectType"))),
-                  member("last", tt_("ListItem", "objectType", tp_("objectType"))),
+                  member("first", st_("itemType")),
+                  member("last", st_("itemType")),
                   member("size", _(type.Number)));
 
     listStructT.addMethod("constructor")
@@ -4268,10 +4300,10 @@ void Brain::createStd()
 
     listStructT.addMethod("add")
         .parameters(
-            param("value", tp_("objectType")))
-        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+            param("value", tp_("valueType")))
+        .returnType(st_("itemType"))
         .code(
-            var_("item") = ast.new_(tt_("ListItem", "objectType", tp_("objectType")), "constructor", param("value", p_("value"))),
+            var_("item") = ast.new_(st_("itemType"), "constructor", param("value", p_("value"))),
             ast.if_(ast.not_(m_("first").exist()),
                     m_("first") = *var_("item"),                          // then
                     ast.block(ast.set(m_("last"), "next", *var_("item")), // else
@@ -4327,22 +4359,22 @@ void Brain::createStd()
             ast.return_(ast.equal(m_("size"), _(_0_))));
 
     listStructT.addMethod("first")
-        .returnType(tp_("objectType"))
+        .returnType(tp_("valueType"))
         .code(
             ast.return_(m_("first") / "value"));
 
     listStructT.addMethod("last")
-        .returnType(tp_("objectType"))
+        .returnType(tp_("valueType"))
         .code(
             ast.return_(m_("last") / "value"));
 
     listStructT.addMethod("begin")
-        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .returnType(st_("itemType"))
         .code(
             ast.return_(m_("first")));
 
     listStructT.addMethod("end")
-        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .returnType(st_("itemType"))
         .code(
             ast.return_(m_("last")));
 #pragma endregion
@@ -4350,21 +4382,21 @@ void Brain::createStd()
     auto& typeStruct
         = stdScope.addStruct("Type")
               .members(
-                  member("slots", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot))),
+                  member("slots", tt_("Map", "keyType", _(type.Cell), "valueType", _(type.Slot))),
                   member("incomplete", _(type.Boolean)),
                   member("sharedObject", _(type.Slot)),
-                  member("subTypes", tt_("Map", "keyType", _(type.Cell), "objectType", "Type")),
-                  member("memberOf", tt_("Map", "keyType", "Type", "objectType", "Type")),
-                  member("asts", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.ast.Function))),
-                  member("methods", tt_("Map", "keyType", _(type.Cell), "objectType", _(type.op.Function))));
+                  member("subTypes", tt_("Map", "keyType", _(type.Cell), "valueType", "Type")),
+                  member("memberOf", tt_("Map", "keyType", "Type", "valueType", "Type")),
+                  member("asts", tt_("Map", "keyType", _(type.Cell), "valueType", _(type.ast.Function))),
+                  member("methods", tt_("Map", "keyType", _(type.Cell), "valueType", _(type.op.Function))));
 
     typeStruct.addMethod("constructor")
         .code(
-            m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor"));
+            m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "valueType", _(type.Slot)), "constructor"));
 
     typeStruct.addMethod("constructorWithRecursiveType")
         .code(
-            m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructorWithIndexType", param("indexType", ast.self())));
+            m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "valueType", _(type.Slot)), "constructorWithIndexType", param("indexType", ast.self())));
 
     typeStruct.addMethod("addSubType")
         .parameters(
@@ -4372,7 +4404,7 @@ void Brain::createStd()
             param("slotType", _(type.Type_)))
         .code(
             ast.if_(m_("subTypes").missing(),
-                    m_("subTypes") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", "Type"), "constructor")),
+                    m_("subTypes") = ast.new_(tt_("Map", "keyType", _(type.Cell), "valueType", "Type"), "constructor")),
             m_("subTypes").call("add", param("key", p_("slotRole")), param("value", p_("slotType"))));
 
     typeStruct.addMethod("addMembership")
@@ -4380,7 +4412,7 @@ void Brain::createStd()
             param("cell", _(type.Type_)))
         .code(
             ast.if_(m_("memberOf").missing(),
-                    m_("memberOf") = ast.new_(tt_("Map", "keyType", "Type", "objectType", "Type"), "constructor")),
+                    m_("memberOf") = ast.new_(tt_("Map", "keyType", "Type", "valueType", "Type"), "constructor")),
             m_("memberOf").call("add", param("key", p_("cell")), param("value", p_("cell"))));
 
     typeStruct.addMethod("addSlot")
@@ -4389,7 +4421,7 @@ void Brain::createStd()
             param("slotType", _(type.Slot)))
         .code(
             ast.if_(m_("slots").missing(),
-                    m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor")),
+                    m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "valueType", _(type.Slot)), "constructor")),
             var_("slot") = ast.new_(_(type.Slot)),
             ast.set(*var_("slot"), "slotRole", p_("slotRole")),
             ast.set(*var_("slot"), "slotType", p_("slotType")),
@@ -4397,13 +4429,13 @@ void Brain::createStd()
 
     typeStruct.addMethod("addSlots")
         .parameters(
-            param("list", tt_("List", "objectType", _(type.Slot))))
+            param("list", tt_("List", "valueType", _(type.Slot))))
         .code(
             ast.if_(ast.equal(p_("list") / "size", _(_0_)),
                     ast.return_()),
             var_("item") = p_("list") / "first",
             ast.if_(m_("slots").missing(),
-                    m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "objectType", _(type.Slot)), "constructor")),
+                    m_("slots") = ast.new_(tt_("Map", "keyType", _(type.Cell), "valueType", _(type.Slot)), "constructor")),
             ast.do_(ast.block(
                         var_("next") = _(boolean.true_),
                         m_("slots").call("add", param("key", *var_("item") / "value" / "slotRole"), param("value", *var_("item") / "value")),
@@ -4511,21 +4543,21 @@ void Brain::createStd()
         = stdScope.addStructT("Map")
               .templateParams(
                   param("keyType", _(type.Type_)),
-                  param("objectType", _(type.Type_)))
+                  param("valueType", _(type.Type_)))
               .subTypes(
                   param("keyType", tp_("keyType")),
-                  param("objectType", tp_("objectType")),
-                  param("listType", tt_("List", "objectType", tp_("objectType"))))
+                  param("valueType", tp_("valueType")),
+                  param("listType", tt_("List", "valueType", tp_("valueType"))))
               .memberOf(_(type.Container), _(type.Map))
               .members(
-                  member("list", tt_("List", "objectType", tp_("objectType"))),
+                  member("list", st_("listType")),
                   member("index", struct_("Index")),
                   member("size", _(type.Number)));
 
     mapStructT.addMethod("constructor")
         .code(
             m_("size")  = _(_0_),
-            m_("list")  = ast.new_(tt_("List", "objectType", tp_("objectType")), "constructor"),
+            m_("list")  = ast.new_(st_("listType"), "constructor"),
             m_("index") = ast.new_("Index", "constructor"));
 
     mapStructT.addMethod("constructorWithIndexType")
@@ -4533,7 +4565,7 @@ void Brain::createStd()
             param("indexType", _(type.Type_)))
         .code(
             m_("size")  = _(_0_),
-            m_("list")  = ast.new_(tt_("List", "objectType", tp_("objectType")), "constructor"),
+            m_("list")  = ast.new_(st_("listType"), "constructor"),
             m_("index") = ast.new_("Index", "constructorWithSelfType", param("indexType", p_("indexType"))));
 
     /*
@@ -4561,7 +4593,7 @@ void Brain::createStd()
     mapStructT.addMethod("getValue")
         .parameters(
             param("key", tp_("keyType")))
-        .returnType(tp_("objectType"))
+        .returnType(tp_("valueType"))
         .code(
             ast.if_(ast.has(m_("index"), p_("key")),
                     ast.return_(m_("index") / p_("key") / "value"),
@@ -4584,7 +4616,7 @@ void Brain::createStd()
     mapStructT.addMethod("add")
         .parameters(
             param("key", tp_("keyType")),
-            param("value", tp_("objectType")))
+            param("value", tp_("valueType")))
         .code(
             ast.if_(ast.same(p_("key"), _("type")),
                     ast.return_()),
@@ -4627,34 +4659,208 @@ void Brain::createStd()
             ast.return_(ast.equal(m_("size"), _(_0_))));
 
     mapStructT.addMethod("first")
-        .returnType(tp_("objectType"))
+        .returnType(tp_("valueType"))
         .code(
             ast.return_(m_("list") / "first" / "value"));
 
     mapStructT.addMethod("last")
-        .returnType(tp_("objectType"))
+        .returnType(tp_("valueType"))
         .code(
             ast.return_(m_("list") / "last" / "value"));
 
     mapStructT.addMethod("begin")
-        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
         .code(
             ast.return_(m_("list") / "first"));
 
     mapStructT.addMethod("end")
-        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
         .code(
             ast.return_(m_("list") / "last"));
 #pragma endregion
+#pragma region TrieMap
+    auto& kvPairT
+        = stdScope.addStructT("kvPair")
+              .templateParams(
+                  param("keyType", _(type.Type_)),
+                  param("valueType", _(type.Type_)))
+              .subTypes(
+                  param("keyType", tp_("keyType")),
+                  param("valueType", tp_("valueType")))
+              .members(
+                  member("key", tp_("keyType")),
+                  member("value", tp_("valueType")));
+
+    auto& trieMapStructT
+        = stdScope.addStructT("TrieMap")
+              .templateParams(
+                  param("keyType", _(type.Type_)),
+                  param("valueType", _(type.Type_)))
+              .subTypes(
+                  param("keyType", tp_("keyType")),
+                  param("valueType", tp_("valueType")),
+                  param("listType", tt_("List", "valueType", tt_("kvPair", "keyType", tp_("keyType"), "valueType", tp_("valueType")))))
+              .memberOf(_(type.Container), _(type.TrieMap))
+              .members(
+                  member("list", st_("listType")),
+                  member("rootNode", _(type.TrieMapNode)),
+                  member("size", _(type.Number)));
+
+    trieMapStructT.addMethod("constructor")
+        .code(
+            m_("list")  = ast.new_(st_("listType"), "constructor"),
+            m_("rootNode") = ast.new_(_(type.TrieMapNode)),
+            m_("size")  = _(_0_));
+
+    /*
+    bool TrieMap::hasKey(CellI& key)
+    {
+        CellI* currentNode = &m_rootNode;
+
+        if (isA(key, kb.type.List)) {
+            throw "Key is not a list!";
+        }
+
+        Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+            CellI* children = nullptr;
+            if (currentNode->missing(kb.ids.children)) {
+                stop        = true;
+                currentNode = nullptr;
+                return;
+            }
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+            if (childrenIndex.has(keyItem)) {
+                children = &childrenIndex.get(keyItem);
+            } else {
+                stop        = true;
+                currentNode = nullptr;
+                return;
+            }
+            currentNode = children;
+        });
+
+        if (!currentNode || currentNode->missing(kb.ids.data)) {
+            return false;
+        }
+
+        return true;
+    }
+    */
+#if 0
+    trieMapStructT.addMethod("hasKey")
+        .parameters(
+            param("key", tp_("keyType")))
+        .returnType(_(type.Boolean))
+        .code(
+            ast.return_(ast.has(m_("index"), p_("key")))); // TODO
+
+    /*
+    CellI& Map::getValue(CellI& key)
+    {
+        if (m_index.has(key)) {
+            return m_index[key][kb.ids.value];
+        }
+        throw "No such role!";
+    }
+    */
+    trieMapStructT.addMethod("getValue")
+        .parameters(
+            param("key", tp_("keyType")))
+        .returnType(tp_("valueType"))
+        .code(
+            ast.if_(ast.has(m_("index"), p_("key")),
+                    ast.return_(m_("index") / p_("key") / "value"),
+                    ast.return_(_("emptyObject"))));
+
+    /*
+    void Map::add(CellI& key, CellI& value)
+    {
+        if (&key == &"type") {
+            throw "ids.type can not be stored in a map!";
+        }
+        if (m_index.has(key)) {
+            throw "A value already registered with this role";
+        }
+        List::Item& item = *m_list.add(value);
+        m_index.insert(key, item);
+        ++m_size;
+    }
+    */
+    trieMapStructT.addMethod("add")
+        .parameters(
+            param("key", tp_("keyType")),
+            param("value", tp_("valueType")))
+        .code(
+            ast.if_(ast.same(p_("key"), _("type")),
+                    ast.return_()),
+            ast.if_(ast.has(m_("index"), p_("key")),
+                    ast.return_()),
+            m_("size")   = ast.add(m_("size"), _(_1_)),
+            var_("item") = m_("list").call("add", param("value", p_("value"))),
+            m_("index").call("insert", param("key", p_("key")), param("value", *var_("item"))));
+
+    /*
+    void Map::remove(CellI& key)
+    {
+        if (!m_index.has(key)) {
+            return;
+        }
+        List::Item* item = &static_cast<List::Item&>(m_index[key]);
+        m_list.removeItem(item);
+        m_index.erase(key);
+        --m_size;
+    }
+    */
+    trieMapStructT.addMethod("remove")
+        .parameters(
+            param("key", tp_("keyType")))
+        .code(
+            ast.if_(ast.missing(m_("index"), p_("key")),
+                    ast.return_()),
+            m_("list").call("remove", param("item", m_("index") / p_("key"))),
+            m_("index").call("remove", param("key", p_("key"))),
+            m_("size") = ast.subtract(m_("size"), _(_1_)));
+
+    trieMapStructT.addMethod("size")
+        .returnType(_(type.Number))
+        .code(
+            ast.return_(m_("size")));
+
+    trieMapStructT.addMethod("empty")
+        .returnType(_(type.Boolean))
+        .code(
+            ast.return_(ast.equal(m_("size"), _(_0_))));
+
+    trieMapStructT.addMethod("first")
+        .returnType(tp_("valueType"))
+        .code(
+            ast.return_(m_("list") / "first" / "value"));
+
+    trieMapStructT.addMethod("last")
+        .returnType(tp_("valueType"))
+        .code(
+            ast.return_(m_("list") / "last" / "value"));
+
+    trieMapStructT.addMethod("begin")
+        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .code(
+            ast.return_(m_("list") / "first"));
+
+    trieMapStructT.addMethod("end")
+        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .code(
+            ast.return_(m_("list") / "last"));
+#pragma endregion
+#endif
 #pragma region Set
     auto& setStructT
         = stdScope.addStructT("Set")
               .templateParams(
                   param("keyType", _(type.Type_)),
-                  param("objectType", _(type.Type_)))
+                  param("valueType", _(type.Type_)))
               .subTypes(
-                  param("objectType", tp_("objectType")),
-                  param("listType", tt_("List", "objectType", tp_("objectType"))))
+                  param("valueType", tp_("valueType")),
+                  param("listType", tt_("List", "valueType", tp_("valueType"))))
               .memberOf(_(type.Container))
               .members(
                   member("index", struct_("Index")),
@@ -4667,7 +4873,7 @@ void Brain::createStd()
 
     setStructT.addMethod("add")
         .parameters(
-            param("value", tp_("objectType")))
+            param("value", tp_("valueType")))
         .code(
             ast.if_(ast.has(m_("index"), p_("value")),
                     ast.return_()),
@@ -4676,14 +4882,14 @@ void Brain::createStd()
 
     setStructT.addMethod("contains")
         .parameters(
-            param("value", tp_("objectType")))
+            param("value", tp_("valueType")))
         .returnType(_(type.Boolean))
         .code(
             ast.return_(ast.has(m_("index"), p_("value"))));
 
     setStructT.addMethod("remove")
         .parameters(
-            param("value", tp_("objectType")))
+            param("value", tp_("valueType")))
         .code(
             ast.if_(ast.missing(m_("index"), p_("value")),
                     ast.return_()),
@@ -4691,22 +4897,22 @@ void Brain::createStd()
             m_("size") = ast.subtract(m_("size"), _(_1_)));
 
     setStructT.addMethod("first")
-        .returnType(tp_("objectType"))
+        .returnType(tp_("valueType"))
         .code(
             ast.return_(m_("index") / "type" / "slots" / "list" / "first" / "value" / "slotRole"));
 
     setStructT.addMethod("last")
-        .returnType(tp_("objectType"))
+        .returnType(tp_("valueType"))
         .code(
             ast.return_(m_("index") / "type" / "slots" / "list" / "last" / "value" / "slotRole"));
 
     setStructT.addMethod("begin")
-        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
         .code(
             ast.return_(m_("index") / "type" / "slots" / "list" / "last"));
 
     setStructT.addMethod("end")
-        .returnType(tt_("ListItem", "objectType", tp_("objectType")))
+        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
         .code(
             ast.return_(m_("list") / "last"));
 
@@ -4720,54 +4926,6 @@ void Brain::createStd()
         .code(
             ast.if_(ast.equal(m_("size"), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
 #pragma endregion
-}
-
-void Brain::createTests()
-{
-    auto& testScope = globalScope.addScope("test");
-
-#if 0
-    Object methodData(*this, type.Cell);
-    methodData.set(ids.ast, listAdd);
-    methodData.set(ids.op, listAdd.compile());
-    methodData.set(ids.static_, boolean.false_);
-    methodData.set(ids.const_, boolean.false_);
-#endif
-
-    auto& testFunction = testScope.addFunction("testFunction");
-    testFunction.code(
-        var_("result") = ast.new_(struct_("std::Index")));
-
-    auto& testVariable = testScope.addVariable(id("testVariable"));
-
-    auto& testStruct = testScope.addStruct("Test");
-    CellI& fullId    = testStruct.getFullId();
-
-    testStruct.addMethod("testCreateNewListOfNumbers")
-        .code(
-            var_("result") = ast.new_(struct_("std::Index")),
-            var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Number))),
-            var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Cell))),
-            var_("result") = ast.new_(tt_("std::List", "objectType", _(type.Pixel))),
-            var_("result") = ast.new_(tt_("std::Set", "objectType", _(type.Number))),
-            var_("result") = ast.new_(tt_("std::Map", "keyType", _(type.Number), "objectType", _(type.Color))));
-
-    CellI* mapPtr = nullptr;
-    mapPtr        = &slots(type.slot("value", type.ListOf(type.Digit)),
-                           type.slot("sign", type.Number)); // TODO sign has no class currently
-    type.Number.set("slots", *mapPtr);
-
-    testStruct.addMethod("factorial")
-        .parameters(
-            param("input", _(type.Number)))
-        .returnType(_(type.Number))
-        .code(
-            ast.if_(ast.greaterThanOrEqual(p_("input"), _(_1_)),
-                    ast.return_(ast.multiply(p_("input"), ast.self().call("factorial", param("input", ast.subtract(p_("input"), _(_1_)))))),
-                    ast.return_(_(_1_))));
-
-    // TODO
-//    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
 }
 
 void Brain::createArcSolver()
@@ -4804,8 +4962,8 @@ void Brain::createArcSolver()
                   member("color", struct_("Color")),
                   member("width", _(type.Number)),
                   member("height", _(type.Number)),
-                  member("hybridPixels", tt_("std::Set", "objectType", _(type.Pixel))),
-                  member("pixels", tt_("std::List", "objectType", struct_("Pixel"))));
+                  member("hybridPixels", tt_("std::Set", "valueType", _(type.Pixel))),
+                  member("pixels", tt_("std::List", "valueType", struct_("Pixel"))));
 
 
     /*
@@ -4823,8 +4981,8 @@ void Brain::createArcSolver()
             m_("color")        = p_("color"),
             m_("width")        = p_("width"),
             m_("height")       = p_("height"),
-            m_("hybridPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
-            m_("pixels")       = ast.new_(tt_("std::List", "objectType", struct_("Pixel")), "constructor"));
+            m_("hybridPixels") = ast.new_(tt_("std::Set", "valueType", _(type.Pixel)), "constructor"),
+            m_("pixels")       = ast.new_(tt_("std::List", "valueType", struct_("Pixel")), "constructor"));
 
     /*
     void Shape::addPixel(cells::hybrid::Pixel& pixel)
@@ -4873,8 +5031,8 @@ void Brain::createArcSolver()
                   member("width", _(type.Number)),
                   member("height", _(type.Number)),
                   member("picture", _(type.Picture)),
-                  member("shapes", tt_("std::List", "objectType", "Shape")),
-                  member("inputPixels", tt_("std::Set", "objectType", _(type.Pixel))));
+                  member("shapes", tt_("std::List", "valueType", "Shape")),
+                  member("inputPixels", tt_("std::Set", "valueType", _(type.Pixel))));
 
     /*
     Shaper::Shaper(const cells::hybrid::Picture& picture) :
@@ -4893,8 +5051,8 @@ void Brain::createArcSolver()
             m_("picture")     = p_("picture"),
             m_("width")       = p_("picture") / "width",
             m_("height")      = p_("picture") / "height",
-            m_("shapes")      = ast.new_(tt_("std::List", "objectType", "Shape"), "constructor"),
-            m_("inputPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
+            m_("shapes")      = ast.new_(tt_("std::List", "valueType", "Shape"), "constructor"),
+            m_("inputPixels") = ast.new_(tt_("std::Set", "valueType", _(type.Pixel)), "constructor"),
             ast.self().call("processInputPixels"));
     /*
     void Shaper::processInputPixels()
@@ -4951,7 +5109,7 @@ void Brain::createArcSolver()
                            m_("shapes").call("add", param("value", ast.new_("Shape", "constructor", param("id", *var_("shapeId")), param("color", *var_("firstPixel") / "color"), param("width", m_("width")), param("height", m_("height"))))),
                            var_("shapeId")     = ast.add(*var_("shapeId"), _(_1_)),
                            var_("shape")       = m_("shapes").call("last"),
-                           var_("checkPixels") = ast.new_(tt_("std::Set", "objectType", _(type.Pixel)), "constructor"),
+                           var_("checkPixels") = ast.new_(tt_("std::Set", "valueType", _(type.Pixel)), "constructor"),
                            ast.call(*var_("checkPixels"), "add", param("value", *var_("firstPixel"))),
                            ast.while_(ast.not_(ast.call(*var_("checkPixels"), _("empty"))),
                                       ast.block(
@@ -4981,7 +5139,7 @@ void Brain::createArcSolver()
     shaperStruct.addMethod("processPixel")
         .parameters(
             param("shape", struct_("Shape")),
-            param("checkPixels", tt_("std::Set", "objectType", "Pixel")),
+            param("checkPixels", tt_("std::Set", "valueType", "Pixel")),
             param("checkPixel", struct_("Pixel")))
         .code(
             ast.call(p_("shape"), "addPixel", param("pixel", p_("checkPixel"))),
@@ -5017,7 +5175,7 @@ void Brain::createArcSolver()
         .parameters(
             param("direction", _(type.Directions)),
             param("shape", struct_("Shape")),
-            param("checkPixels", tt_("std::Set", "objectType", _(type.Pixel))),
+            param("checkPixels", tt_("std::Set", "valueType", _(type.Pixel))),
             param("checkPixel", _(type.Pixel)))
         .returnType(_(type.Pixel))
         .code(
@@ -5028,6 +5186,47 @@ void Brain::createArcSolver()
                                 ast.call(p_("checkPixels"), "add", param("value", *var_("pixel")))),
                         ast.return_(*var_("pixel"))),
                     ast.return_(_(ids.emptyObject))));
+}
+
+void Brain::createTests()
+{
+    auto& testScope = globalScope.addScope("test");
+
+    auto& testFunction = testScope.addFunction("testFunction");
+    testFunction.code(
+        var_("result") = ast.new_(struct_("std::Index")));
+
+    auto& testVariable = testScope.addVariable(id("testVariable"));
+
+    auto& testStruct = testScope.addStruct("Test");
+    CellI& fullId    = testStruct.getFullId();
+
+    testStruct.addMethod("testCreateNewListOfNumbers")
+        .code(
+            var_("result") = ast.new_(struct_("std::Index")),
+            var_("result") = ast.new_(tt_("std::List", "valueType", _(type.Number))),
+            var_("result") = ast.new_(tt_("std::List", "valueType", _(type.Cell))),
+            var_("result") = ast.new_(tt_("std::List", "valueType", _(type.Pixel))),
+            var_("result") = ast.new_(tt_("std::Set", "valueType", _(type.Number))),
+            var_("result") = ast.new_(tt_("std::Map", "keyType", _(type.Number), "valueType", _(type.Color))),
+            var_("result") = ast.new_(tt_("std::TrieMap", "keyType", _(type.Number), "valueType", _(type.Color))));
+
+    CellI* mapPtr = nullptr;
+    mapPtr        = &slots(type.slot("value", type.ListOf(type.Digit)),
+                           type.slot("sign", type.Number)); // TODO sign has no class currently
+    type.Number.set("slots", *mapPtr);
+
+    testStruct.addMethod("factorial")
+        .parameters(
+            param("input", _(type.Number)))
+        .returnType(_(type.Number))
+        .code(
+            ast.if_(ast.greaterThanOrEqual(p_("input"), _(_1_)),
+                    ast.return_(ast.multiply(p_("input"), ast.self().call("factorial", param("input", ast.subtract(p_("input"), _(_1_)))))),
+                    ast.return_(_(_1_))));
+
+    // TODO
+    //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
 }
 
 Brain::Brain() :
@@ -5056,8 +5255,8 @@ Brain::Brain() :
     globalScope(Ast::Scope(*this, "global"))
 {
     createStd();
-    createTests();
     createArcSolver();
+    createTests();
 
     auto& compiledGlobalScope = globalScope.compile();
     compiledGlobalScopePtr    = &compiledGlobalScope[ids.data];
@@ -5076,8 +5275,8 @@ Brain::Brain() :
     Visitor::visitList(compiledVariables[ids.list], [this](CellI& kv, int, bool&) {
         std::cout << kv[ids.key].label() << " : " << kv[ids.value].label() << std::endl;
     });
-    auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::ListItem", id("objectType"), type.Cell));
-    auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::List", id("objectType"), type.Cell));
+    auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::ListItem", id("valueType"), type.Cell));
+    auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::List", id("valueType"), type.Cell));
     auto& compiledTypeStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("std::Type"));
     auto& compiledIndexStruct    = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(id("std::Index"));
     type.ListItem.set("methods", compiledListItemStruct[ids.methods]);

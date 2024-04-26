@@ -1,20 +1,3 @@
-namespace A {
-struct AStruct
-{
-    int a;
-};
-} // namespace A
-
-namespace B {
-namespace A {
-struct AStruct
-{
-    int a;
-};
-} // namespace A
-A::AStruct test;
-} // namespace B
-
 #include "Cells.h"
 #include "SVGPrinter.h"
 #include "SVGStructPrinter.h"
@@ -130,10 +113,10 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 TEST_F(CellTest, PrintStdCodes)
 {
 #if 1
-    auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.objectType, kb.type.Number));
-    auto& ListStruct     = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Number));
-    auto& MapStruct      = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
-    auto& SetStruct     =  getStruct(kb.templateId("std::Set", ids.objectType, kb.type.Number));
+    auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.valueType, kb.type.Number));
+    auto& ListStruct     = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Number));
+    auto& MapStruct      = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.valueType, kb.type.Slot));
+    auto& SetStruct     =  getStruct(kb.templateId("std::Set", ids.valueType, kb.type.Number));
     auto& TypeStruct     = getStruct(kb.id("std::Type"));
 
     printAs.value(ListItemStruct);
@@ -220,7 +203,7 @@ TEST_F(CellTest, RecursiveCall)
 
 TEST_F(CellTest, List)
 {
-    auto& ListStruct = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Number));
+    auto& ListStruct = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Number));
     Object list(kb, ListStruct, kb.id("constructor"));
 
     printAs.value(list);
@@ -228,7 +211,7 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list[ids.size], &_0_);
     EXPECT_EQ(&list.method(kb.id("size")), &_0_);
     EXPECT_EQ(&list.method(kb.id("empty")), &true_);
-    EXPECT_EQ(&list.type()[ids.subTypes][kb.ids.index][ids.objectType][kb.ids.value], &kb.type.Number);
+    EXPECT_EQ(&list.type()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.type.Number);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
 
@@ -322,7 +305,7 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list[ids.size], &_0_);
     EXPECT_EQ(&list.method(kb.id("size")), &_0_);
     EXPECT_EQ(&list.method(kb.id("empty")), &true_);
-    EXPECT_EQ(&list.type()[ids.subTypes][kb.ids.index][ids.objectType][kb.ids.value], &kb.type.Number);
+    EXPECT_EQ(&list.type()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.type.Number);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
     printAs.value(list);
@@ -333,7 +316,7 @@ TEST_F(CellTest, List)
 
 TEST_F(CellTest, Map)
 {
-    auto& MapStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& MapStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.valueType, kb.type.Slot));
     Object map(kb, MapStruct, kb.id("constructor"));
 
     printAs.value(map);
@@ -342,7 +325,7 @@ TEST_F(CellTest, Map)
     EXPECT_EQ(&map.method(kb.id("size")), &_0_);
     EXPECT_EQ(&map.method(kb.id("empty")), &true_);
     EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.keyType][kb.ids.value], &kb.type.Cell);
-    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.objectType][kb.ids.value], &kb.type.Slot);
+    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.type.Slot);
 
     map.method(kb.id("add"), { ids.key, _1_ }, { ids.value, kb.colors.red });
     printAs.value(map);
@@ -368,7 +351,7 @@ TEST_F(CellTest, Map)
 
 TEST_F(CellTest, MapTypes)
 {
-    auto& MapStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& MapStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.valueType, kb.type.Slot));
     Object map(kb, MapStruct, kb.id("constructor"));
 
     printAs.value(map.type());
@@ -437,7 +420,7 @@ TEST_F(CellTest, BuiltInMap)
 
 TEST_F(CellTest, MapTemplateTypes)
 {
-    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
+    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.valueType, kb.type.Color));
     Object map(kb, MapNumberToColor, kb.id("constructor"));
 
     printAs.value(map.type());
@@ -478,11 +461,11 @@ TEST_F(CellTest, MapTemplateTypes)
 
 TEST_F(CellTest, MapNumberToColor)
 {
-    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
+    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.valueType, kb.type.Color));
     Object map(kb, MapNumberToColor, kb.id("constructor"));
 
     EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.keyType][kb.ids.value], &kb.type.Number);
-    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.objectType][kb.ids.value], &kb.type.Color);
+    EXPECT_EQ(&map.type()[ids.subTypes][kb.ids.index][ids.valueType][kb.ids.value], &kb.type.Color);
 
     printAs.value(map);
     printAs.cell(map);
@@ -514,7 +497,7 @@ TEST_F(CellTest, MapNumberToColor)
 
 TEST_F(CellTest, ListItem)
 {
-    auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.objectType, kb.type.Color));
+    auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.valueType, kb.type.Color));
     Object listItem(kb, ListItemStruct, kb.id("constructor"), { ids.value, kb.colors.green });
 
     EXPECT_EQ(&listItem[ids.value], &kb.colors.green);
@@ -532,7 +515,7 @@ TEST_F(CellTest, ListItem)
 
 TEST_F(CellTest, ListItemTemplate)
 {
-    auto& ListItemNumber  = getStruct(kb.templateId("std::ListItem", ids.objectType, kb.type.Number));
+    auto& ListItemNumber  = getStruct(kb.templateId("std::ListItem", ids.valueType, kb.type.Number));
     Object listItemNumber(kb, ListItemNumber, kb.id("constructor"), { ids.value, _1_ });
 
     EXPECT_EQ(&listItemNumber[ids.value], &_1_);
@@ -555,11 +538,11 @@ TEST_F(CellTest, ListItemTemplate)
 
 TEST_F(CellTest, ListTemplate)
 {
-    auto& ListOfNumbers = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Number));
+    auto& ListOfNumbers = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Number));
 
     EXPECT_EQ(&ListOfNumbers[ids.subTypes][ids.size], &_2_);
-    EXPECT_TRUE(ListOfNumbers[ids.subTypes][ids.index].has(ids.objectType));
-    EXPECT_EQ(&ListOfNumbers[ids.subTypes][ids.index][ids.objectType][ids.value], &kb.type.Number);
+    EXPECT_TRUE(ListOfNumbers[ids.subTypes][ids.index].has(ids.valueType));
+    EXPECT_EQ(&ListOfNumbers[ids.subTypes][ids.index][ids.valueType][ids.value], &kb.type.Number);
     EXPECT_TRUE(ListOfNumbers[ids.subTypes][ids.index].has(ids.itemType));
     CellI& ListItemType = ListOfNumbers[ids.subTypes][ids.index][ids.itemType][ids.value];
     EXPECT_EQ(&ListItemType[ids.slots][ids.index][ids.value][ids.value][ids.slotType], &kb.type.Number);
@@ -612,7 +595,7 @@ TEST_F(CellTest, HybridPicture)
     EXPECT_EQ(&picture[ids.height], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[ids.pixels][ids.type], &kb.type.ListOf(kb.type.Pixel));
 
-    auto& ListOfPixels  = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Pixel));
+    auto& ListOfPixels  = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Pixel));
     Object listOfPixels(kb, ListOfPixels, kb.id("constructor"), "listOfPixels");
     listOfPixels.method(kb.id("add"), { ids.value, picture[ids.pixels][ids.first][ids.value] });
     listOfPixels.method(kb.id("add"), { ids.value, picture[ids.pixels][ids.first][ids.next][ids.value] });
@@ -622,7 +605,7 @@ TEST_F(CellTest, HybridPicture)
 TEST_F(CellTest, BasicObjectTest)
 {
     auto& Type_ = getStruct(kb.id("std::Type"));
-    auto& List = getStruct(kb.templateId("std::List", ids.objectType, kb.type.Cell));
+    auto& List = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Cell));
     Object testType(kb, Type_, "Test");
     Object emptyList(kb, List, kb.id("constructor"));
 
@@ -695,7 +678,7 @@ TEST_F(CellTest, CreatingCustomType)
 
     Object colorClass(kb, kb.type.Type_, "Color");
 #if 1 // TODO
-    auto& MapCellToSlot = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.objectType, kb.type.Slot));
+    auto& MapCellToSlot = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.valueType, kb.type.Slot));
     Object* slotMapPtr  = new Object(kb, MapCellToSlot, kb.id("constructor"));
     colorClass.set(ids.slots, *slotMapPtr);
 #endif
@@ -877,7 +860,7 @@ TEST_F(CellTest, NextgenType)
 
 TEST_F(CellTest, NextgenBrainType)
 {
-    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.objectType, kb.type.Color));
+    auto& MapNumberToColor = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Number, ids.valueType, kb.type.Color));
     Object map(kb, MapNumberToColor, kb.id("constructor"));
 
     EXPECT_EQ(&map[ids.size], &_0_);
@@ -929,7 +912,7 @@ TEST_F(CellTest, NextgenBrainType)
 
 TEST_F(CellTest, Set)
 {
-    auto& SetOfNumbers = getStruct(kb.templateId("std::Set", ids.objectType, kb.type.Number));
+    auto& SetOfNumbers = getStruct(kb.templateId("std::Set", ids.valueType, kb.type.Number));
     Object set(kb, SetOfNumbers, kb.id("constructor"));
 
     EXPECT_EQ(&set[ids.size], &_0_);

@@ -537,21 +537,21 @@ void CellValuePrinter::printTypeName(CellI& cell)
     brain::Brain& kb = cell.kb;
     auto isA          = [this, &cell, &kb](CellI& type) -> bool { return &cell == &type || (cell.has(kb.ids.memberOf) && cell[kb.ids.memberOf][kb.ids.index].has(type)); };
     if (isA(kb.type.Map)) {
-        m_ss << std::format("Map<{}, {}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label(), cell[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label());
+        m_ss << std::format("Map<{}, {}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label(), cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
         return;
     } else if (isA(kb.type.ListItem)) {
         if (&cell == &kb.type.ListItem) {
             m_ss << "ListItem";
             return;
         }
-        m_ss << std::format("ListItem<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label());
+        m_ss << std::format("ListItem<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
         return;
     } else if (isA(kb.type.List)) {
         if (&cell == &kb.type.List) {
             m_ss << "List";
             return;
         }
-        m_ss << std::format("List<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value].label());
+        m_ss << std::format("List<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
         return;
     }
     m_ss << cell.label();
@@ -572,7 +572,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         return;
     } else if (is(kb.type.List)) {
-        if (&cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.objectType][kb.ids.value] == &kb.type.Char) {
+        if (&cell.type()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value] == &kb.type.Char) {
             m_ss << cell.label();
             return;
         }
