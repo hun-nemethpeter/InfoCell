@@ -858,6 +858,9 @@ Ast::Base& Ast::Base::resolveType(CellI& typeAst, CellI& resolveState)
         }
         return cell;
     }
+    if (&typeAst.type() == &kb.type.ast.ResolvedType) {
+        return static_cast<Ast::ResolvedType&>(typeAst);
+    }
     if (&typeAst.type() == &kb.type.ast.StructName) {
         auto& resolveAstStruct      = resolveStructNameAsAst(typeAst, resolveState);
         auto& resolveCompiledStruct = resolveStructName(resolveAstStruct.getFullId(), resolveState);
@@ -1030,7 +1033,7 @@ Ast::Base& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
     resolvedAstInstance.set("templateParams", resolvedTemplateParams);
     auto& resolvedCompiledInstance = resolveTemplateInstanceId(resolvedAstInstance.getFullId(), scope, resolveState, ast, resolvedTemplateParams);
 
-    // std::cout << std::format("DDDD {} resolved at {:p}\n", idCell.label(), (void*)&resolvedInstance) << std::endl;
+    // std::cout << std::format("DDDD {} resolved at {:p}\n", idCell.label(), (void*)&resolvedCompiledInstance) << std::endl;
 
     return resolvedType(resolvedAstInstance, resolvedCompiledInstance);
 }
@@ -1056,7 +1059,7 @@ List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters, CellI& resolve
 
         idCell.add(slotRole);
         idCell.add(compiledSlotType);
-        resolvedParams.add(kb.ast.slot(slotRole, compiledSlotType));
+        resolvedParams.add(kb.ast.slot(slotRole, resolvedSlotType));
         std::string paramNamespace;
         if (&resolvedSlotType.type() == &kb.type.ast.ResolvedType) {
             auto& paramTypeAst = static_cast<Struct&>(resolvedSlotType[kb.ids.ast]);
@@ -1634,15 +1637,18 @@ CellI& Ast::Scope::compile()
 
         CellI& templateId     = unknownInstance[kb.ids.templateId];
         CellI& templateParams = unknownInstance[kb.ids.templateParams];
+        auto& scope           = static_cast<Scope&>(unknownInstance[kb.ids.scope]);
+        auto& idScope         = unknownInstance.has(kb.id("idScope")) ? static_cast<Scope&>(unknownInstance[kb.id("idScope")]) : scope;
 
-        ss << std::format("  instantiate id: {} <", templateId.label());
+        ss << std::format("        in scope: {}\n", idScope.getFullId().label());
+        ss << std::format("  instantiate id: {}<", templateId.label());
         Visitor::visitList(templateParams, [this, &ss, &compileState](CellI& param, int i, bool& stop) {
             CellI& paramId   = param[kb.ids.slotRole];
             CellI& paramType = param[kb.ids.slotType];
             if (i > 0) {
                 ss << ", ";
             }
-            ss << std::format("{}: {}", paramId.label(), paramType.label());
+            ss << std::format("{}: {}", paramId.label(), getCompiledTypeFromResolvedType(paramType).label());
         });
         ss << ">";
         if (debugCompiledStructs) {
@@ -1650,8 +1656,6 @@ CellI& Ast::Scope::compile()
                       << std::endl;
         }
 
-        auto& scope           = static_cast<Scope&>(unknownInstance[kb.ids.scope]);
-        auto& idScope         = unknownInstance.has(kb.id("idScope")) ? static_cast<Scope&>(unknownInstance[kb.id("idScope")]) : scope;
         auto& resolvedIdScope = static_cast<Scope&>(idScope[kb.ids.resolvedScope]);
         compileState.set("scope", idScope);
         auto& structT          = idScope.getStructT(templateId);
@@ -1949,7 +1953,8 @@ CellI& Ast::Struct::getFullId()
         fullId.add(kb.pools.chars.get(':'));
         fullId.add(kb.pools.chars.get(':'));
     }
-    Visitor::visitList(get(kb.ids.id), [this, &fullId](CellI& character, int i, bool& stop) {
+    auto& id = get(kb.ids.id);
+    Visitor::visitList(id, [this, &fullId](CellI& character, int i, bool& stop) {
         fullId.add(character);
     });
     std::stringstream ss;
@@ -1973,7 +1978,17 @@ CellI& Ast::Struct::getFullId()
             if (i != 0) {
                 ss << ", ";
             }
-            ss << slotRole.label() << "=" << slotType.label();
+            std::string paramNamespace;
+            if (&slotType.type() == &kb.type.ast.ResolvedType) {
+                auto& paramTypeAst = static_cast<Struct&>(slotType[kb.ids.ast]);
+                Scope& scope       = static_cast<Scope&>(paramTypeAst[kb.ids.scope]);
+                CellI& typeScopeId = scope.getFullId();
+                paramNamespace     = typeScopeId.label();
+                if (!paramNamespace.empty()) {
+                    paramNamespace += "::";
+                }
+            }
+            ss << std::format("{}={}{}", slotRole.label(), paramNamespace, getCompiledTypeFromResolvedType(slotType).label());
         });
         ss << ">";
     }
@@ -2086,7 +2101,7 @@ CellI& Ast::Struct::compile(CellI& state)
 {
     CellI& compiledStruct = getResolvedTypeById(getFullId(), has("instanceOf"), state);
     compiledStruct.erase("incomplete");
-    // std::cout << std::format("DDDD compile {} resolved at {:p}\n", structId.label(), (void*)&compiledStruct) << std::endl;
+    // std::cout << std::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
 
     // compile sub types
     if (has("subTypes")) {
@@ -2191,7 +2206,7 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
             throw "Instantiating with unknown template parameter!";
         }
         idCell.add(slotRole);
-        idCell.add(slotType);
+        idCell.add(getCompiledTypeFromResolvedType(slotType));
     });
     idCell.label(std::format("{}<{}>", id().label(), ss.str()));
     Ast::Struct* retPtr = nullptr;
@@ -2282,7 +2297,7 @@ CellI& Ast::StructT::instantiateTemplateParamType(CellI& param, CellI& selfType,
         if (!inputParameters.hasKey(paramValue)) {
             throw "Instantiating with unknown template parameter!";
         }
-        return kb.ast.cell(inputParameters.getValue(paramValue));
+        return inputParameters.getValue(paramValue);
     }
     if (&param.type() == &kb.type.ast.TemplatedType) {
         List& resolvedParameterList = *new List(kb, kb.type.Slot);
