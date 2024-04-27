@@ -116,7 +116,9 @@ TEST_F(CellTest, PrintStdCodes)
     auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.valueType, kb.type.Number));
     auto& ListStruct     = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Number));
     auto& MapStruct      = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.valueType, kb.type.Slot));
-    auto& SetStruct     =  getStruct(kb.templateId("std::Set", ids.valueType, kb.type.Number));
+    auto& TrieMapStruct  = getStruct(kb.templateId("std::TrieMap", ids.keyType, kb.type.Number, ids.valueType, kb.type.Color));
+    auto& SetStruct      = getStruct(kb.templateId("std::Set", ids.valueType, kb.type.Number));
+    auto& IndexStruct    = getStruct(kb.id("std::Index"));
     auto& TypeStruct     = getStruct(kb.id("std::Type"));
 
     printAs.value(ListItemStruct);
@@ -139,6 +141,15 @@ TEST_F(CellTest, PrintStdCodes)
     printMethodInType(MapStruct, "remove");
     printMethodInType(MapStruct, "size");
 
+    printAs.value(TrieMapStruct);
+    printMethodInType(TrieMapStruct, "constructor");
+    printMethodInType(TrieMapStruct, "add");
+    printMethodInType(TrieMapStruct, "empty");
+    printMethodInType(TrieMapStruct, "getValue");
+    printMethodInType(TrieMapStruct, "hasKey");
+    printMethodInType(TrieMapStruct, "remove");
+    printMethodInType(TrieMapStruct, "size");
+
     printAs.value(SetStruct);
     printMethodInType(SetStruct, "constructor");
     printMethodInType(SetStruct, "add");
@@ -157,6 +168,14 @@ TEST_F(CellTest, PrintStdCodes)
     printMethodInType(TypeStruct, "addSubType");
     printMethodInType(TypeStruct, "hasSlot");
     printMethodInType(TypeStruct, "removeSlot");
+
+    printAs.value(IndexStruct);
+    printMethodInType(IndexStruct, "constructor");
+    printMethodInType(IndexStruct, "constructorWithSelfType");
+    printMethodInType(IndexStruct, "insert");
+    printMethodInType(IndexStruct, "empty");
+    printMethodInType(IndexStruct, "remove");
+    printMethodInType(IndexStruct, "size");
 
 #endif
 }
@@ -799,21 +818,21 @@ TEST_F(CellTest, NextgenList)
     EXPECT_FALSE(list.empty());
     printAs.value(list);
 
-    list.removeItem(&item2);
+    list.remove(&item2);
     EXPECT_TRUE(list.has(ids.first));
     EXPECT_TRUE(list.has(ids.last));
     EXPECT_EQ(&list[ids.size], &_2_);
     EXPECT_FALSE(list.empty());
     printAs.value(list);
 
-    list.removeItem(&item1);
+    list.remove(&item1);
     EXPECT_TRUE(list.has(ids.first));
     EXPECT_TRUE(list.has(ids.last));
     EXPECT_EQ(&list[ids.size], &_1_);
     EXPECT_FALSE(list.empty());
     printAs.value(list);
 
-    list.removeItem(&item3);
+    list.remove(&item3);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
     EXPECT_EQ(&list[ids.size], &_0_);

@@ -857,6 +857,7 @@ public:
     Set& set(Base& cell, Base& role, Base& value);
     Set& set(Base& cell, const std::string& role, Base& value);
     Erase& erase(Base& cell, Base& role);
+    Erase& erase(Base& cell, const std::string& role);
     If& if_(Base& condition, Base& thenBranch);
     If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
     Do& do_(Base& condition, Base& statement);
@@ -887,6 +888,7 @@ public:
     Has& has(Base& cell, Base& role);
     Has& has(Base& cell, const std::string& role);
     Missing& missing(Base& cell, Base& role);
+    Missing& missing(Base& cell, const std::string& id);
     Get& get(Base& cell, Base& role);
     And& and_(Base& lhs, Base& rhs);
     Or& or_(Base& lhs, Base& rhs);

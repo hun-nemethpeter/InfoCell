@@ -1011,7 +1011,7 @@ List::Item* List::addFront(CellI& value)
     return item;
 }
 
-void List::removeItem(Item* item)
+void List::remove(Item* item)
 {
     if (item->m_previous) {
         item->m_previous->m_next = item->m_next;
@@ -1339,7 +1339,7 @@ void Map::remove(CellI& key)
         return;
     }
     List::Item* item = &static_cast<List::Item&>(m_index[key]);
-    m_list.removeItem(item);
+    m_list.remove(item);
     m_index.erase(key);
     --m_size;
 }
@@ -1573,7 +1573,7 @@ void TrieMap::remove(CellI& key)
     if (!valueItem) {
         return;
     }
-    m_list.removeItem(valueItem);
+    m_list.remove(valueItem);
     --m_size;
 }
 

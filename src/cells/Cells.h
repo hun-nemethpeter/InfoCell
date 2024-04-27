@@ -222,7 +222,7 @@ public:
         add(std::forward<Args>(args)...);
     }
     Item* addFront(CellI& value);
-    void removeItem(Item* item);
+    void remove(Item* item);
     bool empty() const;
     int size();
 

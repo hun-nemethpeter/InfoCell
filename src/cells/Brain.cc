@@ -3745,6 +3745,11 @@ Ast::Erase& Ast::erase(Base& cell, Base& role)
     return Erase::New(kb, cell, role);
 }
 
+Ast::Erase& Ast::erase(Base& cell, const std::string& role)
+{
+    return Erase::New(kb, cell, kb._(role));
+}
+
 Ast::If& Ast::if_(Base& condition, Base& thenBranch)
 {
     return If::New(kb, condition, thenBranch);
@@ -3837,6 +3842,11 @@ Ast::Has& Ast::has(Base& cell, const std::string& role)
 Ast::Missing& Ast::missing(Base& cell, Base& role)
 {
     return Missing::New(kb, cell, role);
+}
+
+Ast::Missing& Ast::missing(Base& cell, const std::string& role)
+{
+    return Missing::New(kb, cell, kb._(role));
 }
 
 Ast::Get& Ast::get(Base& cell, Base& role)
@@ -4335,17 +4345,17 @@ void Brain::createStd()
             ast.if_(ast.has(p_("item"), "previous"),
                     ast.if_(ast.has(p_("item"), "next"),
                             ast.set(p_("item") / "previous", "next", p_("item") / "next"),
-                            ast.erase(p_("item") / "previous", _("next"))),
+                            ast.erase(p_("item") / "previous", "next")),
                     ast.if_(ast.has(p_("item"), "next"),
                             m_("first") = p_("item") / "next",
-                            ast.erase(ast.self(), _("first")))),
+                            ast.erase(ast.self(), "first"))),
             ast.if_(ast.has(p_("item"), "next"),
                     ast.if_(ast.has(p_("item"), "previous"),
                             ast.set(p_("item") / "next", "previous", p_("item") / "previous"),
-                            ast.erase(p_("item") / "next", _("previous"))),
+                            ast.erase(p_("item") / "next", "previous")),
                     ast.if_(ast.has(p_("item"), "previous"),
                             m_("last") = p_("item") / "previous",
-                            ast.erase(ast.self(), _("last")))),
+                            ast.erase(ast.self(), "last"))),
             m_("size") = ast.subtract(m_("size"), _(_1_)));
 
     listStructT.addMethod("size")
@@ -4691,6 +4701,14 @@ void Brain::createStd()
                   member("key", tp_("keyType")),
                   member("value", tp_("valueType")));
 
+    kvPairT.addMethod("constructor")
+        .parameters(
+            param("key", tp_("keyType")),
+            param("value", tp_("valueType")))
+        .code(
+            m_("key")   = p_("key"),
+            m_("value") = p_("value"));
+
     auto& trieMapStructT
         = stdScope.addStructT("TrieMap")
               .templateParams(
@@ -4699,7 +4717,8 @@ void Brain::createStd()
               .subTypes(
                   param("keyType", tp_("keyType")),
                   param("valueType", tp_("valueType")),
-                  param("listType", tt_("List", "valueType", tt_("kvPair", "keyType", tp_("keyType"), "valueType", tp_("valueType")))))
+                  param("pairType", tt_("kvPair", "keyType", tp_("keyType"), "valueType", tp_("valueType"))),
+                  param("listType", tt_("List", "valueType", st_("pairType"))))
               .memberOf(_(type.Container), _(type.TrieMap))
               .members(
                   member("list", st_("listType")),
@@ -4746,21 +4765,62 @@ void Brain::createStd()
         return true;
     }
     */
-#if 0
     trieMapStructT.addMethod("hasKey")
         .parameters(
             param("key", tp_("keyType")))
         .returnType(_(type.Boolean))
         .code(
-            ast.return_(ast.has(m_("index"), p_("key")))); // TODO
+            var_("currentNode") = m_("rootNode"),
+            var_("keyItem")     = _(ids.emptyObject),
+            ast.if_(ast.has(p_("key"), "first"),
+                    var_("keyItem") = *var_("key") / "first"),
+            ast.while_(ast.notSame(*var_("keyItem"), _(ids.emptyObject)),
+                       ast.block(
+                           var_("keyItemObj") = *var_("keyItem") / "value",
+                           var_("child")      = _(ids.emptyObject),
+                           ast.if_(ast.missing(*var_("currentNode"), "children"),
+                                   ast.return_(_(boolean.false_))),
+                           var_("childrenIndex") = *var_("currentNode") / "children",
+                           ast.if_(ast.has(*var_("childrenIndex"), *var_("keyItemObj")),
+                                   var_("child") = *var_("childrenIndex") / *var_("keyItemObj"),
+                                   ast.return_(_(boolean.false_))),
+                           var_("currentNode") = *var_("child"))),
+            ast.if_(ast.missing(*var_("currentNode"), "data"),
+                    ast.return_(_(boolean.false_))),
+            ast.return_(_(boolean.true_)));
 
     /*
-    CellI& Map::getValue(CellI& key)
+    CellI& TrieMap::getValue(CellI& key)
     {
-        if (m_index.has(key)) {
-            return m_index[key][kb.ids.value];
+        if (isA(key, kb.type.List)) {
+            throw "Key is not a list!";
         }
-        throw "No such role!";
+
+        CellI* currentNode = &m_rootNode;
+
+        Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+            CellI* children = nullptr;
+            if (currentNode->missing(kb.ids.children)) {
+                stop        = true;
+                currentNode = nullptr;
+                return;
+            }
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+            if (childrenIndex.has(keyItem)) {
+                children = &childrenIndex.get(keyItem);
+            } else {
+                stop        = true;
+                currentNode = nullptr;
+                return;
+            }
+            currentNode = children;
+        });
+
+        if (!currentNode || currentNode->missing(kb.ids.data)) {
+            throw "No such key!";
+        }
+
+        return (*currentNode)[kb.ids.data][kb.ids.value][kb.ids.value];
     }
     */
     trieMapStructT.addMethod("getValue")
@@ -4768,21 +4828,52 @@ void Brain::createStd()
             param("key", tp_("keyType")))
         .returnType(tp_("valueType"))
         .code(
-            ast.if_(ast.has(m_("index"), p_("key")),
-                    ast.return_(m_("index") / p_("key") / "value"),
-                    ast.return_(_("emptyObject"))));
+            var_("currentNode") = m_("rootNode"),
+            var_("keyItem")     = _(ids.emptyObject),
+            ast.if_(ast.has(p_("key"), "first"),
+                    var_("keyItem") = *var_("key") / "first"),
+            ast.while_(ast.notSame(*var_("keyItem"), _(ids.emptyObject)),
+                       ast.block(
+                           var_("keyItemObj") = *var_("keyItem") / "value",
+                           var_("child")      = _(ids.emptyObject),
+                           ast.if_(ast.missing(*var_("currentNode"), "children"),
+                                   ast.return_(_(ids.emptyObject))),
+                           var_("childrenIndex") = *var_("currentNode") / "children",
+                           ast.if_(ast.has(*var_("childrenIndex"), *var_("keyItemObj")),
+                                   var_("child") = *var_("childrenIndex") / *var_("keyItemObj"),
+                                   ast.return_(_(ids.emptyObject))),
+                           var_("currentNode") = *var_("child"))),
+            ast.if_(ast.missing(*var_("currentNode"), "data"),
+                    ast.return_(_(ids.emptyObject))),
+            ast.return_(*var_("currentNode") / "data" / "value" / "value"));
 
     /*
-    void Map::add(CellI& key, CellI& value)
+    void TrieMap::add(CellI& key, CellI& value)
     {
-        if (&key == &"type") {
-            throw "ids.type can not be stored in a map!";
+        if (isA(key, kb.type.List)) {
+            throw "Key is not a list!";
         }
-        if (m_index.has(key)) {
-            throw "A value already registered with this role";
-        }
-        List::Item& item = *m_list.add(value);
-        m_index.insert(key, item);
+
+        CellI* currentNode = &m_rootNode;
+
+        Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+            CellI* child = nullptr;
+            if (currentNode->missing(kb.ids.children)) {
+                currentNode->set(kb.ids.children, *new Index(kb));
+            }
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+            if (childrenIndex.has(keyItem)) {
+                child = &childrenIndex.get(keyItem);
+            } else {
+                child = new Object(kb, kb.type.TrieMapNode);
+                child->set(kb.ids.parent, *currentNode);
+                childrenIndex.insert(keyItem, *child);
+            }
+            currentNode = child;
+        });
+
+        List::Item& item = *m_list.add(kb.type.kvPair(key, value));
+        currentNode->set(kb.ids.data, item);
         ++m_size;
     }
     */
@@ -4791,23 +4882,87 @@ void Brain::createStd()
             param("key", tp_("keyType")),
             param("value", tp_("valueType")))
         .code(
-            ast.if_(ast.same(p_("key"), _("type")),
-                    ast.return_()),
-            ast.if_(ast.has(m_("index"), p_("key")),
-                    ast.return_()),
-            m_("size")   = ast.add(m_("size"), _(_1_)),
-            var_("item") = m_("list").call("add", param("value", p_("value"))),
-            m_("index").call("insert", param("key", p_("key")), param("value", *var_("item"))));
+            var_("currentNode") = m_("rootNode"),
+            var_("keyItem")     = _(ids.emptyObject),
+            ast.if_(ast.has(p_("key"), "first"),
+                    var_("keyItem") = *var_("key") / "first"),
+            ast.while_(ast.notSame(*var_("keyItem"), _(ids.emptyObject)),
+                       ast.block(
+                           var_("keyItemObj") = *var_("keyItem") / "value",
+                           var_("child")      = _(ids.emptyObject),
+                           ast.if_(ast.missing(*var_("currentNode"), "children"),
+                                   ast.set(*var_("currentNode"), "children", ast.new_("Index", "constructor"))),
+                           var_("childrenIndex") = *var_("currentNode") / "children",
+                           ast.if_(ast.has(*var_("childrenIndex"), *var_("keyItemObj")),
+                                   var_("child") = *var_("childrenIndex") / *var_("keyItemObj")),
+                           ast.block(
+                               var_("child") = ast.new_(_(type.TrieMapNode)),
+                               ast.set(*var_("child"), "parent", *var_("currentNode")),
+                               ast.call(*var_("childrenIndex"), "insert", param("key", *var_("keyItemObj")), param("value", *var_("child")))),
+                           var_("currentNode") = *var_("child"))),
+            var_("item") = m_("list").call("add", param("value", ast.new_(st_("pairType"), "constructor", param("key", p_("key")), param("value", p_("value"))))),
+            ast.set(*var_("currentNode"), "data", *var_("item")),
+            m_("size") = ast.add(m_("size"), _(_1_)));
 
     /*
-    void Map::remove(CellI& key)
+    void TrieMap::remove(CellI& key)
     {
-        if (!m_index.has(key)) {
+        if (isA(key, kb.type.List)) {
+            throw "Key is not a list!";
+        }
+
+        if (&key[kb.ids.size] == &kb._0_) {
             return;
         }
-        List::Item* item = &static_cast<List::Item&>(m_index[key]);
-        m_list.removeItem(item);
-        m_index.erase(key);
+
+        CellI* currentNode    = &m_rootNode;
+
+        Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+            CellI* children = nullptr;
+            if (currentNode->missing(kb.ids.children)) {
+                stop        = true;
+                currentNode = nullptr;
+                return;
+            }
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+            if (childrenIndex.has(keyItem)) {
+                children = &childrenIndex.get(keyItem);
+            } else {
+                stop        = true;
+                currentNode = nullptr;
+                return;
+            }
+            currentNode = children;
+        });
+
+        if (!currentNode || currentNode->missing(kb.ids.data)) {
+            return;
+        }
+        List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[kb.ids.data]);
+        currentNode->erase(kb.ids.data);
+
+        CellI* keyItemPtr = &key[kb.ids.last];
+        while (currentNode->has(kb.ids.parent)) {
+            CellI& keyItem = *keyItemPtr;
+            CellI& parent = currentNode->get(kb.ids.parent);
+            CellI& child = *currentNode;
+            if (child.missing(kb.ids.data)) {
+                if (child.missing(kb.ids.children) || ( child.has(kb.ids.children) && static_cast<Index&>(child[kb.ids.children]).empty())) {
+                    delete currentNode;
+                    parent[kb.ids.children].erase(keyItem[kb.ids.value]);
+                }
+            }
+            currentNode = &parent;
+            if (keyItem.has(kb.ids.previous)) {
+                keyItemPtr = &keyItem[kb.ids.previous];
+            } else {
+                break;
+            }
+        }
+        if (!valueItem) {
+            return;
+        }
+        m_list.removeItem(valueItem);
         --m_size;
     }
     */
@@ -4815,10 +4970,41 @@ void Brain::createStd()
         .parameters(
             param("key", tp_("keyType")))
         .code(
-            ast.if_(ast.missing(m_("index"), p_("key")),
+            var_("currentNode") = m_("rootNode"),
+            var_("keyItem")     = _(ids.emptyObject),
+            ast.if_(ast.has(p_("key"), "first"),
+                    var_("keyItem") = *var_("key") / "first"),
+            ast.while_(ast.notSame(*var_("keyItem"), _(ids.emptyObject)),
+                       ast.block(
+                           var_("keyItemObj") = *var_("keyItem") / "value",
+                           var_("child")      = _(ids.emptyObject),
+                           ast.if_(ast.missing(*var_("currentNode"), "children"),
+                                   ast.return_()),
+                           var_("childrenIndex") = *var_("currentNode") / "children",
+                           ast.if_(ast.has(*var_("childrenIndex"), *var_("keyItemObj")),
+                                   var_("child") = *var_("childrenIndex") / *var_("keyItemObj"),
+                                   ast.return_()),
+                           var_("currentNode") = *var_("child"))),
+            ast.if_(ast.missing(*var_("currentNode"), "data"),
                     ast.return_()),
-            m_("list").call("remove", param("item", m_("index") / p_("key"))),
-            m_("index").call("remove", param("key", p_("key"))),
+            var_("valueItem") = *var_("currentNode") / "data",
+            ast.erase(*var_("currentNode"), "data"),
+            var_("keyItem") = p_("key") / "last",
+            ast.while_(ast.has(*var_("currentNode"), "parent"),
+                       ast.block(
+                           var_("parent") = *var_("currentNode") / "parent",
+                           var_("child")  = *var_("currentNode"),
+                           ast.if_(ast.missing(*var_("child"), "data"),
+                                   ast.if_(ast.or_(ast.missing(*var_("child"), "children"), ast.and_(ast.has(*var_("child"), "children"), ast.call(*var_("child") / "children", "empty"))),
+                                           ast.block(
+                                               ast.delete_(*var_("currentNode")),
+                                               ast.erase(*var_("parent") / "children", *var_("keyItem") / "value")))),
+                           var_("currentNode") = *var_("parent"),
+                           ast.if_(ast.has(*var_("keyItem"), "previous"),
+                                   var_("keyItem") = *var_("keyItem") / "previous",
+                                   ast.return_()) // TODO ast.break() here!
+                           )),
+            m_("list").call("remove", param("item", *var_("valueItem"))),
             m_("size") = ast.subtract(m_("size"), _(_1_)));
 
     trieMapStructT.addMethod("size")
@@ -4851,7 +5037,6 @@ void Brain::createStd()
         .code(
             ast.return_(m_("list") / "last"));
 #pragma endregion
-#endif
 #pragma region Set
     auto& setStructT
         = stdScope.addStructT("Set")
@@ -4895,7 +5080,7 @@ void Brain::createStd()
                     ast.return_()),
             ast.call(m_("index"), "remove", param("key", p_("value"))),
             m_("size") = ast.subtract(m_("size"), _(_1_)));
-
+#
     setStructT.addMethod("first")
         .returnType(tp_("valueType"))
         .code(
