@@ -116,7 +116,7 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
 TEST_F(CellTest, PrintStdCodes)
 {
-#if 1
+#if 0
     auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.valueType, kb.type.Number));
     auto& ListStruct     = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Number));
     auto& MapStruct      = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.valueType, kb.type.Slot));
@@ -202,6 +202,7 @@ TEST_F(CellTest, PrintArcCodes)
     printMethodInType(ShapeStruct, "constructor");
     printMethodInType(ShapeStruct, "addPixel");
     printMethodInType(ShapeStruct, "hasPixel");
+    printMethodInType(ShapeStruct, "sortPixels");
 
     printAs.value(ShaperStruct);
     printMethodInType(ShaperStruct, "constructor");
@@ -1219,6 +1220,14 @@ TEST_F(CellTest, StringTest)
 TEST_F(CellTest, ShaperTest)
 {
     auto& ShaperStruct = getStruct(kb.id("arc::Shaper"));
+    const auto& printPixels = [this](CellI& pixelList) -> std::string {
+        std::stringstream ss;
+        Visitor::visitList(pixelList, [this, &ss](CellI& shape, int, bool&) {
+            ss << std::format("[{}, {}]", shape[kb.coordinates.x].label(), shape[kb.coordinates.y].label());
+        });
+
+        return ss.str();
+    };
 
     // 0 7 7
     // 7 7 7
@@ -1229,6 +1238,11 @@ TEST_F(CellTest, ShaperTest)
     shaper1.method("process");
     printAs.value(shaper1["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper1["shapes"]["size"], &_3_);
+    auto& shape1_2pixels = shaper1["shapes"]["first"]["next"]["value"]["pixels"];
+    //                                      |x  y |x  y |x  y
+    EXPECT_EQ(printPixels(shape1_2pixels),       "[1, 0][2, 0]" \
+                                           "[0, 1][1, 1][2, 1]" \
+                                                 "[1, 2][2, 2]");
 
     // 7 0 0
     // 0 7 0
@@ -1239,16 +1253,29 @@ TEST_F(CellTest, ShaperTest)
     shaper2.method("process");
     printAs.value(shaper2["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper2["shapes"]["size"], &_2_);
+    auto& shape2_1pixels = shaper2["shapes"]["first"]["value"]["pixels"];
+    //                                      |x  y |x  y |x  y
+    EXPECT_EQ(printPixels(shape2_1pixels), "[0, 0]" \
+                                                 "[1, 1]" \
+                                                       "[2, 2]");
 
     // 7 0 7
     // 7 0 7
     // 7 7 7
-    input::Picture inputPicture3("inputPicture3", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
+    input::Picture inputPicture3("inputPicture3", "[" \
+                                                     "[7, 0, 7]," \
+                                                     "[7, 0, 7]," \
+                                                     "[7, 7, 7]]");
     cells::hybrid::Picture picture3(kb, inputPicture3);
     Object shaper3(kb, ShaperStruct, kb.id("constructor"), { "picture", picture3 });
     shaper3.method("process");
     printAs.value(shaper3["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper3["shapes"]["size"], &_2_);
+    auto& shape3_1pixels = shaper3["shapes"]["first"]["value"]["pixels"];
+    //                                      |x  y |x  y |x  y
+    EXPECT_EQ(printPixels(shape3_1pixels), "[0, 0]"    "[2, 0]" \
+                                           "[0, 1]"    "[2, 1]" \
+                                           "[0, 2][1, 2][2, 2]");
 }
 
 TEST_F(CellTest, ArcTaskTest)

@@ -1563,7 +1563,7 @@ CellI& Ast::Scope::getFullId()
     return fullId;
 }
 
-static bool debugCompiledStructs = true;
+static bool debugCompiledStructs = false;
 
 CellI& Ast::Scope::compile()
 {
@@ -5230,13 +5230,15 @@ void Brain::createArcSolver()
     // struct Shape
     auto& shapeStruct
         = arcScope.addStruct("Shape")
+              .subTypes(
+                  param("tableType", tt_("std::Map", "keyType", _(type.Number), "valueType", tt_("std::Map", "keyType", _(type.Number), "valueType", _(type.Pixel)))))
               .members(
                   member("id", _(type.Number)),
                   member("color", struct_("Color")),
                   member("width", _(type.Number)),
                   member("height", _(type.Number)),
                   member("hybridPixels", tt_("std::Set", "valueType", _(type.Pixel))),
-                  member("pixelTable", tt_("std::Map", "keyType", _(type.Number), "valueType", tt_("std::Map", "keyType", _(type.Number), "valueType", _(type.Pixel)))),
+                  member("pixelTable", st_("tableType")),
                   member("pixels", tt_("std::List", "valueType", struct_("Pixel"))));
 
     /*
@@ -5255,7 +5257,7 @@ void Brain::createArcSolver()
             m_("width")        = p_("width"),
             m_("height")       = p_("height"),
             m_("hybridPixels") = ast.new_(tt_("std::Set", "valueType", _(type.Pixel)), "constructor"),
-            m_("pixelTable")   = ast.new_(tt_("std::Map", "keyType", _(type.Number), "valueType", tt_("std::Map", "keyType", _(type.Number), "valueType", _(type.Pixel))), "constructor"),
+            m_("pixelTable")   = ast.new_(st_("tableType"), "constructor"),
             m_("pixels")       = ast.new_(tt_("std::List", "valueType", struct_("Pixel")), "constructor"));
 
     /*
@@ -5269,7 +5271,10 @@ void Brain::createArcSolver()
         .parameters(
             param("pixel", struct_("Pixel")))
         .code(
-            m_("pixels").call("add", param("value", p_("pixel"))),
+            ast.if_(ast.not_(m_("pixelTable").call("hasKey", param("key", p_("pixel") / _(coordinates.y)))),
+                    m_("pixelTable").call("add", param("key", p_("pixel") / _(coordinates.y)), param("value", ast.new_(st_("tableType"), "constructor")))),
+            var_("colX") = m_("pixelTable").call("getValue", param("key", p_("pixel") / _(coordinates.y))),
+            ast.call(*var_("colX"), "add", param("key", p_("pixel") / _(coordinates.x)), param("value", p_("pixel"))),
             m_("hybridPixels").call("add", param("value", p_("pixel"))));
 
     /*
@@ -5295,7 +5300,21 @@ void Brain::createArcSolver()
     }
     */
     shapeStruct.addMethod("sortPixels")
-        .code(ast.return_()); // TODO sorting
+        .code(var_("y") = _(_0_),
+              ast.while_(ast.lessThan(*var_("y"), m_("height")),
+                         ast.block(
+                             ast.if_(m_("pixelTable").call("hasKey", param("key", *var_("y"))),
+                                     ast.block(
+                                         var_("colX") = m_("pixelTable").call("getValue", param("key", *var_("y"))),
+                                         var_("x")    = _(_0_),
+                                         ast.while_(ast.lessThan(*var_("x"), m_("width")),
+                                                    ast.block(
+                                                        ast.if_(ast.call(*var_("colX"), "hasKey", param("key", *var_("x"))),
+                                                                ast.block(
+                                                                    var_("pixel") = ast.call(*var_("colX"), "getValue", param("key", *var_("x"))),
+                                                                    m_("pixels").call("add", param("value", *var_("pixel"))))),
+                                                        var_("x") = ast.add(*var_("x"), _(_1_)))))),
+                             var_("y") = ast.add(*var_("y"), _(_1_)))));
 
 
     // struct Shaper

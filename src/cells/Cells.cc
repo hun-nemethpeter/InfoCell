@@ -294,6 +294,10 @@ void Object::operator()()
             }
             set(kb.ids.status, kb.ids.process);
             op();
+            if (&(*this)[kb.ids.status] == &kb.ids.continue_ || &(*this)[kb.ids.status] == &kb.ids.break_) {
+                stop = true;
+                return;
+            }
             if (op.has(kb.ids.status)) {
                 if (&op[kb.ids.status] == &kb.ids.return_ || &op[kb.ids.status] == &kb.ids.continue_ || &op[kb.ids.status] == &kb.ids.break_) {
                     set(kb.ids.status, op[kb.ids.status]);
@@ -340,9 +344,6 @@ void Object::operator()()
         inputCell();
 
         CellI& cell      = inputCell[kb.ids.value];
-        if (cell.label() == "var shapeId") {
-            std::cout << "";
-        }
         CellI& inputRole = get(kb.ids.role);
         inputRole();
         CellI& role       = inputRole[kb.ids.value];
@@ -519,17 +520,30 @@ void Object::operator()()
             CellI& debugCell3Cell = get(kb.ids.cell)[kb.ids.cell][kb.ids.cell][kb.ids.cell][kb.ids.value];
             CellI& debugCell3Role = get(kb.ids.cell)[kb.ids.cell][kb.ids.cell][kb.ids.role][kb.ids.value];
         }
-        if (has(kb.ids.ast)) {
-            CellI& ast = get(kb.ids.ast);
-            if (&ast.type() == &kb.type.ast.Var) {
-                if (ast[kb.ids.role].label() == "DDDDpixel1") {
-                    std::cout << "";
-                }
-            }
-        }
+
         CellI& inputCell = get(kb.ids.cell);
         inputCell();
         CellI& cell      = inputCell[kb.ids.value];
+#if 0
+        if (has(kb.ids.ast)) {
+            CellI& ast = get(kb.ids.ast);
+            if (&ast.type() == &kb.type.ast.Var) {
+                if (ast[kb.ids.role].label() == "colX") {
+                    if (cell.has("x") && cell["x"].has("value")) {
+                        std::cout << "DDDD x: " << cell["x"]["value"].label() << std::endl;
+                    }
+                    if (cell.has("y") && cell["y"].has("value")) {
+                        std::cout << "DDDD y: " << cell["y"]["value"].label() << std::endl;
+                    }
+                    if (cell["colX"].has("value")) {
+                        auto& colX = cell["colX"]["value"];
+                        std::cout << "DDDD colx = " << colX.label() << std::endl;
+                        std::cout << "DDDD colx.type() = " << colX.type().label() << std::endl;
+                    }
+                }
+            }
+        }
+#endif
         CellI& inputRole = get(kb.ids.role);
         inputRole();
         CellI& role = inputRole[kb.ids.value];
