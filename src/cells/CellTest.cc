@@ -1,12 +1,16 @@
+#include <fstream>
+#include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
+
 #include "Cells.h"
 #include "SVGPrinter.h"
 #include "SVGStructPrinter.h"
 #include "StructPrinter.h"
 #include "ValuePrinter.h"
-#include <fstream>
+#include "util/ArcTask.h"
 
-#include <gtest/gtest.h>
-
+namespace fs = std::filesystem;
+using nlohmann::json;
 using namespace synth;
 using namespace synth::cells;
 
@@ -79,12 +83,12 @@ protected:
     void printMethodInType(CellI& type, const std::string& method)
     {
         printAs.value(type[ids.methods][ids.index][kb.id(method)][ids.value]);
-    };
+    }
 
     CellI& getStruct(CellI& id)
     {
-        return static_cast<TrieMap&>((*kb.compiledGlobalScopePtr)[ids.structs]).getValue(id);
-    };
+        return kb.getStruct(id);
+    }
 
     static std::unique_ptr<brain::Brain> m_kb;
     brain::Brain& kb;
@@ -1245,6 +1249,19 @@ TEST_F(CellTest, ShaperTest)
     shaper3.method("process");
     printAs.value(shaper3["shapes"]["size"], "shaper[shapes][size]");
     EXPECT_EQ(&shaper3["shapes"]["size"], &_2_);
+}
+
+TEST_F(CellTest, ArcTaskTest)
+{
+    auto& shaperStruct = getStruct(kb.id("arc::Shaper"));
+    static const std::string arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\training\\007bbfb7.json";
+
+    ArcTask arcTaskLoader(kb, json::parse(std::ifstream(arcFilePath)));
+    CellI& arcTask = arcTaskLoader.m_task;
+
+    Object shaper(kb, shaperStruct, kb.id("constructor"), { "picture", arcTask["challenge"]});
+    shaper.method("process");
+    printAs.value(shaper["shapes"]["size"], "shaper[shapes][size]");
 }
 
 int main(int argc, char** argv)

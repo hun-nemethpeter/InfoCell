@@ -4265,26 +4265,6 @@ Pools::Pools(brain::Brain& kb) :
 {
 }
 
-Arc::Arc(brain::Brain& kb) :
-    Demonstration(kb, kb.type.Type_, "Demonstration"),
-    Task(kb, kb.type.Type_, "Task"),
-    examples(kb, kb.type.Cell, "examples")
-{
-    auto& type = kb.type;
-    CellI* map = nullptr;
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  kb.ids.input, type.slot("input", kb.type.Picture),
-                  kb.ids.output, type.slot("output", kb.type.Picture));
-    Demonstration.set("slots", *map);
-
-    map = &kb.map(kb.type.Cell, kb.type.Slot,
-                  examples, type.slot(examples, kb.type.ListOf(Demonstration)),
-                  kb.ids.input, type.slot("input", kb.type.Picture),
-                  kb.ids.output, type.slot("output", kb.type.Picture));
-    Task.set("slots", *map);
-}
-
 Test::Test(brain::Brain& kb) :
     factorial(kb, kb.type.Cell, "factorial")
 {
@@ -5213,6 +5193,19 @@ void Brain::createArcSolver()
 {
     auto& arcScope = globalScope.addScope("arc");
 
+    auto& demonstrationStruct
+        = arcScope.addStruct("Demonstration")
+              .members(
+                  member("input", _(type.Picture)),
+                  member("output", _(type.Picture)));
+
+    auto& taskStruct
+        = arcScope.addStruct("Task")
+              .members(
+                  member("examples", tt_("std::List", "valueType", "Demonstration")),
+                  member("challenge", _(type.Picture)),
+                  member("solution", _(type.Picture)));
+
     auto& colorStruct
         = arcScope.addStruct("Color")
               .members(
@@ -5245,7 +5238,6 @@ void Brain::createArcSolver()
                   member("height", _(type.Number)),
                   member("hybridPixels", tt_("std::Set", "valueType", _(type.Pixel))),
                   member("pixels", tt_("std::List", "valueType", struct_("Pixel"))));
-
 
     /*
     Shape(int id, input::Color color, int width, int height) :
@@ -5521,7 +5513,6 @@ Brain::Brain() :
     colors(*this),
     boolean(*this),
     numbers(*this),
-    arc(*this),
     test(*this),
     _0_(pools.numbers.get(0)),
     _1_(pools.numbers.get(1)),
@@ -5574,6 +5565,16 @@ Brain::Brain() :
 Brain::~Brain()
 {
     m_initPhase = InitPhase::DestructBegin;
+}
+
+CellI& Brain::getStruct(const std::string& name)
+{
+    return getStruct(id(name));
+}
+
+CellI& Brain::getStruct(CellI& id)
+{
+    return static_cast<TrieMap&>((*compiledGlobalScopePtr)[ids.structs]).getValue(id);
 }
 
 CellI& Brain::id(const std::string& str)

@@ -3,7 +3,6 @@
 #include "app/Colors.h"
 #include "app/Solver.h"
 #include "cells/Brain.h"
-#include "util/ArcTask.h"
 
 #include <array>
 #include <set>

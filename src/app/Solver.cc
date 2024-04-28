@@ -715,11 +715,11 @@ void Solver::solve()
         const Grid& output = parse(m_output);
         rules.push_back(gridDiff(input, output));
     }
-    const Grid& testInput = parse(m_arcTask.m_testInput);
+    const Grid& testInput = parse(m_arcTask.m_challenge);
     const Code& code = processRules(rules);
     DrawingBoard result = applyCode(testInput, code);
 
-    const cells::hybrid::Picture& m_input = m_arcTask.m_testInput;
+    const cells::hybrid::Picture& m_input = m_arcTask.m_challenge;
     logger.log(INFO) << "Mapping input[" << m_input.width() << ", " << m_input.height() << "] to ... ?";
 }
 

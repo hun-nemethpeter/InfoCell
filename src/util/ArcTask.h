@@ -32,8 +32,10 @@ public:
     std::vector<cells::Object> m_exampleObjects;
     input::Picture m_inputPicture;
     input::Picture m_outputPicture;
-    cells::hybrid::Picture m_testInput;
-    cells::hybrid::Picture m_testSolution;
+    cells::hybrid::Picture m_challenge;
+    cells::hybrid::Picture m_solution;
+    cells::CellI& m_taskStruct;
+    cells::CellI& m_demonstrationStruct;
     cells::Object m_task;
     cells::List m_examples;
 };

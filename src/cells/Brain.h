@@ -1027,16 +1027,6 @@ public:
     pools::Strings strings;
 };
 
-class Arc
-{
-public:
-    Arc(brain::Brain& kb);
-
-    Object Demonstration;
-    Object Task;
-    Object examples;
-};
-
 class Test
 {
 public:
@@ -1091,7 +1081,6 @@ public:
     Colors colors;
     Boolean boolean;
     Numbers numbers;
-    Arc arc;
     Test test;
 
     CellI& _0_;
@@ -1109,6 +1098,8 @@ public:
     CellI* compiledGlobalScopePtr = nullptr;
 
 public:
+    CellI& getStruct(const std::string& name);
+    CellI& getStruct(CellI& id);
     CellI& id(const std::string& str);
     template <typename... Args>
     CellI& templateId(const std::string& str, Args&&... args);

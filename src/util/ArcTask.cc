@@ -34,10 +34,12 @@ ArcDemonstration::ArcDemonstration(cells::brain::Brain& kb, int number, const st
 ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
     m_inputPicture("Test input"),
     m_outputPicture("Test solution"),
-    m_testInput(kb, m_inputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
-    m_testSolution(kb, m_outputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/output"_json_pointer]))),
-    m_task(kb, kb.arc.Task),
-    m_examples(kb, kb.arc.Demonstration)
+    m_challenge(kb, m_inputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
+    m_solution(kb, m_outputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/output"_json_pointer]))),
+    m_taskStruct(kb.getStruct("arc::Task")),
+    m_demonstrationStruct(kb.getStruct("arc::Demonstration")),
+    m_task(kb, m_taskStruct),
+    m_examples(kb, m_demonstrationStruct)
 {
     const nlohmann::json& jsonTrainSet = jsonArcFile.at("train");
     m_demonstrations.reserve(jsonTrainSet.size());
@@ -46,15 +48,15 @@ ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
     for (const auto& train : jsonTrainSet) {
         m_demonstrations.emplace_back(kb, number++, to_string(train.at("input")), to_string(train.at("output")));
         ArcDemonstration& arcDemonstration = m_demonstrations.back();
-        m_exampleObjects.emplace_back(kb, kb.arc.Demonstration);
+        m_exampleObjects.emplace_back(kb, m_demonstrationStruct);
         cells::Object& exampleObject = m_exampleObjects.back();
-        exampleObject.set(kb.ids.input, arcDemonstration.m_input);
-        exampleObject.set(kb.ids.output, arcDemonstration.m_output);
+        exampleObject.set("input", arcDemonstration.m_input);
+        exampleObject.set("output", arcDemonstration.m_output);
         m_examples.add(exampleObject);
     }
-    m_task.set(kb.arc.examples, m_examples);
-    m_task.set(kb.ids.input, m_testInput);
-    m_task.set(kb.ids.output, m_testSolution);
+    m_task.set("examples", m_examples);
+    m_task.set("challenge", m_challenge);
+    m_task.set("solution", m_solution);
 }
 
 } // namespace synth
