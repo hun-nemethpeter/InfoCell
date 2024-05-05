@@ -88,6 +88,11 @@ protected:
         printAs.value(type[ids.methods][ids.index][kb.id(method)][ids.value]);
     }
 
+    CellI& getStruct(const std::string& name)
+    {
+        return kb.getStruct(name);
+    }
+
     CellI& getStruct(CellI& id)
     {
         return kb.getStruct(id);
@@ -119,14 +124,14 @@ std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
 TEST_F(CellTest, PrintStdCodes)
 {
-#if 0
+#if 1
     auto& ListItemStruct = getStruct(kb.templateId("std::ListItem", ids.valueType, kb.type.Number));
     auto& ListStruct     = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Number));
     auto& MapStruct      = getStruct(kb.templateId("std::Map", ids.keyType, kb.type.Cell, ids.valueType, kb.type.Slot));
     auto& TrieMapStruct  = getStruct(kb.templateId("std::TrieMap", ids.keyType, kb.type.Number, ids.valueType, kb.type.Color));
     auto& SetStruct      = getStruct(kb.templateId("std::Set", ids.valueType, kb.type.Number));
-    auto& IndexStruct    = getStruct(kb.id("std::Index"));
-    auto& TypeStruct     = getStruct(kb.id("std::Type"));
+    auto& IndexStruct    = getStruct("std::Index");
+    auto& TypeStruct     = getStruct("std::Type");
 
     printAs.value(ListItemStruct);
     printMethodInType(ListItemStruct, "constructor");
@@ -190,7 +195,7 @@ TEST_F(CellTest, PrintStdCodes)
 TEST_F(CellTest, PrintTestCodes)
 {
 #if 1
-    auto& TestStruct = getStruct(kb.id("test::Test"));
+    auto& TestStruct = getStruct("test::Test");
     printMethodInType(TestStruct, "factorial");
     printMethodInType(TestStruct, "testCreateNewListOfNumbers");
 #endif
@@ -198,8 +203,8 @@ TEST_F(CellTest, PrintTestCodes)
 
 TEST_F(CellTest, PrintArcCodes)
 {
-    auto& ShapeStruct  = getStruct(kb.id("arc::Shape"));
-    auto& ShaperStruct = getStruct(kb.id("arc::Shaper"));
+    auto& ShapeStruct  = getStruct("arc::Shape");
+    auto& ShaperStruct = getStruct("arc::Shaper");
 
     printAs.value(ShapeStruct);
     printMethodInType(ShapeStruct, "constructor");
@@ -216,7 +221,7 @@ TEST_F(CellTest, PrintArcCodes)
 
 TEST_F(CellTest, RecursiveCall)
 {
-    auto& TestStruct = getStruct(kb.id("test::Test"));
+    auto& TestStruct = getStruct("test::Test");
     Object testNumber(kb, TestStruct, "TestStruct");
 
     EXPECT_EQ(&testNumber.method(kb.id("factorial"), { ids.input, _0_ }), &_1_);
@@ -619,7 +624,7 @@ TEST_F(CellTest, HybridPicture)
     EXPECT_EQ(&picture[ids.type], &kb.type.Picture);
     EXPECT_EQ(&picture[ids.width], &kb.pools.numbers.get(3));
     EXPECT_EQ(&picture[ids.height], &kb.pools.numbers.get(3));
-    EXPECT_EQ(&picture[ids.pixels][ids.type], &kb.type.ListOf(kb.type.Pixel));
+    EXPECT_EQ(&picture[ids.pixels][ids.type], &kb.ListOf(kb.type.Pixel));
 
     auto& ListOfPixels  = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Pixel));
     Object listOfPixels(kb, ListOfPixels, kb.id("constructor"), "listOfPixels");
@@ -630,7 +635,7 @@ TEST_F(CellTest, HybridPicture)
 
 TEST_F(CellTest, BasicObjectTest)
 {
-    auto& Type_ = getStruct(kb.id("std::Type"));
+    auto& Type_ = getStruct("std::Type");
     auto& List = getStruct(kb.templateId("std::List", ids.valueType, kb.type.Cell));
     Object testType(kb, Type_, "Test");
     Object emptyList(kb, List, kb.id("constructor"));
@@ -1213,7 +1218,7 @@ TEST_F(CellTest, StringTest)
     String& testStr2 = kb.pools.strings.get("test");
     EXPECT_EQ(&testStr1, &testStr2);
     EXPECT_EQ(&testStr1.type(), &kb.type.String);
-    EXPECT_EQ(&testStr1[kb.ids.value].type(), &kb.type.ListOf(kb.type.Char));
+    EXPECT_EQ(&testStr1[kb.ids.value].type(), &kb.ListOf(kb.type.Char));
     EXPECT_EQ(&testStr1[kb.ids.value], &testStr1[kb.ids.value]);
     EXPECT_EQ(&testStr1[kb.ids.value], &testStr2[kb.ids.value]);
     printAs.value(testStr1[kb.ids.value]);
@@ -1336,7 +1341,7 @@ static void printShapeList(CellI& shapeList)
 
 TEST_F(CellTest, ShaperTest)
 {
-    auto& ShaperStruct = getStruct(kb.id("arc::Shaper"));
+    auto& ShaperStruct = getStruct("arc::Shaper");
     const auto& printPixels = [this](CellI& pixelList) -> std::string {
         std::stringstream ss;
         Visitor::visitList(pixelList, [this, &ss](CellI& arcPixel, int, bool&) {
@@ -1411,7 +1416,7 @@ TEST_F(CellTest, ShaperTest)
 
 TEST_F(CellTest, ArcTaskTest)
 {
-    auto& shaperStruct                   = getStruct(kb.id("arc::Shaper"));
+    auto& shaperStruct                   = getStruct("arc::Shaper");
     static const std::string arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\training\\007bbfb7.json";
     auto jsonTask                        = json::parse(std::ifstream(arcFilePath));
     auto document                        = renderJsonBoard(jsonTask["/test/0/input"_json_pointer]);

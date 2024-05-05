@@ -921,7 +921,10 @@ void List::Item::operator()()
 CellI& List::Item::operator[](CellI& role)
 {
     if (&role == &kb.ids.type) {
-        return kb.type.ListOf(m_list.m_valueType)[kb.ids.subTypes][kb.ids.index][kb.ids.itemType];
+        if (!m_selfType) {
+            m_selfType = &kb.getStruct(kb.templateId("std::ListItem", kb.ids.valueType, m_list.m_valueType));
+        }
+        return *m_selfType;
     }
     if (&role == &kb.ids.previous) {
         if (m_previous)
@@ -988,7 +991,10 @@ void List::operator()()
 CellI& List::operator[](CellI& role)
 {
     if (&role == &kb.ids.type) {
-        return kb.type.ListOf(m_valueType);
+        if (!m_selfType) {
+            m_selfType = &kb.getStruct(kb.templateId("std::List", kb.ids.valueType, m_valueType));
+        }
+        return *m_selfType;
     }
     if (&role == &kb.ids.first) {
         return *m_firstItem;
@@ -1324,7 +1330,10 @@ void Map::operator()()
 CellI& Map::operator[](CellI& role)
 {
     if (&role == &kb.ids.type) {
-        return kb.type.MapOf(m_keyType, m_valueType);
+        if (!m_selfType) {
+            m_selfType = &kb.getStruct(kb.templateId("std::Map", kb.ids.keyType, m_keyType, kb.ids.valueType, m_valueType));
+        }
+        return *m_selfType;
     }
     if (&role == &kb.ids.list) {
         return m_list;
@@ -1438,7 +1447,10 @@ void TrieMap::operator()()
 CellI& TrieMap::operator[](CellI& role)
 {
     if (&role == &kb.ids.type) {
-        return kb.type.MapOf(m_keyType, m_valueType);
+        if (!m_selfType) {
+            m_selfType = &kb.getStruct(kb.templateId("std::TrieMap", kb.ids.keyType, m_keyType, kb.ids.valueType, m_valueType));
+        }
+        return *m_selfType;
     }
     if (&role == &kb.ids.list) {
         return m_list;
@@ -1663,7 +1675,10 @@ void Set::operator()()
 CellI& Set::operator[](CellI& role)
 {
     if (&role == &kb.ids.type) {
-        return kb.type.SetOf(m_valueType);
+        if (!m_selfType) {
+            m_selfType = &kb.getStruct(kb.templateId("std::Set", kb.ids.valueType, m_valueType));
+        }
+        return *m_selfType;
     }
     if (&role == &kb.ids.index) {
         return m_index;

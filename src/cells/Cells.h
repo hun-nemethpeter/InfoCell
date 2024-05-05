@@ -176,8 +176,9 @@ public:
 
         List& m_list;
         CellI& m_value;
-        Item* m_previous = nullptr;
-        Item* m_next     = nullptr;
+        Item* m_previous  = nullptr;
+        Item* m_next      = nullptr;
+        CellI* m_selfType = nullptr;
     };
 
     List(brain::Brain& kb, CellI& valueType, const std::string& label = "");
@@ -230,7 +231,8 @@ protected:
     CellI& m_valueType;
     Item* m_firstItem = nullptr;
     Item* m_lastItem  = nullptr;
-    int m_size     = 0;
+    CellI* m_selfType = nullptr;
+    int m_size        = 0;
 };
 // ============================================================================
 class Map;
@@ -339,7 +341,8 @@ private:
     Index m_index;
     CellI& m_keyType;
     CellI& m_valueType;
-    int m_size = 0;
+    CellI* m_selfType = nullptr;
+    int m_size        = 0;
 };
 
 // ============================================================================
@@ -382,7 +385,8 @@ private:
     Object m_rootNode;
     CellI& m_keyType;
     CellI& m_valueType;
-    int m_size = 0;
+    CellI* m_selfType = nullptr;
+    int m_size        = 0;
 };
 
 // ============================================================================
@@ -414,7 +418,8 @@ public:
 protected:
     CellI& m_valueType;
     Index m_index;
-    int m_size = 0;
+    CellI* m_selfType = nullptr;
+    int m_size        = 0;
 };
 
 // ============================================================================

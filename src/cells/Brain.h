@@ -102,7 +102,12 @@ class Op
 {
 public:
     Op(brain::Brain& kb);
+    void init();
 
+protected:
+    brain::Brain& kb;
+
+public:
     Object Add;
     Object And;
     Object Base;
@@ -141,6 +146,7 @@ class Ast
 {
 public:
     Ast(brain::Brain& kb);
+    void init();
 
 protected:
     brain::Brain& kb;
@@ -203,24 +209,17 @@ class Types
 {
 public:
     Types(brain::Brain& kb);
+    void init();
 
     cells::CellI& slot(const std::string& role, cells::CellI& type);
     cells::CellI& slot(cells::CellI& role, cells::CellI& type);
     cells::CellI& kvPair(cells::CellI& key, cells::CellI& value);
-    Object& ListOf(CellI& type);
-    Object& MapOf(CellI& keyType, CellI& valueType);
-    Object& SetOf(CellI& valueType);
 
 protected:
     brain::Brain& kb;
-    std::map<CellI*, Object> m_listTypes;
-    std::map<CellI*, std::map<CellI*, Object>> m_mapTypes;
-    std::map<CellI*, Object> m_setTypes;
-    friend class TypeInit;
 
 public:
     Object Type_;
-    Object Template;
     Object Struct;
     Object Enum;
     Object Cell;
@@ -228,17 +227,9 @@ public:
     Object Container;
     Object Iterator;
     Object List;
-    Object ListOfSlot;
     Object ListItem;
     Object KVPair;
     Object Map;
-    Object MapCellToSlot;
-    Object MapCellToType;
-    Object MapCellToAstFunction;
-    Object MapCellToOpFunction;
-    Object MapCellToOpVar;
-    Object MapCellToOpBase;
-    Object MapTypeToType;
     Object Index;
     Object TrieMap;
     Object TrieMapNode;
@@ -258,7 +249,6 @@ public:
     Object CompileState;
     Object ScopeData;
     Object Directions;
-    Object Shape;
 
     type::Op op;
     type::Ast ast;
@@ -453,7 +443,7 @@ public:
 
         CellI& getFullId();
 
-        CellI& compile();
+        CellI& compile(TrieMap& earlyStructs);
 
     protected:
         void resolveTypes(CellI& state);
@@ -1026,7 +1016,7 @@ public:
     enum class InitPhase
     {
         Init,
-        SlotTypeInitialzed,
+        Compiling,
         FullyConstructed,
         DestructBegin
     };
@@ -1080,14 +1070,18 @@ public:
     CellI& _9_;
 
     Ast::Scope globalScope;
+    TrieMap earlyStructs;
     CellI* compiledGlobalScopePtr = nullptr;
 
 public:
     CellI& getStruct(const std::string& name);
     CellI& getStruct(CellI& id);
+    CellI& reigisterStructBeforeCompilation(CellI& id);
     CellI& id(const std::string& str);
     template <typename... Args>
     CellI& templateId(const std::string& str, Args&&... args);
+    CellI& ListOf(CellI& type);
+    CellI& MapOf(CellI& keyType, CellI& valueType);
 
     CellI& toKbBool(bool value);
 
