@@ -234,7 +234,7 @@ bool Object::has(CellI& role)
 
 void Object::set(CellI& role, CellI& value)
 {
-    if ((&role == &kb.ids.type) && !((&type() == &kb.type.Index) || (type().label() == "std::Index"))) {
+    if ((&role == &kb.ids.type) && !((&type() == &kb.type.Index))) {
         throw "Type change not allowed.";
     }
     if ((&role == &kb.ids.type) && (&type() == &kb.type.Index)) {
@@ -246,7 +246,7 @@ void Object::set(CellI& role, CellI& value)
         return;
     }
     auto is = [this](CellI& rhsType) -> bool { return &type() == &rhsType || (type().has(kb.ids.memberOf) && type()[kb.ids.memberOf][kb.ids.index].has(rhsType)); };
-    if (is(kb.type.Index) || type().label() == "std::Index" || type()[kb.ids.slots][kb.ids.index].has(role)) {
+    if (is(kb.type.Index) || type()[kb.ids.slots][kb.ids.index].has(role)) {
         m_slots[&role] = &value;
     } else {
         throw "The type doesn't contains this role.";
@@ -1912,7 +1912,7 @@ bool Color::has(CellI& role)
     if (&role == &kb.ids.type) {
         return true;
     }
-    if (&role == &kb.colors.red || &role == &kb.colors.green || &role == &kb.colors.blue) {
+    if (&role == &kb.ids.red || &role == &kb.ids.green || &role == &kb.ids.blue) {
         return true;
     }
 
@@ -1939,13 +1939,13 @@ CellI& Color::operator[](CellI& role)
     if (&role == &kb.ids.type) {
         return kb.type.Color;
     }
-    if (&role == &kb.colors.red) {
+    if (&role == &kb.ids.red) {
         return kb.pools.numbers.get(m_inputColor.m_red);
     }
-    if (&role == &kb.colors.green) {
+    if (&role == &kb.ids.green) {
         return kb.pools.numbers.get(m_inputColor.m_green);
     }
-    if (&role == &kb.colors.blue) {
+    if (&role == &kb.ids.blue) {
         return kb.pools.numbers.get(m_inputColor.m_blue);
     }
 

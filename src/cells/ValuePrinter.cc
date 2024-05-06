@@ -630,7 +630,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         m_ss << " }";
         return;
-    } else if (&cell == &kb.colors.red || &cell == &kb.colors.green || &cell == &kb.colors.blue) {
+    } else if (&cell == &kb.ids.red || &cell == &kb.ids.green || &cell == &kb.ids.blue) {
         m_ss << cell.label();
         return;
     } else if (is(kb.type.op.Block)) {

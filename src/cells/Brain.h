@@ -16,6 +16,7 @@ public:
     List argument;
     List ast;
     List asts;
+    List blue;
     List break_;
     List cell;
     List children;
@@ -34,6 +35,7 @@ public:
     List first;
     List functions;
     List globalScope;
+    List green;
     List height;
     List id;
     List index;
@@ -63,6 +65,7 @@ public:
     List pixels;
     List previous;
     List process;
+    List red;
     List resolvedScope;
     List result;
     List return_;
@@ -102,7 +105,6 @@ class Op
 {
 public:
     Op(brain::Brain& kb);
-    void init();
 
 protected:
     brain::Brain& kb;
@@ -146,7 +148,6 @@ class Ast
 {
 public:
     Ast(brain::Brain& kb);
-    void init();
 
 protected:
     brain::Brain& kb;
@@ -209,7 +210,6 @@ class Types
 {
 public:
     Types(brain::Brain& kb);
-    void init();
 
     cells::CellI& slot(const std::string& role, cells::CellI& type);
     cells::CellI& slot(cells::CellI& role, cells::CellI& type);
@@ -219,13 +219,11 @@ protected:
     brain::Brain& kb;
 
 public:
-    Object Type_;
-    Object Struct;
-    Object Enum;
     Object Cell;
     Object Slot;
+    Object Type_;
+    Object Enum;
     Object Container;
-    Object Iterator;
     Object List;
     Object ListItem;
     Object KVPair;
@@ -233,7 +231,6 @@ public:
     Object Index;
     Object TrieMap;
     Object TrieMapNode;
-    Object Set;
     Object Boolean;
     Object Char;
     Object Digit;
@@ -245,9 +242,9 @@ public:
     Object Stack;
     Object StackFrame;
     Object Program;
+    Object ProgramData;
     Object StructReference;
     Object CompileState;
-    Object ScopeData;
     Object Directions;
 
     type::Op op;
@@ -916,15 +913,6 @@ public:
     Object y;
 };
 
-class Colors
-{
-public:
-    Colors(brain::Brain& kb);
-    Object red;
-    Object green;
-    Object blue;
-};
-
 class Boolean
 {
 public:
@@ -1047,7 +1035,6 @@ public:
     Ast ast;
     Directions directions;
     Coordinates coordinates;
-    Colors colors;
     Boolean boolean;
     Numbers numbers;
 
@@ -1070,6 +1057,7 @@ public:
     CellI& getStruct(const std::string& name);
     CellI& getStruct(CellI& id);
     CellI& reigisterStructBeforeCompilation(CellI& id);
+    void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
     CellI& id(const std::string& str);
     template <typename... Args>
     CellI& templateId(const std::string& str, Args&&... args);
@@ -1249,7 +1237,7 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 template <typename... Args>
 Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& role, const std::string& type, Args&&... args)
 {
-    auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structName(kb.id(type))));
+    auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structName(type)));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }

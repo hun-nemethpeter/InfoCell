@@ -13,6 +13,7 @@ ID::ID(brain::Brain& kb) :
     argument(kb, kb.type.Char, "argument"),
     ast(kb, kb.type.Char, "ast"),
     asts(kb, kb.type.Char, "asts"),
+    blue(kb, kb.type.Char, "blue"),
     break_(kb, kb.type.Char, "break_"),
     cell(kb, kb.type.Char, "cell"),
     children(kb, kb.type.Char, "children"),
@@ -31,6 +32,7 @@ ID::ID(brain::Brain& kb) :
     first(kb, kb.type.Char, "first"),
     functions(kb, kb.type.Char, "functions"),
     globalScope(kb, kb.type.Char, "globalScope"),
+    green(kb, kb.type.Char, "green"),
     height(kb, kb.type.Char, "height"),
     id(kb, kb.type.Char, "id"),
     index(kb, kb.type.Char, "index"),
@@ -60,6 +62,7 @@ ID::ID(brain::Brain& kb) :
     pixels(kb, kb.type.Char, "pixels"),
     previous(kb, kb.type.Char, "previous"),
     process(kb, kb.type.Char, "process"),
+    red(kb, kb.type.Char, "red"),
     resolvedScope(kb, kb.type.Char, "resolvedScope"),
     result(kb, kb.type.Char, "result"),
     return_(kb, kb.type.Char, "return_"),
@@ -133,190 +136,6 @@ Op::Op(brain::Brain& kb) :
 {
 }
 
-void Op::init()
-{
-    auto& type = kb.type;
-    auto& ast  = kb.type.ast;
-
-    CellI* map = nullptr;
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Number));
-    Add.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    And.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("status", type.Cell),
-                    type.slot("ops", type.Cell),
-                    type.slot("value", type.Cell));
-    Block.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("value", type.Cell));
-    ConstVar.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("input", Base));
-    Delete.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Number));
-    Divide.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("status", type.Cell),
-                    type.slot("condition", Base),
-                    type.slot("statement", Base));
-    Do.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    Equal.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("cell", Base),
-                    type.slot("role", Base),
-                    type.slot("value", Base));
-    Erase.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("value", Var));
-    EvalVar.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("stack", type.Stack),
-                    type.slot("op", kb.ListOf(Base)),
-                    type.slot("static_", type.Boolean));
-    Function.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("cell", Base),
-                    type.slot("role", Base),
-                    type.slot("value", type.Cell));
-    Get.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    GreaterThan.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    GreaterThanOrEqual.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("cell", Base),
-                    type.slot("role", Base),
-                    type.slot("value", type.Boolean));
-    Has.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("status", type.Cell),
-                    type.slot("condition", Base),
-                    type.slot("then", Base),
-                    type.slot("else_", Base));
-    If.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    LessThan.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    LessThanOrEqual.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("cell", Base),
-                    type.slot("role", Base),
-                    type.slot("value", type.Boolean));
-    Missing.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Number));
-    Multiply.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("value", type.Cell),
-                    type.slot("objectType", Base));
-    New.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("input", Base),
-                    type.slot("value", type.Boolean));
-    Not.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    NotEqual.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    NotSame.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    Or.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("result", ast.Base));
-    Return.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Boolean));
-    Same.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("cell", Base),
-                    type.slot("role", Base),
-                    type.slot("value", Base));
-    Set.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("lhs", Base),
-                    type.slot("rhs", Base),
-                    type.slot("value", type.Number));
-    Subtract.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("valueType", type.Type_),
-                    type.slot("value", type.Cell));
-    Var.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", ast.Base),
-                    type.slot("status", type.Cell),
-                    type.slot("condition", Base),
-                    type.slot("statement", Base));
-    While.set("slots", *map);
-}
-
 Ast::Ast(brain::Brain& kb) :
     kb(kb),
     Add(kb, kb.type.Type_, "ast::Add"),
@@ -371,226 +190,15 @@ Ast::Ast(brain::Brain& kb) :
 {
 }
 
-void Ast::init()
-{
-    auto& type = kb.type;
-    CellI* map = nullptr;
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    Add.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    And.set("slots", *map);
-
-    map = &kb.slots(type.slot("asts", type.Cell));
-    Block.set("slots", *map);
-
-    map = &kb.slots(type.slot("cell", Base),
-                    type.slot("method", Base),
-                    type.slot("parameters", kb.ListOf(Slot)));
-    Call.set("slots", *map);
-
-    map = &kb.slots(type.slot("value", type.Cell));
-    Cell.set("slots", *map);
-
-    map = &kb.slots(type.slot("cell", Base));
-    Delete.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    Divide.set("slots", *map);
-
-    map = &kb.slots(type.slot("condition", Base),
-                    type.slot("statement", Base));
-    Do.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    Equal.set("slots", *map);
-
-    map = &kb.slots(type.slot("cell", Base),
-                    type.slot("role", Base));
-    Erase.set("slots", *map);
-
-    map = &kb.slots(type.slot("name", type.Cell),
-                    type.slot("fullId", type.Cell),
-                    type.slot("structType", type.Cell),
-                    type.slot("parameters", kb.ListOf(Slot)),
-                    type.slot("returnType", type.Type_),
-                    type.slot("code", Base),
-                    type.slot("scope", Base),
-                    type.slot("static_", type.Boolean));
-    Function.set("slots", *map);
-
-    map = &kb.slots(type.slot("name", type.Cell),
-                    type.slot("parameters", kb.ListOf(Slot)),
-                    type.slot("returnType", type.Type_),
-                    type.slot("code", Base),
-                    type.slot("scope", Base),
-                    type.slot("static_", type.Boolean));
-    FunctionT.set("slots", *map);
-
-    map = &kb.slots(type.slot("cell", Base),
-                    type.slot("role", Base));
-    Get.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    GreaterThan.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    GreaterThanOrEqual.set("slots", *map);
-
-    map = &kb.slots(type.slot("cell", Base),
-                    type.slot("role", Base));
-    Has.set("slots", *map);
-
-    map = &kb.slots(type.slot("condition", Base),
-                    type.slot("then", Base),
-                    type.slot("else_", Base));
-    If.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    LessThan.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    LessThanOrEqual.set("slots", *map);
-
-    map = &kb.slots(type.slot("role", Base));
-    Member.set("slots", *map);
-
-    map = &kb.slots(type.slot("cell", Base),
-                    type.slot("role", Base));
-    Missing.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    Multiply.set("slots", *map);
-
-    map = &kb.slots(type.slot("objectType", Base),
-                    type.slot("constructor", Base),
-                    type.slot("parameters", kb.ListOf(type.ast.Slot)));
-    New.set("slots", *map);
-
-    map = &kb.slots(type.slot("input", Base));
-    Not.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    NotEqual.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    NotSame.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    Or.set("slots", *map);
-
-    map = &kb.slots(type.slot("role", type.Cell));
-    Parameter.set("slots", *map);
-
-    map = &kb.slots(type.slot("ast", Struct),
-                    type.slot("compiled", type.Type_));
-    ResolvedType.set("slots", *map);
-
-    map = &kb.slots(type.slot("value", type.Cell));
-    Return.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    Same.set("slots", *map);
-
-    map = &kb.slots(type.slot("id", type.Cell),
-                    type.slot("fullId", type.Cell),
-                    type.slot("scopes", type.TrieMap),
-                    type.slot("resolvedScope", type.ast.Scope),
-                    type.slot("parent", Scope),
-                    type.slot("functions", type.TrieMap),
-                    type.slot("structs", type.TrieMap),
-                    type.slot("structTs", type.TrieMap),
-                    type.slot("variables", kb.ListOf(type.ast.Slot)));
-    Scope.set("slots", *map);
-
-    map = &kb.slots(type.slot("cell", Base),
-                    type.slot("role", Base),
-                    type.slot("value", Base));
-    Set.set("slots", *map);
-
-    map = &kb.slots(type.slot("slotRole", Base),
-                    type.slot("slotType", Base));
-    Slot.set("slots", *map);
-
-    map = &kb.slots(type.slot("cell", Base),
-                    type.slot("method", Base),
-                    type.slot("parameters", kb.ListOf(Slot)));
-    StaticCall.set("slots", *map);
-
-    map = &kb.slots(type.slot("id", type.Cell),
-                    type.slot("fullId", type.Cell),
-                    type.slot("incomplete", type.Boolean),
-                    type.slot("instanceOf", Base),
-                    type.slot("templateParams", type.List),
-                    type.slot("scope", Scope),
-                    type.slot("methods", kb.MapOf(type.Cell, type.ast.Function)),
-                    type.slot("members", kb.MapOf(type.Cell, type.ast.Slot)),
-                    type.slot("subTypes", kb.ListOf(type.ast.Slot)),
-                    type.slot("memberOf", kb.ListOf(type.Type_)));
-    Struct.set("slots", *map);
-
-    map = &kb.slots(type.slot("name", type.Cell),
-                    type.slot("scopes", type.List));
-    StructName.set("slots", *map);
-
-    map = &kb.slots(type.slot("id", type.Cell),
-                    type.slot("scope", Base),
-                    type.slot("methods", kb.MapOf(type.Cell, type.ast.Function)),
-                    type.slot("members", kb.ListOf(type.ast.Slot)),
-                    type.slot("subTypes", kb.ListOf(type.ast.Slot)),
-                    type.slot("memberOf", kb.ListOf(type.Type_)),
-                    type.slot("templateParams", kb.MapOf(type.Cell, type.Type_)));
-    StructT.set("slots", *map);
-
-    map = &kb.slots(type.slot("name", type.Cell));
-    SubTypeName.set("slots", *map);
-
-    map = &kb.slots(type.slot("lhs", Base),
-                    type.slot("rhs", Base));
-    Subtract.set("slots", *map);
-
-    map = &kb.slots(type.slot("id", Base),
-                    type.slot("scopes", type.List),
-                    type.slot("parameters", kb.ListOf(Slot)));
-    TemplatedType.set("slots", *map);
-
-    map = &kb.slots(type.slot("role", type.Cell));
-    TemplateParam.set("slots", *map);
-
-    map = &kb.slots(type.slot("role", Base),
-                    type.slot("scope", Scope));
-    Var.set("slots", *map);
-
-    map = &kb.slots(type.slot("condition", Base),
-                    type.slot("statement", Base));
-    While.set("slots", *map);
-}
-
 } // namespace type
 
 Types::Types(brain::Brain& kb) :
     kb(kb),
-    Type_(kb, kb.type.Type_, "Type"),
-    Struct(kb, kb.type.Type_, "Struct"),
-    Enum(kb, kb.type.Type_, "Enum"),
     Cell(kb, kb.type.Type_, "Cell"),
     Slot(kb, kb.type.Type_, "Slot"),
+    Type_(kb, kb.type.Type_, "Type"),
+    Enum(kb, kb.type.Type_, "Enum"),
     Container(kb, kb.type.Type_, "Conatainer"),
-    Iterator(kb, kb.type.Type_, "Iterator"),
     List(kb, kb.type.Type_, "List"),
     ListItem(kb, kb.type.Type_, "ListItem"),
     KVPair(kb, kb.type.Type_, "KVPair"),
@@ -598,7 +206,6 @@ Types::Types(brain::Brain& kb) :
     Index(kb, kb.type.Type_, "Index"),
     TrieMap(kb, kb.type.Type_, "TrieMap"),
     TrieMapNode(kb, kb.type.Type_, "TrieMapNode"),
-    Set(kb, kb.type.Type_, "Set"),
     Boolean(kb, kb.type.Type_, "Boolean"),
     Char(kb, kb.type.Type_, "Char"),
     Digit(kb, kb.type.Type_, "Digit"),
@@ -610,112 +217,13 @@ Types::Types(brain::Brain& kb) :
     Stack(kb, kb.type.Type_, "Stack"),
     StackFrame(kb, kb.type.Type_, "StackFrame"),
     Program(kb, kb.type.Type_, "Program"),
+    ProgramData(kb, kb.type.Type_, "ProgramData"),
     StructReference(kb, kb.type.Type_, "StructReference"),
     CompileState(kb, kb.type.Type_, "CompileState"),
-    ScopeData(kb, kb.type.Type_, "ScopeData"),
     Directions(kb, kb.type.Enum, "Directions"),
     op(kb),
     ast(kb)
 {
-}
-
-void Types::init()
-{
-    op.init();
-    ast.init();
-
-    CellI* mapPtr = nullptr;
-    auto& type = kb.type;
-
-    mapPtr = &kb.slots(type.slot("slotType", type.Type_),
-                       type.slot("slotRole", type.Cell));
-    Slot.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("name", kb.ListOf(type.Char)),
-                       type.slot("slots", kb.MapOf(Cell,Slot)),
-                       type.slot("incomplete", type.Boolean),
-                       type.slot("sharedObject", Slot),
-                       type.slot("subTypes", kb.MapOf(Cell, Type_)),
-                       type.slot("memberOf", kb.MapOf(Type_, Type_)),
-                       type.slot("asts", kb.MapOf(Cell, ast.Function)),
-                       type.slot("methods", kb.MapOf(Cell, op.Function)));
-    Type_.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("members", List));
-    Enum.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("previous", type.ListItem),
-                       type.slot("next", type.ListItem),
-                       type.slot("value", type.Cell));
-    type.ListItem.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("key", type.Cell),
-                       type.slot("value", type.Cell));
-    type.KVPair.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("list", kb.ListOf(type.Cell)),
-                       type.slot("rootNode", type.TrieMapNode),
-                       type.slot("size", type.Number));
-    type.TrieMap.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("children", type.Index),
-                       type.slot("data", type.ListItem),
-                       type.slot("parent", type.TrieMapNode));
-    type.TrieMapNode.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("data", type.ScopeData),
-                       type.slot("code", type.op.Base),
-                       type.slot("stack", type.kb.type.ListItem));
-    type.Program.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("id", type.Cell),
-                       type.slot("idScope", type.ast.Scope),
-                       type.slot("scope", type.ast.Scope),
-                       type.slot("resolvedScope", type.ast.Scope),
-                       type.slot("currentFn", type.ast.Function),
-                       type.slot("currentStruct", type.ast.Struct),
-                       type.slot("templateId", type.List),
-                       type.slot("templateParams", type.List),
-                       type.slot("value", type.ast.Struct));
-    type.StructReference.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("id", type.Cell),
-                       type.slot("currentFn", type.ast.Function),
-                       type.slot("currentStruct", type.ast.Struct),
-                       type.slot("lastBlock", type.ast.Block),
-                       type.slot("scope", type.ast.Scope),
-                       type.slot("resolvedScope", type.ast.Scope),
-                       type.slot("globalScope", type.ast.Scope),
-                       type.slot("globalResolvedScope", type.ast.Scope),
-                       type.slot("functions", type.TrieMap),
-                       type.slot("structs", type.TrieMap),
-                       type.slot("unknownStructs", type.TrieMap),
-                       type.slot("instances", type.TrieMap),
-                       type.slot("unknownInstances", type.TrieMap),
-                       type.slot("instanceAsts", type.TrieMap),
-                       type.slot("unknownInstanceAsts", type.TrieMap),
-                       type.slot("variables", kb.ListOf(type.ast.Slot)));
-    type.CompileState.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("id", type.Cell),
-                       type.slot("scopes", type.Map),
-                       type.slot("parent", ScopeData),
-                       type.slot("functions", type.TrieMap),
-                       type.slot("structs", type.TrieMap),
-                       type.slot("unknownStructs", type.TrieMap),
-                       type.slot("variables", kb.ListOf(type.ast.Slot)));
-    type.ScopeData.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot("method", type.op.Function),
-                       type.slot("input", type.Index),
-                       type.slot("output", type.op.Var),
-                       type.slot("localVars", type.Index));
-    type.StackFrame.set("slots", *mapPtr);
-
-    mapPtr = &kb.slots(type.slot(kb.colors.red, type.Color),
-                       type.slot(kb.colors.green, type.Color),
-                       type.slot(kb.colors.blue, type.Color));
-    type.Color.set("slots", *mapPtr);
 }
 
 cells::CellI& Types::slot(cells::CellI& role, cells::CellI& type)
@@ -1466,12 +974,22 @@ CellI& Ast::Scope::getFullId()
     return fullId;
 }
 
+/*
+Compiler steps:
+Resolve template related references in normal functions or structs:
+  - where templated types is used, for example tt_("List", ids.valueType, _(type.Slot))
+    it must be resolved to a StructName, with id L,i,s,t,ids.valueType,type.Slot
+  - create a shadow ast tree with subtituted nodes
+  - create a list of candidates for template instantiation with method names
+    instantiate structT without methods
+    instantiate structT with listed method
+  - templates are instantied to a dedicated place
+*/
 static bool debugCompiledStructs = true;
-
 CellI& Ast::Scope::compile(TrieMap& earlyStructs)
 {
     auto& program     = *new Object(kb, kb.type.Program, "Program");
-    auto& programData = *new Object(kb, kb.type.ScopeData, "ProgramData");
+    auto& programData = *new Object(kb, kb.type.ProgramData, "ProgramData");
     program.set("data", programData);
 
     auto& resolvedScope = *new Ast::Scope(kb, label());
@@ -1503,8 +1021,8 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
     compileState.set("unknownInstanceAsts", unknownInstanceAsts);
     compileState.set("variables", compiledVariables);
     compileState.set("resolvedScope", resolvedScope);
-    compileState.set(kb.id("globalScope"), *this);
-    compileState.set(kb.id("globalResolvedScope"), resolvedScope);
+    compileState.set("globalScope", *this);
+    compileState.set("globalResolvedScope", resolvedScope);
 
     Visitor::visitList(earlyStructs[kb.ids.list], [this, &unknownStructs, &unknownInstances](CellI& earlyStructKV, int i, bool& stop) {
         auto& structId       = earlyStructKV[kb.ids.key];
@@ -1939,10 +1457,15 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     }
 
     auto& fullId = getFullId();
+    CellI* resolvedStructPtr = nullptr;
     if (unknownStructs.hasKey(fullId)) {
+        CellI& unknownStruct = unknownStructs.getValue(fullId);
+        resolvedStructPtr    = &unknownStruct["value"];
         unknownStructs.remove(fullId);
+    } else {
+        resolvedStructPtr = new Object(kb, kb.type.Type_, std::format("{}", fullId.label()));
     }
-    auto& resolvedStruct = *new Object(kb, kb.type.Type_, std::format("{}", fullId.label()));
+    auto& resolvedStruct = *resolvedStructPtr;
     structs.add(getFullId(), resolvedStruct);
 
     state.set("currentStruct", ret);
@@ -3964,13 +3487,6 @@ Coordinates::Coordinates(brain::Brain& kb) :
 {
 }
 
-Colors::Colors(brain::Brain& kb) :
-    red(kb, kb.type.Cell, "red"),
-    green(kb, kb.type.Cell, "green"),
-    blue(kb, kb.type.Cell, "blue")
-{
-}
-
 Boolean::Boolean(brain::Brain& kb) :
     true_(kb, kb.type.Boolean, "true"),
     false_(kb, kb.type.Boolean, "false")
@@ -4081,6 +3597,7 @@ Strings::Strings(brain::Brain& kb) :
         { "argument", kb.ids.argument },
         { "ast", kb.ids.ast },
         { "asts", kb.ids.asts },
+        { "blue", kb.ids.blue },
         { "cell", kb.ids.cell },
         { "children", kb.ids.children },
         { "code", kb.ids.code },
@@ -4098,6 +3615,7 @@ Strings::Strings(brain::Brain& kb) :
         { "first", kb.ids.first },
         { "functions", kb.ids.functions },
         { "globalScope", kb.ids.globalScope },
+        { "green", kb.ids.green },
         { "height", kb.ids.height },
         { "id", kb.ids.id },
         { "index", kb.ids.index },
@@ -4126,6 +3644,7 @@ Strings::Strings(brain::Brain& kb) :
         { "parent", kb.ids.parent },
         { "pixels", kb.ids.pixels },
         { "previous", kb.ids.previous },
+        { "red", kb.ids.red },
         { "resolvedScope", kb.ids.resolvedScope },
         { "result", kb.ids.result },
         { "returnType", kb.ids.returnType },
@@ -4316,7 +3835,7 @@ void Brain::createOp()
         .members(
             member("ast", struct_("ast::Base")),
             member("stack", _(type.Stack)),
-            member("op", tt_("std::List", "valueType", struct_("Base"))),
+            member("op", tt_("std::List", "valueType", "Base")),
             member("static_", _(type.Boolean)));
 
     opScope.addStruct("Get")
@@ -4474,6 +3993,8 @@ void Brain::createAst()
         .members(
             member("asts", _(type.Cell)));
 
+    astScope.addStruct("Break");
+
     astScope.addStruct("Call")
         .members(
             member("cell", struct_("Base")),
@@ -4483,6 +4004,8 @@ void Brain::createAst()
     astScope.addStruct("Cell")
         .members(
             member("value", _(type.Cell)));
+
+    astScope.addStruct("Continue");
 
     astScope.addStruct("Delete")
         .members(
@@ -4633,6 +4156,10 @@ void Brain::createAst()
             member("structTs", _(type.TrieMap)),
             member("variables", ListOf(type.ast.Slot)));
 
+    astScope.addStruct("Self");
+
+    astScope.addStruct("SelfFn");
+
     astScope.addStruct("Set")
         .members(
             member("cell", struct_("Base")),
@@ -4712,19 +4239,93 @@ void Brain::createStd()
 {
     auto& stdScope = globalScope.addScope("std");
 
-    /*
-    Compiler steps:
-    Resolve template related references in normal functions or structs:
-      - where templated types is used, for example tt_("List", ids.valueType, _(type.Slot))
-        it must be resolved to a StructName, with id L,i,s,t,ids.valueType,type.Slot
-      - create a shadow ast tree with subtituted nodes
-      - create a list of candidates for template instantiation with method names
-        instantiate structT without methods
-        instantiate structT with listed method
-      - templates are instantied to a dedicated place
-    */
+    stdScope.addStruct("Cell");
+    stdScope.addStruct("Slot")
+        .members(
+            member("slotType", struct_("Type")),
+            member("slotRole", struct_("Cell")));
+
+    stdScope.addStruct("Enum")
+        .members(
+            member("members", tt_("List", "valueType", "Cell")));
+
+    stdScope.addStruct("Container");
+    stdScope.addStruct("Boolean");
+    stdScope.addStruct("Char");
+    stdScope.addStruct("Digit");
+    stdScope.addStruct("Number");
+    stdScope.addStruct("String");
+
+    stdScope.addStruct("Color")
+        .members(
+            member("red", struct_("Number")),
+            member("green", struct_("Number")),
+            member("blue", struct_("Number")));
+
+    stdScope.addStruct("Pixel");
+    stdScope.addStruct("Picture");
+    stdScope.addStruct("Stack");
+
+    stdScope.addStruct("StackFrame")
+        .members(
+            member("method", struct_("op::Function")),
+            member("input", struct_("Index")),
+            member("output", struct_("op::Var")),
+            member("localVars", struct_("Index")));
+
+    stdScope.addStruct("Program")
+        .members(
+            member("data", struct_("ProgramData")),
+            member("code", struct_("op::Base")),
+            member("stack", struct_("ListItem")));
+
+    stdScope.addStruct("ProgramData")
+        .members(
+            member("functions", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Function")),
+            member("structs", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
+            member("variables", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Var")));
+
+    stdScope.addStruct("StructReference")
+        .members(
+            member("id", tt_("List", "valueType", "Char")),
+            member("idScope", struct_("ast::Scope")),
+            member("scope", struct_("ast::Scope")),
+            member("resolvedScope", struct_("ast::Scope")),
+            member("currentFn", struct_("ast::Function")),
+            member("currentStruct", struct_("ast::Struct")),
+            member("templateId", tt_("List", "valueType", "Cell")),
+            member("templateParams", tt_("List", "valueType", "ast::Base")),
+            member("value", struct_("Type")));
+
+    stdScope.addStruct("CompileState")
+        .members(
+            member("currentFn", struct_("ast::Function")),
+            member("currentStruct", struct_("ast::Struct")),
+            member("lastBlock", struct_("ast::Block")),
+            member("scope", struct_("ast::Scope")),
+            member("resolvedScope", struct_("ast::Scope")),
+            member("globalScope", struct_("ast::Scope")),
+            member("globalResolvedScope", struct_("ast::Scope")),
+            member("functions", tt_("List", "valueType", "op::Function")),
+            member("structs", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
+            member("unknownStructs", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
+            member("instances", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
+            member("unknownInstances", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
+            member("instanceAsts", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
+            member("unknownInstanceAsts", tt_("TrieMap", "keyType", "Cell", "valueType", "Type")),
+            member("variables", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Var")));
+
+    stdScope.addStruct("Directions");
 
 #pragma region ListItem
+    stdScope.addStruct("ListItem")
+        .subTypes(
+            param("valueType", struct_("Cell")))
+        .members(
+            member("previous", struct_("ListItem")),
+            member("next", struct_("ListItem")),
+            member("value", struct_("Cell")));
+
     auto& listItemStructT
         = stdScope.addStructT("ListItem")
               .templateParams(
@@ -4745,13 +4346,21 @@ void Brain::createStd()
             m_("value") = p_("value"));
 #pragma endregion
 #pragma region List
+    stdScope.addStruct("List")
+        .subTypes(
+            param("itemType", struct_("ListItem")),
+            param("valueType", struct_("Cell")))
+        .members(
+            member("first", struct_("ListItem")),
+            member("last", struct_("ListItem")),
+            member("size", _(type.Number)));
     auto& listStructT
         = stdScope.addStructT("List")
               .templateParams(
                   param("valueType", _(type.Type_)))
               .memberOf(
-                  _(type.Container),
-                  _(type.List))
+                  struct_("Container"),
+                  struct_("List"))
               .subTypes(
                   param("itemType", tt_("ListItem", "valueType", tp_("valueType"))),
                   param("valueType", tp_("valueType")))
@@ -4848,6 +4457,7 @@ void Brain::createStd()
     auto& typeStruct
         = stdScope.addStruct("Type")
               .members(
+                  member("name", tt_("List", "valueType", _(type.Char))),
                   member("slots", tt_("Map", "keyType", _(type.Cell), "valueType", _(type.Slot))),
                   member("incomplete", _(type.Boolean)),
                   member("sharedObject", _(type.Slot)),
@@ -5005,6 +4615,17 @@ void Brain::createStd()
             ast.return_(ast.call(m_("type") / "slots", "size")));
 #pragma endregion
 #pragma region Map
+    stdScope.addStruct("Map")
+        .subTypes(
+            param("keyType", struct_("Cell")),
+            param("valueType", struct_("Cell")),
+            param("listType", tt_("List", "valueType", struct_("Cell"))))
+        .memberOf(struct_("Container"))
+        .members(
+            member("list", st_("listType")),
+            member("index", struct_("Index")),
+            member("size", _(type.Number)));
+
     auto& mapStructT
         = stdScope.addStructT("Map")
               .templateParams(
@@ -5014,7 +4635,7 @@ void Brain::createStd()
                   param("keyType", tp_("keyType")),
                   param("valueType", tp_("valueType")),
                   param("listType", tt_("List", "valueType", tp_("valueType"))))
-              .memberOf(_(type.Container), _(type.Map))
+              .memberOf(struct_("Map"))
               .members(
                   member("list", st_("listType")),
                   member("index", struct_("Index")),
@@ -5145,14 +4766,20 @@ void Brain::createStd()
             ast.return_(m_("list") / "last"));
 #pragma endregion
 #pragma region TrieMap
+    stdScope.addStruct("KVPair")
+        .members(
+            member("key", struct_("Cell")),
+            member("value", struct_("Cell")));
+
     auto& kvPairT
-        = stdScope.addStructT("kvPair")
+        = stdScope.addStructT("KVPair")
               .templateParams(
                   param("keyType", _(type.Type_)),
                   param("valueType", _(type.Type_)))
               .subTypes(
                   param("keyType", tp_("keyType")),
                   param("valueType", tp_("valueType")))
+              .memberOf(struct_("KVPair"))
               .members(
                   member("key", tp_("keyType")),
                   member("value", tp_("valueType")));
@@ -5165,6 +4792,26 @@ void Brain::createStd()
             m_("key")   = p_("key"),
             m_("value") = p_("value"));
 
+    // TODO This can be a template but nevermind ...
+    stdScope.addStruct("TrieMapNode")
+        .members(
+            member("children", struct_("Index")),
+            member("data", struct_("ListItem")),
+            member("parent", struct_("TrieMapNode")));
+
+
+    stdScope.addStruct("TrieMap")
+        .subTypes(
+            param("keyType", struct_("Cell")),
+            param("valueType", struct_("Cell")),
+            param("pairType", tt_("KVPair", "keyType", struct_("Cell"), "valueType", struct_("Cell"))),
+            param("listType", tt_("List", "valueType", st_("pairType"))))
+        .memberOf(struct_("Container"))
+        .members(
+            member("list", st_("listType")),
+            member("rootNode", struct_("TrieMapNode")),
+            member("size", _(type.Number)));
+
     auto& trieMapStructT
         = stdScope.addStructT("TrieMap")
               .templateParams(
@@ -5173,7 +4820,7 @@ void Brain::createStd()
               .subTypes(
                   param("keyType", tp_("keyType")),
                   param("valueType", tp_("valueType")),
-                  param("pairType", tt_("kvPair", "keyType", tp_("keyType"), "valueType", tp_("valueType"))),
+                  param("pairType", tt_("KVPair", "keyType", tp_("keyType"), "valueType", tp_("valueType"))),
                   param("listType", tt_("List", "valueType", st_("pairType"))))
               .memberOf(_(type.Container), _(type.TrieMap))
               .members(
@@ -6026,7 +5673,6 @@ Brain::Brain() :
     ast(*this),
     directions(*this),
     coordinates(*this),
-    colors(*this),
     boolean(*this),
     numbers(*this),
     _0_(pools.numbers.get(0)),
@@ -6042,12 +5688,120 @@ Brain::Brain() :
     globalScope(Ast::Scope(*this, "global")),
     earlyStructs(*this, type.Cell, type.Cell, "earlyStructs")
 {
-    type.init();
     createOp();
     createAst();
     createStd();
     createArcSolver();
     createTests();
+    reigisterStructBeforeCompilation(tt_("std::List", "valueType", _(type.Char))); // TODO instantiate on demand in getStruct
+    registerBuiltInStruct("op::Add", type.op.Add);
+    registerBuiltInStruct("op::And", type.op.And);
+    registerBuiltInStruct("op::Base", type.op.Base);
+    registerBuiltInStruct("op::Block", type.op.Block);
+    registerBuiltInStruct("op::ConstVar", type.op.ConstVar);
+    registerBuiltInStruct("op::Delete", type.op.Delete);
+    registerBuiltInStruct("op::Divide", type.op.Divide);
+    registerBuiltInStruct("op::Do", type.op.Do);
+    registerBuiltInStruct("op::Equal", type.op.Equal);
+    registerBuiltInStruct("op::Erase", type.op.Erase);
+    registerBuiltInStruct("op::EvalVar", type.op.EvalVar);
+    registerBuiltInStruct("op::Function", type.op.Function);
+    registerBuiltInStruct("op::Get", type.op.Get);
+    registerBuiltInStruct("op::GreaterThan", type.op.GreaterThan);
+    registerBuiltInStruct("op::GreaterThanOrEqual", type.op.GreaterThanOrEqual);
+    registerBuiltInStruct("op::Has", type.op.Has);
+    registerBuiltInStruct("op::If", type.op.If);
+    registerBuiltInStruct("op::LessThan", type.op.LessThan);
+    registerBuiltInStruct("op::LessThanOrEqual", type.op.LessThanOrEqual);
+    registerBuiltInStruct("op::Missing", type.op.Missing);
+    registerBuiltInStruct("op::Multiply", type.op.Multiply);
+    registerBuiltInStruct("op::New", type.op.New);
+    registerBuiltInStruct("op::Not", type.op.Not);
+    registerBuiltInStruct("op::NotEqual", type.op.NotEqual);
+    registerBuiltInStruct("op::NotSame", type.op.NotSame);
+    registerBuiltInStruct("op::Or", type.op.Or);
+    registerBuiltInStruct("op::Return", type.op.Return);
+    registerBuiltInStruct("op::Same", type.op.Same);
+    registerBuiltInStruct("op::Set", type.op.Set);
+    registerBuiltInStruct("op::Subtract", type.op.Subtract);
+    registerBuiltInStruct("op::Var", type.op.Var);
+    registerBuiltInStruct("op::While", type.op.While);
+    registerBuiltInStruct("ast::Add", type.ast.Add);
+    registerBuiltInStruct("ast::And", type.ast.And);
+    registerBuiltInStruct("ast::Base", type.ast.Base);
+    registerBuiltInStruct("ast::Block", type.ast.Block);
+    registerBuiltInStruct("ast::Break", type.ast.Break);
+    registerBuiltInStruct("ast::Call", type.ast.Call);
+    registerBuiltInStruct("ast::Cell", type.ast.Cell);
+    registerBuiltInStruct("ast::Continue", type.ast.Continue);
+    registerBuiltInStruct("ast::Delete", type.ast.Delete);
+    registerBuiltInStruct("ast::Divide", type.ast.Divide);
+    registerBuiltInStruct("ast::Do", type.ast.Do);
+    registerBuiltInStruct("ast::Equal", type.ast.Equal);
+    registerBuiltInStruct("ast::Erase", type.ast.Erase);
+    registerBuiltInStruct("ast::Function", type.ast.Function);
+    registerBuiltInStruct("ast::FunctionT", type.ast.FunctionT);
+    registerBuiltInStruct("ast::Get", type.ast.Get);
+    registerBuiltInStruct("ast::GreaterThan", type.ast.GreaterThan);
+    registerBuiltInStruct("ast::GreaterThanOrEqual", type.ast.GreaterThanOrEqual);
+    registerBuiltInStruct("ast::Has", type.ast.Has);
+    registerBuiltInStruct("ast::If", type.ast.If);
+    registerBuiltInStruct("ast::LessThan", type.ast.LessThan);
+    registerBuiltInStruct("ast::LessThanOrEqual", type.ast.LessThanOrEqual);
+    registerBuiltInStruct("ast::Member", type.ast.Member);
+    registerBuiltInStruct("ast::Missing", type.ast.Missing);
+    registerBuiltInStruct("ast::Multiply", type.ast.Multiply);
+    registerBuiltInStruct("ast::New", type.ast.New);
+    registerBuiltInStruct("ast::Not", type.ast.Not);
+    registerBuiltInStruct("ast::NotEqual", type.ast.NotEqual);
+    registerBuiltInStruct("ast::NotSame", type.ast.NotSame);
+    registerBuiltInStruct("ast::Or", type.ast.Or);
+    registerBuiltInStruct("ast::Parameter", type.ast.Parameter);
+    registerBuiltInStruct("ast::ResolvedType", type.ast.ResolvedType);
+    registerBuiltInStruct("ast::Return", type.ast.Return);
+    registerBuiltInStruct("ast::Same", type.ast.Same);
+    registerBuiltInStruct("ast::Scope", type.ast.Scope);
+    registerBuiltInStruct("ast::Self", type.ast.Self);
+    registerBuiltInStruct("ast::SelfFn", type.ast.SelfFn);
+    registerBuiltInStruct("ast::Set", type.ast.Set);
+    registerBuiltInStruct("ast::Slot", type.ast.Slot);
+    registerBuiltInStruct("ast::StaticCall", type.ast.StaticCall);
+    registerBuiltInStruct("ast::Struct", type.ast.Struct);
+    registerBuiltInStruct("ast::StructName", type.ast.StructName);
+    registerBuiltInStruct("ast::StructT", type.ast.StructT);
+    registerBuiltInStruct("ast::Subtract", type.ast.Subtract);
+    registerBuiltInStruct("ast::SubTypeName", type.ast.SubTypeName);
+    registerBuiltInStruct("ast::TemplatedType", type.ast.TemplatedType);
+    registerBuiltInStruct("ast::TemplateParam", type.ast.TemplateParam);
+    registerBuiltInStruct("ast::Var", type.ast.Var);
+    registerBuiltInStruct("ast::While", type.ast.While);
+    registerBuiltInStruct("std::Cell", type.Cell);
+    registerBuiltInStruct("std::Slot", type.Slot);
+    registerBuiltInStruct("std::Type", type.Type_);
+    registerBuiltInStruct("std::Enum", type.Enum);
+    registerBuiltInStruct("std::Container", type.Container);
+    registerBuiltInStruct("std::List", type.List);
+    registerBuiltInStruct("std::ListItem", type.ListItem);
+    registerBuiltInStruct("std::KVPair", type.KVPair);
+    registerBuiltInStruct("std::Map", type.Map);
+    registerBuiltInStruct("std::Index", type.Index);
+    registerBuiltInStruct("std::TrieMap", type.TrieMap);
+    registerBuiltInStruct("std::TrieMapNode", type.TrieMapNode);
+    registerBuiltInStruct("std::Boolean", type.Boolean);
+    registerBuiltInStruct("std::Char", type.Char);
+    registerBuiltInStruct("std::Digit", type.Digit);
+    registerBuiltInStruct("std::Number", type.Number);
+    registerBuiltInStruct("std::String", type.String);
+    registerBuiltInStruct("std::Color", type.Color);
+    registerBuiltInStruct("std::Pixel", type.Pixel);
+    registerBuiltInStruct("std::Picture", type.Picture);
+    registerBuiltInStruct("std::Stack", type.Stack);
+    registerBuiltInStruct("std::StackFrame", type.StackFrame);
+    registerBuiltInStruct("std::Program", type.Program);
+    registerBuiltInStruct("std::ProgramData", type.ProgramData);
+    registerBuiltInStruct("std::StructReference", type.StructReference);
+    registerBuiltInStruct("std::CompileState", type.CompileState);
+    registerBuiltInStruct("std::Directions", type.Directions);
 
     auto& compiledGlobalScope = globalScope.compile(earlyStructs);
     compiledGlobalScopePtr    = &compiledGlobalScope[ids.data];
@@ -6159,6 +5913,40 @@ CellI& Brain::reigisterStructBeforeCompilation(CellI& structAst)
         earlyStructs.add(structId, type.slot(structAst, unresolvedStruct));
         return unresolvedStruct;
     }
+}
+
+void Brain::registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct)
+{
+    std::vector<std::string> sliced;
+    boost::algorithm::split_regex(sliced, fullName, boost::regex("::"));
+
+    if (sliced.empty()) {
+        throw "Invalid struct ID!";
+    }
+    std::stringstream ss;
+    List& idCell             = *new List(*this, type.Cell);
+    const auto& structName   = sliced.back();
+    Ast::Scope* currentScope = &globalScope;
+    if (sliced.size() > 1) {
+        for (int i = 0; i < sliced.size() - 1; ++i) {
+            const auto& scopeName = sliced[i];
+            currentScope          = &currentScope->getScope(scopeName);
+            Visitor::visitList((*currentScope)["id"], [this, &idCell, &ss](CellI& character, int, bool&) {
+                idCell.add(character);
+                ss << character.label();
+            });
+            idCell.add(pools.chars.get(':'));
+            idCell.add(pools.chars.get(':'));
+            ss << "::";
+        }
+    }
+    Ast::Struct& structAst = currentScope->getStruct(structName);
+    Visitor::visitList(structAst[ids.id], [this, &idCell, &ss](CellI& character, int, bool&) {
+        idCell.add(character);
+        ss << character.label();
+    });
+    idCell.label(ss.str());
+    earlyStructs.add(idCell, type.slot(struct_(fullName), compiledStruct));
 }
 
 CellI& Brain::id(const std::string& str)
