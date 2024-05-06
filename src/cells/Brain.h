@@ -1002,14 +1002,6 @@ public:
     pools::Strings strings;
 };
 
-class Test
-{
-public:
-    Test(brain::Brain& kb);
-
-    Object factorial;
-};
-
 class Brain
 {
 public:
@@ -1024,6 +1016,8 @@ public:
 protected:
     InitPhase m_initPhase = InitPhase::Init;
     friend class Types;
+    void createOp();
+    void createAst();
     void createStd();
     void createArcSolver();
     void createTests();
@@ -1056,7 +1050,6 @@ public:
     Colors colors;
     Boolean boolean;
     Numbers numbers;
-    Test test;
 
     CellI& _0_;
     CellI& _1_;
