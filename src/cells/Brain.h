@@ -1032,6 +1032,8 @@ protected:
 public:
     Ast::Cell& _(CellI& cell);
     Ast::Cell& _(const std::string& id);
+    Ast::Cell& true_();
+    Ast::Cell& false_();
     Ast::Parameter& p_(const std::string& name);
     Ast::Member& m_(const std::string& name);
     Ast::Var& var_(const std::string& name);

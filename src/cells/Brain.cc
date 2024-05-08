@@ -3801,6 +3801,16 @@ Ast::Cell& Brain::_(const std::string& name)
     return ast.cell(id(name));
 }
 
+Ast::Cell& Brain::true_()
+{
+    return _(boolean.true_);
+}
+
+Ast::Cell& Brain::false_()
+{
+    return _(boolean.false_);
+}
+
 Ast::Parameter& Brain::p_(const std::string& name)
 {
     return ast.parameter(id(name));
@@ -4602,12 +4612,12 @@ void Brain::createStd()
             ast.if_(m_("slots").missing(),
                     m_("slots") = ast.new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
             ast.do_(ast.block(
-                        var_("next") = _(boolean.true_),
+                        var_("next") = true_(),
                         m_("slots").call("add", param("key", *var_("item") / "value" / "slotRole"), param("value", *var_("item") / "value")),
                         ast.if_(ast.has(*var_("item"), "next"),
                                 var_("item") = *var_("item") / "next",
-                                var_("next") = _(boolean.false_))),
-                    ast.same(*var_("next"), _(boolean.true_))));
+                                var_("next") = false_())),
+                    ast.same(*var_("next"), true_())));
 
     typeStruct.addMethod("hasSlot")
         .parameters(
@@ -4615,7 +4625,7 @@ void Brain::createStd()
         .returnType(_(std.Boolean))
         .code(
             ast.if_(m_("slots").missing(),
-                    ast.return_(_(boolean.false_))),
+                    ast.return_(false_())),
             ast.return_(m_("slots").call("hasKey", param("key", p_("slotRole")))));
 
     typeStruct.addMethod("removeSlot")
@@ -4971,18 +4981,18 @@ void Brain::createStd()
                            var_("keyItemObj") = *var_("keyItem") / "value",
                            var_("child")      = _(ids.emptyObject),
                            ast.if_(ast.missing(*var_("currentNode"), "children"),
-                                   ast.return_(_(boolean.false_))),
+                                   ast.return_(false_())),
                            var_("childrenIndex") = *var_("currentNode") / "children",
                            ast.if_(ast.has(*var_("childrenIndex"), *var_("keyItemObj")),
                                    var_("child") = *var_("childrenIndex") / *var_("keyItemObj"),
-                                   ast.return_(_(boolean.false_))),
+                                   ast.return_(false_())),
                            var_("currentNode") = *var_("child"),
                            ast.if_(ast.has(*var_("keyItem"), "next"),
                                    var_("keyItem") = *var_("keyItem") / "next",
                                    var_("keyItem") = _(ids.emptyObject)))),
             ast.if_(ast.missing(*var_("currentNode"), "data"),
-                    ast.return_(_(boolean.false_))),
-            ast.return_(_(boolean.true_)));
+                    ast.return_(false_())),
+            ast.return_(true_()));
 
     /*
     CellI& TrieMap::getValue(CellI& key)
@@ -5313,8 +5323,7 @@ void Brain::createStd()
 
     setStructT.addMethod("empty")
         .returnType(_(std.Boolean))
-        .code(
-            ast.if_(ast.equal(m_("size"), _(_0_)), ast.return_(_(boolean.true_)), ast.return_(_(boolean.false_))));
+        .code(ast.return_(ast.equal(m_("size"), _(_0_))));
 #pragma endregion
 }
 
@@ -5412,15 +5421,15 @@ void Brain::createArcSolver()
         .code(
             m_("firstPixel") = p_("pixels") / "first" / "value",
             var_("prevPixel") = m_("firstPixel"),
-            var_("isFirstPixel") = _(boolean.true_),
+            var_("isFirstPixel") = true_(),
             var_("pixel") = _(ids.emptyObject),
             ast.if_(ast.has(p_("pixels"), "first"),
                     var_("pixel") = p_("pixels") / "first"),
             ast.while_(ast.notSame(*var_("pixel"), _(ids.emptyObject)),
                        ast.block(
-                           ast.if_(ast.same(*var_("isFirstPixel"), _(boolean.true_)),
+                           ast.if_(ast.same(*var_("isFirstPixel"), true_()),
                                    ast.block(
-                                       var_("isFirstPixel") = _(boolean.false_),
+                                       var_("isFirstPixel") = false_(),
                                        ast.if_(ast.has(*var_("pixel"), "next"),
                                                var_("pixel") = *var_("pixel") / "next",
                                                var_("pixel") = _(ids.emptyObject)),

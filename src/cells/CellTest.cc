@@ -152,8 +152,8 @@ protected:
     CellI& _7_    = kb._7_;
     CellI& _8_    = kb._8_;
     CellI& _9_    = kb._9_;
-    CellI& true_  = kb.boolean.true_;
-    CellI& false_ = kb.boolean.false_;
+    CellI& true_  = kb.true_();
+    CellI& false_ = kb.false_();
 };
 std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
 
