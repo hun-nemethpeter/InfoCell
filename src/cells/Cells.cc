@@ -42,32 +42,32 @@ CellI::~CellI()
 
 bool CellI::has(const std::string& role)
 {
-    return has(kb.id(role));
+    return has(kb.name(role));
 }
 
 void CellI::set(const std::string& role, CellI& value)
 {
-    set(kb.id(role), value);
+    set(kb.name(role), value);
 }
 
 void CellI::erase(const std::string& role)
 {
-    erase(kb.id(role));
+    erase(kb.name(role));
 }
 
 CellI& CellI::operator[](const std::string& role)
 {
-    return (*this)[kb.id(role)];
+    return (*this)[kb.name(role)];
 }
 
 bool CellI::missing(const std::string& role)
 {
-    return !has(kb.id(role));
+    return !has(kb.name(role));
 }
 
 CellI& CellI::get(const std::string& role)
 {
-    return (*this)[kb.id(role)];
+    return (*this)[kb.name(role)];
 }
 
 bool CellI::missing(CellI& role)
@@ -143,7 +143,7 @@ bool CellI::operator!=(CellI& rhs)
 #pragma endregion
 #pragma region Object
 Param::Param(const std::string& role, CellI& value) :
-    role(value.kb.id(role)), value(value) { }
+    role(value.kb.name(role)), value(value) { }
 
 int Object::s_indent = 0;
 // ============================================================================
@@ -357,19 +357,19 @@ void Object::operator()()
         if (inputCell.has(kb.ids.ast)) {
             CellI& ast = inputCell.get(kb.ids.ast);
             if (&ast.struct_() == &kb.std.ast.Var) {
-                if (ast[kb.ids.role].label() == "DDDDpixel1") {
+                if (ast[kb.ids.name].label() == "DDDDpixel1") {
 //                    std::cout << "DDDD1 dir = " << value.label() << std::endl;
                 }
-                if (ast[kb.ids.role].label() == "DDDDpixel2") {
+                if (ast[kb.ids.name].label() == "DDDDpixel2") {
 //                    std::cout << "DDDD2 result = " << value.label() << std::endl;
                 }
-                if (ast[kb.ids.role].label() == "DDDDpixel3") {
+                if (ast[kb.ids.name].label() == "DDDDpixel3") {
 //                    std::cout << "DDDD3 pixel = " << value.label() << std::endl;
                 }
-                if (ast[kb.ids.role].label() == "DDDDpixel4") {
+                if (ast[kb.ids.name].label() == "DDDDpixel4") {
 //                    std::cout << "DDDD4 pixel.color = " << &value << ", [ r: " << value[kb.colors.red].label() << ", g: " << value[kb.colors.green].label() << ", b: " << value[kb.colors.blue].label() << "]" << std::endl;
                 }
-                if (ast[kb.ids.role].label() == "DDDDpixel5") {
+                if (ast[kb.ids.name].label() == "DDDDpixel5") {
 //                    std::cout << "DDDD5 shape.color = " << &value << ", [ r: " << value[kb.colors.red].label() << ", g: " << value[kb.colors.green].label() << ", b: " << value[kb.colors.blue].label() << "]" << std::endl;
                 }
             }
@@ -669,7 +669,7 @@ void Object::destructor()
 
 CellI& Object::method(const std::string& role)
 {
-    return method(kb.id(role));
+    return method(kb.name(role));
 }
 
 CellI& Object::method(CellI& role)
@@ -1142,7 +1142,7 @@ CellI& Struct::operator[](CellI& role)
         if (m_name) {
             return *m_name;
         } else {
-            m_name = &kb.id(label());
+            m_name = &kb.name(label());
             return *m_name;
         }
     }

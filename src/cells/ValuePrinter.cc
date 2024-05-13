@@ -370,7 +370,7 @@ void CellValuePrinter::printOpGet(CellI& cell)
         return;
     }
     if (&cell[kb.ids.ast].struct_() == &kb.std.ast.Var) {
-        m_ss << "var_" << cell[kb.ids.ast][kb.ids.role].label();
+        m_ss << "var_" << cell[kb.ids.ast][kb.ids.name].label();
         return;
     }
     printImpl(cell[kb.ids.cell]);
@@ -505,7 +505,7 @@ void CellValuePrinter::printAstParameter(CellI& cell)
 void CellValuePrinter::printAstVar(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << "var_" << cell[kb.ids.role].label();
+    m_ss << "var_" << cell[kb.ids.name].label();
 }
 
 void CellValuePrinter::printAstMember(CellI& cell)
