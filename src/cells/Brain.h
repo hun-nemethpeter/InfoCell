@@ -467,7 +467,7 @@ public:
             m_trieMapMemberI.addAstObjToTrieMap(m_mapName, baseAst);
         }
 
-        TrieMap& map()
+        TrieMap& items()
         {
             return m_trieMapMemberI.trieMap(m_mapName);
         }
@@ -484,44 +484,43 @@ public:
     public:
         Scope(brain::Brain& kb, const std::string& nameStr);
 
-        bool hasScope(CellI& name);
-        Scope& getScope(CellI& name);
-        Scope& getScope(const std::string& nameStr);
-        void addScope(Scope& scope);
-        Scope& addScope(const std::string& nameStr);
-        TrieMap& scopes();
+        template<typename TAst>
+        bool hasItem(CellI& name)
+        {
+            return getTrieMapMember<TAst>().has(name);
+        }
 
-        Function& addFunction(const std::string& nameStr);
-        void addFunction(Function& function);
-        TrieMap& functions();
+        template <typename TAst>
+        TAst& getItem(const std::string& nameStr)
+        {
+            return getTrieMapMember<TAst>().get(nameStr);
+        }
 
-        FunctionT& addFunctionT(const std::string& nameStr);
-        TrieMap& functionTs();
+        template <typename TAst>
+        TAst& getItem(CellI& name)
+        {
+            return getTrieMapMember<TAst>().get(name);
+        }
 
-        bool hasVariable(CellI& name);
-        Var& getVariable(CellI& name);
-        Var& addVariable(const std::string& nameStr);
-        void addVariable(Var& var);
-        TrieMap& variables();
+        template <typename TAst>
+        TAst& add(const std::string& nameStr)
+        {
+            return getTrieMapMember<TAst>().add(nameStr);
+        }
+
+        template <typename TAst>
+        void add(TAst& scope)
+        {
+            getTrieMapMember<TAst>().add(scope);
+        }
+
+        template <typename TAst>
+        TrieMap& items()
+        {
+            return getTrieMapMember<TAst>().items();
+        }
 
         Ast::Struct& resolveStructName(CellI& name);
-        bool hasStruct(CellI& name);
-        Struct& getStruct(const std::string& nameStr);
-        Struct& getStruct(CellI& name);
-        void addStruct(Struct& struct_);
-        Struct& addStruct(const std::string& nameStr);
-        TrieMap& structs();
-
-        bool hasStructT(CellI& name);
-        StructT& getStructT(CellI& name);
-        StructT& addStructT(const std::string& nameStr);
-        TrieMap& structTs();
-
-        bool hasEnum(CellI& name);
-        Enum& getEnum(CellI& name);
-        void addEnum(Enum& enum_);
-        Enum& addEnum(const std::string& nameStr);
-        TrieMap& enums();
 
         Enum& resolveFullEnumId(CellI& scopeList, CellI& name);
         Struct& resolveFullStructId(CellI& scopeList, CellI& name);
@@ -543,6 +542,9 @@ public:
         Base& getNameFromTrieMap(const std::string& trieMapName, const std::string& nameStr) override;
         Base& getIdFromTrieMap(const std::string& trieMapName, CellI& name) override;
         void addAstObjToTrieMap(const std::string& trieMapName, Base& obj) override;
+
+        template<class TAst>
+        TrieMapMember<TAst>& getTrieMapMember();
 
         TrieMapMember<Scope> scopesImpl;
         TrieMapMember<Function> functionsImpl;
