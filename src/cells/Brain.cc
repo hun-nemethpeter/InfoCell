@@ -309,6 +309,68 @@ CellI& Ast::Base::getCompiledTypeFromResolvedType(CellI& resolvedTypeAst)
     }
 }
 
+CellI& Ast::Base::getFullyQualifiedNameImpl()
+{
+    if (has("fullyQualifiedName")) {
+        return get("fullyQualifiedName");
+    }
+    bool isEmptyName                  = false;
+    CellI* scopeFullyQualifiedNamePtr = nullptr;
+    if (has("scope")) {
+        Scope& scope               = static_cast<Scope&>(get("scope"));
+        scopeFullyQualifiedNamePtr = &scope.getFullyQualifiedName();
+    } else {
+        static List& emptyName     = *new List(kb, kb.std.Char);
+        scopeFullyQualifiedNamePtr = &emptyName;
+        isEmptyName                = true;
+    }
+    CellI& scopeFullyQualifiedName = *scopeFullyQualifiedNamePtr;
+
+    List& fullyQualifiedName = *new List(kb, kb.std.Char);
+    Visitor::visitList(scopeFullyQualifiedName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
+        fullyQualifiedName.add(character);
+    });
+    if (!fullyQualifiedName.empty()) {
+        fullyQualifiedName.add(kb.pools.chars.get(':'));
+        fullyQualifiedName.add(kb.pools.chars.get(':'));
+    }
+    if (!isEmptyName) {
+        auto& name = get(kb.ids.name);
+        Visitor::visitList(name, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
+            fullyQualifiedName.add(character);
+        });
+    }
+    std::stringstream ss;
+    int templateParamPrintModeFromCharIndex = fullyQualifiedName.size();
+    if (has("instanceOf")) {
+        int paramsLength                    = static_cast<List&>(get("templateParams")).size();
+        templateParamPrintModeFromCharIndex = fullyQualifiedName.size() - paramsLength * 2;
+    }
+    Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
+        if (i == templateParamPrintModeFromCharIndex) {
+            stop = true;
+            return;
+        }
+        ss << character.label();
+    });
+    if (has("instanceOf")) {
+        ss << "<";
+        Visitor::visitList(get("templateParams"), [this, &ss](CellI& slot, int i, bool& stop) {
+            CellI& slotRole = slot[kb.ids.slotRole];
+            CellI& slotType = slot[kb.ids.slotType];
+            if (i != 0) {
+                ss << ", ";
+            }
+            ss << std::format("{}={}", slotRole.label(), getCompiledTypeFromResolvedType(slotType).label());
+        });
+        ss << ">";
+    }
+    fullyQualifiedName.label(ss.str());
+    set("fullyQualifiedName", fullyQualifiedName);
+
+    return fullyQualifiedName;
+}
+
 CellI& Ast::Base::getResolvedTypeById(CellI& id, bool isInstance, CellI& resolveState)
 {
     if (isInstance) {
@@ -490,13 +552,13 @@ Ast::ResolvedType& Ast::Base::resolvedType(CellI& astType, CellI& compiledType)
 }
 
 Ast::Parameter::Parameter(brain::Brain& kb, CellI& role) :
-    BaseT<Parameter>(kb, kb.std.ast.Parameter)
+    BaseT<Parameter>(kb, kb.std.ast.Parameter, role.label())
 {
     set("role", role);
 }
 
 Ast::ResolvedType::ResolvedType(brain::Brain& kb, CellI& astType, CellI& compiledType) :
-    BaseT<ResolvedType>(kb, kb.std.ast.ResolvedType)
+    BaseT<ResolvedType>(kb, kb.std.ast.ResolvedType, astType.label())
 {
     set(kb.ids.ast, astType);
     set(kb.ids.compiled, compiledType);
@@ -554,7 +616,7 @@ void Ast::StaticCall::addParam(Slot& slot)
 }
 
 Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
-    BaseT<Cell>(kb, kb.std.ast.Cell)
+    BaseT<Cell>(kb, kb.std.ast.Cell, "ast.cell")
 {
     set("value", value);
 }
@@ -569,7 +631,7 @@ Ast::Get& Ast::Cell::operator/(const std::string& role)
     return Get::New(kb, *this, kb._(role));
 }
 Ast::StructName::StructName(brain::Brain& kb, CellI& name) :
-    BaseT<StructName>(kb, kb.std.ast.StructName)
+    BaseT<StructName>(kb, kb.std.ast.StructName, "ast.structName")
 {
     set("name", name);
 }
@@ -783,30 +845,7 @@ Ast::Scope& Ast::Scope::getRootScope()
 
 CellI& Ast::Scope::getFullyQualifiedName()
 {
-    if (has("fullyQualifiedName")) {
-        return get("fullyQualifiedName");
-    }
-    Scope& rootScope   = getRootScope();
-    auto* currentScope = this;
-    List& fullyQualifiedName = *new List(kb, kb.std.Char);
-    while (currentScope && currentScope != &rootScope) {
-        auto& currentScopeName = (*currentScope)[kb.ids.name];
-        if (!fullyQualifiedName.empty()) {
-            fullyQualifiedName.addFront(kb.pools.chars.get(':'));
-            fullyQualifiedName.addFront(kb.pools.chars.get(':'));
-        }
-        Visitor::visitListInReverse(currentScopeName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
-            fullyQualifiedName.addFront(character);
-        });
-        currentScope = currentScope->has("scope") ? &static_cast<Scope&>(currentScope->get("scope")) : nullptr;
-    };
-    std::stringstream ss;
-    Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss](CellI& character, int i, bool& stop) {
-        ss << character.label();
-    });
-    fullyQualifiedName.label(ss.str());
-
-    return fullyQualifiedName;
+    return getFullyQualifiedNameImpl();
 }
 
 /*
@@ -1238,53 +1277,7 @@ Ast::Struct::Struct(brain::Brain& kb, CellI& name) :
 
 CellI& Ast::Struct::getFullyQualifiedName()
 {
-    if (has("fullyQualifiedName")) {
-        return get("fullyQualifiedName");
-    }
-    Scope& scope = static_cast<Scope&>(get("scope"));
-    CellI& scopeFullyQualifiedName = scope.getFullyQualifiedName();
-
-    List& fullyQualifiedName = *new List(kb, kb.std.Char);
-    Visitor::visitList(scopeFullyQualifiedName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
-        fullyQualifiedName.add(character);
-    });
-    if (!fullyQualifiedName.empty()) {
-        fullyQualifiedName.add(kb.pools.chars.get(':'));
-        fullyQualifiedName.add(kb.pools.chars.get(':'));
-    }
-    auto& name = get(kb.ids.name);
-    Visitor::visitList(name, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
-        fullyQualifiedName.add(character);
-    });
-    std::stringstream ss;
-    int templateParamPrintModeFromCharIndex = fullyQualifiedName.size();
-    if (has("instanceOf")) {
-        int paramsLength = static_cast<List&>(get("templateParams")).size();
-        templateParamPrintModeFromCharIndex = fullyQualifiedName.size() - paramsLength * 2;
-    }
-    Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
-        if (i == templateParamPrintModeFromCharIndex) {
-            stop = true;
-            return;
-        }
-        ss << character.label();
-    });
-    if (has("instanceOf")) {
-        ss << "<";
-        Visitor::visitList(get("templateParams"), [this, &ss](CellI& slot, int i, bool& stop) {
-            CellI& slotRole = slot[kb.ids.slotRole];
-            CellI& slotType = slot[kb.ids.slotType];
-            if (i != 0) {
-                ss << ", ";
-            }
-            ss << std::format("{}={}", slotRole.label(), getCompiledTypeFromResolvedType(slotType).label());
-        });
-        ss << ">";
-    }
-    fullyQualifiedName.label(ss.str());
-    set("fullyQualifiedName", fullyQualifiedName);
-
-    return fullyQualifiedName;
+    return getFullyQualifiedNameImpl();
 }
 
 Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
@@ -1813,53 +1806,7 @@ Ast::Enum::Enum(brain::Brain& kb, const std::string& nameStr) :
 
 CellI& Ast::Enum::getFullyQualifiedName()
 {
-    if (has("fullyQualifiedName")) {
-        return get("fullyQualifiedName");
-    }
-    Scope& scope                   = static_cast<Scope&>(get("scope"));
-    CellI& scopeFullyQualifiedName = scope.getFullyQualifiedName();
-
-    List& fullyQualifiedName = *new List(kb, kb.std.Char);
-    Visitor::visitList(scopeFullyQualifiedName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
-        fullyQualifiedName.add(character);
-    });
-    if (!fullyQualifiedName.empty()) {
-        fullyQualifiedName.add(kb.pools.chars.get(':'));
-        fullyQualifiedName.add(kb.pools.chars.get(':'));
-    }
-    auto& id = get(kb.ids.id);
-    Visitor::visitList(id, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
-        fullyQualifiedName.add(character);
-    });
-    std::stringstream ss;
-    int templateParamPrintModeFromCharIndex = fullyQualifiedName.size();
-    if (has("instanceOf")) {
-        int paramsLength                    = static_cast<List&>(get("templateParams")).size();
-        templateParamPrintModeFromCharIndex = fullyQualifiedName.size() - paramsLength * 2;
-    }
-    Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
-        if (i == templateParamPrintModeFromCharIndex) {
-            stop = true;
-            return;
-        }
-        ss << character.label();
-    });
-    if (has("instanceOf")) {
-        ss << "<";
-        Visitor::visitList(get("templateParams"), [this, &ss](CellI& slot, int i, bool& stop) {
-            CellI& slotRole = slot[kb.ids.slotRole];
-            CellI& slotType = slot[kb.ids.slotType];
-            if (i != 0) {
-                ss << ", ";
-            }
-            ss << std::format("{}={}", slotRole.label(), getCompiledTypeFromResolvedType(slotType).label());
-        });
-        ss << ">";
-    }
-    fullyQualifiedName.label(ss.str());
-    set("fullyQualifiedName", fullyQualifiedName);
-
-    return fullyQualifiedName;
+    return getFullyQualifiedNameImpl();
 }
 
 Ast::Enum& Ast::Enum::resolveTypes(CellI& state)

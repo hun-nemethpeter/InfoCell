@@ -289,6 +289,7 @@ public:
         CellI& getResolvedTypeById(CellI& id, bool isInstance, CellI& resolveState);
 
     protected:
+        CellI& getFullyQualifiedNameImpl();
         CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<CellI&(CellI& structReference)> unknownCb);
         CellI& resolveStructName(CellI& structName, CellI& resolveState);
         Struct& resolveStructNameAsAst(CellI& structName, CellI& resolveState);
@@ -304,11 +305,12 @@ public:
                   public NewT<T>
     {
     public:
-        BaseT<T>(brain::Brain& kb, CellI& classCell, const std::string& label = "") :
+        BaseT<T>(brain::Brain& kb, CellI& classCell, const std::string& label) :
             Base(kb, classCell, label)
         {
         }
     };
+
     class Get;
     class Cell : public BaseT<Cell>
     {
@@ -480,7 +482,6 @@ public:
         const std::string m_mapName;
         TrieMapMemberI& m_trieMapMemberI;
     };
-
 
     class Scope : public BaseT<Scope>,
                   public TrieMapMemberI
