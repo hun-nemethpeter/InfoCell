@@ -425,39 +425,41 @@ public:
     class StructT;
     class Enum;
 
-    class TrieMapMemberI
+    template <class MapType, class TAst>
+    class Items
     {
     public:
-        virtual TrieMap& trieMap(const std::string& trieMapName) = 0;
-        virtual bool hasNameInTrieMap(const std::string& trieMapName, CellI& id) = 0;
-        virtual Base& getNameFromTrieMap(const std::string& trieMapName, const std::string& name) = 0;
-        virtual Base& getIdFromTrieMap(const std::string& trieMapName, CellI& id) = 0;
-        virtual void addAstObjToTrieMap(const std::string& trieMapName, Base& obj) = 0;
-    };
-
-    template <class TAst>
-    class TrieMapMember
-    {
-    public:
-        TrieMapMember(brain::Brain& kb, const std::string& mapName, TrieMapMemberI& trieMapMemberI) :
+        Items(brain::Brain& kb, const std::string& mapName, Base& parent) :
             kb(kb),
             m_mapName(mapName),
-            m_trieMapMemberI(trieMapMemberI)
+            m_parent(parent)
         {}
 
         bool has(CellI& id)
         {
-            return m_trieMapMemberI.hasNameInTrieMap(m_mapName, id);
+            if (m_parent.missing(m_mapName)) {
+                return false;
+            }
+
+            return items().hasKey(id);
         }
 
-        TAst& get(const std::string& name)
+        TAst& get(const std::string& nameStr)
         {
-            return static_cast<TAst&>(m_trieMapMemberI.getNameFromTrieMap(m_mapName, name));
+            return get(kb.name(nameStr));
         }
 
-        TAst& get(CellI& id)
+        TAst& get(CellI& name)
         {
-            return static_cast<TAst&>(m_trieMapMemberI.getIdFromTrieMap(m_mapName, id));
+            if (m_parent.missing(m_mapName)) {
+                throw "No such scope";
+            }
+
+            if (items().hasKey(name)) {
+                return static_cast<TAst&>(items().getValue(name));
+            }
+
+            throw "No such scope";
         }
 
         TAst& add(const std::string& nameStr)
@@ -468,72 +470,94 @@ public:
             return ast;
         }
 
-        void add(TAst& baseAst)
+        void add(TAst& obj)
         {
-            m_trieMapMemberI.addAstObjToTrieMap(m_mapName, baseAst);
+            CellI& name = obj[kb.ids.name];
+
+            if (m_parent.missing(m_mapName)) {
+                m_parent.set(m_mapName, *new TrieMap(kb, kb.std.Cell, kb.std.ast.Base, "TrieMap<Cell, Type::Ast::Base>(...)"));
+            }
+            if (items().hasKey(name)) {
+                throw "Already registered!";
+            }
+
+            items().add(name, obj);
+            obj.set("scope", m_parent);
         }
 
-        TrieMap& items()
+        MapType& items()
         {
-            return m_trieMapMemberI.trieMap(m_mapName);
+            if (m_parent.missing(m_mapName)) {
+                throw std::format("No {}!", m_mapName);
+            } else {
+                return static_cast<TrieMap&>(m_parent.get(m_mapName));
+            }
         }
 
         brain::Brain& kb;
         const std::string m_mapName;
-        TrieMapMemberI& m_trieMapMemberI;
+        Base& m_parent;
     };
 
-    class Scope : public BaseT<Scope>,
-                  public TrieMapMemberI
+    template <class Derived>
+    class ItemsI
     {
     public:
-        Scope(brain::Brain& kb, const std::string& nameStr);
-
-        template<typename TAst>
+        template <typename TAst>
         bool hasItem(CellI& name)
         {
-            return getTrieMapMember<TAst>().has(name);
+            return derived().getItemMember<TAst>().has(name);
         }
 
         template <typename TAst>
         TAst& getItem(const std::string& nameStr)
         {
-            return getTrieMapMember<TAst>().get(nameStr);
+            return derived().getItemMember<TAst>().get(nameStr);
         }
 
         template <typename TAst>
         TAst& getItem(CellI& name)
         {
-            return getTrieMapMember<TAst>().get(name);
+            return derived().getItemMember<TAst>().get(name);
         }
 
         template <typename TAst>
         TAst& add(const std::string& nameStr)
         {
-            return getTrieMapMember<TAst>().add(nameStr);
+            return derived().getItemMember<TAst>().add(nameStr);
         }
 
         template <typename TAst>
         void add(TAst& scope)
         {
-            getTrieMapMember<TAst>().add(scope);
+            derived().getItemMember<TAst>().add(scope);
         }
 
         template <typename TAst>
         TrieMap& items()
         {
-            return getTrieMapMember<TAst>().items();
+            return derived().getItemMember<TAst>().items();
         }
 
-        Ast::Struct& resolveStructName(CellI& name);
+    protected:
+        Derived& derived()
+        {
+            return static_cast<Derived&>(*this);
+        }
+    };
 
+    class Scope : public BaseT<Scope>,
+                  public ItemsI<Scope>
+    {
+    public:
+        Scope(brain::Brain& kb, const std::string& nameStr);
+
+        Struct& resolveStructName(CellI& name);
         Enum& resolveFullEnumId(CellI& scopeList, CellI& name);
         Struct& resolveFullStructId(CellI& scopeList, CellI& name);
         StructT& resolveFullTemplateId(CellI& scopeList, CellI& name);
         Scope& getRootScope();
-
         CellI& getFullyQualifiedName();
-
         CellI& compile(TrieMap& earlyStructs);
 
     protected:
@@ -542,22 +566,18 @@ public:
         void resolveTypes(CellI& state);
         void compileTheResolvedAsts(CellI& programData, CellI& state);
 
-        TrieMap& trieMap(const std::string& trieMapName) override;
-        bool hasNameInTrieMap(const std::string& trieMapName, CellI& name) override;
-        Base& getNameFromTrieMap(const std::string& trieMapName, const std::string& nameStr) override;
-        Base& getIdFromTrieMap(const std::string& trieMapName, CellI& name) override;
-        void addAstObjToTrieMap(const std::string& trieMapName, Base& obj) override;
+        friend class ItemsI<Scope>;
 
         template<class TAst>
-        TrieMapMember<TAst>& getTrieMapMember();
+        Items<TrieMap, TAst>& getItemMember();
 
-        TrieMapMember<Scope> scopesImpl;
-        TrieMapMember<Function> functionsImpl;
-        TrieMapMember<FunctionT> functionTsImpl;
-        TrieMapMember<Var> variablesImpl;
-        TrieMapMember<Struct> structsImpl;
-        TrieMapMember<StructT> structTsImpl;
-        TrieMapMember<Enum> enumsImpl;
+        Items<TrieMap, Scope> scopesImpl;
+        Items<TrieMap, Function> functionsImpl;
+        Items<TrieMap, FunctionT> functionTsImpl;
+        Items<TrieMap, Var> variablesImpl;
+        Items<TrieMap, Struct> structsImpl;
+        Items<TrieMap, StructT> structTsImpl;
+        Items<TrieMap, Enum> enumsImpl;
     };
 
     class StructBase : public Base
@@ -601,6 +621,8 @@ public:
         Base& getSubType(CellI& name);
 
     protected:
+
+        Items<Map, Function> methodsImpl;
         Map& methods();
         Map& members();
         Map& subTypes();
@@ -656,6 +678,7 @@ public:
     class TypedEnumValue : public BaseT<TypedEnumValue>
     {
     public:
+        TypedEnumValue(brain::Brain& kb, CellI& name, CellI& type);
         TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& type);
         TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& type, CellI& value);
     };
@@ -682,6 +705,7 @@ public:
         }
 
     private:
+        CellI& resolveEnumValue(CellI& ast);
         TrieMap& values();
     };
 

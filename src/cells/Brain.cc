@@ -697,38 +697,43 @@ Ast::Block::Block(brain::Brain& kb, List& list) :
 }
 
 template <>
-Ast::TrieMapMember<Ast::Scope>& Ast::Scope::getTrieMapMember()
+Ast::Items<TrieMap, Ast::Scope>& Ast::Scope::getItemMember()
 {
     return scopesImpl;
 }
 
 template <>
-Ast::TrieMapMember<Ast::Function>& Ast::Scope::getTrieMapMember()
+Ast::Items<TrieMap, Ast::Function>& Ast::Scope::getItemMember()
 {
     return functionsImpl;
 }
+
 template <>
-Ast::TrieMapMember<Ast::FunctionT>& Ast::Scope::getTrieMapMember()
+Ast::Items<TrieMap, Ast::FunctionT>& Ast::Scope::getItemMember()
 {
     return functionTsImpl;
 }
+
 template <>
-Ast::TrieMapMember<Ast::Var>& Ast::Scope::getTrieMapMember()
+Ast::Items<TrieMap, Ast::Var>& Ast::Scope::getItemMember()
 {
     return variablesImpl;
 }
+
 template <>
-Ast::TrieMapMember<Ast::Struct>& Ast::Scope::getTrieMapMember()
+Ast::Items<TrieMap, Ast::Struct>& Ast::Scope::getItemMember()
 {
     return structsImpl;
 }
+
 template <>
-Ast::TrieMapMember<Ast::StructT>& Ast::Scope::getTrieMapMember()
+Ast::Items<TrieMap, Ast::StructT>& Ast::Scope::getItemMember()
 {
     return structTsImpl;
 }
+
 template <>
-Ast::TrieMapMember<Ast::Enum>& Ast::Scope::getTrieMapMember()
+Ast::Items<TrieMap, Ast::Enum>& Ast::Scope::getItemMember()
 {
     return enumsImpl;
 }
@@ -1070,8 +1075,8 @@ void Ast::Scope::resolveTypes(CellI& state)
     if (has("enums")) {
         Visitor::visitList(items<Enum>()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstEnumCell, int i, bool& stop) {
             Ast::Enum& origAstEnum     = static_cast<Ast::Enum&>(origAstEnumCell[kb.ids.value]);
-//            Ast::Enum& resolvedAstEnum = origAstEnum.resolveTypes(state);
-//            resolvedScope.addEnum(resolvedAstEnum);
+            Ast::Enum& resolvedAstEnum = origAstEnum.resolveTypes(state);
+            resolvedScope.add<Enum>(resolvedAstEnum);
         });
     }
     if (has("variables")) {
@@ -1094,72 +1099,10 @@ void Ast::Scope::resolveTypes(CellI& state)
     }
 }
 
-TrieMap& Ast::Scope::trieMap(const std::string& trieMapName)
-{
-    static const std::set<std::string> trieMaps = {
-        "variables",
-        "scopes",
-        "functions",
-        "functionTs",
-        "structs",
-        "structTs",
-        "enums",
-        "enumsTs"
-    };
-    if (!trieMaps.contains(trieMapName)) {
-        throw std::format("Invalid {}!", trieMapName);
-    }
-    if (missing(trieMapName)) {
-        throw std::format("No {}!", trieMapName);
-    } else {
-        return static_cast<TrieMap&>(get(trieMapName));
-    }
-}
-
-bool Ast::Scope::hasNameInTrieMap(const std::string& trieMapName, CellI& id)
-{
-    if (missing(trieMapName)) {
-        return false;
-    }
-
-    return trieMap(trieMapName).hasKey(id);
-}
-
-Ast::Base& Ast::Scope::getNameFromTrieMap(const std::string& trieMapName, const std::string& name)
-{
-    return getIdFromTrieMap(trieMapName, kb.name(name));
-}
-
-Ast::Base& Ast::Scope::getIdFromTrieMap(const std::string& trieMapName, CellI& id)
-{
-    if (missing(trieMapName)) {
-        throw "No such scope";
-    }
-
-    if (trieMap(trieMapName).hasKey(id)) {
-        return static_cast<Ast::Base&>(trieMap(trieMapName).getValue(id));
-    }
-
-    throw "No such scope";
-}
-
-void Ast::Scope::addAstObjToTrieMap(const std::string& trieMapName, Base& obj)
-{
-    CellI& name = obj[kb.ids.name];
-
-    if (missing(trieMapName)) {
-        set(trieMapName, *new TrieMap(kb, kb.std.Cell, kb.std.ast.Base, "TrieMap<Cell, Type::Ast::Base>(...)"));
-    }
-    if (trieMap(trieMapName).hasKey(name)) {
-        throw "Already registered!";
-    }
-
-    trieMap(trieMapName).add(name, obj);
-    obj.set("scope", *this);
-}
-
 Ast::StructBase::StructBase(brain::Brain& kb, CellI& astType, CellI& name, const std::string& nameStr) :
-    Base(kb, astType, nameStr)
+    Base(kb, astType, nameStr),
+    methodsImpl(kb, "methods", *this)
+
 {
     set("name", name);
 }
@@ -1773,15 +1716,23 @@ Ast::EnumValue::EnumValue(brain::Brain& kb, const std::string& name, CellI& valu
     label(name);
 }
 
-Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& value) :
+Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& enumType) :
     BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, nameStr)
 {
     set("name", kb.name(nameStr));
-    set("value", value);
+    set("enumType", enumType);
     label(nameStr);
 }
 
-Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& value, CellI& enumType) :
+Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, CellI& name, CellI& enumType) :
+    BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, name.label())
+{
+    set("name", name);
+    set("enumType", enumType);
+    label(name.label());
+}
+
+Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& enumType, CellI& value) :
     BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, nameStr)
 {
     set("name", kb.name(nameStr));
@@ -1839,7 +1790,7 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
     std::stringstream ss;
     std::stringstream subTypesSs;
     if (debugCompiledStructs) {
-        ss << std::format("struct {}", label());
+        ss << std::format("enum {}", label());
     }
 
     if (debugCompiledStructs) {
@@ -1864,20 +1815,38 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
             }
         }
     }
-    // resolve members
-    if (has("members")) {
-        CellI& membersList = members()[kb.ids.list];
-        Visitor::visitList(membersList, [this, &ret, &state](CellI& memberCell, int i, bool& stop) {
-            CellI& memberId           = memberCell[kb.ids.slotRole];
-            CellI& memberType         = memberCell[kb.ids.slotType];
-            CellI& resolvedMemberType = resolveType(memberType, state);
-            ret.members(kb.ast.slot(memberId, resolvedMemberType));
-            if (debugCompiledStructs) {
-                std::cout << std::format("    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label()) << std::endl;
-            }
-        });
-    }
 #endif
+    // resolve members
+    if (has("values")) {
+        CellI& membersList = values()[kb.ids.list];
+        Visitor::visitList(membersList, [this, &ret, &state](CellI& kvPair, int i, bool& stop) {
+            CellI& valueCell = kvPair[kb.ids.value];
+            CellI& valueName = valueCell[kb.ids.name];
+            if (valueCell.has("enumType")) {
+                CellI& valueType               = valueCell["enumType"];
+                CellI& resolvedValueType       = resolveType(valueType, state);
+                TypedEnumValue& typedEnumValue = *new TypedEnumValue(kb, valueName, resolvedValueType);
+                if (valueCell.has(kb.ids.value)) {
+                    typedEnumValue.set(kb.ids.value, valueCell[kb.ids.value]);
+                }
+                ret.values(typedEnumValue);
+                if (debugCompiledStructs) {
+                    std::cout << std::format("    {}({})", valueName.label(), getCompiledTypeFromResolvedType(resolvedValueType).label());
+                }
+            } else {
+                ret.values(static_cast<Base&>(valueCell));
+                if (debugCompiledStructs) {
+                    std::cout << std::format("    {}", valueName.label());
+                }
+            }
+            if (debugCompiledStructs) {
+                if (valueCell.has(kb.ids.value)) {
+                    std::cout << std::format(" = {}", resolveEnumValue(valueCell[kb.ids.value]).label());
+                }
+                std::cout << "," << std::endl;
+            }
+            });
+    }
 
     if (debugCompiledStructs) {
         std::cout << "}" << std::endl;
@@ -1937,6 +1906,14 @@ Ast::Enum& Ast::Enum::values(Base& value)
     values().add(value["name"], value);
 
     return *this;
+}
+CellI& Ast::Enum::resolveEnumValue(CellI& ast)
+{
+    if (&ast.struct_() == &kb.std.ast.Cell) {
+        return ast[kb.ids.value];
+    }
+
+    throw "Unknown enum value!";
 }
 
 TrieMap& Ast::Enum::values()
@@ -5880,8 +5857,8 @@ void Brain::createTests()
 
     testScope.add<Enum>("TestEnumTypedWithValues")
         .values(
-            tev_("value1", "TestStruct", "testStruct1"), // init with value
-            tev_("value2", "TestStruct", "testStruct2"));
+            tev_("value1", "TestStruct", _(_1_)), // init with value
+            tev_("value2", "TestStruct", _(_2_)));
 
     // TODO
     //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
