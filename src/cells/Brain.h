@@ -292,7 +292,7 @@ public:
         CellI& getFullyQualifiedNameImpl();
         CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<CellI&(CellI& structReference)> unknownCb);
         CellI& resolveStructName(CellI& structName, CellI& resolveState);
-        Struct& resolveStructNameAsAst(CellI& structName, CellI& resolveState);
+        Base& resolveTypeNameAsAst(CellI& structName, CellI& resolveState);
         Base& resolveSubTypeNameAsAst(CellI& subTypeName, CellI& resolveState);
         CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
         Struct& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
@@ -552,17 +552,17 @@ public:
     public:
         Scope(brain::Brain& kb, const std::string& nameStr);
 
-        Struct& resolveStructName(CellI& name);
-        Enum& resolveFullEnumId(CellI& scopeList, CellI& name);
-        Struct& resolveFullStructId(CellI& scopeList, CellI& name);
+        Base& resolveTypeName(CellI& name);
         StructT& resolveFullTemplateId(CellI& scopeList, CellI& name);
         Scope& getRootScope();
         CellI& getFullyQualifiedName();
         CellI& compile(TrieMap& earlyStructs);
 
     protected:
-        Base& resolveFullIdInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
-        Base* resolveFullIdInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
+        Enum* resolveFullEnumName(CellI& scopeList, CellI& name);
+        Struct* resolveFullStructName(CellI& scopeList, CellI& name);
+        Base* resolveFullNameInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
+        Base* resolveFullNameInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
         void resolveTypes(CellI& state);
         void compileTheResolvedAsts(CellI& programData, CellI& state);
 
@@ -673,6 +673,8 @@ public:
     public:
         EnumValue(brain::Brain& kb, const std::string& nameStr);
         EnumValue(brain::Brain& kb, const std::string& nameStr, CellI& value);
+
+        CellI& getFullyQualifiedName();
     };
 
     class TypedEnumValue : public BaseT<TypedEnumValue>
@@ -681,6 +683,8 @@ public:
         TypedEnumValue(brain::Brain& kb, CellI& name, CellI& type);
         TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& type);
         TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& type, CellI& value);
+
+        CellI& getFullyQualifiedName();
     };
 
     class Enum : public BaseT<Enum>
@@ -734,7 +738,7 @@ public:
         Ast::Function& resolveTypes(CellI& resolveState);
         CellI& compile(CellI& state);
         std::string shortName();
-        CellI& getFullId();
+        CellI& getFullyQualifiedName();
 
     protected:
         Ast::Base& resolveTypesInCode(CellI& resolveState, CellI& ast);
@@ -820,6 +824,8 @@ public:
     public:
         Var(brain::Brain& kb, const std::string& nameStr);
         Var(brain::Brain& kb, CellI& name);
+
+        CellI& getFullyQualifiedName();
         Set& operator=(Base& value);
         Get& operator*();
     };

@@ -157,7 +157,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
         hasReturnValue      = true;
         oss << outType.label();
     }
-    const std::string& className = subTypesIndex.has(kb.ids.objectType) ? subTypesIndex[kb.ids.objectType].label() : "";
+    const std::string& className = subTypesIndex.has(kb.ids.objectType) ? subTypesIndex[kb.ids.objectType][kb.ids.value].label() : "";
     std::string label            = className;
     if (!className.empty()) {
         label += "::";

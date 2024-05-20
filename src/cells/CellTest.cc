@@ -245,8 +245,11 @@ TEST_F(CellTest, PrintTestCodes)
 
 TEST_F(CellTest, PrintArcCodes)
 {
+    auto& VectorStruct = getStruct("arc::Vector");
     auto& ShapeStruct  = getStruct("arc::Shape");
     auto& ShaperStruct = getStruct("arc::Shaper");
+
+    printMethodInType(VectorStruct, "rotate");
 
     printAs.value(ShapeStruct);
     printMethodInType(ShapeStruct, "constructor");

@@ -1,4 +1,4 @@
-#include "Brain.h"
+﻿#include "Brain.h"
 
 #include <boost/algorithm/string/regex.hpp>
 #include <format>
@@ -280,8 +280,8 @@ Ast::Base& Ast::Base::resolveType(CellI& typeAst, CellI& resolveState)
         return static_cast<Ast::ResolvedType&>(typeAst);
     }
     if (&typeAst.struct_() == &kb.std.ast.StructName) {
-        auto& resolveAstStruct      = resolveStructNameAsAst(typeAst, resolveState);
-        auto& resolveCompiledStruct = resolveStructName(resolveAstStruct.getFullyQualifiedName(), resolveState);
+        auto& resolveAstStruct      = resolveTypeNameAsAst(typeAst, resolveState);
+        auto& resolveCompiledStruct = resolveStructName(resolveAstStruct.getFullyQualifiedNameImpl(), resolveState);
         auto& reslvedTypeNode       = resolvedType(resolveAstStruct, resolveCompiledStruct);
 
         return reslvedTypeNode;
@@ -319,6 +319,9 @@ CellI& Ast::Base::getFullyQualifiedNameImpl()
     if (has("scope")) {
         Scope& scope               = static_cast<Scope&>(get("scope"));
         scopeFullyQualifiedNamePtr = &scope.getFullyQualifiedName();
+    } else if (has("enum")) {
+        Enum& enum_                = static_cast<Enum&>(get("enum"));
+        scopeFullyQualifiedNamePtr = &enum_.getFullyQualifiedName();
     } else {
         static List& emptyName     = *new List(kb, kb.std.Char);
         scopeFullyQualifiedNamePtr = &emptyName;
@@ -466,10 +469,10 @@ CellI& Ast::Base::resolveStructName(CellI& structId, CellI& resolveState)
     });
 }
 
-Ast::Struct& Ast::Base::resolveStructNameAsAst(CellI& structName, CellI& resolveState)
+Ast::Base& Ast::Base::resolveTypeNameAsAst(CellI& structName, CellI& resolveState)
 {
     Scope& currentScope = static_cast<Scope&>(resolveState[kb.ids.scope]);
-    return currentScope.resolveStructName(structName);
+    return currentScope.resolveTypeName(structName);
 
 }
 
@@ -751,18 +754,26 @@ Ast::Scope::Scope(brain::Brain& kb, const std::string& nameStr) :
     set("name", kb.name(nameStr));
 }
 
-Ast::Struct& Ast::Scope::resolveStructName(CellI& structName)
+Ast::Base& Ast::Scope::resolveTypeName(CellI& typeName)
 {
-    auto& name = structName[kb.ids.name];
-    if (structName.has(kb.ids.scopes)) {
-        auto& scopes = structName[kb.ids.scopes];
-        return resolveFullStructId(scopes, name);
-    } else {
-        static List emptyList(kb, kb.std.Cell, "empty list");
-        return resolveFullStructId(emptyList, name);
+    auto& name = typeName[kb.ids.name];
+    static List emptyList(kb, kb.std.Cell, "empty list");
+    CellI* scopeListPtr = typeName.has(kb.ids.scopes) ? &typeName[kb.ids.scopes] : &emptyList;
+    auto& scopes        = *scopeListPtr;
+
+    auto* struct_ = resolveFullStructName(scopes, name);
+    if (struct_) {
+        return *struct_;
     }
+    auto* enum_ = resolveFullEnumName(scopes, name);
+    if (enum_) {
+        return *enum_;
+    }
+
+    throw "Unknown type name!";
 }
-Ast::Struct& Ast::Scope::resolveFullStructId(CellI& scopeList, CellI& id)
+
+Ast::Struct* Ast::Scope::resolveFullStructName(CellI& scopeList, CellI& id)
 {
     const auto& hasCb = [&id](Ast::Scope& currentScope) -> bool {
         return currentScope.hasItem<Struct>(id);
@@ -771,10 +782,10 @@ Ast::Struct& Ast::Scope::resolveFullStructId(CellI& scopeList, CellI& id)
         return &currentScope.getItem<Struct>(id);
     };
 
-    return static_cast<Struct&>(resolveFullIdInAllScope(scopeList, id, hasCb, getCb));
+    return static_cast<Struct*>(resolveFullNameInAllScope(scopeList, id, hasCb, getCb));
 }
 
-Ast::Enum& Ast::Scope::resolveFullEnumId(CellI& scopeList, CellI& name)
+Ast::Enum* Ast::Scope::resolveFullEnumName(CellI& scopeList, CellI& name)
 {
     const auto& hasCb = [&name](Ast::Scope& currentScope) -> bool {
         return currentScope.hasItem<Enum>(name);
@@ -783,7 +794,7 @@ Ast::Enum& Ast::Scope::resolveFullEnumId(CellI& scopeList, CellI& name)
         return &currentScope.getItem<Enum>(name);
     };
 
-    return static_cast<Enum&>(resolveFullIdInAllScope(scopeList, name, hasCb, getCb));
+    return static_cast<Enum*>(resolveFullNameInAllScope(scopeList, name, hasCb, getCb));
 }
 
 Ast::StructT& Ast::Scope::resolveFullTemplateId(CellI& scopeList, CellI& name)
@@ -794,18 +805,22 @@ Ast::StructT& Ast::Scope::resolveFullTemplateId(CellI& scopeList, CellI& name)
     const auto& getCb = [&name](Ast::Scope& currentScope) -> StructT* {
         return &currentScope.getItem<StructT>(name);
     };
+    Base* resolvedAst = resolveFullNameInAllScope(scopeList, name, hasCb, getCb);
+    if (!resolvedAst) {
+        throw "Unknown template name!";
+    }
 
-    return static_cast<StructT&>(resolveFullIdInAllScope(scopeList, name, hasCb, getCb));
+    return static_cast<StructT&>(*resolvedAst);
 }
 
-Ast::Base& Ast::Scope::resolveFullIdInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb)
+Ast::Base* Ast::Scope::resolveFullNameInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb)
 {
     Scope* currentScope = this;
 
     while (currentScope) {
-        Base* ret = resolveFullIdInOneScope(currentScope, scopeList, hasCb, getCb);
+        Base* ret = resolveFullNameInOneScope(currentScope, scopeList, hasCb, getCb);
         if (ret) {
-            return *ret;
+            return ret;
         }
         // resolve in parent scope
         if (currentScope->has(kb.ids.scope)) {
@@ -816,10 +831,10 @@ Ast::Base& Ast::Scope::resolveFullIdInAllScope(CellI& scopeList, CellI& id, std:
 
     }
 
-    throw "Unknown Struct!";
+    return nullptr;
 }
 
-Ast::Base* Ast::Scope::resolveFullIdInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb)
+Ast::Base* Ast::Scope::resolveFullNameInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb)
 {
     // resolve in local scope
     Visitor::visitList(scopeList, [this, &currentScope](CellI& scopeId, int, bool& stop) {
@@ -1019,29 +1034,36 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
 
     if (scope.has("functions")) {
         Visitor::visitList(resolvedScope.items<Function>()[kb.ids.list], [this, &state, &compiledFunctions](CellI& function, int i, bool& stop) {
-            Ast::Function& astFunction = static_cast<Function&>(function[kb.ids.value]);
+            Function& astFunction = static_cast<Function&>(function[kb.ids.value]);
             auto& compiledFunction     = astFunction.compile(state);
-            compiledFunctions.add(astFunction.getFullId(), compiledFunction);
+            compiledFunctions.add(astFunction.getFullyQualifiedName(), compiledFunction);
         });
     }
     if (scope.has("structs")) {
         Visitor::visitList(resolvedScope.items<Struct>()[kb.ids.list], [this, &state, &compiledStructs](CellI& struct_, int i, bool& stop) {
-            Ast::Struct& astStruct = static_cast<Struct&>(struct_[kb.ids.value]);
-            auto& compiledStruct = astStruct.compile(state);
+            Struct& astStruct = static_cast<Struct&>(struct_[kb.ids.value]);
+            auto& compiledStruct   = astStruct.compile(state);
             compiledStructs.add(astStruct.getFullyQualifiedName(), compiledStruct);
+        });
+    }
+    if (scope.has("enums")) {
+        Visitor::visitList(resolvedScope.items<Enum>()[kb.ids.list], [this, &state, &compiledStructs](CellI& enum_, int i, bool& stop) {
+            Enum& astEnum        = static_cast<Enum&>(enum_[kb.ids.value]);
+            auto& compiledStruct = astEnum.compile(state);
+            compiledStructs.add(astEnum.getFullyQualifiedName(), compiledStruct);
         });
     }
     if (scope.has("variables")) {
         Visitor::visitList(resolvedScope.items<Var>()[kb.ids.list], [this, &compiledVariables](CellI& var, int i, bool& stop) {
-            Ast::Var& astVar       = static_cast<Var&>(var[kb.ids.value]);
-            auto& varName    = astVar[kb.ids.name];
+            Var& astVar       = static_cast<Var&>(var[kb.ids.value]);
+            auto& varName          = astVar.getFullyQualifiedName();
             auto& compiledVariable = *new Object(kb, kb.std.op.Var, std::format("var {}", astVar.label()));
             compiledVariables.add(varName, compiledVariable);
         });
     }
     if (scope.has("scopes")) {
         Visitor::visitList(items<Scope>()[kb.ids.list], [this, &programData, &state, &resolvedScope](CellI& scope, int i, bool& stop) {
-            Ast::Scope& astScope = static_cast<Scope&>(scope[kb.ids.value]);
+            Scope& astScope = static_cast<Scope&>(scope[kb.ids.value]);
             state.set("scope", astScope);
             state.set("resolvedScope", resolvedScope.getItem<Scope>(astScope[kb.ids.name]));
             astScope.compileTheResolvedAsts(programData, state);
@@ -1237,16 +1259,17 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     }
 
     auto& fullyQualifiedName = getFullyQualifiedName();
-    CellI* resolvedStructPtr = nullptr;
+    CellI* compiledStructPtr = nullptr;
     if (unknownStructs.hasKey(fullyQualifiedName)) {
         CellI& unknownStruct = unknownStructs.getValue(fullyQualifiedName);
-        resolvedStructPtr    = &unknownStruct["value"];
+        compiledStructPtr    = &unknownStruct["value"];
         unknownStructs.remove(fullyQualifiedName);
     } else {
-        resolvedStructPtr = new Object(kb, kb.std.Struct, std::format("{}", fullyQualifiedName.label()));
+        compiledStructPtr = new Object(kb, kb.std.Struct, std::format("{}", fullyQualifiedName.label()));
     }
-    auto& resolvedStruct = *resolvedStructPtr;
-    structs.add(getFullyQualifiedName(), resolvedStruct);
+    auto& compiledStruct = *compiledStructPtr;
+    structs.add(getFullyQualifiedName(), compiledStruct);
+    ret.set("compiledStruct", compiledStruct);
 
     state.set("currentStruct", ret);
 
@@ -1716,6 +1739,12 @@ Ast::EnumValue::EnumValue(brain::Brain& kb, const std::string& name, CellI& valu
     label(name);
 }
 
+
+CellI& Ast::EnumValue::getFullyQualifiedName()
+{
+    return getFullyQualifiedNameImpl();
+}
+
 Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& enumType) :
     BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, nameStr)
 {
@@ -1739,6 +1768,11 @@ Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr
     set("value", value);
     set("enumType", enumType);
     label(nameStr);
+}
+
+CellI& Ast::TypedEnumValue::getFullyQualifiedName()
+{
+    return getFullyQualifiedNameImpl();
 }
 
 Ast::Enum::Enum(brain::Brain& kb, CellI& name) :
@@ -1816,10 +1850,10 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
         }
     }
 #endif
-    // resolve members
+    // resolve values
     if (has("values")) {
-        CellI& membersList = values()[kb.ids.list];
-        Visitor::visitList(membersList, [this, &ret, &state](CellI& kvPair, int i, bool& stop) {
+        CellI& valuesList = values()[kb.ids.list];
+        Visitor::visitList(valuesList, [this, &ret, &state](CellI& kvPair, int i, bool& stop) {
             CellI& valueCell = kvPair[kb.ids.value];
             CellI& valueName = valueCell[kb.ids.name];
             if (valueCell.has("enumType")) {
@@ -1858,7 +1892,10 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
 CellI& Ast::Enum::compile(CellI& state)
 {
     CellI& compiledStruct = getResolvedTypeById(getFullyQualifiedName(), has("instanceOf"), state);
+    auto& compiledVariables = static_cast<TrieMap&>(state[kb.ids.variables]);
+
     compiledStruct.erase("incomplete");
+    compiledStruct.set("enum", kb.boolean.true_);
     // std::cout << std::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
 
 #if 0
@@ -1871,29 +1908,38 @@ CellI& Ast::Enum::compile(CellI& state)
         });
         compiledStruct.set("methods", compiledMethods);
     }
+#endif
 
-    // compile members
-    if (has("members")) {
+    // compile values
+    if (has("values")) {
         Map& compiledMembers = *new Map(kb, kb.std.Cell, kb.std.Slot, "members Map<Cell, Slot>(...)");
-        Visitor::visitList(members()[kb.ids.list], [this, &compiledMembers, &compiledStruct, &state](CellI& slot, int i, bool& stop) {
-            CellI& slotRole        = slot[kb.ids.slotRole];
-            CellI& slotType        = slot[kb.ids.slotType];
-            auto& compiledSlotType = getCompiledTypeFromResolvedType(slotType);
-            compiledMembers.add(slotRole, kb.std.slot(slotRole, compiledSlotType));
+        Visitor::visitList(values()[kb.ids.list], [this, &state, &compiledMembers, &compiledVariables, &compiledStruct](CellI& kvPair, int i, bool& stop) {
+            CellI& valueKey  = kvPair[kb.ids.key];
+            CellI& valueCell = kvPair[kb.ids.value];
+            CellI& valueName = valueCell[kb.ids.name];
+            if (&valueCell.struct_() == &kb.std.ast.EnumValue) {
+                auto& enumValue        = static_cast<EnumValue&>(valueCell);
+                auto& fullName         = enumValue.getFullyQualifiedName();
+                auto& compiledVariable = *new Object(kb, kb.std.op.Var, std::format("{}::{}", label(), enumValue.label()));
+                if (valueCell.has(kb.ids.value)) {
+                    auto& value         = enumValue[kb.ids.value];
+                    auto& resolvedValue = resolveEnumValue(value);
+                    auto& valueType     = resolvedValue.struct_();
+                    compiledMembers.add(valueKey, valueType);
+                } else {
+                    compiledVariables.add(fullName, compiledVariable);
+                    compiledMembers.add(valueKey, compiledStruct);
+                }
+            } else if (&valueCell.struct_() == &kb.std.ast.TypedEnumValue) {
+                auto& enumValue             = static_cast<TypedEnumValue&>(valueCell);
+                auto& enumValueType         = valueCell["enumType"];
+                auto& compiledEnumValueType = getCompiledTypeFromResolvedType(enumValueType);
+                auto& fullName              = enumValue.getFullyQualifiedName();
+                compiledMembers.add(valueKey, compiledEnumValueType);
+            }
         });
         compiledStruct.set("slots", compiledMembers);
     }
-
-    // compile memberOf list
-    if (has("memberOf")) {
-        Map& compiledMemberOfs = *new Map(kb, kb.std.Struct, kb.std.Struct, "memberOf Map<Type, Type>(...)");
-        Visitor::visitList(memberOf(), [this, &compiledMemberOfs](CellI& membershipType, int i, bool& stop) {
-            auto& compiledMembershipType = getCompiledTypeFromResolvedType(membershipType);
-            compiledMemberOfs.add(compiledMembershipType, compiledMembershipType);
-        });
-        compiledStruct.set("memberOf", compiledMemberOfs);
-    }
-#endif
 
     return compiledStruct;
 }
@@ -1904,6 +1950,7 @@ Ast::Enum& Ast::Enum::values(Base& value)
         set("values", *new Map(kb, kb.std.Cell, kb.std.ast.Base));
     }
     values().add(value["name"], value);
+    value.set("enum", *this);
 
     return *this;
 }
@@ -2163,6 +2210,11 @@ CellI& Ast::Function::compile(CellI& state)
     functionType.set("memberOf", kb.map(kb.std.Struct, kb.std.Struct, kb.std.op.Function, kb.std.op.Function));
     cells::Map& subTypesMap = kb.map(kb.std.Cell, kb.std.Struct,
                                      kb.ids.name, get("name"));
+    if (has("structType")) {
+        Struct& currentStruct = static_cast<Struct&>(state[kb.ids.currentStruct]);
+        auto& structType = get("structType");
+        subTypesMap.add(kb.ids.objectType, structType["compiledStruct"]);
+    }
     functionType.set("subTypes", subTypesMap);
 
     CellI* map = &kb.slots(
@@ -2208,40 +2260,9 @@ std::string Ast::Function::shortName()
     }
 }
 
-CellI& Ast::Function::getFullId()
+CellI& Ast::Function::getFullyQualifiedName()
 {
-    if (has("fullyQualifiedName")) {
-        return get("fullyQualifiedName");
-    }
-
-    List& fullyQualifiedName = *new List(kb, kb.std.Cell);
-    if (has("structType")) {
-        Struct& structType = static_cast<Struct&>(get("structType"));
-        Visitor::visitList(structType.getFullyQualifiedName(), [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
-            fullyQualifiedName.add(character);
-        });
-    } else {
-        Scope& scope                   = static_cast<Scope&>(get("scope"));
-        CellI& scopeFullyQualifiedName = scope.getFullyQualifiedName();
-
-        Visitor::visitList(scopeFullyQualifiedName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
-            fullyQualifiedName.add(character);
-        });
-    }
-    if (!fullyQualifiedName.empty()) {
-        fullyQualifiedName.add(kb.pools.chars.get(':'));
-        fullyQualifiedName.add(kb.pools.chars.get(':'));
-    }
-    Visitor::visitList(get(kb.ids.name), [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
-        fullyQualifiedName.add(character);
-    });
-    std::stringstream ss;
-    Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss](CellI& character, int i, bool& stop) {
-        ss << character.label();
-    });
-    fullyQualifiedName.label(ss.str());
-
-    return fullyQualifiedName;
+    return getFullyQualifiedNameImpl();
 }
 
 void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesMap, CellI& state)
@@ -2983,6 +3004,11 @@ Ast::Var::Var(brain::Brain& kb, CellI& name) :
     BaseT<Var>(kb, kb.std.ast.Var, name.label())
 {
     set("name", name);
+}
+
+CellI& Ast::Var::getFullyQualifiedName()
+{
+    return getFullyQualifiedNameImpl();
 }
 
 Ast::Set& Ast::Var::operator=(Base& value)
@@ -5427,6 +5453,18 @@ void Brain::createArcSolver()
                   member("challenge", _(std.Picture)),
                   member("solution", _(std.Picture)));
 
+    arcScope.add<Enum>("RotationDir")
+        .values(
+            ev_("Degree_0"),   // 🡩
+            ev_("Degree_45,"), // 🡭
+            ev_("Degree_90,"), // 🡪
+            ev_("Degree_135"), // 🡮
+            ev_("Degree_180"), // 🡫
+            ev_("Degree_225"), // 🡯
+            ev_("Degree_270"), // 🡨
+            ev_("Degree_315")  // 🡬
+        );
+
     auto& colorStruct
         = arcScope.add<Struct>("Color")
               .members(
@@ -5463,6 +5501,15 @@ void Brain::createArcSolver()
         .code(
             m_("x") = p_("x"),
             m_("y") = p_("y"));
+
+    // Vector rotate(RotationDir rotationDir) const;
+    vectorStruct.addMethod("rotate")
+        .parameters(
+            param("rotationDir", struct_("RotationDir")))
+        .returnType(struct_("Vector"))
+        .code(
+            var_("ret") = ast.new_("Vector", "constructor", param("x", m_("x")), param("y", m_("y"))),
+            ast.return_(*var_("ret")));
 
     // struct VectorShape
     auto& vectorShapeStruct
