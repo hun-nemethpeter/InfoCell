@@ -179,6 +179,7 @@ public:
     Object If;
     Object LessThan;
     Object LessThanOrEqual;
+    Object Match;
     Object Member;
     Object Missing;
     Object Multiply;
@@ -806,18 +807,32 @@ public:
     class If : public BaseT<If>
     {
     public:
+        If(brain::Brain& kb, Base& condition);
         If(brain::Brain& kb, Base& condition, Base& thenBranch);
         If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch);
+
+        If& then_(Base& thenBranch);
+        If& else_(Base& elseBranch);
+    };
+    class Match : public BaseT<Match>
+    {
+    public:
+        Match(brain::Brain& kb, Base& enum_);
+
+        Match& case_(const std::string& memberStr, Base& op);
+        Match& default_(Base& value);
     };
     class Do : public BaseT<Do>
     {
     public:
-        Do(brain::Brain& kb, Base& statement, Base& condition);
+        Do(brain::Brain& kb, Base& statement);
+        Do& while_(Base& condition);
     };
     class While : public BaseT<While>
     {
     public:
-        While(brain::Brain& kb, Base& condition, Base& statement);
+        While(brain::Brain& kb, Base& condition);
+        While& do_(Base& statement);
     };
     class Var : public BaseT<Var>
     {
@@ -1027,10 +1042,11 @@ public:
     Set& set(Base& cell, const std::string& role, Base& value);
     Erase& erase(Base& cell, Base& role);
     Erase& erase(Base& cell, const std::string& role);
+    If& if_(Base& condition);
     If& if_(Base& condition, Base& thenBranch);
-    If& if_(Base& condition, Base& thenBranch, Base& elseBranch);
-    Do& do_(Base& condition, Base& statement);
-    While& while_(Base& condition, Base& statement);
+    Match& match_(Base& enum_);
+    Do& do_(Base& condition);
+    While& while_(Base& condition);
     Var& var(CellI& name);
     Var& var(const std::string& nameStr);
     Member& member(CellI& role);
