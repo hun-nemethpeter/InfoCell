@@ -5257,11 +5257,11 @@ void Brain::createStd()
                         .then_(ast.set(*var_("currentNode"), "children", ast.new_("Index", "constructor"))),
                     var_("childrenIndex") = *var_("currentNode") / "children",
                     ast.if_(ast.has(*var_("childrenIndex"), *var_("keyItemObj")))
-                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyItemObj")),
-                    ast.block(
-                        var_("child") = ast.new_(_(std.TrieMapNode)),
-                        ast.set(*var_("child"), "parent", *var_("currentNode")),
-                        ast.call(*var_("childrenIndex"), "insert", param("key", *var_("keyItemObj")), param("value", *var_("child")))),
+                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyItemObj"))
+                        .else_(ast.block(
+                            var_("child") = ast.new_(_(std.TrieMapNode)),
+                            ast.set(*var_("child"), "parent", *var_("currentNode")),
+                            ast.call(*var_("childrenIndex"), "insert", param("key", *var_("keyItemObj")), param("value", *var_("child"))))),
                     var_("currentNode") = *var_("child"),
                     ast.if_(ast.has(*var_("keyItem"), "next"))
                         .then_(var_("keyItem") = *var_("keyItem") / "next")
