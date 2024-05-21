@@ -1043,7 +1043,6 @@ public:
     Erase& erase(Base& cell, Base& role);
     Erase& erase(Base& cell, const std::string& role);
     If& if_(Base& condition);
-    If& if_(Base& condition, Base& thenBranch);
     Match& match_(Base& enum_);
     Do& do_(Base& condition);
     While& while_(Base& condition);
