@@ -38,12 +38,14 @@ struct Add
 } // namespace ns_level2
 } // namespace ns_level1
 
+#include <fmt/core.h>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/screen/screen.hpp>
 #include <nlohmann/json.hpp>
 
+#include "Config.h"
 #include "app/App.h"
 #include "Cells.h"
 #include "SVGPrinter.h"
@@ -69,8 +71,8 @@ public:
 
     ~PrintAs()
     {
-        m_svgPrinter.writeFile(std::format("E:\\Devel\\ARC\\synth\\svgv-{}.svg", m_postfix));
-        m_svgStructPrinter.writeFile(std::format("E:\\Devel\\ARC\\synth\\svgs-{}.svg", m_postfix));
+        m_svgPrinter.writeFile(fmt::format("svgv-{}.svg", m_postfix));
+        m_svgStructPrinter.writeFile(fmt::format("svgs-{}.svg", m_postfix));
     }
 
     void value(CellI& cell, const std::string& label = "")
@@ -1215,7 +1217,7 @@ void Trie::printCb(Node* node)
 
 void print_search_new(Trie& trie, const std::string& word)
 {
-    std::cout << std::format("Searching for {}:", word);
+    std::cout << fmt::format("Searching for {}:", word);
     if (trie.search(word) == 0)
         std::cout << "Not Found\n";
     else
@@ -1470,7 +1472,7 @@ TEST_F(CellTest, ShaperTest)
     const auto& printPixels = [this](CellI& pixelList) -> std::string {
         std::stringstream ss;
         Visitor::visitList(pixelList, [this, &ss](CellI& arcPixel, int, bool&) {
-            ss << std::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
+            ss << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
         });
 
         return ss.str();
@@ -1551,7 +1553,7 @@ TEST_F(CellTest, ShaperTest)
 TEST_F(CellTest, ArcTaskTest)
 {
     auto& shaperStruct                   = getStruct("arc::Shaper");
-    static const std::string arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\training\\007bbfb7.json";
+    static const std::string arcFilePath = SYNTH_arcFilePath "007bbfb7.json";
     auto jsonTask                        = json::parse(std::ifstream(arcFilePath));
     auto document                        = renderJsonBoard(jsonTask["/test/0/input"_json_pointer]);
     auto screen                          = ftxui::Screen::Create(

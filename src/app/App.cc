@@ -13,6 +13,7 @@
 #include "Scroller.h"
 #include "Solver.h"
 #include "tests/UnitTester.h"
+#include "Config.h"
 
 namespace fs = std::filesystem;
 using namespace nlohmann;
@@ -37,7 +38,7 @@ const std::array<ftxui::Color, 11> App::arcColors = {
 void App::init(int argc, char* argv[])
 {
     if (argc == 1) {
-        m_arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\training\\";
+        m_arcFilePath = SYNTH_arcFilePath;
         // m_arcFilePath = "E:\\Devel\\ARC\\ARC\\data\\evaluation\\";
         // m_arcFilePath = "E:\\Devel\\ARC\\pqa-dataset\\closure-filling\\";
         // m_arcFilePath = "E:\\Devel\\ARC\\pqa-dataset\\proximity-identification\\";

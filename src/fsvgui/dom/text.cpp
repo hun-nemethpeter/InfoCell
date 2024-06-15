@@ -5,6 +5,8 @@
 #include <vector>    // for vector
 
 #include <boost/algorithm/string/replace.hpp>
+#include <fmt/core.h>
+#include "Config.h"
 
 #include "text.h"
 #include "box.h"         // for Box
@@ -117,7 +119,7 @@ void Text::Render(Screen& screen)
     const int x = box_.x_min;
     const int y = box_.y_max;
     std::string text = m_text;
-    screen.addSvg(x, y, std::format("<text x=\"{}\" y=\"{}\" font-size=\"{}\" fill=\"rgb({}, {}, {})\">{}</text>", x, y, m_fontSize, m_fontColor.red_, m_fontColor.green_, m_fontColor.blue_, escape(text)));
+    screen.addSvg(x, y, fmt::format("<text x=\"{}\" y=\"{}\" font-size=\"{}\" fill=\"rgb({}, {}, {})\">{}</text>", x, y, m_fontSize, m_fontColor.red_, m_fontColor.green_, m_fontColor.blue_, escape(text)));
 }
 
 std::shared_ptr<Text> Text::fontSize(int size)
@@ -140,8 +142,8 @@ std::shared_ptr<Text> Text::fontColor(Color color)
 
 
 std::map<std::string, const std::string> Text::m_fontPaths = {
-    { "Arial", "C:\\Windows\\Fonts\\arial.ttf" },
-    { "Times New Roman", "C:\\Windows\\Fonts\\times.ttf" }
+    { "Arial", SYNTH_TTF_FONT_PATH "arial.ttf" },
+    { "Times New Roman", SYNTH_TTF_FONT_PATH "times.ttf" }
 };
 
 class VText : public Node

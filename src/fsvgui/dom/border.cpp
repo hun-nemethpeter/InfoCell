@@ -1,6 +1,6 @@
 #include <algorithm> // for max
 #include <array>     // for array
-#include <format>
+#include <fmt/core.h>
 #include <memory>    // for allocator, make_shared, __shared_ptr_access
 #include <string>    // for basic_string, string
 #include <utility>   // for move
@@ -66,7 +66,7 @@ public:
 
         const int x      = box_.x_min;
         const int y      = box_.y_min;
-        screen.addSvg(x, y, std::format("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" style=\"fill:none;stroke-width:1;stroke:rgb(0, 0, 0)\" />", x, y, box_.width(), box_.height()));
+        screen.addSvg(x, y, fmt::format("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" style=\"fill:none;stroke-width:1;stroke:rgb(0, 0, 0)\" />", x, y, box_.width(), box_.height()));
 
         // Draw title.
         if (children_.size() == 2) {
@@ -128,7 +128,7 @@ private:
         }
         const int x = box_.x_min;
         const int y = box_.y_min;
-        screen.addSvg(x, y, std::format("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" style=\"fill:none;stroke-width:1;stroke:rgb(0, 0, 0)\" />", x, y, box_.width(), box_.height()));
+        screen.addSvg(x, y, fmt::format("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" style=\"fill:none;stroke-width:1;stroke:rgb(0, 0, 0)\" />", x, y, box_.width(), box_.height()));
     }
 };
 

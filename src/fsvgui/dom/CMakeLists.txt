@@ -50,5 +50,6 @@ target_link_libraries(fsvguilib
 	PRIVATE
         Freetype::Freetype
         boost::boost
-
+        fmt::fmt
+        config
 )

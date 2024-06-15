@@ -1,0 +1,2 @@
+#define SYNTH_arcFilePath "${SYNTH_ARC_TRAINING_PATH}"
+#define SYNTH_TTF_FONT_PATH "${SYNTH_TTF_FONT_PATH}"

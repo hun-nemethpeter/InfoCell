@@ -1,7 +1,7 @@
 #include "Cells.h"
 #include "Brain.h"
 
-#include <format>
+#include <fmt/core.h>
 #include <sstream>
 #include <utility>
 
@@ -843,7 +843,7 @@ void Object::initLocalVars(CellI& method)
     stackFrame.set(kb.ids.localVars, localVarsIndex);
     Visitor::visitList(localVarsType[kb.ids.slots][kb.ids.list], [this, &localVarsIndex](CellI& slot, int i, bool&) {
         auto& slotRole   = slot[kb.ids.slotRole];
-        Object& localVar = *new Object(kb, kb.std.op.Var, std::format("var {}", slotRole.label()));
+        Object& localVar = *new Object(kb, kb.std.op.Var, fmt::format("var {}", slotRole.label()));
         localVar.set(kb.ids.valueType, slot[kb.ids.slotType]);
         localVarsIndex.set(slotRole, localVar);
     });

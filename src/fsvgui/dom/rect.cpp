@@ -1,4 +1,4 @@
-#include <format>    // for make_shared
+#include <fmt/core.h>
 #include <memory>    // for make_shared
 #include <string>    // for string, wstring
 
@@ -23,7 +23,7 @@ void Rect::Render(Screen& screen)
 {
     const int x = box_.x_min;
     const int y = box_.y_min;
-    screen.addSvg(x, y, std::format("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" style=\"fill:rgb({}, {}, {})\" />", x, y, m_width, m_height, m_color.red_, m_color.green_, m_color.blue_));
+    screen.addSvg(x, y, fmt::format("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" style=\"fill:rgb({}, {}, {})\" />", x, y, m_width, m_height, m_color.red_, m_color.green_, m_color.blue_));
 }
 
 TNode<Rect> Rect::color(Color color)

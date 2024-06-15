@@ -6,9 +6,9 @@ add_library(util STATIC
     LogMessage.h
 )
 
-
 target_link_libraries(util
 	PUBLIC
 		nlohmann_json::nlohmann_json
+        applib
         cellslib
 )

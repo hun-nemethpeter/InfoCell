@@ -1,6 +1,5 @@
 #include "SVGPrinter.h"
 
-#include <format>
 #include <iostream>
 
 #include "fsvgui/dom/elements.h"

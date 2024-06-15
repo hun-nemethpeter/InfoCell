@@ -1,4 +1,4 @@
-#include <format>
+#include <fmt/core.h>
 #include <memory>  // for make_shared
 #include <utility> // for move
 
@@ -21,7 +21,7 @@ public:
     {
         const int x = box_.x_min;
         const int y = box_.y_min;
-        screen.addSvg(x, y, std::format("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" style=\"fill:rgb(255, 255, 255)\" />\n", x, y, box_.width(), box_.height()));
+        screen.addSvg(x, y, fmt::format("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" style=\"fill:rgb(255, 255, 255)\" />\n", x, y, box_.width(), box_.height()));
         Node::Render(screen);
     }
 };

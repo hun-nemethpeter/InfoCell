@@ -23,7 +23,9 @@ target_link_libraries(applib
 	PUBLIC
 		nlohmann_json::nlohmann_json
         ftxui::ftxui
+        fmt::fmt
 	PRIVATE
+        config
 		utf8cpp
         cellslib
         tests

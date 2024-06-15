@@ -1,6 +1,6 @@
 #include "SVGStructPrinter.h"
 
-#include <format>
+#include <fmt/core.h>
 #include <iostream>
 
 #include "fsvgui/dom/elements.h"
@@ -105,13 +105,13 @@ void StructPrinter::printStruct(CellI& cell)
         cellLabel += ")";
     }
     cellLabel += " ";
-    cellLabel += std::format("{}", (void*)&cell);
+    cellLabel += fmt::format("{}", (void*)&cell);
     Element svgTypeName   = text(cellLabel)->fontSize(16)->fontColor(cellTypeColor);
     lines.push_back({ flexbox({ text("type")->fontSize(14)->fontColor(roleColor) }, flexConfig),
                       filler() | size(WIDTH, EQUAL, 10),
                       text(type.label())->fontSize(14)->fontColor(typeColor),
                       filler() | size(WIDTH, EQUAL, 10),
-                      text(std::format("{}", (void*)&cell[kb.ids.struct_]))->fontSize(14)->fontColor(typeColor) });
+                      text(fmt::format("{}", (void*)&cell[kb.ids.struct_]))->fontSize(14)->fontColor(typeColor) });
 
     if (type.has(kb.ids.slots)) {
         CellI& slotList = type[kb.ids.slots][kb.ids.list];
@@ -123,14 +123,14 @@ void StructPrinter::printStruct(CellI& cell)
 
             CellI& slotType                = slot[kb.ids.slotType];
             CellI& connectedCell           = cell[role];
-            std::string connectedCellLabel = connectedCell.label().empty() ? std::format("A {}", connectedCell.struct_().label()) : connectedCell.label();
+            std::string connectedCellLabel = connectedCell.label().empty() ? fmt::format("A {}", connectedCell.struct_().label()) : connectedCell.label();
 
             lines.push_back({ filler() | size(HEIGHT, EQUAL, 2), filler() | size(WIDTH, EQUAL, 10), filler() | size(HEIGHT, EQUAL, 2) });
             lines.push_back({ flexbox({ text(role.label())->fontSize(14)->fontColor(roleColor) }, flexConfig),
                               filler() | size(WIDTH, EQUAL, 10),
                               text(connectedCellLabel)->fontSize(14)->fontColor(typeColor),
                               filler() | size(WIDTH, EQUAL, 10),
-                              text(std::format("{}", (void*)&cell[role]))->fontSize(14)->fontColor(typeColor) });
+                              text(fmt::format("{}", (void*)&cell[role]))->fontSize(14)->fontColor(typeColor) });
         });
     }
     m_stack.push(vbox(svgTypeName | center,

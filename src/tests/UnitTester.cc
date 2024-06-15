@@ -18,6 +18,9 @@ UnitTester::UnitTester(Logger& logger) :
 
 struct TestCase
 {
+    TestCase(const std::string& name, std::function<void()> testFn) :
+        name(name), test(testFn) { }
+
     std::string name;
     std::function<void()> test;
 };

@@ -1,4 +1,4 @@
-#include <format>
+#include <fmt/core.h>
 
 #include "ValuePrinter.h"
 #include "Brain.h"
@@ -168,9 +168,9 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     std::string newLabel;
 
     if (hasReturnValue) {
-        newLabel = std::format("fn {}{}({}) -> {}\n", staticStr, label, iss.str(), oss.str());
+        newLabel = fmt::format("fn {}{}({}) -> {}\n", staticStr, label, iss.str(), oss.str());
     } else {
-        newLabel = std::format("fn {}{}({})\n", staticStr, label, iss.str());
+        newLabel = fmt::format("fn {}{}({})\n", staticStr, label, iss.str());
     }
     m_ss << newLabel;
 
@@ -537,21 +537,21 @@ void CellValuePrinter::printTypeName(CellI& cell)
     brain::Brain& kb = cell.kb;
     auto isA          = [this, &cell, &kb](CellI& type) -> bool { return &cell == &type || (cell.has(kb.ids.memberOf) && cell[kb.ids.memberOf][kb.ids.index].has(type)); };
     if (isA(kb.std.Map)) {
-        m_ss << std::format("Map<{}, {}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label(), cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
+        m_ss << fmt::format("Map<{}, {}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label(), cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
         return;
     } else if (isA(kb.std.ListItem)) {
         if (&cell == &kb.std.ListItem) {
             m_ss << "ListItem";
             return;
         }
-        m_ss << std::format("ListItem<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
+        m_ss << fmt::format("ListItem<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
         return;
     } else if (isA(kb.std.List)) {
         if (&cell == &kb.std.List) {
             m_ss << "List";
             return;
         }
-        m_ss << std::format("List<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
+        m_ss << fmt::format("List<{}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
         return;
     }
     m_ss << cell.label();

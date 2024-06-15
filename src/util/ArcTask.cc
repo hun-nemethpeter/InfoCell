@@ -2,7 +2,7 @@
 
 #include "app/Picture.h"
 #include <array>
-#include <format>
+#include <fmt/core.h>
 
 using namespace nlohmann;
 using namespace synth::input;
@@ -24,8 +24,8 @@ static const std::array<Color, 10> cellColors = {
 
 ArcDemonstration::ArcDemonstration(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
     m_number(number),
-    m_inputPicture(std::format("Train input {}", number)),
-    m_outputPicture(std::format("Train output {}", number)),
+    m_inputPicture(fmt::format("Train input {}", number)),
+    m_outputPicture(fmt::format("Train output {}", number)),
     m_input(kb, m_inputPicture.loadFromJsonArray(input)),
     m_output(kb, m_outputPicture.loadFromJsonArray(output))
 {

@@ -5,6 +5,7 @@ ftxui/5.0.0
 boost/1.84.0
 freetype/2.13.2
 gtest/1.14.0
+fmt/10.2.1
 
 [generators]
 CMakeDeps

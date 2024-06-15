@@ -1,7 +1,6 @@
 ﻿#include "Brain.h"
 
 #include <boost/algorithm/string/regex.hpp>
-#include <format>
 #include <sstream>
 
 namespace synth {
@@ -365,7 +364,7 @@ CellI& Ast::Base::getFullyQualifiedNameImpl()
             if (i != 0) {
                 ss << ", ";
             }
-            ss << std::format("{}={}", slotRole.label(), getCompiledTypeFromResolvedType(slotType).label());
+            ss << fmt::format("{}={}", slotRole.label(), getCompiledTypeFromResolvedType(slotType).label());
         });
         ss << ">";
     }
@@ -432,7 +431,7 @@ CellI& Ast::Base::resolveTemplateInstanceId(CellI& structId, CellI& idScope, Cel
         if (ast.has("scopes")) {
             structReference.set(kb.name("idScope"), idScope);
         }
-        auto& unresolvedStruct = *new Object(kb, kb.std.Struct, std::format("{}", structId.label()));
+        auto& unresolvedStruct = *new Object(kb, kb.std.Struct, fmt::format("{}", structId.label()));
         unresolvedStruct.set("incomplete", kb.boolean.true_);
 
         return unresolvedStruct;
@@ -463,7 +462,7 @@ Ast::Struct& Ast::Base::resolveTemplateInstanceIdAsAst(CellI& structId, CellI& i
 CellI& Ast::Base::resolveStructName(CellI& structId, CellI& resolveState)
 {
     return resolveId(structId, kb.ids.structs, kb.ids.unknownStructs, resolveState, [this, &structId](CellI& structReference) -> CellI& {
-        auto& unresolvedStruct = *new Object(kb, kb.std.Struct, std::format("{}", structId.label()));
+        auto& unresolvedStruct = *new Object(kb, kb.std.Struct, fmt::format("{}", structId.label()));
         unresolvedStruct.set("incomplete", kb.boolean.true_);
 
         return unresolvedStruct;
@@ -497,15 +496,15 @@ Ast::Base& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
     }
     auto& scope = *scopePtr;
     if (!scope.hasItem<StructT>(templateId)) {
-        std::cerr << std::format("Unknown template {}", templateId.label()) << std::endl;
-        std::cerr << std::format("Current scope: {}", scope.label()) << std::endl;
+        std::cerr << fmt::format("Unknown template {}", templateId.label()) << std::endl;
+        std::cerr << fmt::format("Current scope: {}", scope.label()) << std::endl;
         if (resolveState.has("currentStruct")) {
-            std::cerr << std::format("Current struct: {}", resolveState[kb.ids.currentStruct].label()) << std::endl;
+            std::cerr << fmt::format("Current struct: {}", resolveState[kb.ids.currentStruct].label()) << std::endl;
         }
         if (resolveState.has("currentFn")) {
-            std::cerr << std::format("Current function: {}", resolveState[kb.ids.currentFn].label()) << std::endl;
+            std::cerr << fmt::format("Current function: {}", resolveState[kb.ids.currentFn].label()) << std::endl;
         }
-        throw std::format("Unknown template {}", templateId.label());
+        throw fmt::format("Unknown template {}", templateId.label());
     }
 
     List& resolvedTemplateParams   = *new List(kb, kb.std.Cell, "resolvedTemplateParams");
@@ -515,7 +514,7 @@ Ast::Base& Ast::Base::resolveTemplatedType(CellI& ast, CellI& resolveState)
     resolvedAstInstance.set("templateParams", resolvedTemplateParams);
     auto& resolvedCompiledInstance = resolveTemplateInstanceId(resolvedAstInstance.getFullyQualifiedName(), scope, resolveState, ast, resolvedTemplateParams);
 
-    // std::cout << std::format("DDDD {} resolved at {:p}\n", idCell.label(), (void*)&resolvedCompiledInstance) << std::endl;
+    // std::cout << fmt::format("DDDD {} resolved at {:p}\n", idCell.label(), (void*)&resolvedCompiledInstance) << std::endl;
 
     return resolvedType(resolvedAstInstance, resolvedCompiledInstance);
 }
@@ -542,7 +541,7 @@ List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters, CellI& resolve
         idCell.add(slotRole);
         idCell.add(compiledSlotType);
         resolvedParams.add(kb.ast.slot(slotRole, resolvedSlotType));
-        ss << std::format("{}={}", slotRole.label(), compiledSlotType.label());
+        ss << fmt::format("{}={}", slotRole.label(), compiledSlotType.label());
     });
     ss << ">";
     idCell.label(ss.str());
@@ -990,15 +989,15 @@ CellI& Ast::Scope::compile(TrieMap& earlyStructs)
         auto& scope           = static_cast<Scope&>(unknownInstance[kb.ids.scope]);
         auto& idScope         = unknownInstance.has(kb.name("idScope")) ? static_cast<Scope&>(unknownInstance[kb.name("idScope")]) : scope;
 
-        ss << std::format("        in scope: {}\n", idScope.getFullyQualifiedName().label());
-        ss << std::format("  instantiate id: {}<", templateId.label());
+        ss << fmt::format("        in scope: {}\n", idScope.getFullyQualifiedName().label());
+        ss << fmt::format("  instantiate id: {}<", templateId.label());
         Visitor::visitList(templateParams, [this, &ss, &compileState](CellI& param, int i, bool& stop) {
             CellI& paramId   = param[kb.ids.slotRole];
             CellI& paramType = param[kb.ids.slotType];
             if (i > 0) {
                 ss << ", ";
             }
-            ss << std::format("{}: {}", paramId.label(), getCompiledTypeFromResolvedType(paramType).label());
+            ss << fmt::format("{}: {}", paramId.label(), getCompiledTypeFromResolvedType(paramType).label());
         });
         ss << ">";
         if (debugCompiledStructs) {
@@ -1058,7 +1057,7 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
         Visitor::visitList(resolvedScope.items<Var>()[kb.ids.list], [this, &compiledVariables](CellI& var, int i, bool& stop) {
             Var& astVar       = static_cast<Var&>(var[kb.ids.value]);
             auto& varName          = astVar.getFullyQualifiedName();
-            auto& compiledVariable = *new Object(kb, kb.std.op.Var, std::format("var {}", astVar.label()));
+            auto& compiledVariable = *new Object(kb, kb.std.op.Var, fmt::format("var {}", astVar.label()));
             compiledVariables.add(varName, compiledVariable);
         });
     }
@@ -1266,7 +1265,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
         compiledStructPtr    = &unknownStruct["value"];
         unknownStructs.remove(fullyQualifiedName);
     } else {
-        compiledStructPtr = new Object(kb, kb.std.Struct, std::format("{}", fullyQualifiedName.label()));
+        compiledStructPtr = new Object(kb, kb.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
     }
     auto& compiledStruct = *compiledStructPtr;
     structs.add(getFullyQualifiedName(), compiledStruct);
@@ -1277,7 +1276,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     std::stringstream ss;
     std::stringstream subTypesSs;
     if (debugCompiledStructs) {
-        ss << std::format("struct {}", label());
+        ss << fmt::format("struct {}", label());
     }
 
     // resolve sub types
@@ -1288,7 +1287,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& resolvedSubTypeType = resolveType(subTypeType, state);
             ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
             if (debugCompiledStructs) {
-                subTypesSs << std::format("    alias {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()) << std::endl;
+                subTypesSs << fmt::format("    alias {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()) << std::endl;
             }
         });
         if (debugCompiledStructs) {
@@ -1322,7 +1321,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             auto& resolvedAstFunction = origAstFunction.resolveTypes(state);
             ret.addMethod(resolvedAstFunction);
             if (debugCompiledStructs) {
-                std::cout << std::format("    {};\n", resolvedAstFunction.shortName());
+                std::cout << fmt::format("    {};\n", resolvedAstFunction.shortName());
             }
         });
         if (debugCompiledStructs) {
@@ -1340,7 +1339,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& resolvedMemberType = resolveType(memberType, state);
             ret.members(kb.ast.slot(memberId, resolvedMemberType));
             if (debugCompiledStructs) {
-                std::cout << std::format("    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label()) << std::endl;
+                std::cout << fmt::format("    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label()) << std::endl;
             }
         });
     }
@@ -1356,7 +1355,7 @@ CellI& Ast::Struct::compile(CellI& state)
 {
     CellI& compiledStruct = getResolvedTypeById(getFullyQualifiedName(), has("instanceOf"), state);
     compiledStruct.erase("incomplete");
-    // std::cout << std::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
+    // std::cout << fmt::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
 
     // compile sub types
     if (has("subTypes")) {
@@ -1464,7 +1463,7 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
         idCell.add(slotRole);
         idCell.add(compiledSlotType);
     });
-    idCell.label(std::format("{}<{}>", name().label(), ss.str()));
+    idCell.label(fmt::format("{}<{}>", name().label(), ss.str()));
     Ast::Struct* retPtr = nullptr;
     auto& unknownInstanceAsts = static_cast<TrieMap&>(state["unknownInstanceAsts"]);
     if (unknownInstanceAsts.hasKey(idCell)) {
@@ -1817,7 +1816,7 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
         resolvedStructPtr    = &unknownStruct["value"];
         unknownStructs.remove(fullyQualifiedName);
     } else {
-        resolvedStructPtr = new Object(kb, kb.std.Struct, std::format("{}", fullyQualifiedName.label()));
+        resolvedStructPtr = new Object(kb, kb.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
     }
     auto& resolvedStruct = *resolvedStructPtr;
     structs.add(getFullyQualifiedName(), resolvedStruct);
@@ -1827,7 +1826,7 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
     std::stringstream ss;
     std::stringstream subTypesSs;
     if (debugCompiledStructs) {
-        ss << std::format("enum {}", label());
+        ss << fmt::format("enum {}", label());
     }
 
     if (debugCompiledStructs) {
@@ -1843,7 +1842,7 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
             auto& resolvedAstFunction = origAstFunction.resolveTypes(state);
             ret.addMethod(resolvedAstFunction);
             if (debugCompiledStructs) {
-                std::cout << std::format("    {};\n", resolvedAstFunction.shortName());
+                std::cout << fmt::format("    {};\n", resolvedAstFunction.shortName());
             }
         });
         if (debugCompiledStructs) {
@@ -1868,17 +1867,17 @@ Ast::Enum& Ast::Enum::resolveTypes(CellI& state)
                 }
                 ret.values(typedEnumValue);
                 if (debugCompiledStructs) {
-                    std::cout << std::format("    {}({})", valueName.label(), getCompiledTypeFromResolvedType(resolvedValueType).label());
+                    std::cout << fmt::format("    {}({})", valueName.label(), getCompiledTypeFromResolvedType(resolvedValueType).label());
                 }
             } else {
                 ret.values(static_cast<Base&>(valueCell));
                 if (debugCompiledStructs) {
-                    std::cout << std::format("    {}", valueName.label());
+                    std::cout << fmt::format("    {}", valueName.label());
                 }
             }
             if (debugCompiledStructs) {
                 if (valueCell.has(kb.ids.value)) {
-                    std::cout << std::format(" = {}", resolveEnumValue(valueCell[kb.ids.value]).label());
+                    std::cout << fmt::format(" = {}", resolveEnumValue(valueCell[kb.ids.value]).label());
                 }
                 std::cout << "," << std::endl;
             }
@@ -1899,7 +1898,7 @@ CellI& Ast::Enum::compile(CellI& state)
 
     compiledStruct.erase("incomplete");
     compiledStruct.set("enum", kb.boolean.true_);
-    // std::cout << std::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
+    // std::cout << fmt::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
 
 #if 0
     // compile methods
@@ -1929,7 +1928,7 @@ CellI& Ast::Enum::compile(CellI& state)
                     auto& valueType     = resolvedValue.struct_();
                     compiledMembers.add(valueKey, valueType);
                 } else {
-                    auto& compiledValue = *new Object(kb, compiledStruct, std::format("{}::{}", label(), enumValue.label()));
+                    auto& compiledValue = *new Object(kb, compiledStruct, fmt::format("{}::{}", label(), enumValue.label()));
                     compiledValue.set("tag", valueName);
                     compiledValue.set(valueName, kb.ids.emptyObject);
                     compiledVariables.add(fullName, compiledValue);
@@ -2027,9 +2026,9 @@ Ast::Function& Ast::Function::resolveTypes(CellI& state)
     if (has("structType")) {
         auto& structType = get("structType");
         ret.set("structType", structType);
-        ss << std::format(" {}::{}(", structType.label(), get("name").label());
+        ss << fmt::format(" {}::{}(", structType.label(), get("name").label());
     } else {
-        ss << std::format(" {}(", get("name").label());
+        ss << fmt::format(" {}(", get("name").label());
     }
 
     if (has("parameters")) {
@@ -2041,7 +2040,7 @@ Ast::Function& Ast::Function::resolveTypes(CellI& state)
             if (i > 0) {
                 ss << ", ";
             }
-            ss << std::format("{}: {}", paramId.label(), compiledParamType.label());
+            ss << fmt::format("{}: {}", paramId.label(), compiledParamType.label());
             ret.parameters(kb.ast.slot(paramId, resolvedParamType));
         });
     }
@@ -2241,7 +2240,7 @@ CellI& Ast::Function::compile(CellI& state)
 
     cells::Object& function = *new cells::Object(kb, functionType);
     compileParams(function, subTypesMap, state);
-    functionType.label(std::format("Type for {}", function.label()));
+    functionType.label(fmt::format("Type for {}", function.label()));
     function.set("ast", *this);
     function.set("op", compileAst(code(), function, state));
     if (has("static_")) {
@@ -2269,9 +2268,9 @@ std::string Ast::Function::shortName()
         oss << getCompiledTypeFromResolvedType(returnType()).label();
     }
     if (has("returnType")) {
-        return std::format("fn {}({}) -> {}", get("name").label(), iss.str(), oss.str());
+        return fmt::format("fn {}({}) -> {}", get("name").label(), iss.str(), oss.str());
     } else {
-        return std::format("fn {}({})", get("name").label(), iss.str());
+        return fmt::format("fn {}({})", get("name").label(), iss.str());
     }
 }
 
@@ -2293,7 +2292,7 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
             Object& var = *new Object(kb, kb.std.op.Var, "self");
             var.set("valueType", type);
             slots.add(kb.name("self"), kb.std.slot("self", type));
-            structTypeStr = std::format("{}::", type.label());
+            structTypeStr = fmt::format("{}::", type.label());
         }
         if (has("parameters")) {
             Visitor::visitList(parameters(), [this, &slots, &iss](CellI& slot, int i, bool& stop) {
@@ -2317,9 +2316,9 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
         subTypesMap.add(kb.name("returnType"), compiledReturnType);
     }
     if (has("returnType")) {
-        function.label(std::format("fn {}{}({}) -> {}", structTypeStr, get("name").label(), iss.str(), oss.str()));
+        function.label(fmt::format("fn {}{}({}) -> {}", structTypeStr, get("name").label(), iss.str(), oss.str()));
     } else {
-        function.label(std::format("fn {}{}({})", structTypeStr, get("name").label(), iss.str()));
+        function.label(fmt::format("fn {}{}({})", structTypeStr, get("name").label(), iss.str()));
     }
 }
 
@@ -2337,7 +2336,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         auto& compiledAsts = *new cells::List(kb, kb.std.op.Base);
         Object& opBlock    = *new Object(kb, kb.std.op.Block);
         state.set("lastBlock", opBlock);
-        Visitor::visitList(list, [this, &compile, &compiledAsts, &ast, &function](CellI& ast, int, bool&) {
+        Visitor::visitList(list, [this, &compile, &compiledAsts, &function](CellI& ast, int, bool&) {
             compiledAsts.add(compile(ast));
         });
         opBlock.set("ast", ast);
@@ -2411,7 +2410,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Var) {
         if (function.struct_()[kb.ids.subTypes][kb.ids.index].missing("localVars")) {
-            cells::Object& functionLocalVarsType = *new cells::Object(kb, kb.std.Struct, std::format("LocalVarsType of {}", function.label()));
+            cells::Object& functionLocalVarsType = *new cells::Object(kb, kb.std.Struct, fmt::format("LocalVarsType of {}", function.label()));
             functionLocalVarsType.set("memberOf", kb.map(kb.std.Struct, kb.std.Struct, kb.std.Index, kb.std.Index));
             static_cast<Map&>(function.struct_()[kb.ids.subTypes]).add(kb.name("localVars"), functionLocalVarsType);
         }
@@ -2715,7 +2714,7 @@ block {
                 compiledAsts.add(setParam);
             });
         }
-        CellI& evalMethod = *new Object(kb, kb.std.op.EvalVar, std::format("{}::Call {{ evalVar; }}", function.label()));
+        CellI& evalMethod = *new Object(kb, kb.std.op.EvalVar, fmt::format("{}::Call {{ evalVar; }}", function.label()));
         evalMethod.set("value", varMethod);
         compiledAsts.add(setStackNext);
         compiledAsts.add(setStackToNew);
@@ -2882,7 +2881,7 @@ void Ast::Function::checkMethodCall(CellI& astType, CellI& astMethodId, CellI& s
     }
     auto& methods = *methodsPtr;
     if (!methods.hasKey(astMethodId)) {
-        std::cerr << std::format("Method '{}' doesn't exist in type {}", astMethodId.label(), type.label()) << std::endl;
+        std::cerr << fmt::format("Method '{}' doesn't exist in type {}", astMethodId.label(), type.label()) << std::endl;
         throw "Method doesn't exist in type!";
     }
 }
@@ -3727,7 +3726,7 @@ void Chars::registerUnicodeBlock(char32_t from, char32_t to)
             characterName = " ";
             characterName[0] = unicodeValue;
         } else {
-            characterName = std::format("Unicode_{:#04x}", (int)unicodeValue);
+            characterName = fmt::format("Unicode_{:#04x}", (int)unicodeValue);
         }
         auto it = m_characters.emplace(std::piecewise_construct,
                              std::forward_as_tuple(unicodeValue),
@@ -6330,7 +6329,7 @@ CellI& Brain::reigisterStructBeforeCompilation(CellI& structAst)
 
             idCell.add(slotRole);
             idCell.add(compiledSlotType);
-            ss << std::format("{}={}", slotRole.label(), compiledSlotType.label());
+            ss << fmt::format("{}={}", slotRole.label(), compiledSlotType.label());
         });
         ss << ">";
         idCell.label(ss.str());
@@ -6345,7 +6344,7 @@ CellI& Brain::reigisterStructBeforeCompilation(CellI& structAst)
     if (earlyStructs.hasKey(structId)) {
         return earlyStructs.getValue(structId);
     } else {
-        auto& unresolvedStruct = *new Object(*this, std.Struct, std::format("{}", structId.label()));
+        auto& unresolvedStruct = *new Object(*this, std.Struct, fmt::format("{}", structId.label()));
         unresolvedStruct.set("incomplete", boolean.true_);
 
         earlyStructs.add(structId, std.slot(structAst, unresolvedStruct));

@@ -18,6 +18,7 @@ target_link_libraries(cellslib
         boost::boost
         Freetype::Freetype
         gtest::gtest
+        fmt::fmt
 )
 
 add_executable(celltest
@@ -33,6 +34,7 @@ add_executable(celltest
 )
 target_link_libraries(celltest
 PRIVATE
+    config
     cellslib
     applib
     fsvguilib

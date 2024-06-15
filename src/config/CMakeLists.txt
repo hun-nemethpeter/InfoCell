@@ -1,0 +1,12 @@
+file(TO_NATIVE_PATH "${SYNTH_ARC_TRAINING_PATH}" SYNTH_ARC_TRAINING_PATH)
+string(REPLACE "\\" "\\\\" SYNTH_ARC_TRAINING_PATH "${SYNTH_ARC_TRAINING_PATH}")
+
+file(TO_NATIVE_PATH "${SYNTH_TTF_FONT_PATH}" SYNTH_TTF_FONT_PATH)
+string(REPLACE "\\" "\\\\" SYNTH_TTF_FONT_PATH "${SYNTH_TTF_FONT_PATH}")
+
+configure_file(Config.in.h Config.h ESCAPE_QUOTES)
+
+add_library(config INTERFACE)
+target_include_directories(config INTERFACE
+    ${CMAKE_CURRENT_BINARY_DIR}
+)

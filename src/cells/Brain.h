@@ -1,5 +1,5 @@
 #pragma once
-#include <format>
+#include <fmt/core.h>
 #include "Cells.h"
 
 namespace synth {
@@ -270,8 +270,10 @@ public:
     }
 };
 
+#ifdef __cpp_concepts
 template <class T, class EnumValue, class TypedEnumValue>
 concept EnumValueConcept = std::is_same<T, EnumValue>::value || std::is_same<T, TypedEnumValue>::value;
+#endif
 
 class Ast
 {
@@ -430,70 +432,14 @@ public:
     class Items
     {
     public:
-        Items(brain::Brain& kb, const std::string& mapName, Base& parent) :
-            kb(kb),
-            m_mapName(mapName),
-            m_parent(parent)
-        {}
+        Items(brain::Brain& kb, const std::string& mapName, Base& parent);
 
-        bool has(CellI& id)
-        {
-            if (m_parent.missing(m_mapName)) {
-                return false;
-            }
-
-            return items().hasKey(id);
-        }
-
-        TAst& get(const std::string& nameStr)
-        {
-            return get(kb.name(nameStr));
-        }
-
-        TAst& get(CellI& name)
-        {
-            if (m_parent.missing(m_mapName)) {
-                throw "No such scope";
-            }
-
-            if (items().hasKey(name)) {
-                return static_cast<TAst&>(items().getValue(name));
-            }
-
-            throw "No such scope";
-        }
-
-        TAst& add(const std::string& nameStr)
-        {
-            TAst& ast = *new TAst(kb, nameStr);
-            add(ast);
-
-            return ast;
-        }
-
-        void add(TAst& obj)
-        {
-            CellI& name = obj[kb.ids.name];
-
-            if (m_parent.missing(m_mapName)) {
-                m_parent.set(m_mapName, *new TrieMap(kb, kb.std.Cell, kb.std.ast.Base, "TrieMap<Cell, Type::Ast::Base>(...)"));
-            }
-            if (items().hasKey(name)) {
-                throw "Already registered!";
-            }
-
-            items().add(name, obj);
-            obj.set("scope", m_parent);
-        }
-
-        MapType& items()
-        {
-            if (m_parent.missing(m_mapName)) {
-                throw std::format("No {}!", m_mapName);
-            } else {
-                return static_cast<TrieMap&>(m_parent.get(m_mapName));
-            }
-        }
+        bool has(CellI& id);
+        TAst& get(const std::string& nameStr);
+        TAst& get(CellI& name);
+        TAst& add(const std::string& nameStr);
+        void add(TAst& obj);
+        MapType& items();
 
         brain::Brain& kb;
         const std::string m_mapName;
@@ -507,37 +453,37 @@ public:
         template <typename TAst>
         bool hasItem(CellI& name)
         {
-            return derived().getItemMember<TAst>().has(name);
+            return derived().template getItemMember<TAst>().has(name);
         }
 
         template <typename TAst>
         TAst& getItem(const std::string& nameStr)
         {
-            return derived().getItemMember<TAst>().get(nameStr);
+            return derived().template getItemMember<TAst>().get(nameStr);
         }
 
         template <typename TAst>
         TAst& getItem(CellI& name)
         {
-            return derived().getItemMember<TAst>().get(name);
+            return derived().template getItemMember<TAst>().get(name);
         }
 
         template <typename TAst>
         TAst& add(const std::string& nameStr)
         {
-            return derived().getItemMember<TAst>().add(nameStr);
+            return derived().template getItemMember<TAst>().add(nameStr);
         }
 
         template <typename TAst>
         void add(TAst& scope)
         {
-            derived().getItemMember<TAst>().add(scope);
+            derived().template getItemMember<TAst>().add(scope);
         }
 
         template <typename TAst>
         TrieMap& items()
         {
-            return derived().getItemMember<TAst>().items();
+            return derived().template getItemMember<TAst>().items();
         }
 
     protected:
@@ -702,7 +648,9 @@ public:
 
         template <class T, class... Args>
         Enum& values(T& value, Args&&... args)
+#ifdef __cpp_concepts
             requires EnumValueConcept<T, EnumValue, TypedEnumValue>
+#endif
         {
             values(static_cast<Base&>(value));
             values(std::forward<Args>(args)...);
@@ -1189,6 +1137,7 @@ public:
     pools::Strings strings;
 };
 
+#ifdef __cpp_concepts
 template <typename T>
 concept is_string = std::is_convertible<T, std::string>::value or std::is_bounded_array_v<char[]>;
 
@@ -1197,7 +1146,7 @@ concept is_cell = std::is_base_of<T, CellI>::value;
 
 template <typename T>
 concept string_or_cell = is_string<T> or is_cell<T>;
-
+#endif
 
 class Brain
 {
@@ -1351,7 +1300,7 @@ List& Brain::list(CellI& value, Args&&... args)
 template <typename... Args>
 Map& Brain::map(CellI& key, CellI& value, Args&&... args)
 {
-    Map& ret = *new Map(*this, key.struct_(), value.struct_(), std::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
+    Map& ret = *new Map(*this, key.struct_(), value.struct_(), fmt::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
     }
@@ -1362,7 +1311,7 @@ Map& Brain::map(CellI& key, CellI& value, Args&&... args)
 template <typename... Args>
 Set& Brain::set(CellI& value, Args&&... args)
 {
-    Set& ret = *new Set(*this, value.struct_(), std::format("Map<{}, {}>(...)", value.struct_().label()));
+    Set& ret = *new Set(*this, value.struct_(), fmt::format("Map<{}, {}>(...)", value.struct_().label()));
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
     }
@@ -1472,6 +1421,80 @@ void Ast::Function::code(Args&&... args)
     addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
 }
 #pragma endregion
+
+template <class MapType, class TAst>
+Ast::Items<MapType, TAst>::Items(brain::Brain& kb, const std::string& mapName, Base& parent) :
+    kb(kb),
+    m_mapName(mapName),
+    m_parent(parent)
+{
+}
+
+template <class MapType, class TAst>
+bool Ast::Items<MapType, TAst>::has(CellI& id)
+{
+    if (m_parent.missing(m_mapName)) {
+        return false;
+    }
+
+    return items().hasKey(id);
+}
+
+template <class MapType, class TAst>
+TAst& Ast::Items<MapType, TAst>::get(const std::string& nameStr)
+{
+    return get(kb.name(nameStr));
+}
+
+template <class MapType, class TAst>
+TAst& Ast::Items<MapType, TAst>::get(CellI& name)
+{
+    if (m_parent.missing(m_mapName)) {
+        throw "No such scope";
+    }
+
+    if (items().hasKey(name)) {
+        return static_cast<TAst&>(items().getValue(name));
+    }
+
+    throw "No such scope";
+}
+
+template <class MapType, class TAst>
+TAst& Ast::Items<MapType, TAst>::add(const std::string& nameStr)
+{
+    TAst& ast = *new TAst(kb, nameStr);
+    add(ast);
+
+    return ast;
+}
+
+template <class MapType, class TAst>
+void Ast::Items<MapType, TAst>::add(TAst& obj)
+{
+    CellI& name = obj[kb.ids.name];
+
+    if (m_parent.missing(m_mapName)) {
+        m_parent.set(m_mapName, *new TrieMap(kb, kb.std.Cell, kb.std.ast.Base, "TrieMap<Cell, Type::Ast::Base>(...)"));
+    }
+    if (items().hasKey(name)) {
+        throw "Already registered!";
+    }
+
+    items().add(name, obj);
+    obj.set("scope", m_parent);
+}
+
+template <class MapType, class TAst>
+MapType& Ast::Items<MapType, TAst>::items()
+{
+    if (m_parent.missing(m_mapName)) {
+        throw fmt::format("No {}!", m_mapName);
+    } else {
+        return static_cast<TrieMap&>(m_parent.get(m_mapName));
+    }
+}
+
 
 } // namespace brain
 } // namespace cells

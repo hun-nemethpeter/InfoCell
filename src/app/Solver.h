@@ -60,6 +60,16 @@ std::ostream& operator<<(std::ostream& os, const Pixel& pixel);
 class Vector
 {
 public:
+    Vector() :
+        x(0), y(0)
+    {
+    }
+
+    Vector(int x, int y) :
+        x(x), y(y)
+    {
+    }
+
     bool operator==(const Vector& rhs) const
     {
         return std::tie(x, y) == std::tie(rhs.x, rhs.y);
