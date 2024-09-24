@@ -5581,6 +5581,16 @@ void Brain::createArcSolver()
             ev_("Degree_315")  // 🡬
         );
 
+    arcScope.add<Enum>("Directions")
+        .values(
+            ev_("up"),        // 🡩
+            ev_("upRight"),   // 🡭
+            ev_("right"),     // 🡪
+            ev_("downRight"), // 🡮
+            ev_("down"),      // 🡫
+            ev_("downLeft"),  // 🡯
+            ev_("left"),      // 🡨
+            ev_("upLeft"));   // 🡬
     auto& colorStruct
         = arcScope.add<Struct>("Color")
               .members(
@@ -5771,15 +5781,50 @@ void Brain::createArcSolver()
                         .else_(var_("vector") = _(ids.emptyObject)))),
             ast.return_(*var_("ret")));
 
+    // struct ShapeEdgeKind
+    arcScope.add<Enum>("ShapeEdgeKind")
+        .values(
+            ev_("ExternalEdge"),
+            ev_("InternalEdge"));
+
+    // struct ShapeEdgeNode
+    auto& ShapeEdgeStruct
+        = arcScope.add<Struct>("ShapeEdge")
+              .members(
+                  member("id", _(std.Number)),
+                  member("kind", "ShapeEdgeKind"),
+                  member("edgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")));
+
+
+    // struct ShapeEdgeNode
+    auto& ShapeEdgeNodeStruct
+        = arcScope.add<Struct>("ShapeEdgeNode")
+              .members(
+                  member("from", "ShapePoint"),
+                  member("direction", "Directions"));
+
+    // struct ShapeEdge
+    auto& ShapeEdgeJointStruct
+        = arcScope.add<Struct>("ShapeEdgeJoint")
+              .members(
+                  member("up", "ShapeEdge"),
+                  member("down", "ShapeEdge"),
+                  member("left", "ShapeEdge"),
+                  member("right", "ShapeEdge"));
+
     // struct ShapePoint
     auto& shapePointStruct
         = arcScope.add<Struct>("ShapePoint")
               .members(
-                  member("shape", "Shape"),
+                  member("edgeJoint", "ShapeEdgeJoint"),
                   member("up", "ShapePoint"),
                   member("down", "ShapePoint"),
                   member("left", "ShapePoint"),
                   member("right", "ShapePoint"),
+                  member("upLeftPixel", "ShapePixel"),
+                  member("upRightPixel", "ShapePixel"),
+                  member("downLeftPixel", "ShapePixel"),
+                  member("downRightPixel", "ShapePixel"),
                   member("x", _(std.Number)),
                   member("y", _(std.Number)));
 
@@ -5814,6 +5859,7 @@ void Brain::createArcSolver()
                   member("color", "Color"),
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
+                  member("edges", tt_("std::List", "valueType", "ShapeEdge")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
                   member("shapePoints", tt_("std::List", "valueType", "ShapePoint")),
                   member("hybridPixels", tt_("std::Set", "valueType", _(std.Pixel))),
