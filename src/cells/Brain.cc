@@ -5787,30 +5787,32 @@ void Brain::createArcSolver()
             ev_("ExternalEdge"),
             ev_("InternalEdge"));
 
-    // struct ShapeEdgeNode
+    // struct ShapeEdge
     auto& ShapeEdgeStruct
         = arcScope.add<Struct>("ShapeEdge")
               .members(
                   member("id", _(std.Number)),
+                  member("shape", "Shape"),
                   member("kind", "ShapeEdgeKind"),
                   member("edgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")));
-
 
     // struct ShapeEdgeNode
     auto& ShapeEdgeNodeStruct
         = arcScope.add<Struct>("ShapeEdgeNode")
               .members(
                   member("from", "ShapePoint"),
-                  member("direction", "Directions"));
+                  member("direction", "Directions"),
+                  member("rightSide", "ShapeEdge"),
+                  member("leftSide", "ShapeEdge"));
 
     // struct ShapeEdge
     auto& ShapeEdgeJointStruct
         = arcScope.add<Struct>("ShapeEdgeJoint")
               .members(
-                  member("up", "ShapeEdge"),
-                  member("down", "ShapeEdge"),
-                  member("left", "ShapeEdge"),
-                  member("right", "ShapeEdge"));
+                  member("up", "ShapeEdgeNode"),
+                  member("down", "ShapeEdgeNode"),
+                  member("left", "ShapeEdgeNode"),
+                  member("right", "ShapeEdgeNode"));
 
     // struct ShapePoint
     auto& shapePointStruct

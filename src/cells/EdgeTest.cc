@@ -514,6 +514,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
 
             CellI* toDirectionPtr   = nullptr;
             CellI* previousEdgeDir  = nullptr;
+            CellI* shapeDir         = nullptr;
             if (processingDirection == ProcessingDirection::LeftToRight) {
                 std::cout << "[" << caseNum << "-]";
 
@@ -537,33 +538,64 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     std::cout << "";
                 }
 
-                // Continue  Continue  Continue
-                // 3         10        14
-                // 0🡬 1🡭    1🡬 0🡭   1🡬 0🡭
-                // 0🡯 0🡮    0🡯 1🡮   1🡯 1🡮
-                // .--.--.   .--.--.   .--.--.
-                // |  |XX|   |XX|  |   |XX|  |
-                // .--o->.   .--o--.   .--o->.
-                // |  |  |   |  |XX|   |XX|XX|
-                // .--.--.   .--v--.   .--.--.
-                if ((!hasUpLeft && hasUpRight && !hasDownLeft && !hasDownRight) ||
-                    (hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) ||
-                    (hasUpLeft && !hasUpRight && hasDownLeft && hasDownRight)) {
-                    toDirectionPtr  = &DirectionRightEV;
-                    previousEdgeDir = &DirectionUpEV;
+                // Continue
+                // 3
+                // 0🡬 1🡭
+                // 0🡯 0🡮
+                // .--.--.
+                // |  |XX|
+                // .--o->.
+                // |  |  |
+                // .--.--.
+                if (!hasUpLeft && hasUpRight && !hasDownLeft && !hasDownRight) {
+                    toDirectionPtr   = &DirectionRightEV;
+                    previousEdgeDir  = &DirectionUpEV;
+                    shapeDir         = &DirectionLeftEV;
                 }
-                // Continue Continue
-                // 4        13
-                // 1🡬 1🡭   0🡬 0🡭
-                // 0🡯 0🡮   1🡯 1🡮
-                // .--.--.  .--.--.
-                // |XX|XX|  |  |  |
-                // .--o->.  .--o->.
-                // |  |  |  |XX|XX|
-                // .--.--.  .--.--.
-                if ((hasUpLeft && hasUpRight && !hasDownLeft && !hasDownRight) || (!hasUpLeft && !hasUpRight && hasDownLeft && hasDownRight)) {
-                    toDirectionPtr  = &DirectionRightEV;
-                    previousEdgeDir = &DirectionLeftEV;
+
+                // Continue  Continue
+                // 10        14
+                // 1🡬 0🡭   1🡬 0🡭
+                // 0🡯 1🡮   1🡯 1🡮
+                // .--.--.   .--.--.
+                // |XX|  |   |XX|  |
+                // .--o-->   .--o->.
+                // |  |XX|   |XX|XX|
+                // .--.--.   .--.--.
+                if ((hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) || (hasUpLeft && !hasUpRight && hasDownLeft && hasDownRight)) {
+                    toDirectionPtr   = &DirectionRightEV;
+                    previousEdgeDir  = &DirectionUpEV;
+                    shapeDir         = &DirectionRightEV;
+                }
+
+                // Continue
+                // 4
+                // 1🡬 1🡭
+                // 0🡯 0🡮
+                // .--.--.
+                // |XX|XX|
+                // .--o->.
+                // |  |  |
+                // .--.--.
+                if (hasUpLeft && hasUpRight && !hasDownLeft && !hasDownRight) {
+                    toDirectionPtr   = &DirectionRightEV;
+                    previousEdgeDir  = &DirectionLeftEV;
+                    shapeDir         = &DirectionLeftEV;
+                }
+
+                // Continue
+                // 13
+                // 0🡬 0🡭
+                // 1🡯 1🡮
+                // .--.--.
+                // |  |  |
+                // .--o->.
+                // |XX|XX|
+                // .--.--.
+                if (!hasUpLeft && !hasUpRight && hasDownLeft && hasDownRight) {
+                    toDirectionPtr   = &DirectionRightEV;
+                    previousEdgeDir  = &DirectionLeftEV;
+                    shapeDir         = &DirectionRightEV;
                 }
 
                 // Continue
@@ -572,12 +604,13 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 // 1🡯 0🡮
                 // .--.--.
                 // |  |XX|
-                // .--o--.
+                // .--o-->
                 // |XX|  |
-                // .--v--.
-                if (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) {
-                    toDirectionPtr  = &DirectionRightEV;
-                    previousEdgeDir = &DirectionRightEV;
+                // .--.--.
+                if (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
+                    toDirectionPtr   = &DirectionRightEV;
+                    previousEdgeDir  = &DirectionRightEV;
+                    shapeDir         = &DirectionLeftEV;
                 }
 
                 // New edge
@@ -590,8 +623,8 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 // |  |XX|
                 // .--.--.
                 if (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) {
-                    toDirectionPtr  = &DirectionRightEV;
-                    previousEdgeDir = nullptr;
+                    toDirectionPtr = &DirectionRightEV;
+                    shapeDir       = &DirectionRightEV;
                 }
             } else {
                 std::cout << "[" << caseNum << "|]";
@@ -622,71 +655,108 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     // Skip, do nothing
                 }
 
-                //  6 1010 Continue from up
-                // 11 0101 Continue from up
-                //
-                // 6        11
-                // 1🡬 0🡭  0🡬 1🡭
-                // 1🡯 0🡮  0🡯 1🡮
-                // .--.--.  .--.--.
-                // |XX|  |  |  |XX|
-                // .--o->.  .--o->.
-                // |XX|  |  |  |XX|
-                // .--.--.  .--.--.
-                if ((hasUpLeft && !hasUpRight && hasDownLeft && !hasDownRight) ||
-                    (!hasUpLeft && hasUpRight && !hasDownLeft && hasDownRight)) {
-                    toDirectionPtr  = &DirectionDownEV;
-                    previousEdgeDir = &DirectionUpEV;
+                // 6 1010 Continue from up
+                // 1🡬 0🡭
+                // 1🡯 0🡮
+                // .--.--.
+                // |XX|  |
+                // .--o--.
+                // |XX|  |
+                // .--v--.
+                if (hasUpLeft && !hasUpRight && hasDownLeft && !hasDownRight) {
+                    toDirectionPtr   = &DirectionDownEV;
+                    previousEdgeDir  = &DirectionUpEV;
+                    shapeDir         = &DirectionRightEV;
                 }
 
-                //  5 0010 Continue from left
+                // 11 0101 Continue from up
+                //
+                // 0🡬 1🡭
+                // 0🡯 1🡮
+                // .--.--.
+                // |  |XX|
+                // .--o--.
+                // |  |XX|
+                // .--v--.
+                if (!hasUpLeft && hasUpRight && !hasDownLeft && hasDownRight) {
+                    toDirectionPtr   = &DirectionDownEV;
+                    previousEdgeDir  = &DirectionUpEV;
+                    shapeDir         = &DirectionLeftEV;
+                }
+
+                // 5 0010 Continue from left
+                //
+                // 0🡬 0🡭
+                // 1🡯 0🡮
+                // .--.--.
+                // |  |  |
+                // .--o--.
+                // |XX|  |
+                // .--v--.
+                if (!hasUpLeft && !hasUpRight && hasDownLeft && !hasDownRight) {
+                    toDirectionPtr   = &DirectionDownEV;
+                    previousEdgeDir  = &DirectionLeftEV;
+                    shapeDir         = &DirectionRightEV;
+                }
+
                 // 10 1001 Continue from left
                 // 12 1101 Continue from left
                 //
-                // 5       10       12
-                // 0🡬 0🡭  1🡬 0🡭  1🡬 1🡭
-                // 1🡯 0🡮  0🡯 1🡮  0🡯 1🡮
-                // .--.--. .--.--.  .--.--.
-                // |  |  | |XX|  |  |XX|XX|
-                // .--o--. .--o--.  .--o--.
-                // |XX|  | |  |XX|  |  |XX|
-                // .--v--. .--v--.  .--v--.
-                if ((!hasUpLeft && !hasUpRight && hasDownLeft && !hasDownRight) ||
-                    (hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) ||
+                // 10       12
+                // 1🡬 0🡭  1🡬 1🡭
+                // 0🡯 1🡮  0🡯 1🡮
+                // .--.--.  .--.--.
+                // |XX|  |  |XX|XX|
+                // .--o--.  .--o--.
+                // |  |XX|  |  |XX|
+                // .--v--.  .--v--.
+                if ((hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) ||
                     (hasUpLeft && hasUpRight && !hasDownLeft && hasDownRight)) {
-                    toDirectionPtr  = &DirectionDownEV;
-                    previousEdgeDir = &DirectionLeftEV;
+                    toDirectionPtr   = &DirectionDownEV;
+                    previousEdgeDir  = &DirectionLeftEV;
+                    shapeDir         = &DirectionLeftEV;
                 }
 
                 //  7 0110 Continue from right
                 //  8 1110 Continue from right
-                //  9 0001 Continue from right
                 //
-                // 7        8         9
-                // 0🡬 1🡭   1🡬 1🡭   0🡬 0🡭
-                // 1🡯 0🡮   1🡯 0🡮   0🡯 1🡮
-                // .--.--.  .--.--.  .--.--.
-                // |  |XX|  |XX|XX|  |  |  |
-                // .--o--.  .--o--.  .--o--.
-                // |XX|  |  |XX|  |  |  |XX|
-                // .--v--.  .--v--.  .--v--.
+                // 7        8
+                // 0🡬 1🡭   1🡬 1🡭
+                // 1🡯 0🡮   1🡯 0🡮
+                // .--.--.  .--.--.
+                // |  |XX|  |XX|XX|
+                // .--o--.  .--o--.
+                // |XX|  |  |XX|  |
+                // .--v--.  .--v--.
                 if ((!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) ||
-                    (hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) ||
-                    (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight)) {
-                    toDirectionPtr  = &DirectionDownEV;
-                    previousEdgeDir = &DirectionRightEV;
+                    (hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight)) {
+                    toDirectionPtr   = &DirectionDownEV;
+                    previousEdgeDir  = &DirectionRightEV;
+                    shapeDir         = &DirectionRightEV;
+                }
+
+                // 9 0001 Continue from right
+                //
+                // 0🡬 0🡭
+                // 0🡯 1🡮
+                // .--.--.
+                // |  |  |
+                // .--o--.
+                // |  |XX|
+                // .--v--.
+                if (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) {
+                    toDirectionPtr   = &DirectionDownEV;
+                    previousEdgeDir  = &DirectionRightEV;
+                    shapeDir         = &DirectionLeftEV;
                 }
             }
 
             if (toDirectionPtr) {
                 CellI* toShapePointPtr = toDirectionPtr == &DirectionRightEV ? &shapePoint["right"] : &shapePoint["down"];
                 CellI& toShapePoint    = *toShapePointPtr;
-                CellI& newEdgeNode     = *new Object(kb, ShapeEdgeNodeStruct);
-                newEdgeNode.set("from", shapePoint);
-                newEdgeNode.set("direction", *toDirectionPtr);
 
                 // from joint
-                CellI* fromEdgeJointPtr = nullptr;
+                CellI* fromEdgeJointPtr         = nullptr;
                 if (shapePoint.has("edgeJoint")) {
                     fromEdgeJointPtr = &shapePoint["edgeJoint"];
                 } else {
@@ -706,9 +776,13 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 CellI& toEdgeJoint = *toEdgeJointPtr;
 
                 CellI* previousEdgePtr = nullptr;
+
+                const char* shapeDirStr = shapeDir == &DirectionRightEV ? "rightSide" : "leftSide";
+
                 if (!previousEdgeDir) {
                     CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
                     List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                    newEdge.set("shape", currentShape);
                     newEdge.set("edgeNodes", edgeNodes);
                     previousEdgePtr = &newEdge;
                     List* edgesPtr  = nullptr;
@@ -725,34 +799,101 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     }
                     List& edges = *edgesPtr;
                     edges.add(newEdge);
-                } else if (previousEdgeDir == &DirectionUpEV) {
-                    previousEdgePtr = &fromEdgeJoint["up"];
-                } else if (previousEdgeDir == &DirectionLeftEV) {
-                    previousEdgePtr = &fromEdgeJoint["left"];
-                } else if (previousEdgeDir == &DirectionRightEV) {
-                    previousEdgePtr = &fromEdgeJoint["right"];
+                } else {
+                    CellI* previousEdgeNodePtr = nullptr;
+                    if (previousEdgeDir == &DirectionUpEV) {
+                        previousEdgeNodePtr = &fromEdgeJoint["up"];
+                    } else if (previousEdgeDir == &DirectionLeftEV) {
+                        previousEdgeNodePtr = &fromEdgeJoint["left"];
+                    } else if (previousEdgeDir == &DirectionRightEV) {
+                        previousEdgeNodePtr = &fromEdgeJoint["right"];
+                    }
+                    CellI* rightEdgeShapePtr = nullptr;
+                    CellI& previousEdgeNode = *previousEdgeNodePtr;
+                    if (previousEdgeNode.has("rightSide")) {
+                        rightEdgeShapePtr = &previousEdgeNode["rightSide"]["shape"];
+                    }
+                    if (rightEdgeShapePtr == &currentShape) {
+                        previousEdgePtr = &previousEdgeNode["rightSide"];
+                    } else {
+                        previousEdgePtr = &previousEdgeNode["leftSide"];
+                    }
                 }
                 CellI& previousEdge = *previousEdgePtr;
+                std::cout << previousEdge["id"].label();
                 List& edgesNodes    = static_cast<List&>(previousEdge["edgeNodes"]);
+
+                CellI& newEdgeNode = *new Object(kb, ShapeEdgeNodeStruct);
+                newEdgeNode.set("from", shapePoint);
+                newEdgeNode.set("direction", *toDirectionPtr);
+                newEdgeNode.set(shapeDirStr, previousEdge);
+
                 edgesNodes.add(newEdgeNode);
 
                 // the join
-                fromEdgeJoint.set(toDirectionPtr == &DirectionRightEV ? "right" : "down", previousEdge);
+                fromEdgeJoint.set(toDirectionPtr == &DirectionRightEV ? "right" : "down", newEdgeNode);
                 const char* nextJointSlotName = toDirectionPtr == &DirectionRightEV ? "left" : "up";
-                if (toEdgeJoint.has(nextJointSlotName)) {
-                    CellI& nextEdge = toEdgeJoint[nextJointSlotName];
-                    int nextEdgeId  = static_cast<Number&>(nextEdge["id"]).value();
-                    int previousEdgeId = static_cast<Number&>(previousEdge["id"]).value();
-                    if (nextEdgeId == previousEdgeId) {
-                        toEdgeJoint.set(nextJointSlotName, previousEdge);
-                    } else if (nextEdgeId < previousEdgeId) {
-                        std::cout << fmt::format("nextEdgeId({}) < previousEdgeId({})", nextEdgeId, previousEdgeId);
+#if 0
+           [9-](1,0) [13-](2,0) [13-](3,0) [5-](4,0)
+           [9|](1,0) [13|](2,0) [13|](3,0) [5|](4,0)
+[9-](0,1) [15-](1,1) [16-](2,1) [16-](3,1) [6-](4,1)
+[9|](0,1) [15|](1,1) [16|](2,1) [16|](3,1) [6|](4,1)
+[3-](0,2) [12-](1,2) [16-](2,2) [16-](3,2) [6-](4,2)
+[3|](0,2) [12|](1,2) [16|](2,2) [16|](3,2) [6|](4,2)
+           [3-](1,3)  [4-](2,3)  [4-](3,3) [2-](4,3)
 
+           [9-](1,0) [13-](2,0) [13-](3,0) [5-](4,0)
+           [9|](1,0) [13|](2,0) [13|](3,0) [5|](4,0)
+[9-](0,1) [15-](1,1) [16-](2,1) [16-](3,1) [6-](4,1)
+[9|](0,1) [15|](1,1) [16|](2,1) [16|](3,1) [6|](4,1)
+[3-](0,2) [12-](1,2) [16-](2,2) [16-](3,2) [6-](4,2)
+[3|](0,2) [12|](1,2) [16|](2,2) [16|](3,2) [6|](4,2)
+           [3-](1,3)  [4-](2,3)  [4-]nextEdgeId(1) < previousEdgeId(2)(3,3) [2-](4,3) edges: 2
+
+            [9-]1(1,0) [13-]1(2,0) [13-]1(3,0) [5-] (4,0)
+            [9|]1(1,0) [13|] (2,0) [13|] (3,0) [5|]1(4,0)
+[9-]2(0,1) [15-] (1,1) [16-] (2,1) [16-] (3,1) [6-] (4,1)
+[9|]2(0,1) [15|] (1,1) [16|] (2,1) [16|] (3,1) [6|]1(4,1)
+[3-]2(0,2) [12-] (1,2) [16-] (2,2) [16-] (3,2) [6-] (4,2)
+[3|] (0,2) [12|]2(1,2) [16|] (2,2) [16|] (3,2) [6|]1(4,2)
+            [3-]2(1,3)  [4-]2(2,3)  [4-]2(3,3) [2-] (4,3)
+#endif
+                if (toDirectionPtr == &DirectionRightEV && toEdgeJoint.has("up")) {
+                    CellI& upEdgeNode     = toEdgeJoint["up"];
+                    CellI* upLeftSidePtr  = nullptr;
+                    CellI* upRightSidePtr = nullptr;
+                    CellI* nextEdgePtr    = nullptr;
+                    if (upEdgeNode.has("rightSide")) {
+                        upRightSidePtr = &upEdgeNode["rightSide"];
+                    }
+                    if (upEdgeNode.has("leftSide")) {
+                        upLeftSidePtr = &upEdgeNode["leftSide"];
+                    }
+                    if (upRightSidePtr && (&(*upRightSidePtr)["shape"] == &currentShape)) {
+                        // possible join, check edge id
+                        nextEdgePtr = &(*upRightSidePtr);
+                    }
+                    if (!nextEdgePtr && upLeftSidePtr && (&(*upLeftSidePtr)["shape"] == &currentShape)) {
+                        // possible join, check edge id
+                        nextEdgePtr = &(*upLeftSidePtr);
+                    }
+
+                    if (nextEdgePtr) {
+                        CellI& nextEdge    = *nextEdgePtr;
+                        int nextEdgeId     = static_cast<Number&>(nextEdge["id"]).value();
+                        int previousEdgeId = static_cast<Number&>(previousEdge["id"]).value();
+                        if (nextEdgeId == previousEdgeId) {
+                            toEdgeJoint.set(nextJointSlotName, newEdgeNode);
+                        } else if (nextEdgeId < previousEdgeId) {
+                            std::cout << fmt::format("nextEdgeId({}) < previousEdgeId({})", nextEdgeId, previousEdgeId);
+                        } else {
+                            std::cout << fmt::format("nextEdgeId({}) > previousEdgeId({})", nextEdgeId, previousEdgeId);
+                        }
                     } else {
-                        std::cout << fmt::format("nextEdgeId({}) > previousEdgeId({})", nextEdgeId, previousEdgeId);
+                        toEdgeJoint.set(nextJointSlotName, newEdgeNode);
                     }
                 } else {
-                    toEdgeJoint.set(toDirectionPtr == &DirectionRightEV ? "left" : "up", previousEdge);
+                    toEdgeJoint.set(nextJointSlotName, newEdgeNode);
                 }
             }
             std::cout << fmt::format("({},{}) ", static_cast<Number&>(shapePoint["x"]).value(), static_cast<Number&>(shapePoint["y"]).value());
