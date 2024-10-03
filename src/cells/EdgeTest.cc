@@ -884,10 +884,44 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         int previousEdgeId = static_cast<Number&>(previousEdge["id"]).value();
                         if (nextEdgeId == previousEdgeId) {
                             toEdgeJoint.set(nextJointSlotName, newEdgeNode);
-                        } else if (nextEdgeId < previousEdgeId) {
-                            std::cout << fmt::format("nextEdgeId({}) < previousEdgeId({})", nextEdgeId, previousEdgeId);
                         } else {
-                            std::cout << fmt::format("nextEdgeId({}) > previousEdgeId({})", nextEdgeId, previousEdgeId);
+
+                            CellI* toDeleteEdgePtr = nullptr;
+                            CellI* toExtendEdgePtr = nullptr;
+                            if (nextEdgeId < previousEdgeId) {
+                                toDeleteEdgePtr = &previousEdge;
+                                toExtendEdgePtr = &nextEdge;
+                            } else {
+                                toDeleteEdgePtr = &nextEdge;
+                                toExtendEdgePtr = &previousEdge;
+                            }
+
+                            CellI& toDeleteEdge = *toDeleteEdgePtr;
+                            CellI& toExtendEdge = *toExtendEdgePtr;
+                            // std::cout << fmt::format("nextEdgeId({}) < previousEdgeId({})", nextEdgeId, previousEdgeId);
+                            List& toDeleteEdgeNodes = static_cast<List&>(toDeleteEdge["edgeNodes"]);
+                            Visitor::visitListInReverse(toDeleteEdgeNodes, [this, &toDeleteEdge, &toDeleteEdgeNodes, &toExtendEdge](CellI& toDeleteEdgeNode, int, bool&) {
+                                List& toExtendEdgeNodes = static_cast<List&>(toExtendEdge["edgeNodes"]);
+                                if (toDeleteEdgeNode.has("rightSide") && (&toDeleteEdgeNode["rightSide"] == &toDeleteEdge)) {
+                                    toDeleteEdgeNode.set("rightSide", toExtendEdge);
+                                }
+                                if (toDeleteEdgeNode.has("leftSide") && (&toDeleteEdgeNode["leftSide"] == &toDeleteEdge)) {
+                                    toDeleteEdgeNode.set("leftSide", toExtendEdge);
+                                }
+                                toExtendEdgeNodes.addFront(toDeleteEdgeNode);
+                                //toDeleteEdgeNodes.remove(&static_cast<List::Item&>(toDeleteEdgeNode)); TODO
+                            });
+                            CellI& toDeleteEdgeIdCell = toDeleteEdge["id"];
+                            List& currentShapeEdges   = static_cast<List&>(currentShape["edges"]);
+                            CellI* currentEdgeItemPtr = &currentShapeEdges[kb.ids.first];
+                            while (currentEdgeItemPtr) {
+                                CellI& currentEdgeItem = *currentEdgeItemPtr;
+                                CellI& currentEdge     = currentEdgeItem[kb.ids.value];
+                                if (&currentEdge["id"] == &toDeleteEdgeIdCell) {
+                                    currentShapeEdges.remove(static_cast<List::Item*>(currentEdgeItemPtr));
+                                }
+                                currentEdgeItemPtr = currentEdgeItem.has(kb.ids.next) ? &currentEdgeItem[kb.ids.next] : nullptr;
+                            }
                         }
                     } else {
                         toEdgeJoint.set(nextJointSlotName, newEdgeNode);
