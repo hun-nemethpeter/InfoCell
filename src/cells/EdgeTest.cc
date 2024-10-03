@@ -497,7 +497,7 @@ For leftToRight direction edge from point middle
 15 0111 Skip
 16 1111 Skip
 
-Invalid   Skip     Continue  Continue Skip     Skip               New edge New edge           Skip     Skip     Continue Continue  Skip     Skip
+Invalid   Skip     Continue  Continue Skip     Skip      New edge New edge New edge           Skip     Skip     Continue Continue  Skip     Skip
  1        2         3        4        5        6         7        8        9        10        11       12       13        14       15       16
  0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   🡬 0🡭    1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭
  0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   🡯 1🡮    0🡯 1🡮   0🡯 1🡮   0🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮
@@ -633,7 +633,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     shapeDir         = &DirectionRightEV;
                 }
 
-                // Continue
+                // New edge
                 // 7
                 // 0🡬 1🡭
                 // 1🡯 0🡮
@@ -644,7 +644,6 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 // .--.--.
                 if (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
                     toDirectionPtr   = &DirectionRightEV;
-                    previousEdgeDir  = &DirectionRightEV;
                     shapeDir         = &DirectionLeftEV;
                 }
 
@@ -895,10 +894,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         CellI& nextEdge    = *nextEdgePtr;
                         int nextEdgeId     = static_cast<Number&>(nextEdge["id"]).value();
                         int previousEdgeId = static_cast<Number&>(previousEdge["id"]).value();
-                        if (nextEdgeId == previousEdgeId) {
-                            toEdgeJoint.set(nextJointSlotName, newEdgeNode);
-                        } else {
-
+                        if (nextEdgeId != previousEdgeId) {
                             CellI* toDeleteEdgePtr = nullptr;
                             CellI* toExtendEdgePtr = nullptr;
                             if (nextEdgeId < previousEdgeId) {
@@ -936,12 +932,9 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                                 currentEdgeItemPtr = currentEdgeItem.has(kb.ids.next) ? &currentEdgeItem[kb.ids.next] : nullptr;
                             }
                         }
-                    } else {
-                        toEdgeJoint.set(nextJointSlotName, newEdgeNode);
                     }
-                } else {
-                    toEdgeJoint.set(nextJointSlotName, newEdgeNode);
                 }
+                toEdgeJoint.set(nextJointSlotName, newEdgeNode);
             } else {
                 std::cout << " ";
             }
