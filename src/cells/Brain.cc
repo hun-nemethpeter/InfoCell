@@ -5861,6 +5861,7 @@ void Brain::createArcSolver()
                   member("color", "Color"),
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
+                  member("lastEdgeId", _(std.Number)),
                   member("edges", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
                   member("shapePoints", tt_("std::List", "valueType", "ShapePoint")),
@@ -5882,6 +5883,7 @@ void Brain::createArcSolver()
             m_("color")        = p_("color"),
             m_("width")        = p_("width"),
             m_("height")       = p_("height"),
+            m_("lastEdgeId")   = _(_1_),
             m_("hybridPixels") = ast.new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
             m_("pixels")       = ast.new_(tt_("std::List", "valueType", "Pixel"), "constructor"));
 

@@ -1,8 +1,14 @@
 ﻿#include "CellTestBase.h"
 
+#include "Config.h"
+#include "util/ArcTask.h"
+
+#include <fstream>
+#include <nlohmann/json.hpp>
+
 using namespace synth;
 using namespace synth::cells;
-
+using nlohmann::json;
 using synth::cells::test::CellTest;
 
 class EdgeLine;
@@ -92,6 +98,17 @@ public:
     void testEdges(const std::string& jsonStr)
     {
         setInputGrid(jsonStr);
+        testEdgesImpl();
+    }
+
+    void testEdges(hybrid::arc::Grid& inputHybridGrid)
+    {
+        setInputGrid(inputHybridGrid);
+        testEdgesImpl();
+    }
+
+    void testEdgesImpl()
+    {
         shaperProcess();
         sortShapePixelsAndCreateShapePoints();
         printEveryShapePixels();
@@ -109,9 +126,14 @@ public:
         m_inputHybridGrid = std::make_unique<cells::hybrid::arc::Grid>(kb, *m_inputGrid);
     }
 
+    void setInputGrid(hybrid::arc::Grid& inputHybridGrid)
+    {
+        m_inputHybridGridPtr = &inputHybridGrid;
+    }
+
     void shaperProcess()
     {
-        m_shaper = std::make_unique<Object>(kb, ShaperStruct, kb.name("constructor"), Param { "grid", *m_inputHybridGrid });
+        m_shaper = std::make_unique<Object>(kb, ShaperStruct, kb.name("constructor"), Param { "grid", inputHybridGrid() });
         m_shaper->method("process");
     }
 
@@ -122,7 +144,12 @@ public:
 
     cells::hybrid::arc::Grid& inputHybridGrid()
     {
-        return *m_inputHybridGrid;
+        if (m_inputHybridGridPtr) {
+            return *m_inputHybridGridPtr;
+        } else if (m_inputHybridGrid) {
+            return *m_inputHybridGrid;
+        }
+        throw "No inputHybridGrid!";
     }
 
     void sortShapePixelsAndCreateShapePoints()
@@ -248,6 +275,10 @@ public:
                 List& shapePixelList = static_cast<List&>(currentShape["shapePixels"]);
                 shapePixelList.add(shapePixel);
 
+                if (pixel.missing("left")) {
+                    // first column
+                    previousUpPixel = &shapePixel;
+                }
                 if (pixel.has("right")) {
                     leftPixel = &shapePixel;
                     if (upPixel) {
@@ -259,10 +290,6 @@ public:
                     if (previousUpPixel) {
                         upPixel = previousUpPixel;
                     }
-                }
-                if (pixel.missing("left")) {
-                    // first column
-                    previousUpPixel = &shapePixel;
                 }
             }
         }
@@ -908,7 +935,9 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                             edgesPtr = &newEdges;
                         } else {
                             edgesPtr = &static_cast<Map&>(currentShape["edges"]);
-                            newEdge.set("id", kb.pools.numbers.get(edgesPtr->size() + 1));
+                            CellI& newEdgeId = kb.pools.numbers.get(static_cast<Number&>(currentShape["lastEdgeId"]).value() + 1);
+                            currentShape.set("lastEdgeId", newEdgeId);
+                            newEdge.set("id", newEdgeId);
                             newEdge.set("kind", InternalEdgeEV);
                         }
 #if 0
@@ -1183,15 +1212,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
         CellI* firstColumnPixelPtr  = firstShapePixelPtr();
         CellI* currentShapePixelPtr = firstShapePixelPtr();
 
-        Shape cppShape1(_1_);
-        Shape cppShape2(_2_);
-        Shape cppShape3(_3_);
-        Shape cppShape4(_4_);
-        Shape cppShape5(_5_);
-        Shape cppShape6(_6_);
-        Shape cppShape7(_7_);
-        Shape cppShape8(_8_);
-        Shape cppShape9(_9_);
+        std::map<CellI*, Shape> shapes;
         while (currentShapePixelPtr) {
             CellI& currentShapePixel            = *currentShapePixelPtr;
             hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>(currentShapePixel["pixel"]);
@@ -1200,26 +1221,12 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
 
             CellI& currentShape       = currentShapePixel["shape"];
             Shape* currentCppShapePtr = nullptr;
-            if (&currentShape["id"] == &cppShape1.id) {
-                currentCppShapePtr = &cppShape1;
-            } else if (&currentShape["id"] == &cppShape2.id) {
-                currentCppShapePtr = &cppShape2;
-            } else if (&currentShape["id"] == &cppShape3.id) {
-                currentCppShapePtr = &cppShape3;
-            } else if (&currentShape["id"] == &cppShape4.id) {
-                currentCppShapePtr = &cppShape4;
-            } else if (&currentShape["id"] == &cppShape5.id) {
-                currentCppShapePtr = &cppShape5;
-            } else if (&currentShape["id"] == &cppShape6.id) {
-                currentCppShapePtr = &cppShape6;
-            } else if (&currentShape["id"] == &cppShape7.id) {
-                currentCppShapePtr = &cppShape7;
-            } else if (&currentShape["id"] == &cppShape8.id) {
-                currentCppShapePtr = &cppShape8;
-            } else if (&currentShape["id"] == &cppShape9.id) {
-                currentCppShapePtr = &cppShape9;
+            auto shapeFindIt = shapes.find(&currentShape["id"]);
+            if (shapeFindIt == shapes.end()) {
+                currentCppShapePtr = &shapeFindIt->second;
             } else {
-                std::cout << "";
+                auto it = shapes.emplace(&currentShape["id"], currentShape["id"]);
+                currentCppShapePtr = &(*it.first).second;
             }
             Shape& currentCppShape = *currentCppShapePtr;
 
@@ -1338,6 +1345,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
     CellI& DirectionRightEV;
     std::unique_ptr<input::Grid> m_inputGrid;
     std::unique_ptr<cells::hybrid::arc::Grid> m_inputHybridGrid;
+    cells::hybrid::arc::Grid* m_inputHybridGridPtr = nullptr;
     std::unique_ptr<Object> m_shaper;
 };
 
@@ -1462,6 +1470,49 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Output)
                         111111711)");
     expectedShapesCount(8);
     expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 }, { 8, 1 } });
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Input)
+{
+    testEdges(R"([[6, 6, 6, 6, 6, 6, 6, 6, 6],
+                  [6, 6, 4, 4, 6, 6, 6, 6, 6],
+                  [6, 4, 4, 4, 6, 4, 6, 4, 4],
+                  [4, 4, 4, 4, 4, 4, 4, 4, 4],
+                  [4, 4, 4, 4, 4, 4, 4, 4, 4],
+                  [4, 4, 4, 4, 4, 4, 4, 4, 4],
+                  [4, 2, 2, 4, 4, 4, 2, 2, 4],
+                  [2, 2, 2, 2, 2, 2, 2, 2, 2],
+                  [2, 3, 2, 2, 2, 2, 2, 3, 3],
+                  [3, 3, 3, 3, 3, 3, 3, 3, 3],
+                  [3, 3, 3, 3, 3, 3, 3, 3, 3]])");
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
+{
+    testEdges(R"([[6],
+                  [4],
+                  [2],
+                  [3]])");
+}
+
+TEST_F(EdgeTester, EdgeTestWithAllArcTask)
+{
+    static const std::string arcFilePath = SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
+    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
+    for (auto& task : taskSet.m_tasks) {
+        std::cout << "id: " << task.first << ", examples num:" << static_cast<List&>(task.second.m_cellExamplesList).size() << ", tests num:" << static_cast<List&>(task.second.m_cellTestsList).size() << std::endl;
+        std::cout << "   examples:" << std::endl;
+        Visitor::visitList(task.second.m_cellExamplesList, [this](CellI& example, int i, bool&) {
+            std::cout << "    size " << static_cast<hybrid::arc::Grid&>(example["input"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["input"]).height() << " -> " << static_cast<hybrid::arc::Grid&>(example["output"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["output"]).height() << std::endl;
+            testEdges(static_cast<hybrid::arc::Grid&>(example["input"]));
+            testEdges(static_cast<hybrid::arc::Grid&>(example["output"]));
+
+        });
+        std::cout << "   tests:" << std::endl;
+        Visitor::visitList(task.second.m_cellTestsList, [](CellI& example, int i, bool&) {
+            std::cout << "    size " << static_cast<hybrid::arc::Grid&>(example["input"]).width() << "x" << static_cast<hybrid::arc::Grid&>(example["input"]).height() << std::endl;
+        });
+    }
 }
 
 int main(int argc, char** argv)
