@@ -11,64 +11,6 @@ using namespace synth::cells;
 using nlohmann::json;
 using synth::cells::test::CellTest;
 
-class EdgeLine;
-class Shape
-{
-public:
-    Shape(CellI& id) :
-        id(id) { }
-    void addEdge(const EdgeLine& edge);
-    CellI& id;
-    std::map<int, std::list<EdgeLine>> edges;
-    std::map<int, std::map<int, EdgeLine*>> edgeIndex;
-};
-enum class Direction
-{
-    Horizontal,
-    Vertical
-};
-class EdgeLine
-{
-public:
-    EdgeLine(int x, int y, Direction direction) :
-        x(x), y(x), direction(direction)
-    {
-    }
-    int x, y;
-    Direction direction;
-};
-
-void Shape::addEdge(const EdgeLine& edge)
-{
-    int endX  = edge.x;
-    int endY  = edge.y;
-    if (edge.direction == Direction::Horizontal) {
-        endX += 1;
-    } else {
-        endY += 1;
-    }
-    EdgeLine* previousStartEdge = nullptr;
-    EdgeLine* previousEndEdge = nullptr;
-
-    auto colX = edgeIndex.find(edge.x);
-    if (colX != edgeIndex.end()) {
-        auto edgeIt = colX->second.find(edge.y);
-        if (edgeIt != colX->second.end()) {
-            previousStartEdge = edgeIt->second;
-        }
-    }
-    colX = edgeIndex.find(endX);
-    if (colX != edgeIndex.end()) {
-        auto edgeIt = colX->second.find(endY);
-        if (edgeIt != colX->second.end()) {
-            previousEndEdge = edgeIt->second;
-        }
-    }
-    if (previousStartEdge && previousEndEdge) {
-
-    }
-}
-
 class EdgeTester : public CellTest
 {
 public:
@@ -1212,7 +1154,6 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
         CellI* firstColumnPixelPtr  = firstShapePixelPtr();
         CellI* currentShapePixelPtr = firstShapePixelPtr();
 
-        std::map<CellI*, Shape> shapes;
         while (currentShapePixelPtr) {
             CellI& currentShapePixel            = *currentShapePixelPtr;
             hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>(currentShapePixel["pixel"]);
@@ -1220,21 +1161,10 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
             const int y                         = currentArcPixel.m_y.value();
 
             CellI& currentShape       = currentShapePixel["shape"];
-            Shape* currentCppShapePtr = nullptr;
-            auto shapeFindIt = shapes.find(&currentShape["id"]);
-            if (shapeFindIt == shapes.end()) {
-                currentCppShapePtr = &shapeFindIt->second;
-            } else {
-                auto it = shapes.emplace(&currentShape["id"], currentShape["id"]);
-                currentCppShapePtr = &(*it.first).second;
-            }
-            Shape& currentCppShape = *currentCppShapePtr;
 
             switch (scanLineState) {
             case ScanLineState::Up:
                 if (currentShapePixel.missing("up") || &currentShapePixel["up"]["shape"] != &currentShape) {
-                    EdgeLine newEdge(x, y, Direction::Horizontal);
-                    currentCppShape.addEdge(newEdge);
                     // add edge
                     std::cout << "--";
                 } else {
@@ -1243,8 +1173,6 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                 break;
             case ScanLineState::Middle:
                 if (currentShapePixel.missing("left") || &currentShapePixel["left"]["shape"] != &currentShape) {
-                    EdgeLine newEdge(x, y, Direction::Vertical);
-                    currentCppShape.addEdge(newEdge);
                     // add edge
                     std::cout << "| ";
                 } else {
