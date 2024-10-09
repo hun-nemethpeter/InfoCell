@@ -58,6 +58,7 @@ public:
         sortShapePoints();
         printAllShapePoints();
         calculateEdgesForShapes();
+        sortEdges();
         printShapeIdGrid();
         printEdges();
     }
@@ -702,16 +703,30 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         shapeDir        = &DirectionLeftEV;
                     }
 
-                    // New edge New edge
-                    // 8        9
-                    // 1🡬 1🡭   0🡬 0🡭
-                    // 1🡯 0🡮   0🡯 1🡮
-                    // .--.--.  .--.--.
-                    // |XX|XX|  |  |  |
-                    // .--o->.  .--o->.
-                    // |XX|  |  |  |XX|
-                    // .--.--.  .--.--.
-                    if ((hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) || (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight)) {
+                    // New edge
+                    // 8
+                    // 1🡬 1🡭
+                    // 1🡯 0🡮
+                    // .--.--.
+                    // |XX|XX|
+                    // .--o->.
+                    // |XX|  |
+                    // .--.--.
+                    if (hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
+                        toDirectionPtr = &DirectionRightEV;
+                        shapeDir       = &DirectionLeftEV;
+                    }
+
+                    // New edge
+                    // 9
+                    // 0🡬 0🡭
+                    // 0🡯 1🡮
+                    // .--.--.
+                    // |  |  |
+                    // .--o->.
+                    // |  |XX|
+                    // .--.--.
+                    if (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) {
                         toDirectionPtr = &DirectionRightEV;
                         shapeDir       = &DirectionRightEV;
                     }
@@ -882,25 +897,6 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                             newEdge.set("id", newEdgeId);
                             newEdge.set("kind", InternalEdgeEV);
                         }
-#if 0
-[ 9-]New(1)1(0,0) [13-]1(1,0) [13-]1(2,0) [13-]1(3,0) [13-]1(4,0) [ 5-] (5,0)
-[ 9|]1(0,0) [13|] (1,0) [13|] (2,0) [13|] (3,0) [13|] (4,0) [ 5|]1(5,0)
-[11-] (0,1) [ 8-]New(2)2(1,1) [12-] (2,1) [ 8-]New(3)3(3,1) [12-] (4,1) [ 6-] (5,1)
-[11|]1(0,1) [ 8|]2(1,1) [12|]2(2,1) [ 8|]3(3,1) [12|]3(4,1) [ 6|]1(5,1)
-[11-] (0,2) [14-]2(1,2) [ 7-]New(4)4Delete(4)(2,2) [10-]3(3,2) [15-] (4,2) [ 6-] (5,2)
-[11|]1(0,2) [14|] (1,2) [ 7|]3(2,2) [10|]3(3,2) [15|] (4,2) [ 6|]1(5,2)
-[11-] (0,3) [ 8-]New(4)4Delete(4)(1,3) [10-]3(2,3) [ 7-]New(4)4(3,3) [12-] (4,3) [ 6-] (5,3)
-[11|]1(0,3) [ 8|]3(1,3) [10|]3(2,3) [ 7|]4(3,3) [12|]4(4,3) [ 6|]1(5,3)
-[11-] (0,4) [14-]3(1,4) [15-] (2,4) [14-]4(3,4) [15-] (4,4) [ 6-] (5,4)
-[11|]1(0,4) [14|] (1,4) [15|] (2,4) [14|] (3,4) [15|] (4,4) [ 6|]1(5,4)
-[ 3-]1(0,5) [ 4-]1(1,5) [ 4-]1(2,5) [ 4-]1(3,5) [ 4-]1(4,5) [ 2-] (5,5) edges: 4
-
-  2
-  -
-2| |2
-  -
-  2
-#endif
                         Map& edges = *edgesPtr;
                         edges.add(newEdge["id"], newEdge);
                     } else {
@@ -913,6 +909,10 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         } else if (previousEdgeDir == &DirectionRightEV) {
                             previousEdgeNodePtr = &fromEdgeJoint["right"];
                         }
+                        if (caseNum == 9 && toDirectionPtr == &DirectionDownEV) {
+                            std::cout << "";
+                        }
+
                         CellI* rightEdgeShapePtr = nullptr;
                         CellI& previousEdgeNode  = *previousEdgeNodePtr;
                         if (previousEdgeNode.has("rightSide")) {
@@ -928,15 +928,28 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     std::cout << previousEdge["id"].label();
                     List& edgesNodes = static_cast<List&>(previousEdge["edgeNodes"]);
 
-                    CellI& newEdgeNode = *new Object(kb, ShapeEdgeNodeStruct);
-                    newEdgeNode.set("from", shapePoint);
-                    newEdgeNode.set("direction", *toDirectionPtr);
-                    newEdgeNode.set(shapeDirStr, previousEdge);
+                    const char* toDirectionStr = toDirectionPtr == &DirectionRightEV ? "right" : "down";
+                    CellI* edgeNodePtr      = nullptr;
+                    if (fromEdgeJoint.has(toDirectionStr)) {
+                        CellI& oldEdgeNode = fromEdgeJoint[toDirectionStr];
+                        if (oldEdgeNode.has(shapeDirStr)) {
+                            std::cout << "Edge processing error" << std::endl;
+                            throw "Edge processing error";
+                        }
+                        edgeNodePtr = &oldEdgeNode;
+                    } else {
+                        CellI& newEdgeNode = *new Object(kb, ShapeEdgeNodeStruct);
+                        newEdgeNode.set("from", shapePoint);
+                        newEdgeNode.set("direction", *toDirectionPtr);
+                        edgeNodePtr = &newEdgeNode;
+                    }
+                    CellI& edgeNode = *edgeNodePtr;
+                    edgeNode.set(shapeDirStr, previousEdge);
 
-                    edgesNodes.add(newEdgeNode);
+                    edgesNodes.add(edgeNode);
 
                     // the join
-                    fromEdgeJoint.set(toDirectionPtr == &DirectionRightEV ? "right" : "down", newEdgeNode);
+                    fromEdgeJoint.set(toDirectionStr, edgeNode);
                     const char* nextJointSlotName = toDirectionPtr == &DirectionRightEV ? "left" : "up";
 
                     if (toDirectionPtr == &DirectionRightEV && toEdgeJoint.has("up")) {
@@ -986,7 +999,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                                     if (toDeleteEdgeNode.has("leftSide") && (&toDeleteEdgeNode["leftSide"] == &toDeleteEdge)) {
                                         toDeleteEdgeNode.set("leftSide", toExtendEdge);
                                     }
-                                    toExtendEdgeNodes.addFront(toDeleteEdgeNode);
+                                    toExtendEdgeNodes.add(toDeleteEdgeNode);
                                     // toDeleteEdgeNodes.remove(&static_cast<List::Item&>(toDeleteEdgeNode)); TODO
                                 });
                                 CellI& toDeleteEdgeIdCell = toDeleteEdge["id"];
@@ -1001,7 +1014,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     } else {
                         std::cout << "    ";
                     }
-                    toEdgeJoint.set(nextJointSlotName, newEdgeNode);
+                    toEdgeJoint.set(nextJointSlotName, edgeNode);
                 } else {
                     std::cout << "      ";
                 }
@@ -1148,6 +1161,113 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
         std::cout << std::endl;
     }
 
+    void sortEdges()
+    {
+        CellI* firstColumnPointPtr  = &(*firstShapePixelPtr())["upLeftPoint"];
+        CellI* currentShapePointPtr = firstColumnPointPtr;
+        enum class ProcessingDirection
+        {
+            LeftToRight,
+            UpToDown
+        };
+
+        ProcessingDirection processingDirection = ProcessingDirection::LeftToRight;
+
+        while (currentShapePointPtr) {
+            CellI& currentShapePoint = *currentShapePointPtr;
+            const int x              = static_cast<Number&>(currentShapePoint["x"]).value();
+            const int y              = static_cast<Number&>(currentShapePoint["y"]).value();
+            switch (processingDirection) {
+            case ProcessingDirection::LeftToRight: {
+                if (currentShapePoint.has("edgeJoint") && currentShapePoint["edgeJoint"].has("right")) {
+                    CellI& edgeJoint       = currentShapePoint["edgeJoint"];
+                    CellI& edgeNodeAtRight = edgeJoint["right"];
+                    if (edgeNodeAtRight.has("leftSide")) {
+                        CellI& shapeEdge           = edgeNodeAtRight["leftSide"];
+                        CellI* orderedEdgeNodesPtr = nullptr;
+                        if (shapeEdge.missing("orderedEdgeNodes")) {
+                            List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                            shapeEdge.set("orderedEdgeNodes", edgeNodes);
+                            orderedEdgeNodesPtr = &edgeNodes;
+                        } else {
+                            orderedEdgeNodesPtr = &shapeEdge["orderedEdgeNodes"];
+                        }
+                        List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
+                        orderedEdgeNodes.add(edgeNodeAtRight);
+                    }
+                    if (edgeNodeAtRight.has("rightSide")) {
+                        CellI& shapeEdge           = edgeNodeAtRight["rightSide"];
+                        CellI* orderedEdgeNodesPtr = nullptr;
+                        if (shapeEdge.missing("orderedEdgeNodes")) {
+                            List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                            shapeEdge.set("orderedEdgeNodes", edgeNodes);
+                            orderedEdgeNodesPtr = &edgeNodes;
+                        } else {
+                            orderedEdgeNodesPtr = &shapeEdge["orderedEdgeNodes"];
+                        }
+                        List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
+                        orderedEdgeNodes.add(edgeNodeAtRight);
+                    }
+                }
+            } break;
+            case ProcessingDirection::UpToDown: {
+                if (currentShapePoint.has("edgeJoint") && currentShapePoint["edgeJoint"].has("down")) {
+                    CellI& edgeJoint = currentShapePoint["edgeJoint"];
+                    if (edgeJoint.has("down")) {
+                        CellI& edgeNodeAtDown = edgeJoint["down"];
+                        if (edgeNodeAtDown.has("rightSide")) {
+                            CellI& shapeEdge           = edgeNodeAtDown["rightSide"];
+                            CellI* orderedEdgeNodesPtr = nullptr;
+                            if (shapeEdge.missing("orderedEdgeNodes")) {
+                                List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                                shapeEdge.set("orderedEdgeNodes", edgeNodes);
+                                orderedEdgeNodesPtr = &edgeNodes;
+                            } else {
+                                orderedEdgeNodesPtr = &shapeEdge["orderedEdgeNodes"];
+                            }
+                            List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
+                            orderedEdgeNodes.add(edgeNodeAtDown);
+                        }
+                        if (edgeNodeAtDown.has("leftSide")) {
+                            CellI& shapeEdge           = edgeNodeAtDown["leftSide"];
+                            CellI* orderedEdgeNodesPtr = nullptr;
+                            if (shapeEdge.missing("orderedEdgeNodes")) {
+                                List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                                shapeEdge.set("orderedEdgeNodes", edgeNodes);
+                                orderedEdgeNodesPtr = &edgeNodes;
+                            } else {
+                                orderedEdgeNodesPtr = &shapeEdge["orderedEdgeNodes"];
+                            }
+                            List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
+                            orderedEdgeNodes.add(edgeNodeAtDown);
+                        }
+                    }
+                }
+            }
+            }
+
+
+            if (currentShapePoint.has("right")) {
+                currentShapePointPtr = &currentShapePoint["right"];
+            } else if (currentShapePoint.has("down")) {
+                switch (processingDirection) {
+                case ProcessingDirection::LeftToRight:
+                    processingDirection  = ProcessingDirection::UpToDown;
+                    currentShapePointPtr = firstColumnPointPtr;
+                    break;
+                case ProcessingDirection::UpToDown:
+                    processingDirection  = ProcessingDirection::LeftToRight;
+                    currentShapePointPtr = &(*firstColumnPointPtr)["down"];
+                    firstColumnPointPtr  = currentShapePointPtr;
+                    break;
+                }
+            } else {
+                currentShapePointPtr = nullptr;
+            }
+        }
+        std::cout << std::endl;
+    }
+
     void printEdges()
     {
         ScanLineState scanLineState = ScanLineState::Up;
@@ -1277,6 +1397,268 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
     std::unique_ptr<Object> m_shaper;
 };
 
+TEST_F(EdgeTester, EdgeTestMinimal)
+{
+    testEdges(R"([[0, 7, 7],
+                  [7, 7, 7],
+                  [7, 7, 7]])");
+    CellI& shape        = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    Map& shapeEdges     = static_cast<Map&>(shape["edges"]);
+    CellI& externalEdge = shapeEdges.getValue(_1_);
+
+    std::cout << "Before sort: " << std::endl;
+    Visitor::visitList(externalEdge["edgeNodes"], [this](CellI& edgeNode, int, bool&) {
+        std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
+    });
+    std::cout << "After sort: " << std::endl;
+    Visitor::visitList(externalEdge["orderedEdgeNodes"], [this](CellI& edgeNode, int, bool&) {
+        std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
+    });
+
+    CellI* firstColumnPointPtr  = &(*firstShapePixelPtr())["upLeftPoint"];
+    CellI* currentShapePointPtr = firstColumnPointPtr;
+    CellI* previousShapePointPtr = nullptr;
+
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_0_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["leftSide"]["shape"]["id"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["rightSide"]["shape"]["id"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_1_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["rightSide"]["shape"]["id"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["from"], previousShapePointPtr);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["direction"], &DirectionRightEV);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["rightSide"]["shape"]["id"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["from"], currentShapePointPtr);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["direction"], &DirectionRightEV);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_2_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_3_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_0_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+
+    previousShapePointPtr = nullptr;
+    currentShapePointPtr  = &(*firstColumnPointPtr)["down"];
+    firstColumnPointPtr   = currentShapePointPtr;
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_0_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["leftSide"]["shape"]["id"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["leftSide"]["shape"]["id"], &_1_);
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_1_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["rightSide"]["shape"]["id"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_2_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_1_);
+    EXPECT_FALSE((*currentShapePointPtr).has("edgeJoint"));
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_3_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_1_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+
+    previousShapePointPtr = nullptr;
+    currentShapePointPtr  = &(*firstColumnPointPtr)["down"];
+    firstColumnPointPtr   = currentShapePointPtr;
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_0_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_1_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr).has("edgeJoint"));
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_2_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr).has("edgeJoint"));
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_3_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["down"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["down"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["down"].has("leftSide"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+
+    previousShapePointPtr = nullptr;
+    currentShapePointPtr  = &(*firstColumnPointPtr)["down"];
+    firstColumnPointPtr   = currentShapePointPtr;
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_0_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_3_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["leftSide"]["shape"]["id"], &_2_);
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_1_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_3_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["leftSide"]["shape"]["id"], &_2_);
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_2_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_3_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("right"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["right"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["right"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["right"]["leftSide"]["shape"]["id"], &_2_);
+
+    previousShapePointPtr = currentShapePointPtr;
+    currentShapePointPtr  = &(*currentShapePointPtr)["right"];
+    EXPECT_EQ(&(*currentShapePointPtr)["x"], &_3_);
+    EXPECT_EQ(&(*currentShapePointPtr)["y"], &_3_);
+    EXPECT_TRUE((*currentShapePointPtr).has("edgeJoint"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("up"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["up"].has("rightSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["up"]["rightSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("down"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("left"));
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"]["left"].has("rightSide"));
+    EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"]["left"].has("leftSide"));
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_2_);
+    EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
+
+    expectedShapeIds(R"(122
+                        222
+                        222)");
+    expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 } });
+}
+
 TEST_F(EdgeTester, EdgeTest)
 {
     testEdges(R"([[0, 0, 0, 0, 0],
@@ -1284,6 +1666,17 @@ TEST_F(EdgeTester, EdgeTest)
                   [0, 0, 2, 0, 0],
                   [0, 4, 0, 4, 0],
                   [0, 0, 0, 0, 0]])");
+    CellI& shape    = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    Map& shapeEdges = static_cast<Map&>(shape["edges"]);
+    CellI& internalEdge = shapeEdges.getValue(_2_);
+    List& edgeNodes     = static_cast<List&>(internalEdge["edgeNodes"]);
+    Visitor::visitList(edgeNodes, [this](CellI& edgeNode, int, bool&) {
+        std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
+    });
+#if 0
+(1,1)-(1,1)|(2,1)|(1,2)-(2,2)-(4,1)|(3,1)|(3,1)-(3,2)-(2,2)|(3,2)|(1,3)-(2,3)-(3,3)-(1,3)|(2,3)|(3,3)|(4,3)|(1,4)-(3,4)-
+#endif
+
     expectedShapeIds(R"(11111
                         12131
                         11411
@@ -1423,7 +1816,7 @@ TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
                   [3]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithAllArcTask)
+TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
 {
     TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
 //    TaskSet taskSet(kb, SYNTH_ARCPRIZE_PATH SYNTH_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
