@@ -1,9 +1,13 @@
 ﻿#include "CellTestBase.h"
 
 #include "Config.h"
+#include "app/App.h"
 #include "util/ArcTask.h"
 
+
 #include <fstream>
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/screen/screen.hpp>
 #include <nlohmann/json.hpp>
 
 using namespace synth;
@@ -23,6 +27,7 @@ public:
 
     EdgeTester() :
         ShaperStruct(getStruct("arc::Shaper")),
+        ShapeStruct(getStruct("arc::Shape")),
         ShapePointStruct(getStruct("arc::ShapePoint")),
         ShapePixelStruct(getStruct("arc::ShapePixel")),
         ShapeEdgeStruct(getStruct("arc::ShapeEdge")),
@@ -51,6 +56,7 @@ public:
 
     void testEdgesImpl()
     {
+        printInputHybridGrid();
         shaperProcess();
         sortShapePixelsAndCreateShapePoints();
         printEveryShapePixels();
@@ -61,12 +67,70 @@ public:
         sortEdges();
         printShapeIdGrid();
         printEdges();
+        printShapeRelations();
     }
 
     void setInputGrid(const std::string& jsonStr)
     {
         m_inputGrid       = std::make_unique<input::Grid>("inputGrid", jsonStr);
         m_inputHybridGrid = std::make_unique<cells::hybrid::arc::Grid>(kb, *m_inputGrid);
+    }
+
+    static ftxui::Element colorTile(const ftxui::Color& p_color)
+    {
+        static ftxui::Color ftxAlphaColor(255, 255, 255);
+        if (&p_color == &ftxAlphaColor)
+            return ftxui::text(L"╳╳") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | ftxui::color(ftxui::Color::GrayDark) | ftxui::bgcolor(ftxui::Color::GrayLight);
+        return ftxui::text("") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | bgcolor(p_color);
+    }
+
+    void printInputHybridGrid()
+    {
+        cells::hybrid::arc::Grid& grid = inputHybridGrid();
+        CellI& pixelList               = grid[kb.ids.pixels];
+        ftxui::Elements boardLines;
+        for (int y = 0; y < grid.height(); ++y) {
+            ftxui::Elements arcSetInputLine;
+            for (int x = 0; x < grid.width(); ++x) {
+                hybrid::arc::Pixel& pixel = grid.getPixel(x, y);
+                arcSetInputLine.push_back(colorTile(synth::App::arcColors[pixel.color()]));
+            }
+            boardLines.push_back(hbox(arcSetInputLine));
+        }
+
+        ftxui::Element board = vbox(boardLines);
+
+        auto document = ftxui::hbox(board) | ftxui::border;
+        auto screen          = ftxui::Screen::Create(
+            ftxui::Dimension::Fit(document), // Width
+            ftxui::Dimension::Fit(document)  // Height
+        );
+        ftxui::Render(screen, document);
+        screen.Print();
+        std::cout << "\n";
+    }
+
+    void printShapeRelations()
+    {
+        Visitor::visitList(shaper()["shapes"], [this](CellI& shape, int, bool&) {
+            std::cout << fmt::format("shape id {} has {} edge(s)", shape["id"].label(), static_cast<Map&>(shape["edges"]).size());
+            Visitor::visitList(shape["edges"]["list"], [this](CellI& edge, int, bool&) {
+                if (&edge["kind"] == &InternalEdgeEV) {
+                    if (edge.has("shapes")) {
+                        std::cout << fmt::format("\n    edge id {} internal and contains: ", edge["id"].label());
+                        Visitor::visitList(edge["shapes"]["index"]["struct"]["slots"]["list"], [this](CellI& slot, int, bool&) {
+                            CellI& shape = slot["slotRole"];
+                            std::cout << fmt::format("shape({}) ", shape["id"].label());
+                        });
+                    } else {
+                        std::cout << fmt::format("\n    edge id {} internal", edge["id"].label());
+                    }
+                } else {
+                    std::cout << fmt::format("\n    edge id {} external", edge["id"].label());
+                }
+            });
+            std::cout << std::endl;
+        });
     }
 
     void setInputGrid(hybrid::arc::Grid& inputHybridGrid)
@@ -1165,6 +1229,9 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
     {
         CellI* firstColumnPointPtr  = &(*firstShapePixelPtr())["upLeftPoint"];
         CellI* currentShapePointPtr = firstColumnPointPtr;
+        CellI* lastShapeEdgeInLine  = nullptr;
+        List internalEdges(kb, ShapeEdgeStruct);
+        List::Item* lastInternalEdgeItem = nullptr;
         enum class ProcessingDirection
         {
             LeftToRight,
@@ -1196,7 +1263,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         orderedEdgeNodes.add(edgeNodeAtRight);
                     }
                     if (edgeNodeAtRight.has("rightSide")) {
-                        CellI& shapeEdge           = edgeNodeAtRight["rightSide"];
+                        CellI& shapeEdge = edgeNodeAtRight["rightSide"];
                         CellI* orderedEdgeNodesPtr = nullptr;
                         if (shapeEdge.missing("orderedEdgeNodes")) {
                             List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
@@ -1217,6 +1284,10 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         CellI& edgeNodeAtDown = edgeJoint["down"];
                         if (edgeNodeAtDown.has("rightSide")) {
                             CellI& shapeEdge           = edgeNodeAtDown["rightSide"];
+                            if (&shapeEdge["kind"] == &InternalEdgeEV) {
+                                // entering an internal edge
+                                lastInternalEdgeItem = internalEdges.add(shapeEdge);
+                            }
                             CellI* orderedEdgeNodesPtr = nullptr;
                             if (shapeEdge.missing("orderedEdgeNodes")) {
                                 List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
@@ -1230,6 +1301,14 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         }
                         if (edgeNodeAtDown.has("leftSide")) {
                             CellI& shapeEdge           = edgeNodeAtDown["leftSide"];
+                            if (&shapeEdge["kind"] == &InternalEdgeEV) {
+                                // leaving an internal edge
+                                internalEdges.remove(lastInternalEdgeItem);
+                                if (!internalEdges.empty()) {
+                                    lastInternalEdgeItem = &static_cast<List::Item&>(internalEdges["last"]);
+                                }
+                            }
+                            lastShapeEdgeInLine        = &shapeEdge;
                             CellI* orderedEdgeNodesPtr = nullptr;
                             if (shapeEdge.missing("orderedEdgeNodes")) {
                                 List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
@@ -1240,6 +1319,36 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                             }
                             List& orderedEdgeNodes = static_cast<List&>(*orderedEdgeNodesPtr);
                             orderedEdgeNodes.add(edgeNodeAtDown);
+                        }
+                    }
+                }
+                if (currentShapePoint.has("downRightPixel")) {
+                    CellI* edgePixelListPtr = nullptr;
+                    CellI& shapeEdge        = *lastShapeEdgeInLine;
+                    if (shapeEdge.missing("shapePixels")) {
+                        List& edgeNodes = *new List(kb, ShapePixelStruct);
+                        shapeEdge.set("shapePixels", edgeNodes);
+                        edgePixelListPtr = &edgeNodes;
+                    } else {
+                        edgePixelListPtr = &shapeEdge["shapePixels"];
+                    }
+                    List& edgePixelList = static_cast<List&>(*edgePixelListPtr);
+                    CellI& shapePixel   = currentShapePoint["downRightPixel"];
+                    edgePixelList.add(shapePixel);
+                    if (!internalEdges.empty()) {
+                        CellI& lastInternalEdge = internalEdges["last"]["value"];
+                        CellI* shapeSetPtr = nullptr;
+                        if (lastInternalEdge.missing("shapes")) {
+                            Set& newShapesSet = *new Set(kb, ShapeStruct);
+                            lastInternalEdge.set("shapes", newShapesSet);
+                            shapeSetPtr = &newShapesSet;
+                        } else {
+                            shapeSetPtr = &lastInternalEdge["shapes"];
+                        }
+                        Set& shapesSet = static_cast<Set&>(*shapeSetPtr);
+                        CellI& shape   = shapePixel["shape"];
+                        if (!shapesSet.contains(shape)) {
+                            shapesSet.add(shapePixel["shape"]);
                         }
                     }
                 }
@@ -1380,6 +1489,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
     }
 
     CellI& ShaperStruct;
+    CellI& ShapeStruct;
     CellI& ShapePointStruct;
     CellI& ShapePixelStruct;
     CellI& ShapeEdgeStruct;
@@ -1396,6 +1506,17 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
     cells::hybrid::arc::Grid* m_inputHybridGridPtr = nullptr;
     std::unique_ptr<Object> m_shaper;
 };
+
+TEST_F(EdgeTester, EdgeTestInternalEdges)
+{
+    testEdges(R"([[0,0,0,0,0,0,0],
+                  [0,1,1,1,1,1,0],
+                  [0,1,8,8,8,1,0],
+                  [0,1,8,2,8,1,0],
+                  [0,1,8,8,8,1,0],
+                  [0,1,1,1,1,1,0],
+                  [0,0,0,0,0,0,0]])");
+}
 
 TEST_F(EdgeTester, EdgeTestMinimal)
 {
@@ -1670,12 +1791,14 @@ TEST_F(EdgeTester, EdgeTest)
     Map& shapeEdges = static_cast<Map&>(shape["edges"]);
     CellI& internalEdge = shapeEdges.getValue(_2_);
     List& edgeNodes     = static_cast<List&>(internalEdge["edgeNodes"]);
-    Visitor::visitList(edgeNodes, [this](CellI& edgeNode, int, bool&) {
+    std::cout << "Before sort: " << std::endl;
+    Visitor::visitList(internalEdge["edgeNodes"], [this](CellI& edgeNode, int, bool&) {
         std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
     });
-#if 0
-(1,1)-(1,1)|(2,1)|(1,2)-(2,2)-(4,1)|(3,1)|(3,1)-(3,2)-(2,2)|(3,2)|(1,3)-(2,3)-(3,3)-(1,3)|(2,3)|(3,3)|(4,3)|(1,4)-(3,4)-
-#endif
+    std::cout << "After sort: " << std::endl;
+    Visitor::visitList(internalEdge["orderedEdgeNodes"], [this](CellI& edgeNode, int, bool&) {
+        std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
+    });
 
     expectedShapeIds(R"(11111
                         12131
