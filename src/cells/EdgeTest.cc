@@ -64,6 +64,7 @@ public:
         sortShapePoints();
         printAllShapePoints();
         calculateEdgesForShapes();
+        debugShapePointEdgeJoints();
         sortEdges();
         printShapeIdGrid();
         printEdges();
@@ -395,7 +396,8 @@ public:
             { 8, "#7FDBFF" },
             { 9, "#870C25" }
         };
-        const std::filesystem::path& path = "test.svg";
+        std::string testCaseName          = ::testing::UnitTest::GetInstance()->current_test_info()->name();
+        const std::filesystem::path& path = testCaseName + ".svg";
         std::ofstream svgFile(path);
         svgFile << "<svg xmlns=\"http://www.w3.org/2000/svg\">\n";
         svgFile << R"-(
@@ -722,6 +724,689 @@ public:
         Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
             std::cout << "Shape id:" << currentShape["id"].label() << ", points:\n";
 
+            enum class ProcessingMode
+            {
+                ExternalEdge,
+                InternalEdge,
+                Searching
+            };
+
+            ProcessingMode processingMode = ProcessingMode::ExternalEdge;
+            CellI* processingDirectionPtr = &DirectionRightEV;
+            CellI* currentListItemPtr     = &currentShape["shapePoints"][kb.ids.first];
+            CellI* firstColumnPointItem   = currentListItemPtr;
+            while (currentListItemPtr) {
+                CellI& currentListItem = *currentListItemPtr;
+                CellI& shapePoint      = currentListItem[kb.ids.value];
+                int pointX             = static_cast<Number&>((*currentListItemPtr)["value"]["x"]).value();
+                int pointY             = static_cast<Number&>((*currentListItemPtr)["value"]["y"]).value();
+#if 0
+  0 1 2 3 4 5 6 7 8
+0 .................
+1 .................     |
+2 ....XX...........   --.--.
+3 .................     |XX|
+4 .................     .--.
+5 .................
+6 .................
+7 .................
+
+For leftToRight direction edge from point middle
+ 1 0000 Invalid state, can not happen
+ 2 1000 Skip
+ 3 0100 Skip
+ 4 1100 Skip
+ 5 0010 Skip
+ 6 1010 Skip
+ 7 0110 Skip
+ 8 1110 Start internal edge
+ 9 0001 Start external edge
+10 1001 Skip
+11 0101 Skip
+12 1101 Skip
+13 0011 Skip
+14 1011 Skip
+15 0111 Skip
+16 1111 Skip
+
+Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New edge Special   Skip     Skip     Continue Continue  Skip     Skip
+ 1        2         3        4        5        6         7        8        9        10        11       12       13        14       15       16
+ 0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   🡬 0🡭    1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭
+ 0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   🡯 1🡮    0🡯 1🡮   0🡯 1🡮   0🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮
+ .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.
+ |  |  |  |XX|  |  |  |XX|   |XX|XX|  |  |  |  |XX|  |   |  |XX|  |XX|XX|  |  |  |  |XX|  |   |  |XX|  |XX|XX|  |  |  |  |XX|  |   |  |XX|  |XX|XX|
+ .--o->.  .--o->.  .--o->.   .--o->.  .--o->.  .--o->.   .--o->.  .--o->.  .--o->.  .--o->.   .--o->.  .--o->.  .--o->.  .--o->.   .--o->.  .--o->.
+ |  |  |  |  |  |  |  |  |   |  |  |  |XX|  |  |XX|  |   |XX|  |  |XX|  |  |  |XX|  |  |XX|   |  |XX|  |  |XX|  |XX|XX|  |XX|XX|   |XX|XX|  |XX|XX|
+ .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.  .--.--.  .--.--.   .--.--.  .--.--.
+#endif
+
+                bool hasUpLeft    = shapePoint.has("upLeftPixel") && (&shapePoint["upLeftPixel"]["shape"] == &currentShape);       // 🡬
+                bool hasUpRight   = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
+                bool hasDownLeft  = shapePoint.has("downLeftPixel") && (&shapePoint["downLeftPixel"]["shape"] == &currentShape);   // 🡯
+                bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
+
+                int caseNum = 1 + (int)hasUpLeft + ((int)hasUpRight * 2) + ((int)hasDownLeft * 4) + ((int)hasDownRight * 8);
+                if (caseNum == 1) {
+                    std::cout << "WTF";
+                    throw "Invalid pixel state";
+                } else {
+                    std::cout << "";
+                }
+
+                switch (processingMode) {
+                case ProcessingMode::ExternalEdge: {
+                    // create new edge
+                    std::cout << std::format("N");
+                    CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
+                    List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                    newEdge.set("shape", currentShape);
+                    newEdge.set("edgeNodes", edgeNodes);
+                    Map* edgesPtr = nullptr;
+                    if (currentShape.missing("edges")) {
+                        Map& newEdges = *new Map(kb, kb.std.Number, ShapeEdgeStruct);
+                        currentShape.set("edges", newEdges);
+                        newEdge.set("id", _1_);
+                        newEdge.set("kind", ExternalEdgeEV);
+                        edgesPtr = &newEdges;
+                    } else {
+                        std::cerr << "There is already an external edge!";
+                        throw "Edge detection error!";
+                    }
+                    Map& edges = *edgesPtr;
+                    edges.add(newEdge["id"], newEdge);
+
+                    std::cout << newEdge["id"].label();
+
+                    CellI* currentShapePointPtr = &shapePoint;
+                    bool firstIteration         = true;
+
+                    while ((currentShapePointPtr != &shapePoint) || firstIteration) {
+                        firstIteration    = false;
+                        CellI& shapePoint = *currentShapePointPtr;
+
+                        std::cout << std::format("C");
+                        if (processingDirectionPtr == &DirectionRightEV) {
+                            bool hasUpRight   = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
+                            bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
+
+                            if (hasUpRight && hasDownRight) {
+                                // .--^--.
+                                // |  |XX|
+                                // .-->--.
+                                // |XX|XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionUpEV;
+                            } else if (hasUpRight && !hasDownRight) {
+                                // .--^--.
+                                // |  |XX|
+                                // .-->--.
+                                // |XX|  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionUpEV;
+                            } else if (!hasUpRight && hasDownRight) {
+                                // .--.--.
+                                // |  |  |
+                                // .-->-->
+                                // |XX|XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionRightEV;
+                            } else if (!hasUpRight && !hasDownRight) {
+                                // .--.--.
+                                // |  |  |
+                                // .-->--.
+                                // |XX|  |
+                                // .--v--.
+                                processingDirectionPtr = &DirectionDownEV;
+                            }
+                        } else if (processingDirectionPtr == &DirectionLeftEV) {
+                            bool hasUpLeft   = shapePoint.has("upLeftPixel") && (&shapePoint["upLeftPixel"]["shape"] == &currentShape);     // 🡬
+                            bool hasDownLeft = shapePoint.has("downLeftPixel") && (&shapePoint["downLeftPixel"]["shape"] == &currentShape); // 🡯
+
+                            if (hasUpLeft && hasDownLeft) {
+                                // .--.--.
+                                // |XX|XX|
+                                // .--<--.
+                                // |XX|  |
+                                // .--v--.
+                                processingDirectionPtr = &DirectionDownEV;
+                            } else if (hasUpLeft && !hasDownLeft) {
+                                // .--.--.
+                                // |XX|XX|
+                                // <--<--.
+                                // |  |  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionLeftEV;
+                            } else if (!hasUpLeft && hasDownLeft) {
+                                // .--.--.
+                                // |  |XX|
+                                // .--<--.
+                                // |XX|  |
+                                // .--v--.
+                                processingDirectionPtr = &DirectionDownEV;
+                            } else if (!hasUpLeft && !hasDownLeft) {
+                                // .--^--.
+                                // |  |XX|
+                                // .--<--.
+                                // |  |  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionUpEV;
+                            }
+                        } else if (processingDirectionPtr == &DirectionUpEV) {
+                            bool hasUpLeft  = shapePoint.has("upLeftPixel") && (&shapePoint["upLeftPixel"]["shape"] == &currentShape);   // 🡬
+                            bool hasUpRight = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape); // 🡭
+
+                            if (hasUpLeft && hasUpRight) {
+                                // .--.--.
+                                // |XX|XX|
+                                // <--^--.
+                                // |  |XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionLeftEV;
+                            } else if (hasUpLeft && !hasUpRight) {
+                                // .--.--.
+                                // |XX|  |
+                                // <--^--.
+                                // |  |XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionLeftEV;
+                            } else if (!hasUpLeft && hasUpRight) {
+                                // .--^--.
+                                // |  |XX|
+                                // .--^--.
+                                // |  |XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionUpEV;
+                            } else if (!hasUpLeft && !hasUpRight) {
+                                // .--.--.
+                                // |  |  |
+                                // .--^-->
+                                // |  |XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionRightEV;
+                            }
+                        } else if (processingDirectionPtr == &DirectionDownEV) {
+                            bool hasDownLeft  = shapePoint.has("downLeftPixel") && (&shapePoint["downLeftPixel"]["shape"] == &currentShape);   // 🡯
+                            bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
+
+                            if (hasDownLeft && hasDownRight) {
+                                // .--.--.
+                                // |XX|  |
+                                // .--v-->
+                                // |XX|XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionRightEV;
+                            } else if (hasDownLeft && !hasDownRight) {
+                                // .--.--.
+                                // |XX|  |
+                                // .--v--.
+                                // |XX|  |
+                                // .--v--.
+                                processingDirectionPtr = &DirectionDownEV;
+                            } else if (!hasDownLeft && hasDownRight) {
+                                // .--.--.
+                                // |XX|  |
+                                // .--v-->
+                                // |  |XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionRightEV;
+                            } else if (!hasDownLeft && !hasDownRight) {
+                                // .--.--.
+                                // |XX|  |
+                                // <--v--.
+                                // |  |  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionLeftEV;
+                            }
+                        }
+                        const char* toDirectionStr = "";
+                        if (processingDirectionPtr == &DirectionRightEV) {
+                            toDirectionStr = "right";
+                        } else if (processingDirectionPtr == &DirectionLeftEV) {
+                            toDirectionStr = "left";
+                        } else if (processingDirectionPtr == &DirectionUpEV) {
+                            toDirectionStr = "up";
+                        } else if (processingDirectionPtr == &DirectionDownEV) {
+                            toDirectionStr = "down";
+                        }
+                        const char* oppositeDirectionStr = "";
+                        if (processingDirectionPtr == &DirectionRightEV) {
+                            oppositeDirectionStr = "left";
+                        } else if (processingDirectionPtr == &DirectionLeftEV) {
+                            oppositeDirectionStr = "right";
+                        } else if (processingDirectionPtr == &DirectionUpEV) {
+                            oppositeDirectionStr = "down";
+                        } else if (processingDirectionPtr == &DirectionDownEV) {
+                            oppositeDirectionStr = "up";
+                        }
+                        CellI& toShapePoint = shapePoint[toDirectionStr];
+
+                        // from joint
+                        CellI* fromEdgeJointPtr = nullptr;
+                        if (shapePoint.has("edgeJoint")) {
+                            fromEdgeJointPtr = &shapePoint["edgeJoint"];
+                        } else {
+                            fromEdgeJointPtr = new Object(kb, ShapeEdgeJointStruct);
+                            shapePoint.set("edgeJoint", *fromEdgeJointPtr);
+                        }
+                        CellI& fromEdgeJoint = *fromEdgeJointPtr;
+
+                        CellI* edgeNodePtr      = nullptr;
+                        if (fromEdgeJoint.has(toDirectionStr)) {
+                            CellI& oldEdgeNode = fromEdgeJoint[toDirectionStr];
+                            if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
+                                if (oldEdgeNode.has("rightSide")) {
+                                    std::cout << "Edge processing error" << std::endl;
+                                    throw "Edge processing error";
+                                }
+                            } else if (processingDirectionPtr == &DirectionLeftEV || processingDirectionPtr == &DirectionUpEV) {
+                                if (oldEdgeNode.has("leftSide")) {
+                                    std::cout << "Edge processing error" << std::endl;
+                                    throw "Edge processing error";
+                                }
+                            }
+                            edgeNodePtr = &oldEdgeNode;
+                        } else {
+                            CellI& newEdgeNode = *new Object(kb, ShapeEdgeNodeStruct);
+                            if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
+                                newEdgeNode.set("from", shapePoint);
+                                newEdgeNode.set("direction", *processingDirectionPtr);
+                                newEdgeNode.set("rightSide", newEdge);
+                            } else {
+                                newEdgeNode.set("from", toShapePoint);
+                                newEdgeNode.set("direction", processingDirectionPtr == &DirectionLeftEV ? DirectionRightEV : DirectionDownEV);
+                                newEdgeNode.set("leftSide", newEdge);
+                            }
+                            edgeNodePtr = &newEdgeNode;
+                        }
+                        CellI& edgeNode = *edgeNodePtr;
+                        if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
+                            edgeNode.set("rightSide", newEdge);
+                        } else {
+                            edgeNode.set("leftSide", newEdge);
+                        }
+
+                        edgeNodes.add(edgeNode);
+
+                        // to joint
+                        CellI* toEdgeJointPtr = nullptr;
+                        if (toShapePoint.has("edgeJoint")) {
+                            toEdgeJointPtr = &toShapePoint["edgeJoint"];
+                        } else {
+                            toEdgeJointPtr = new Object(kb, ShapeEdgeJointStruct);
+                            toShapePoint.set("edgeJoint", *toEdgeJointPtr);
+                        }
+
+                        CellI& toEdgeJoint = *toEdgeJointPtr;
+                        currentShapePointPtr = &toShapePoint;
+
+                        fromEdgeJoint.set(toDirectionStr, edgeNode);
+                        toEdgeJoint.set(oppositeDirectionStr, edgeNode);
+
+                        debugShapePointEdgeJoints();
+                        std::cout << "";
+                    }
+
+                    processingMode = ProcessingMode::Searching;
+                } break;
+
+                case ProcessingMode::InternalEdge: {
+                    // create new edge
+                    std::cout << std::format("N");
+                    CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
+                    List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
+                    newEdge.set("shape", currentShape);
+                    newEdge.set("edgeNodes", edgeNodes);
+
+                    Map& edges = static_cast<Map&>(currentShape["edges"]);
+                    CellI& newEdgeId = kb.pools.numbers.get(static_cast<Number&>(currentShape["lastEdgeId"]).value() + 1);
+                    currentShape.set("lastEdgeId", newEdgeId);
+                    newEdge.set("id", newEdgeId);
+                    newEdge.set("kind", InternalEdgeEV);
+                    edges.add(newEdge["id"], newEdge);
+
+                    std::cout << newEdge["id"].label();
+
+                    CellI* currentShapePointPtr = &shapePoint;
+                    bool firstIteration         = true;
+
+                    while ((currentShapePointPtr != &shapePoint) || firstIteration) {
+                        firstIteration    = false;
+                        CellI& shapePoint = *currentShapePointPtr;
+
+                        std::cout << std::format("C");
+                        if (processingDirectionPtr == &DirectionRightEV) {
+                            bool hasUpRight   = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
+                            bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
+
+                            if (hasUpRight && hasDownRight) {
+                                // .--.--.
+                                // |XX|XX|
+                                // .-->--.
+                                // |  |XX|
+                                // .--v--.
+                                processingDirectionPtr = &DirectionDownEV;
+                            } else if (hasUpRight && !hasDownRight) {
+                                // .--.--.
+                                // |XX|XX|
+                                // .-->-->
+                                // |  |  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionRightEV;
+                            } else if (!hasUpRight && hasDownRight) {
+                                // .--^--.
+                                // |XX|  |
+                                // .-->--.
+                                // |  |XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionUpEV;
+                                if (shapePoint.has("edgeJoint")) {
+                                    CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
+                                    if (shapePoint["edgeJoint"].has("up") && shapePoint["edgeJoint"].has("right")) {
+                                        CellI& upEdgeNode   = shapePoint["edgeJoint"]["up"];
+                                        CellI& rightEdgeNode = shapePoint["edgeJoint"]["right"];
+                                        if (upEdgeNode.has("rightSide") && (&upEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV) && rightEdgeNode.has("rightSide") && (&rightEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV)) {
+                                            processingDirectionPtr = &DirectionDownEV;
+                                        }
+                                    }
+                                }
+                            } else if (!hasUpRight && !hasDownRight) {
+                                // .--^--.
+                                // |XX|  |
+                                // .-->--.
+                                // |  |  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionUpEV;
+                            }
+                        } else if (processingDirectionPtr == &DirectionLeftEV) {
+                            bool hasUpLeft   = shapePoint.has("upLeftPixel") && (&shapePoint["upLeftPixel"]["shape"] == &currentShape);     // 🡬
+                            bool hasDownLeft = shapePoint.has("downLeftPixel") && (&shapePoint["downLeftPixel"]["shape"] == &currentShape); // 🡯
+
+                            if (hasUpLeft && hasDownLeft) {
+                                // .--^--.
+                                // |XX|  |
+                                // .--<--.
+                                // |XX|XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionUpEV;
+                            } else if (hasUpLeft && !hasDownLeft) {
+                                // .--.--.
+                                // |XX|  |
+                                // .--<--.
+                                // |  |XX|
+                                // .--v--.
+                                processingDirectionPtr = &DirectionDownEV;
+                                if (shapePoint.has("edgeJoint")) {
+                                    CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
+                                    if (shapePoint["edgeJoint"].has("down") && shapePoint["edgeJoint"].has("left")) {
+                                        CellI& downEdgeNode  = shapePoint["edgeJoint"]["down"];
+                                        CellI& leftEdgeNode = shapePoint["edgeJoint"]["left"];
+                                        if (downEdgeNode.has("leftSide") && (&downEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV) && leftEdgeNode.has("leftSide") && (&leftEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV)) {
+                                            processingDirectionPtr = &DirectionUpEV;
+                                        }
+                                    }
+                                }
+                            } else if (!hasUpLeft && hasDownLeft) {
+                                // .--.--.
+                                // |  |  |
+                                // <--<--.
+                                // |XX|XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionLeftEV;
+                            } else if (!hasUpLeft && !hasDownLeft) {
+                                // .--.--.
+                                // |  |  |
+                                // .--<--.
+                                // |  |XX|
+                                // .--v--.
+                                processingDirectionPtr = &DirectionDownEV;
+                            }
+                        } else if (processingDirectionPtr == &DirectionUpEV) {
+                            bool hasUpLeft  = shapePoint.has("upLeftPixel") && (&shapePoint["upLeftPixel"]["shape"] == &currentShape);   // 🡬
+                            bool hasUpRight = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape); // 🡭
+
+                            if (hasUpLeft && hasUpRight) {
+                                // .--.--.
+                                // |XX|XX|
+                                // .--^-->
+                                // |XX|  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionRightEV;
+                            } else if (hasUpLeft && !hasUpRight) {
+                                // .--^--.
+                                // |XX|  |
+                                // .--^--.
+                                // |XX|  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionUpEV;
+                            } else if (!hasUpLeft && hasUpRight) {
+                                // .--.--.
+                                // |  |XX|
+                                // <--^--.
+                                // |XX|  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionLeftEV;
+                            } else if (!hasUpLeft && !hasUpRight) {
+                                // .--.--.
+                                // |  |  |
+                                // <--^--.
+                                // |XX|  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionLeftEV;
+                            }
+                        } else if (processingDirectionPtr == &DirectionDownEV) {
+                            bool hasDownLeft  = shapePoint.has("downLeftPixel") && (&shapePoint["downLeftPixel"]["shape"] == &currentShape);   // 🡯
+                            bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
+
+                            if (hasDownLeft && hasDownRight) {
+                                // .--.--.
+                                // |  |XX|
+                                // <--v--.
+                                // |XX|XX|
+                                // .--.--.
+                                processingDirectionPtr = &DirectionLeftEV;
+                            } else if (hasDownLeft && !hasDownRight) {
+                                // .--.--.
+                                // |  |XX|
+                                // .--v-->
+                                // |XX|  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionRightEV;
+                                if (shapePoint.has("edgeJoint")) {
+                                    CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
+                                    if (shapePoint["edgeJoint"].has("down") && shapePoint["edgeJoint"].has("right")) {
+                                        CellI& downEdgeNode  = shapePoint["edgeJoint"]["down"];
+                                        CellI& rightEdgeNode = shapePoint["edgeJoint"]["right"];
+                                        if (downEdgeNode.has("rightSide") && (&downEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV) && rightEdgeNode.has("leftSide") && (&rightEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV)) {
+                                            processingDirectionPtr = &DirectionLeftEV;
+                                        }
+                                    }
+                                }
+                            } else if (!hasDownLeft && hasDownRight) {
+                                // .--.--.
+                                // |  |XX|
+                                // .--v--.
+                                // |  |XX|
+                                // .--v--.
+                                processingDirectionPtr = &DirectionDownEV;
+                            } else if (!hasDownLeft && !hasDownRight) {
+                                // .--.--.
+                                // |  |XX|
+                                // .--v-->
+                                // |  |  |
+                                // .--.--.
+                                processingDirectionPtr = &DirectionRightEV;
+                            }
+                        }
+                        const char* toDirectionStr = "";
+                        if (processingDirectionPtr == &DirectionRightEV) {
+                            toDirectionStr = "right";
+                        } else if (processingDirectionPtr == &DirectionLeftEV) {
+                            toDirectionStr = "left";
+                        } else if (processingDirectionPtr == &DirectionUpEV) {
+                            toDirectionStr = "up";
+                        } else if (processingDirectionPtr == &DirectionDownEV) {
+                            toDirectionStr = "down";
+                        }
+                        const char* oppositeDirectionStr = "";
+                        if (processingDirectionPtr == &DirectionRightEV) {
+                            oppositeDirectionStr = "left";
+                        } else if (processingDirectionPtr == &DirectionLeftEV) {
+                            oppositeDirectionStr = "right";
+                        } else if (processingDirectionPtr == &DirectionUpEV) {
+                            oppositeDirectionStr = "down";
+                        } else if (processingDirectionPtr == &DirectionDownEV) {
+                            oppositeDirectionStr = "up";
+                        }
+                        CellI& toShapePoint = shapePoint[toDirectionStr];
+
+                        // from joint
+                        CellI* fromEdgeJointPtr = nullptr;
+                        if (shapePoint.has("edgeJoint")) {
+                            fromEdgeJointPtr = &shapePoint["edgeJoint"];
+                        } else {
+                            fromEdgeJointPtr = new Object(kb, ShapeEdgeJointStruct);
+                            shapePoint.set("edgeJoint", *fromEdgeJointPtr);
+                        }
+                        CellI& fromEdgeJoint = *fromEdgeJointPtr;
+
+                        CellI* edgeNodePtr = nullptr;
+                        if (fromEdgeJoint.has(toDirectionStr)) {
+                            CellI& oldEdgeNode = fromEdgeJoint[toDirectionStr];
+                            if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
+                                if (oldEdgeNode.has("leftSide")) {
+                                    std::cout << "Edge processing error" << std::endl;
+                                    throw "Edge processing error";
+                                }
+                            } else if (processingDirectionPtr == &DirectionLeftEV || processingDirectionPtr == &DirectionUpEV) {
+                                if (oldEdgeNode.has("rightSide")) {
+                                    std::cout << "Edge processing error" << std::endl;
+                                    throw "Edge processing error";
+                                }
+                            }
+                            edgeNodePtr = &oldEdgeNode;
+                        } else {
+                            CellI& newEdgeNode = *new Object(kb, ShapeEdgeNodeStruct);
+                            if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
+                                newEdgeNode.set("from", shapePoint);
+                                newEdgeNode.set("direction", *processingDirectionPtr);
+                                newEdgeNode.set("leftSide", newEdge);
+                            } else {
+                                newEdgeNode.set("from", toShapePoint);
+                                newEdgeNode.set("direction", processingDirectionPtr == &DirectionLeftEV ? DirectionRightEV : DirectionDownEV);
+                                newEdgeNode.set("rightSide", newEdge);
+                            }
+                            edgeNodePtr = &newEdgeNode;
+                        }
+                        CellI& edgeNode = *edgeNodePtr;
+                        if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
+                            edgeNode.set("leftSide", newEdge);
+                        } else {
+                            edgeNode.set("rightSide", newEdge);
+                        }
+
+                        edgeNodes.add(edgeNode);
+
+                        // to joint
+                        CellI* toEdgeJointPtr = nullptr;
+                        if (toShapePoint.has("edgeJoint")) {
+                            toEdgeJointPtr = &toShapePoint["edgeJoint"];
+                        } else {
+                            toEdgeJointPtr = new Object(kb, ShapeEdgeJointStruct);
+                            toShapePoint.set("edgeJoint", *toEdgeJointPtr);
+                        }
+
+                        CellI& toEdgeJoint   = *toEdgeJointPtr;
+                        currentShapePointPtr = &toShapePoint;
+
+                        fromEdgeJoint.set(toDirectionStr, edgeNode);
+                        toEdgeJoint.set(oppositeDirectionStr, edgeNode);
+
+                        debugShapePointEdgeJoints();
+                        std::cout << "";
+                    }
+                    currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
+                    processingMode = ProcessingMode::Searching;
+                } break;
+                case ProcessingMode::Searching: {
+                    bool isUnprocessedEdge = false;
+
+                    if (hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
+                        // 1🡬 1🡭
+                        // 1🡯 0🡮
+                        // .--.--.
+                        // |XX|XX|
+                        // .--o->.
+                        // |XX|  |
+                        // .--.--.
+                        if (shapePoint.has("edgeJoint")) {
+                            CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
+                            if (shapePoint["edgeJoint"].has("right")) {
+                                CellI& edgeNode = shapePoint["edgeJoint"]["right"];
+                                if (edgeNode.missing("leftSide")) {
+                                    isUnprocessedEdge = true;
+                                }
+                            } else {
+                                isUnprocessedEdge = true;
+                            }
+                        } else {
+                            isUnprocessedEdge = true;
+                        }
+                    } else if (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
+                        // 0🡬 1🡭
+                        // 1🡯 0🡮
+                        // .--A--.
+                        // |  |XX|
+                        // B--o-->
+                        // |XX|  |
+                        // .--.--.
+                        if (shapePoint.has("edgeJoint")) {
+                            CellI& fromEdgeJointPtr = shapePoint["edgeJoint"];
+                            if (shapePoint["edgeJoint"].has("left") && shapePoint["edgeJoint"].has("up") && shapePoint["edgeJoint"].missing("right")) {
+                                CellI& upEdgeNode   = shapePoint["edgeJoint"]["up"];
+                                CellI& leftEdgeNode = shapePoint["edgeJoint"]["left"];
+                                if (upEdgeNode.has("leftSide") && (&upEdgeNode["leftSide"]["kind"] == &ExternalEdgeEV) && leftEdgeNode.has("rightSide") && (&leftEdgeNode["rightSide"]["kind"] == &ExternalEdgeEV)) {
+                                    isUnprocessedEdge = true;
+                                }
+                            }
+                        }
+                    }
+                    if (isUnprocessedEdge) {
+                        processingDirectionPtr = &DirectionRightEV;
+                        processingMode = ProcessingMode::InternalEdge;
+                    } else {
+                        currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
+                    }
+                } break;
+                } // switch processinMode
+            } // while has more shapePoints
+        }); // visit shapePoints
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void calculateEdgesForShapesOld()
+    {
+        // calculate edges
+        std::cout << "\ncalculate edges" << std::endl;
+        Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
+            std::cout << "Shape id:" << currentShape["id"].label() << ", points:\n";
+
             enum class ProcessingDirection
             {
                 LeftToRight,
@@ -731,9 +1416,15 @@ public:
             ProcessingDirection processingDirection = ProcessingDirection::LeftToRight;
             CellI* currentListItemPtr               = &currentShape["shapePoints"][kb.ids.first];
             CellI* firstColumnPointItem             = currentListItemPtr;
+            CellI& firstShapePoint                  = (*currentListItemPtr)[kb.ids.value];
+            bool hasNextUpLeft                      = firstShapePoint.has("upLeftPixel") && (&firstShapePoint["upLeftPixel"]["shape"] == &currentShape);       // 🡬
+            bool hasNextUpRight                     = firstShapePoint.has("upRightPixel") && (&firstShapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
+            bool hasNextDownLeft                    = firstShapePoint.has("downLeftPixel") && (&firstShapePoint["downLeftPixel"]["shape"] == &currentShape);   // 🡯
+            bool hasNextDownRight                   = firstShapePoint.has("downRightPixel") && (&firstShapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
             while (currentListItemPtr) {
                 CellI& currentListItem = *currentListItemPtr;
                 CellI& shapePoint      = currentListItem[kb.ids.value];
+                int pointX             = static_cast<Number&>((*currentListItemPtr)["value"]["x"]).value();
                 int pointY             = static_cast<Number&>((*currentListItemPtr)["value"]["y"]).value();
 #if 0
   0 1 2 3 4 5 6 7 8
@@ -753,10 +1444,10 @@ For leftToRight direction edge from point middle
  4 1100 Continue edge from left
  5 0010 Skip
  6 1010 Skip
- 7 0110 Continue edge from right
- 8 1110 New edgeJoint or continue from right
+ 7 0110 Special
+ 8 1110 New edgeJoint
  9 0001 New edgeJoint
-10 1001 Continue edge from up
+10 1001 Special
 11 0101 Skip
 12 1101 Skip
 13 0011 Continue edge from left
@@ -764,7 +1455,7 @@ For leftToRight direction edge from point middle
 15 0111 Skip
 16 1111 Skip
 
-Invalid   Skip     Continue  Continue Skip     Skip      New edge New edge New edge           Skip     Skip     Continue Continue  Skip     Skip
+Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New edge Special   Skip     Skip     Continue Continue  Skip     Skip
  1        2         3        4        5        6         7        8        9        10        11       12       13        14       15       16
  0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   🡬 0🡭    1🡬 0🡭   0🡬 1🡭   1🡬 1🡭   0🡬 0🡭   1🡬 0🡭   0🡬 1🡭   1🡬 1🡭
  0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   0🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   1🡯 0🡮   🡯 1🡮    0🡯 1🡮   0🡯 1🡮   0🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮   1🡯 1🡮
@@ -802,10 +1493,11 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
  |  |  |  |  |  |  |  |  |   |  |  |  |XX|  |  |XX|  |   |XX|  |  |XX|  |   |  |XX|  |  |XX|   |  |XX|  |  |XX|  |XX|XX|  |XX|XX|   |XX|XX|  |XX|XX|
  .--v--.  .--v--.  .--v--.   .--v--.  .--v--.  .--v--.   .--v--.  .--v--.   .--v--.  .--v--.   .--v--.  .--v--.  .--v--.  .--v--.   .--v--.  .--v--.
 #endif
-                bool hasUpLeft    = shapePoint.has("upLeftPixel") && (&shapePoint["upLeftPixel"]["shape"] == &currentShape);       // 🡬
-                bool hasUpRight   = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
-                bool hasDownLeft  = shapePoint.has("downLeftPixel") && (&shapePoint["downLeftPixel"]["shape"] == &currentShape);   // 🡯
-                bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
+                bool hasUpLeft    = hasNextUpLeft;    // 🡬
+                bool hasUpRight   = hasNextUpRight;   // 🡭
+                bool hasDownLeft  = hasNextDownLeft;  // 🡯
+                bool hasDownRight = hasNextDownRight; // 🡮
+
                 int caseNum       = 1 + (int)hasUpLeft + ((int)hasUpRight * 2) + ((int)hasDownLeft * 4) + ((int)hasDownRight * 8);
                 if (caseNum == 1) {
                     std::cout << "WTF";
@@ -849,21 +1541,6 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         shapeDir        = &DirectionLeftEV;
                     }
 
-                    // Continue  Continue
-                    // 10        14
-                    // 1🡬 0🡭   1🡬 0🡭
-                    // 0🡯 1🡮   1🡯 1🡮
-                    // .--.--.   .--.--.
-                    // |XX|  |   |XX|  |
-                    // .--o-->   .--o->.
-                    // |  |XX|   |XX|XX|
-                    // .--.--.   .--.--.
-                    if ((hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) || (hasUpLeft && !hasUpRight && hasDownLeft && hasDownRight)) {
-                        toDirectionPtr  = &DirectionRightEV;
-                        previousEdgeDir = &DirectionUpEV;
-                        shapeDir        = &DirectionRightEV;
-                    }
-
                     // Continue
                     // 4
                     // 1🡬 1🡭
@@ -878,23 +1555,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         previousEdgeDir = &DirectionLeftEV;
                         shapeDir        = &DirectionLeftEV;
                     }
-
-                    // Continue
-                    // 13
-                    // 0🡬 0🡭
-                    // 1🡯 1🡮
-                    // .--.--.
-                    // |  |  |
-                    // .--o->.
-                    // |XX|XX|
-                    // .--.--.
-                    if (!hasUpLeft && !hasUpRight && hasDownLeft && hasDownRight) {
-                        toDirectionPtr  = &DirectionRightEV;
-                        previousEdgeDir = &DirectionLeftEV;
-                        shapeDir        = &DirectionRightEV;
-                    }
-
-                    // New edge
+                    // Special
                     // 7
                     // 0🡬 1🡭
                     // 1🡯 0🡮
@@ -904,9 +1565,8 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     // |XX|  |
                     // .--.--.
                     if (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
-                        toDirectionPtr  = &DirectionRightEV;
-//                        previousEdgeDir = &DirectionLeftEV;
-                        shapeDir        = &DirectionLeftEV;
+                        toDirectionPtr = &DirectionRightEV;
+                        shapeDir       = &DirectionLeftEV;
                     }
 
                     // New edge
@@ -935,6 +1595,50 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     if (!hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) {
                         toDirectionPtr = &DirectionRightEV;
                         shapeDir       = &DirectionRightEV;
+                    }
+
+                    // Special
+                    // 10
+                    // 1🡬 0🡭
+                    // 0🡯 1🡮
+                    // .--.--.
+                    // |XX|  |
+                    // .--o-->
+                    // |  |XX|
+                    // .--.--.
+                    if (hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) {
+                        toDirectionPtr  = &DirectionRightEV;
+                        shapeDir        = &DirectionRightEV;
+                    }
+
+                    // Continue
+                    // 13
+                    // 0🡬 0🡭
+                    // 1🡯 1🡮
+                    // .--.--.
+                    // |  |  |
+                    // .--o->.
+                    // |XX|XX|
+                    // .--.--.
+                    if (!hasUpLeft && !hasUpRight && hasDownLeft && hasDownRight) {
+                        toDirectionPtr  = &DirectionRightEV;
+                        previousEdgeDir = &DirectionLeftEV;
+                        shapeDir        = &DirectionRightEV;
+                    }
+
+                    // Continue
+                    // 14
+                    // 1🡬 0🡭
+                    // 1🡯 1🡮
+                    // .--.--.
+                    // |XX|  |
+                    // .--o->.
+                    // |XX|XX|
+                    // .--.--.
+                    if (hasUpLeft && !hasUpRight && hasDownLeft && hasDownRight) {
+                        toDirectionPtr  = &DirectionRightEV;
+                        previousEdgeDir = &DirectionUpEV;
+                        shapeDir        = &DirectionRightEV;
                     }
                 } else {
                     std::cout << std::format("[{:2}|]", caseNum);
@@ -1004,35 +1708,61 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         shapeDir        = &DirectionRightEV;
                     }
 
-                    // 10 1001 Continue from left
+                    // 10 1001 Special
+                    //
+                    // 10
+                    // 1🡬 0🡭
+                    // 0🡯 1🡮
+                    // .--.--.
+                    // |XX|  |
+                    // .--o--.
+                    // |  |XX|
+                    // .--v--.
+                    if (hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) {
+                        toDirectionPtr  = &DirectionDownEV;
+                        shapeDir        = &DirectionLeftEV;
+                    }
+
                     // 12 1101 Continue from left
                     //
-                    // 10       12
-                    // 1🡬 0🡭  1🡬 1🡭
-                    // 0🡯 1🡮  0🡯 1🡮
-                    // .--.--.  .--.--.
-                    // |XX|  |  |XX|XX|
-                    // .--o--.  .--o--.
-                    // |  |XX|  |  |XX|
-                    // .--v--.  .--v--.
-                    if ((hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) || (hasUpLeft && hasUpRight && !hasDownLeft && hasDownRight)) {
+                    //  12
+                    //  1🡬 1🡭
+                    //  0🡯 1🡮
+                    //  .--.--.
+                    //  |XX|XX|
+                    //  .--o--.
+                    //  |  |XX|
+                    //  .--v--.
+                    if (hasUpLeft && hasUpRight && !hasDownLeft && hasDownRight) {
                         toDirectionPtr  = &DirectionDownEV;
                         previousEdgeDir = &DirectionLeftEV;
                         shapeDir        = &DirectionLeftEV;
                     }
 
-                    //  7 0110 Continue from right
-                    //  8 1110 Continue from right
+                    // 7 0110 Special
                     //
-                    // 7        8
-                    // 0🡬 1🡭   1🡬 1🡭
-                    // 1🡯 0🡮   1🡯 0🡮
-                    // .--.--.  .--.--.
-                    // |  |XX|  |XX|XX|
-                    // .--o--.  .--o--.
-                    // |XX|  |  |XX|  |
-                    // .--v--.  .--v--.
-                    if ((!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) || (hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight)) {
+                    // 0🡬 1🡭
+                    // 1🡯 0🡮
+                    // .--.--.
+                    // |  |XX|
+                    // .--o--.
+                    // |XX|  |
+                    // .--v--.
+                    if (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
+                        toDirectionPtr  = &DirectionDownEV;
+                        shapeDir        = &DirectionRightEV;
+                    }
+
+                    // 8 1110 Continue from right
+                    //
+                    // 1🡬 1🡭
+                    // 1🡯 0🡮
+                    // .--.--.
+                    // |XX|XX|
+                    // .--o--.
+                    // |XX|  |
+                    // .--v--.
+                    if (hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) {
                         toDirectionPtr  = &DirectionDownEV;
                         previousEdgeDir = &DirectionRightEV;
                         shapeDir        = &DirectionRightEV;
@@ -1052,6 +1782,19 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                         previousEdgeDir = &DirectionRightEV;
                         shapeDir        = &DirectionLeftEV;
                     }
+                }
+
+                if (shapePoint.has("right")) {
+                    CellI& nextShapePoint = shapePoint["right"];
+                    hasNextUpLeft    = nextShapePoint.has("upLeftPixel") && (&nextShapePoint["upLeftPixel"]["shape"] == &currentShape);       // 🡬
+                    hasNextUpRight   = nextShapePoint.has("upRightPixel") && (&nextShapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
+                    hasNextDownLeft  = nextShapePoint.has("downLeftPixel") && (&nextShapePoint["downLeftPixel"]["shape"] == &currentShape);   // 🡯
+                    hasNextDownRight = nextShapePoint.has("downRightPixel") && (&nextShapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
+                } else {
+                    hasNextUpLeft    = false; // 🡬
+                    hasNextUpRight   = false; // 🡭
+                    hasNextDownLeft  = false; // 🡯
+                    hasNextDownRight = false; // 🡮
                 }
 
                 if (toDirectionPtr) {
@@ -1082,14 +1825,74 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
 
                     const char* shapeDirStr = shapeDir == &DirectionRightEV ? "rightSide" : "leftSide";
                     if (caseNum == 10 && toDirectionPtr == &DirectionRightEV && &currentShape["id"] == &_2_) {
-                        debugShapePointEdgeJoints();
+//                        debugShapePointEdgeJoints();
                         std::cout << "";
                     }
                     if (caseNum == 7 && toDirectionPtr == &DirectionDownEV && &currentShape["id"] == &_2_) {
-                        debugShapePointEdgeJoints();
+//                        debugShapePointEdgeJoints();
                         std::cout << "";
                     }
-                    if (!previousEdgeDir) {
+                    if (toDirectionPtr == &DirectionRightEV && (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) &&
+                        (&fromEdgeJoint["up"]["leftSide"]["kind"] == &InternalEdgeEV) && (&fromEdgeJoint["left"]["rightSide"]["kind"] == &InternalEdgeEV)) {
+                        //  7
+                        //  0🡬 1🡭
+                        //  1🡯 0🡮
+                        //  .--.--.
+                        //  |  |XX|
+                        //  .--o->.
+                        //  |XX|  |
+                        //  .--.--.
+                        std::cout << std::format("C");
+                        previousEdgePtr = &fromEdgeJoint["up"]["leftSide"];
+                    }else if (toDirectionPtr == &DirectionDownEV && (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight) &&
+                        (&fromEdgeJoint["up"]["leftSide"]["kind"] == &ExternalEdgeEV) && (&fromEdgeJoint["left"]["rightSide"]["kind"] == &ExternalEdgeEV)) {
+                            //  7
+                            //  0🡬 1🡭
+                            //  1🡯 0🡮
+                            //  .--.--.
+                            //  |  |XX|
+                            //  .--o--.
+                            //  |XX|  |
+                            //  .--v--.
+                            std::cout << std::format("C");
+                            previousEdgePtr = &fromEdgeJoint["right"]["leftSide"];
+                    } else if (hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight && toDirectionPtr == &DirectionRightEV &&
+                            ((&fromEdgeJoint["up"]["rightSide"]["kind"] == &ExternalEdgeEV) && (&fromEdgeJoint["left"]["leftSide"]["kind"] == &InternalEdgeEV))) {
+                            // 10
+                            // 1🡬 0🡭
+                            // 0🡯 1🡮
+                            // .--.--.
+                            // |XX|  |
+                            // .--o-->
+                            // |  |XX|
+                            // .--.--.
+                            std::cout << std::format("C");
+                            previousEdgePtr = &fromEdgeJoint["up"]["rightSide"];
+                    } else if (hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight && toDirectionPtr == &DirectionDownEV &&
+                        ((&fromEdgeJoint["up"]["rightSide"]["kind"] == &ExternalEdgeEV) && (&fromEdgeJoint["left"]["leftSide"]["kind"] == &ExternalEdgeEV))) {
+                        // 10
+                        // 1🡬 0🡭
+                        // 0🡯 1🡮
+                        // .--.--.
+                        // |XX|  |
+                        // .--o--.
+                        // |  |XX|
+                        // .--v--.
+                        std::cout << std::format("C");
+                        previousEdgePtr = &fromEdgeJoint["up"]["rightSide"];
+                    } else if (hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight && toDirectionPtr == &DirectionDownEV &&
+                        ((&fromEdgeJoint["up"]["rightSide"]["kind"] == &ExternalEdgeEV) && (&fromEdgeJoint["left"]["leftSide"]["kind"] == &InternalEdgeEV))) {
+                        // 10
+                        // 1🡬 0🡭
+                        // 0🡯 1🡮
+                        // .--.--.
+                        // |XX|  |
+                        // .--o--.
+                        // |  |XX|
+                        // .--v--.
+                        std::cout << std::format("C");
+                        previousEdgePtr = &fromEdgeJoint["left"]["leftSide"];
+                    } else if (!previousEdgeDir) {
                         std::cout << std::format("N");
                         CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
                         List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
@@ -1165,16 +1968,67 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     fromEdgeJoint.set(toDirectionStr, edgeNode);
                     const char* nextJointSlotName = toDirectionPtr == &DirectionRightEV ? "left" : "up";
 
-                    bool alreadyContinued = false;
-                    if (fromEdgeJoint.has("left") && fromEdgeJoint.has("up")) {
-                        alreadyContinued = true;
-                    }
                     if (caseNum == 7 && toDirectionPtr == &DirectionRightEV && &currentShape["id"] == &_2_) {
-                        debugShapePointEdgeJoints();
+//                        debugShapePointEdgeJoints();
                         std::cout << "";
                     }
-                    if (toDirectionPtr == &DirectionRightEV && toEdgeJoint.has("up") && !alreadyContinued) {
-                        CellI& upEdgeNode     = toEdgeJoint["up"];
+
+                    CellI* nextJointPtr = nullptr;
+
+                    //  2        15
+                    //  1🡬 0🡭   🡬 1🡭
+                    //  0🡯 0🡮   🡯 1🡮
+                    //  .--.--.  .--.--.
+                    //  |XX|  |  |  |XX|
+                    //  .--o->.  .--o->.
+                    //  |  |  |  |XX|XX|
+                    //  .--.--.  .--.--.
+                    if (toDirectionPtr == &DirectionRightEV &&
+                        ((hasNextUpLeft && !hasNextUpRight && !hasNextDownLeft && !hasNextDownRight) ||
+                        (!hasNextUpLeft && hasNextUpRight && hasNextDownLeft && hasNextDownRight))) {
+                        nextJointPtr = &toEdgeJoint["up"];
+                    }
+
+                    //  7
+                    //  0🡬 1🡭 
+                    //  1🡯 0🡮 
+                    //  .--.--.
+                    //  |  |XX|
+                    //  .--o->.
+                    //  |XX|  |
+                    //  .--.--.
+                    // from
+                    if (toDirectionPtr == &DirectionRightEV && (!hasUpLeft && hasUpRight && hasDownLeft && !hasDownRight)) {
+                        if ((&fromEdgeJoint["up"]["leftSide"]["kind"] == &InternalEdgeEV) &&
+                            (&fromEdgeJoint["left"]["rightSide"]["kind"] == &InternalEdgeEV)) {
+                            if (toEdgeJoint.has("up")) {
+                                nextJointPtr = &toEdgeJoint["up"];
+                            }
+                        }
+                    }
+                    // to
+                    if (toDirectionPtr == &DirectionRightEV && (!hasNextUpLeft && hasNextUpRight && hasNextDownLeft && !hasNextDownRight)) {
+                        if (&toEdgeJoint["up"]["leftSide"]["kind"] == &ExternalEdgeEV) {
+                            nextJointPtr = &toEdgeJoint["up"];
+                        }
+                    }
+
+                    // 10
+                    // 1🡬 0🡭
+                    // 0🡯 1🡮
+                    // .--.--.
+                    // |XX|  |
+                    // .--o-->
+                    // |  |XX|
+                    // .--.--.
+                    if (toDirectionPtr == &DirectionRightEV && (hasUpLeft && !hasUpRight && !hasDownLeft && hasDownRight) &&
+                        (&fromEdgeJoint["up"]["rightSide"]["kind"] == &InternalEdgeEV) && (&fromEdgeJoint["left"]["leftSide"]["kind"] == &ExternalEdgeEV)) {
+                        if (toEdgeJoint.has("up")) {
+                            nextJointPtr = &toEdgeJoint["up"];
+                        }
+                    }
+                    if (nextJointPtr) {
+                        CellI& upEdgeNode     = (*nextJointPtr);
                         CellI* upLeftSidePtr  = nullptr;
                         CellI* upRightSidePtr = nullptr;
                         if (upEdgeNode.has("rightSide")) {
@@ -1225,7 +2079,7 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                                 alreadyContinued = previousEdgeId == nextEdgeId;
                             }
 #endif
-                            if (nextEdgeId != previousEdgeId && !alreadyContinued) {
+                            if (nextEdgeId != previousEdgeId) {
                                 CellI* toDeleteEdgePtr = nullptr;
                                 CellI* toExtendEdgePtr = nullptr;
                                 if (nextEdgeId < previousEdgeId) {
@@ -1268,27 +2122,41 @@ Invalid   Skip      Skip     Skip     Continue Continue  Continue Continue Conti
                     std::cout << "      ";
                 }
                 std::cout << fmt::format("({},{}) ", static_cast<Number&>(shapePoint["x"]).value(), static_cast<Number&>(shapePoint["y"]).value());
-                debugShapePointEdgeJoints();
+//                debugShapePointEdgeJoints();
 
                 CellI* nextListItemPtr       = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
+                int nextPointX               = nextListItemPtr ? static_cast<Number&>((*nextListItemPtr)["value"]["x"]).value() : -1;
                 int nextPointY               = nextListItemPtr ? static_cast<Number&>((*nextListItemPtr)["value"]["y"]).value() : -1;
                 bool isNextItemInTheSameLine = nextPointY == pointY;
+                bool needProcessNextPoint    = false;
 
                 if (isNextItemInTheSameLine) {
+                    if (pointX + 1 != nextPointX) {
+                        needProcessNextPoint = true;
+                    }
                     currentListItemPtr = nextListItemPtr;
                 } else if (processingDirection == ProcessingDirection::LeftToRight) {
                     if (nextListItemPtr) {
+                        needProcessNextPoint = true;
                         currentListItemPtr  = firstColumnPointItem;
                         processingDirection = ProcessingDirection::UpToDown;
                         std::cout << std::endl;
                     } else {
-                        currentListItemPtr = nextListItemPtr;
+                        currentListItemPtr = nullptr;
                     }
                 } else {
+                    needProcessNextPoint = true;
                     currentListItemPtr   = nextListItemPtr;
                     firstColumnPointItem = nextListItemPtr;
                     processingDirection  = ProcessingDirection::LeftToRight;
                     std::cout << std::endl;
+                }
+                if (needProcessNextPoint) {
+                    CellI& nextShapePoint = (*currentListItemPtr)[kb.ids.value];
+                    hasNextUpLeft    = nextShapePoint.has("upLeftPixel") && (&nextShapePoint["upLeftPixel"]["shape"] == &currentShape);       // 🡬
+                    hasNextUpRight   = nextShapePoint.has("upRightPixel") && (&nextShapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
+                    hasNextDownLeft  = nextShapePoint.has("downLeftPixel") && (&nextShapePoint["downLeftPixel"]["shape"] == &currentShape);   // 🡯
+                    hasNextDownRight = nextShapePoint.has("downRightPixel") && (&nextShapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
                 }
             }
             std::cout << "edges: " << static_cast<Map&>(currentShape["edges"]).size() << std::endl;
@@ -1700,12 +2568,10 @@ TEST_F(EdgeTester, EdgeTestCase7Horizontal)
                   [0,1,8,1,0],
                   [0,0,1,0,0],
                   [0,0,0,0,0]])");
-    debugShapePointEdgeJoints();
 }
 
 TEST_F(EdgeTester, EdgeTestInternalEdges)
 {
-    exit(0);
     testEdges(R"([[0,0,0,0,0,0,0],
                   [0,1,1,1,1,1,0],
                   [0,1,8,8,8,1,0],
@@ -2007,6 +2873,7 @@ TEST_F(EdgeTester, EdgeTest)
 
 TEST_F(EdgeTester, EdgeTestTwoLeftCorners)
 {
+    exit(0);
     testEdges(R"([[0, 7, 7, 7],
                   [7, 7, 7, 7],
                   [0, 7, 7, 7]])");
