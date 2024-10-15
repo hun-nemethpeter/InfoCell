@@ -1723,7 +1723,8 @@ bool Set::contains(CellI& key)
 void Set::add(CellI& value)
 {
     if (m_index.has(value)) {
-        throw "A value already registered with this role";
+        return;
+//        throw "A value already registered with this role";
     }
     m_index.insert(value, value);
     ++m_size;

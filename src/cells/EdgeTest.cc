@@ -1,9 +1,9 @@
 ﻿#include "CellTestBase.h"
+#include "Arc.h"
 
 #include "Config.h"
 #include "app/App.h"
 #include "util/ArcTask.h"
-
 
 #include <fstream>
 #include <ftxui/dom/elements.hpp>
@@ -40,6 +40,8 @@ public:
         DirectionLeftEV(getVariable("arc::Directions::left")),
         DirectionRightEV(getVariable("arc::Directions::right"))
     {
+        auto& TableRowStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, ShapeStruct));
+        auto& TableStruct    = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, TableRowStruct));
     }
 
     void setOutputSVGName(const std::string& fileName)
@@ -146,12 +148,19 @@ public:
 
     void shaperProcess()
     {
+        auto& TableRowStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, ShapeStruct));
+        m_hybridShaper       = std::make_unique<hybrid::arc::Shaper>(kb, inputHybridGrid(), ShapeStruct, TableRowStruct);
+        m_hybridShaper->process();
+        return;
         m_shaper = std::make_unique<Object>(kb, ShaperStruct, kb.name("constructor"), Param { "grid", inputHybridGrid() });
         m_shaper->method("process");
     }
 
     CellI& shaper()
     {
+        if (m_hybridShaper) {
+            return *m_hybridShaper;
+        }
         return *m_shaper;
     }
 
@@ -1824,6 +1833,7 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
     std::unique_ptr<cells::hybrid::arc::Grid> m_inputHybridGrid;
     cells::hybrid::arc::Grid* m_inputHybridGridPtr = nullptr;
     std::unique_ptr<Object> m_shaper;
+    std::unique_ptr<cells::hybrid::arc::Shaper> m_hybridShaper;
     std::string m_outputSVGFileName;
 };
 

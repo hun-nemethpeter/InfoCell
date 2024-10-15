@@ -6064,7 +6064,7 @@ void Brain::createArcSolver()
             param("checkPixel", struct_("Pixel")))
         .code(
             ast.if_(ast.not_(m_("shapePixels").call("hasKey", param("key", p_("checkPixel") / _(coordinates.y)))))
-                .then_(m_("shapePixels").call("add", param("key", p_("checkPixel") / _(coordinates.y)), param("value", ast.new_(st_("tableType"), "constructor")))),
+                .then_(m_("shapePixels").call("add", param("key", p_("checkPixel") / _(coordinates.y)), param("value", ast.new_(st_("tableType"), "constructor")))), // TODO just a TableRow, not a full TableType
             var_("colX") = m_("shapePixels").call("getValue", param("key", p_("checkPixel") / _(coordinates.y))),
             ast.call(*var_("colX"), "add", param("key", p_("checkPixel") / _(coordinates.x)), param("value", ast.new_("ShapePixel", "constructor", param("shape", p_("shape")), param("pixel", p_("checkPixel"))))),
             m_("inputPixels").call("remove", param("value", p_("checkPixel"))),
