@@ -21,6 +21,7 @@ target_link_libraries(cellslib
         Freetype::Freetype
         gtest::gtest
         fmt::fmt
+        spdlog::spdlog
 )
 
 add_library(celltestbase STATIC

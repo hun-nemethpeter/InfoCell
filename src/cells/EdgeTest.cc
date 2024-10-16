@@ -10,10 +10,23 @@
 #include <ftxui/screen/screen.hpp>
 #include <nlohmann/json.hpp>
 
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+#define TRACE(msg, ...) SPDLOG_LOGGER_TRACE(s_logger, msg, __VA_ARGS__)
+#define DEBUG(msg, ...) SPDLOG_LOGGER_DEBUG(s_logger, msg, __VA_ARGS__)
+#define INFO(msg, ...) SPDLOG_LOGGER_INFO(s_logger, msg, __VA_ARGS__)
+#define WARN(msg, ...) SPDLOG_LOGGER_WARN(s_logger, msg, __VA_ARGS__)
+#define ERROR(msg, ...) SPDLOG_LOGGER_ERROR(s_logger, msg, __VA_ARGS__)
+
 using namespace synth;
 using namespace synth::cells;
 using nlohmann::json;
 using synth::cells::test::CellTest;
+
+static spdlog::logger* s_logger = nullptr;
 
 class EdgeTester : public CellTest
 {
@@ -66,15 +79,15 @@ public:
         printInputHybridGrid();
         shaperProcess();
         sortShapePixelsAndCreateShapePoints();
-        printEveryShapePixels();
+//        printEveryShapePixels();
         printAndTestShapePixels();
         sortShapePoints();
-        printAllShapePoints();
+//        printAllShapePoints();
         calculateEdgesForShapes();
-        debugShapePointEdgeJoints();
+//        debugShapePointEdgeJoints();
         sortEdges();
-        printShapeIdGrid();
-        printEdges();
+//        printShapeIdGrid();
+//        printEdges();
         printShapeRelations();
     }
 
@@ -120,24 +133,28 @@ public:
 
     void printShapeRelations()
     {
+        DEBUG("printShapeRelations");
         Visitor::visitList(shaper()["shapes"], [this](CellI& shape, int, bool&) {
-            std::cout << fmt::format("shape id {} has {} edge(s)", shape["id"].label(), static_cast<Map&>(shape["edges"]).size());
-            Visitor::visitList(shape["edges"]["list"], [this](CellI& edge, int, bool&) {
-                if (&edge["kind"] == &InternalEdgeEV) {
-                    if (edge.has("shapes")) {
-                        std::cout << fmt::format("\n    edge id {} internal and contains: ", edge["id"].label());
-                        Visitor::visitList(edge["shapes"]["index"]["struct"]["slots"]["list"], [this](CellI& slot, int, bool&) {
-                            CellI& shape = slot["slotRole"];
-                            std::cout << fmt::format("shape({}) ", shape["id"].label());
-                        });
-                    } else {
-                        std::cout << fmt::format("\n    edge id {} internal", edge["id"].label());
+            int edgesCount = static_cast<Map&>(shape["edges"]).size();
+            if (edgesCount == 1) {
+                TRACE("  shape id {} has only external edge", shape["id"].label());
+            } else {
+                TRACE("  shape id {} has internal edge(s)", shape["id"].label());
+                Visitor::visitList(shape["edges"]["list"], [this](CellI& edge, int, bool&) {
+                    if (&edge["kind"] == &InternalEdgeEV) {
+                        if (edge.has("shapes")) {
+                            std::stringstream ss;
+                            Visitor::visitList(edge["shapes"]["index"]["struct"]["slots"]["list"], [this, &ss](CellI& slot, int, bool&) {
+                                CellI& shape = slot["slotRole"];
+                                ss << fmt::format("shape({}) ", shape["id"].label());
+                            });
+                            TRACE("    edge id {} internal and contains: {}", edge["id"].label(), ss.str());
+                        } else {
+                            TRACE("    edge id {} internal", edge["id"].label());
+                        }
                     }
-                } else {
-                    std::cout << fmt::format("\n    edge id {} external", edge["id"].label());
-                }
-            });
-            std::cout << std::endl;
+                });
+            }
         });
     }
 
@@ -319,14 +336,13 @@ public:
 
     void printEveryShapePixels()
     {
+        TRACE("printEveryShapePixels");
         Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
-            std::cout << "Shape id:" << currentShape["id"].label() << ", pixels: ";
+            TRACE("Shape id: {}, pixels: ", currentShape["id"].label());
             Visitor::visitList(currentShape["shapePixels"], [this](CellI& shapePixel, int, bool&) {
-                std::cout << fmt::format("[{}, {}]", shapePixel["pixel"]["x"].label(), shapePixel["pixel"]["y"].label());
+                TRACE("[{}, {}]", shapePixel["pixel"]["x"].label(), shapePixel["pixel"]["y"].label());
             });
-            std::cout << std::endl;
         });
-        std::cout << std::endl;
     }
 
     void printAndTestShapePixels()
@@ -334,16 +350,18 @@ public:
         CellI* firstColumnPixelPtr  = firstShapePixelPtr();
         CellI* currentShapePixelPtr = firstShapePixelPtr();
 
-        std::cout << "All shape pixel:" << std::endl;
+        DEBUG("printAndTestShapePixels");
         int referenceX = 0;
         int referenceY = 0;
+        std::stringstream ss;
+        ss << "  ";
         while (currentShapePixelPtr) {
             hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>((*currentShapePixelPtr)["pixel"]);
             const int x                         = currentArcPixel.m_x.value();
             const int y                         = currentArcPixel.m_y.value();
             EXPECT_EQ(x, referenceX);
             EXPECT_EQ(y, referenceY);
-            std::cout << "[" << x << ", " << y << "]";
+            ss << "[" << x << ", " << y << "]";
             if (x == 0) {
                 EXPECT_FALSE(currentShapePixelPtr->has("left"));
             } else {
@@ -352,7 +370,9 @@ public:
             }
             if (x == inputHybridGrid().width() - 1) {
                 EXPECT_FALSE(currentShapePixelPtr->has("right"));
-                std::cout << std::endl;
+                TRACE(ss.str());
+                ss.str("");
+                ss << "  ";
             } else {
                 hybrid::arc::Pixel& otherArcPixel = static_cast<hybrid::arc::Pixel&>((*currentShapePixelPtr)["right"]["pixel"]);
                 EXPECT_EQ(x + 1, otherArcPixel.m_x.value());
@@ -379,7 +399,6 @@ public:
                 referenceY += 1;
             } else {
                 currentShapePixelPtr = nullptr;
-                std::cout << std::endl;
             }
         }
 
@@ -579,7 +598,7 @@ public:
     void sortShapePoints()
     {
         Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
-            std::cout << "Shape id:" << currentShape["id"].label() << ", points:\n";
+            TRACE("Shape id: {}, points:", currentShape["id"].label());
 
             ScanLineState scanLineState = ScanLineState::Up;
 
@@ -601,6 +620,8 @@ public:
             int pointX                = -1;
             int pointY                = static_cast<Number&>(firstShapePixel["pixel"]["y"]).value();
 
+            std::stringstream ss;
+            ss << "  ";
             while (currentListItemPtr) {
                 switch (scanLineState) {
                 case ScanLineState::Up: {
@@ -610,11 +631,11 @@ public:
                     int upLeftPointX       = static_cast<Number&>(shapePoint["x"]).value();
 
                     if (upLeftPointX > pointX) {
-                        std::cout << fmt::format("({},{}) ", upLeftPointX, pointY);
+                        ss << fmt::format("({},{}) ", upLeftPointX, pointY);
                         shapePoints.add(shapePoint);
                     }
                     pointX = upLeftPointX + 1;
-                    std::cout << fmt::format("({},{}) ", pointX, pointY);
+                    ss << fmt::format("({},{}) ", pointX, pointY);
                     shapePoints.add(shapePoint["right"]);
                     CellI* nextListItem          = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
                     bool isNextItemInTheSameLine = nextListItem ? &(*firstColumnPixelItem)["value"]["pixel"]["y"] == &(*nextListItem)["value"]["pixel"]["y"] : false;
@@ -635,14 +656,18 @@ public:
                             pointX                = -1;
                             ++pointY;
                             scanLineState = ScanLineState::Middle;
-                            std::cout << " Up -> Middle" << std::endl;
+                            TRACE("{} Up -> Middle", ss.str());
+                            ss.str("");
+                            ss << "  ";
                         }
                     } else {
                         currentListItemPtr = firstColumnPixelItem;
                         pointX             = -1;
                         ++pointY;
                         scanLineState = ScanLineState::Down;
-                        std::cout << " Up -> Down" << std::endl;
+                        TRACE("{} Up -> Down", ss.str());
+                        ss.str("");
+                        ss << "  ";
                     }
                 } break;
                 case ScanLineState::Middle: {
@@ -652,11 +677,11 @@ public:
                     int currentPointX      = static_cast<Number&>(shapePoint["x"]).value();
                     int currentPointY      = static_cast<Number&>(shapePoint["y"]).value();
                     if (currentPointX > pointX) {
-                        std::cout << fmt::format("({},{}) ", currentPointX, pointY);
+                        ss << fmt::format("({},{}) ", currentPointX, pointY);
                         shapePoints.add(shapePoint);
                     }
                     pointX = currentPointX + 1;
-                    std::cout << fmt::format("({},{}) ", pointX, pointY);
+                    ss << fmt::format("({},{}) ", pointX, pointY);
                     shapePoints.add(shapePoint["right"]);
 
                     // stepping
@@ -698,7 +723,9 @@ public:
                         ++pointY;
                         scanLineState = ScanLineState::Down;
                         isUpperLine   = false;
-                        std::cout << " Middle -> Down" << std::endl;
+                        TRACE("{} Middle -> Down", ss.str());
+                        ss.str("");
+                        ss << "  ";
                     } else if (!hasMoreUp && !hasMoreDown) {
                         pointX = -1;
                         ++pointY;
@@ -711,7 +738,9 @@ public:
                         currentListItemPtr    = isUpperLine ? upMiddleRowListItem : downMiddleRowListItem;
                         hasMoreUp             = true;
                         hasMoreDown           = true;
-                        std::cout << " Middle -> Middle" << std::endl;
+                        TRACE("{} Middle -> Middle", ss.str());
+                        ss.str("");
+                        ss << "  ";
                     } else {
                         upMiddleRowListItem   = nextUpListItem;
                         downMiddleRowListItem = nextDownListItem;
@@ -740,18 +769,18 @@ public:
                     int downLeftPointX     = static_cast<Number&>(shapePoint["x"]).value();
 
                     if (downLeftPointX > pointX) {
-                        std::cout << fmt::format("({},{}) ", downLeftPointX, pointY);
+                        ss << fmt::format("({},{}) ", downLeftPointX, pointY);
                         shapePoints.add(shapePoint);
                     }
                     pointX = downLeftPointX + 1;
-                    std::cout << fmt::format("({},{}) ", pointX, pointY);
+                    ss << fmt::format("({},{}) ", pointX, pointY);
                     shapePoints.add(shapePoint["right"]);
 
                     currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
                 } break;
                 }
             }
-            std::cout << std::endl;
+            TRACE(ss.str());
         });
     }
 
@@ -770,10 +799,9 @@ public:
 
     void calculateEdgesForShapes()
     {
-        // calculate edges
-        std::cout << "\ncalculate edges" << std::endl;
+        DEBUG("calculateEdgesForShapes");
         Visitor::visitList(shaper()["shapes"], [this](CellI& currentShape, int, bool&) {
-            std::cout << "Shape id:" << currentShape["id"].label() << ", points:\n";
+            TRACE("  Shape id: {}", currentShape["id"].label());
 
             enum class ProcessingMode
             {
@@ -838,7 +866,7 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
 
                 int caseNum = 1 + (int)hasUpLeft + ((int)hasUpRight * 2) + ((int)hasDownLeft * 4) + ((int)hasDownRight * 8);
                 if (caseNum == 1) {
-                    std::cout << "WTF";
+                    ERROR("Invalid pixel state");
                     throw "Invalid pixel state";
                 } else {
                     std::cout << "";
@@ -847,7 +875,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                 switch (processingMode) {
                 case ProcessingMode::ExternalEdge: {
                     // create new edge
-                    std::cout << std::format("N");
                     CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
                     List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
                     newEdge.set("shape", currentShape);
@@ -866,8 +893,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                     Map& edges = *edgesPtr;
                     edges.add(newEdge["id"], newEdge);
 
-                    std::cout << newEdge["id"].label();
-
                     CellI* currentShapePointPtr = &shapePoint;
                     bool firstIteration         = true;
 
@@ -875,7 +900,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                         firstIteration    = false;
                         CellI& shapePoint = *currentShapePointPtr;
 
-                        std::cout << std::format("C");
                         if (processingDirectionPtr == &DirectionRightEV) {
                             bool hasUpRight   = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
                             bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
@@ -1046,12 +1070,12 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                             CellI& oldEdgeNode = fromEdgeJoint[toDirectionStr];
                             if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
                                 if (oldEdgeNode.has("rightSide")) {
-                                    std::cout << "Edge processing error" << std::endl;
+                                    ERROR("Edge processing error> oldEdgeNode.has(\"rightSide\")");
                                     throw "Edge processing error";
                                 }
                             } else if (processingDirectionPtr == &DirectionLeftEV || processingDirectionPtr == &DirectionUpEV) {
                                 if (oldEdgeNode.has("leftSide")) {
-                                    std::cout << "Edge processing error" << std::endl;
+                                    ERROR("Edge processing error> oldEdgeNode.has(\"leftSide\")");
                                     throw "Edge processing error";
                                 }
                             }
@@ -1099,7 +1123,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
 
                 case ProcessingMode::InternalEdge: {
                     // create new edge
-                    std::cout << std::format("N");
                     CellI& newEdge  = *new Object(kb, ShapeEdgeStruct);
                     List& edgeNodes = *new List(kb, ShapeEdgeNodeStruct);
                     newEdge.set("shape", currentShape);
@@ -1112,8 +1135,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                     newEdge.set("kind", InternalEdgeEV);
                     edges.add(newEdge["id"], newEdge);
 
-                    std::cout << newEdge["id"].label();
-
                     CellI* currentShapePointPtr = &shapePoint;
                     bool firstIteration         = true;
 
@@ -1121,7 +1142,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                         firstIteration    = false;
                         CellI& shapePoint = *currentShapePointPtr;
 
-                        std::cout << std::format("C");
                         if (processingDirectionPtr == &DirectionRightEV) {
                             bool hasUpRight   = shapePoint.has("upRightPixel") && (&shapePoint["upRightPixel"]["shape"] == &currentShape);     // 🡭
                             bool hasDownRight = shapePoint.has("downRightPixel") && (&shapePoint["downRightPixel"]["shape"] == &currentShape); // 🡮
@@ -1332,12 +1352,12 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                             CellI& oldEdgeNode = fromEdgeJoint[toDirectionStr];
                             if (processingDirectionPtr == &DirectionRightEV || processingDirectionPtr == &DirectionDownEV) {
                                 if (oldEdgeNode.has("leftSide")) {
-                                    std::cout << "Edge processing error" << std::endl;
+                                    ERROR("Edge processing error> oldEdgeNode.has(\"leftSide\")");
                                     throw "Edge processing error";
                                 }
                             } else if (processingDirectionPtr == &DirectionLeftEV || processingDirectionPtr == &DirectionUpEV) {
                                 if (oldEdgeNode.has("rightSide")) {
-                                    std::cout << "Edge processing error" << std::endl;
+                                    ERROR("Edge processing error> oldEdgeNode.has(\"rightSide\")");
                                     throw "Edge processing error";
                                 }
                             }
@@ -1702,7 +1722,6 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                 currentShapePointPtr = nullptr;
             }
         }
-        std::cout << std::endl;
     }
 
     void printEdges()
@@ -2615,8 +2634,17 @@ and here is an observation which state that the distance is descibed by a distan
 Can we generalize this observation to at least one property?
 */
 
+
 int main(int argc, char** argv)
 {
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
+    console_sink->set_level(spdlog::level::trace);
+    console_sink->set_pattern("[%n] %v");
+
+    spdlog::logger logger("edge", console_sink);
+    logger.set_level(spdlog::level::trace);
+    s_logger = &logger;
+
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;
