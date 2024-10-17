@@ -1152,6 +1152,13 @@ concept string_or_cell = is_string<T> or is_cell<T>;
 class Brain
 {
 public:
+    class Logger
+    {
+    public:
+        Logger();
+        static void createLogger(const std::string& name);
+    };
+
     enum class InitPhase
     {
         Init,
@@ -1199,6 +1206,7 @@ public:
     Brain();
     ~Brain();
 
+    Logger logger;
     Pools pools;
     ID ids;
     Std std;

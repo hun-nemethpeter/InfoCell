@@ -5,6 +5,7 @@ add_library(cellslib STATIC
     Cells.h
     Brain.cc
     Brain.h
+    Log.h
 )
 if(MSVC)
     target_compile_options(cellslib PUBLIC "/Zc:__cplusplus")

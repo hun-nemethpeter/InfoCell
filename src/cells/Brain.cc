@@ -1,5 +1,8 @@
 ﻿#include "Brain.h"
 
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#include "Log.h"
+
 #include <boost/algorithm/string/regex.hpp>
 #include <sstream>
 
@@ -3943,6 +3946,25 @@ Pools::Pools(brain::Brain& kb) :
 {
 }
 
+Brain::Logger::Logger()
+{
+    createLogger("symbolResolver");
+    createLogger("compiledSymbols");
+
+    spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
+}
+
+void Brain::Logger::createLogger(const std::string& name)
+{
+    static auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
+    console_sink->set_level(spdlog::level::trace);
+    console_sink->set_pattern("[%n] %v");
+
+    auto logger = std::make_shared<spdlog::logger>(name, console_sink);
+    logger->set_level(spdlog::level::trace);
+    spdlog::register_logger(logger);
+}
+
 Ast::Cell& Brain::_(CellI& cell)
 {
     return ast.cell(cell);
@@ -6333,17 +6355,24 @@ Brain::Brain() :
     m_initPhase               = InitPhase::FullyConstructed;
 
     // Test should be removed from here
-    auto& compiledStructs        = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]);
+    TRACE(compiledSymbols, "All compiled symbols:");
+
+    TRACE(compiledSymbols, "  structs:");
+    auto& compiledStructs = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]);
     Visitor::visitList(compiledStructs[ids.list], [this](CellI& kv, int, bool&) {
-        std::cout << kv[ids.key].label() << std::endl;
+        TRACE(compiledSymbols, "    {}", kv[ids.key].label());
     });
+
+    TRACE(compiledSymbols, "  functions:");
     auto& compiledFunctions = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.functions]);
     Visitor::visitList(compiledFunctions[ids.list], [this](CellI& kv, int, bool&) {
-        std::cout << kv[ids.key].label() << " : " << kv[ids.value].label() << std::endl;
+        TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
     });
+
+    TRACE(compiledSymbols, "  variables:");
     auto& compiledVariables = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.variables]);
     Visitor::visitList(compiledVariables[ids.list], [this](CellI& kv, int, bool&) {
-        std::cout << kv[ids.key].label() << " : " << kv[ids.value].label() << std::endl;
+        TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
     });
     auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::ListItem", name("valueType"), std.Cell));
     auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::List", name("valueType"), std.Cell));
