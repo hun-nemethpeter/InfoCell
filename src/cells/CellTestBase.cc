@@ -55,8 +55,8 @@ void PrintAs::svgStruct(CellI& cell, const std::string& caseName)
     m_svgStructPrinter.showcaseLastResult(caseName);
 }
 
-CellTest::CellTest() :
-    kb(*m_kb),
+CellTest::CellTest(std::function<void()> loggerLevelInit) :
+    kb(m_kb.get() ? *m_kb : (m_kb = std::make_unique<brain::Brain>(loggerLevelInit), *m_kb)),
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
@@ -86,7 +86,7 @@ CellI& CellTest::toCellNumber(int number)
     return kb.pools.numbers.get(number);
 }
 
-std::unique_ptr<brain::Brain> CellTest::m_kb(std::make_unique<brain::Brain>());
+std::unique_ptr<brain::Brain> CellTest::m_kb;
 
 } // namespace test
 } // namespace cells

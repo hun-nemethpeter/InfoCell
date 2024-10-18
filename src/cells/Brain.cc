@@ -6174,8 +6174,9 @@ void Brain::createTests()
     //
 }
 
-Brain::Brain() :
+Brain::Brain(std::function<void()> loggerLevelInit) :
     m_initPhase(InitPhase::Init),
+    logger(loggerLevelInit),
     pools(*this),
     ids(*this),
     std(*this),
@@ -6538,14 +6539,12 @@ Brain::InitPhase Brain::initPhase()
     return m_initPhase;
 }
 
-Brain::Logger::Logger()
+Brain::Logger::Logger(std::function<void()> loggerLevelInit)
 {
     createLogger("compileStruct");
     createLogger("symbolResolver");
     createLogger("compiledSymbols");
-
-    spdlog::get("compileStruct")->set_level(spdlog::level::off);
-    spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
+    loggerLevelInit();
 }
 
 void Brain::Logger::createLogger(const std::string& name)

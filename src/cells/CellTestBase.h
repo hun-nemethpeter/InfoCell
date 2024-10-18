@@ -29,7 +29,7 @@ public:
 class CellTest : public ::testing::Test
 {
 protected:
-    CellTest();
+    CellTest(std::function<void()> loggerLevelInit = []() {});
 
     void printMethodInType(CellI& type, const std::string& method);
 

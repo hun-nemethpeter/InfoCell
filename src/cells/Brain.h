@@ -1155,7 +1155,7 @@ public:
     class Logger
     {
     public:
-        Logger();
+        Logger(std::function<void()> loggerLevelInit);
         static void createLogger(const std::string& name);
     };
 
@@ -1203,7 +1203,7 @@ public:
     Ast::StructName& struct_(const std::string& name);
 
 public:
-    Brain();
+    Brain(std::function<void()> loggerLevelInit = []() {});
     ~Brain();
 
     Logger logger;

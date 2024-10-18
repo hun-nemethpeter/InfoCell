@@ -31,6 +31,14 @@ public:
     };
 
     EdgeTester() :
+        CellTest([]() {
+            synth::cells::brain::Brain::Logger::createLogger("edge");
+            synth::cells::brain::Brain::Logger::createLogger("shapeRelations");
+
+            spdlog::get("compileStruct")->set_level(spdlog::level::off);
+            spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
+            spdlog::get("edge")->set_level(spdlog::level::off);
+        }),
         ShaperStruct(getStruct("arc::Shaper")),
         ShapeStruct(getStruct("arc::Shape")),
         ShapePointStruct(getStruct("arc::ShapePoint")),
@@ -125,13 +133,13 @@ public:
 
     void printShapeRelations()
     {
-        DEBUG(edge, "printShapeRelations");
+        DEBUG(shapeRelations, "printShapeRelations");
         Visitor::visitList(shaper()["shapes"], [this](CellI& shape, int, bool&) {
             int edgesCount = static_cast<Map&>(shape["edges"]).size();
             if (edgesCount == 1) {
-                TRACE(edge, "  shape id {} has only external edge", shape["id"].label());
+                TRACE(shapeRelations, "  shape id {} has only external edge", shape["id"].label());
             } else {
-                TRACE(edge, "  shape id {} has internal edge(s)", shape["id"].label());
+                TRACE(shapeRelations, "  shape id {} has internal edge(s)", shape["id"].label());
                 Visitor::visitList(shape["edges"]["list"], [this](CellI& edge, int, bool&) {
                     if (&edge["kind"] == &InternalEdgeEV) {
                         if (edge.has("shapes")) {
@@ -140,9 +148,9 @@ public:
                                 CellI& shape = slot["slotRole"];
                                 ss << fmt::format("shape({}) ", shape["id"].label());
                             });
-                            TRACE(edge, "    edge id {} internal and contains: {}", edge["id"].label(), ss.str());
+                            TRACE(shapeRelations, "    edge id {} internal and contains: {}", edge["id"].label(), ss.str());
                         } else {
-                            TRACE(edge, "    edge id {} internal", edge["id"].label());
+                            TRACE(shapeRelations, "    edge id {} internal", edge["id"].label());
                         }
                     }
                 });
@@ -2031,13 +2039,13 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     Map& shapeEdges     = static_cast<Map&>(shape["edges"]);
     CellI& externalEdge = shapeEdges.getValue(_1_);
 
-    std::cout << "Before sort: " << std::endl;
+    DEBUG(edge, "Before sort: ");
     Visitor::visitList(externalEdge["edgeNodes"], [this](CellI& edgeNode, int, bool&) {
-        std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
+        TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
     });
-    std::cout << "After sort: " << std::endl;
+    DEBUG(edge, "After sort: ");
     Visitor::visitList(externalEdge["orderedEdgeNodes"], [this](CellI& edgeNode, int, bool&) {
-        std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
+        TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
     });
 
     CellI* firstColumnPointPtr  = &(*firstShapePixelPtr())["upLeftPoint"];
@@ -2295,13 +2303,13 @@ TEST_F(EdgeTester, EdgeTest)
     Map& shapeEdges = static_cast<Map&>(shape["edges"]);
     CellI& internalEdge = shapeEdges.getValue(_2_);
     List& edgeNodes     = static_cast<List&>(internalEdge["edgeNodes"]);
-    std::cout << "Before sort: " << std::endl;
+    DEBUG(edge, "Before sort: ");
     Visitor::visitList(internalEdge["edgeNodes"], [this](CellI& edgeNode, int, bool&) {
-        std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
+        TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
     });
-    std::cout << "After sort: " << std::endl;
+    DEBUG(edge, "After sort: ");
     Visitor::visitList(internalEdge["orderedEdgeNodes"], [this](CellI& edgeNode, int, bool&) {
-        std::cout << fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|") << std::endl;
+        TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
     });
 
     expectedShapeIds(R"(11111
@@ -2629,7 +2637,6 @@ Can we generalize this observation to at least one property?
 
 int main(int argc, char** argv)
 {
-    synth::cells::brain::Brain::Logger::createLogger("edge");
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;
