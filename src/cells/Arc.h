@@ -50,7 +50,7 @@ public:
 protected:
     void processInputPixels();
     void processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel);
-    CellI* processAdjacentPixel(CellI& direction, CellI& shape, Set& checkPixels, CellI& checkPixel);
+    void processAdjacentPixel(CellI& direction, CellI& shape, Set& checkPixels, CellI& checkPixel);
 
     Number& m_width;
     Number& m_height;

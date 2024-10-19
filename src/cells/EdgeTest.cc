@@ -34,10 +34,12 @@ public:
         CellTest([]() {
             synth::cells::brain::Brain::Logger::createLogger("edge");
             synth::cells::brain::Brain::Logger::createLogger("shapeRelations");
+            synth::cells::brain::Brain::Logger::createLogger("shapeIdGrid");
 
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
             spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
             spdlog::get("edge")->set_level(spdlog::level::off);
+            spdlog::get("shapeIdGrid")->set_level(spdlog::level::trace);
         }),
         ShaperStruct(getStruct("arc::Shaper")),
         ShapeStruct(getStruct("arc::Shape")),
@@ -84,10 +86,12 @@ public:
         sortShapePoints();
 //        printAllShapePoints();
         calculateEdgesForShapes();
-//        debugShapePointEdgeJoints();
+        validateEdgePoints();
+        drawSvgFromShapePointEdgeJoints();
         sortEdges();
-//        printShapeIdGrid();
-//        printEdges();
+        printShapeIdGrid();
+        printShapeIdGridAsJson();
+            //        printEdges();
         printShapeRelations();
     }
 
@@ -415,7 +419,7 @@ public:
         }
     }
 
-    void debugShapePointEdgeJoints()
+    void drawSvgFromShapePointEdgeJoints()
     {
         static std::map<int, std::string> arcColors = {
             { 0, "#000000" },
@@ -1457,6 +1461,85 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
         }); // visit shapePoints
     }
 
+    void validateEdgePoints()
+    {
+        CellI* firstColumnPointPtr  = &(*firstShapePixelPtr())["upLeftPoint"];
+        CellI* currentShapePointPtr = firstColumnPointPtr;
+
+        while (currentShapePointPtr) {
+            CellI& currentShapePoint = *currentShapePointPtr;
+            const int x              = static_cast<Number&>(currentShapePoint["x"]).value();
+            const int y              = static_cast<Number&>(currentShapePoint["y"]).value();
+            bool hasEdgeJoint        = currentShapePoint.has("edgeJoint");
+
+            if (hasEdgeJoint) {
+                CellI& edgeJoint = currentShapePoint["edgeJoint"];
+                if (currentShapePoint.missing("up")) {
+                    EXPECT_TRUE(edgeJoint.missing("up"));
+                    if (edgeJoint.has("right")) {
+                        CellI& edgeNode = edgeJoint["right"];
+                        EXPECT_TRUE(edgeNode.missing("leftSide"));
+                    }
+                    if (edgeJoint.has("left")) {
+                        CellI& edgeNode = edgeJoint["left"];
+                        EXPECT_TRUE(edgeNode.missing("leftSide"));
+                    }
+                }
+                if (currentShapePoint.missing("down")) {
+                    EXPECT_TRUE(edgeJoint.missing("down"));
+                    if (edgeJoint.has("right")) {
+                        CellI& edgeNode = edgeJoint["right"];
+                        EXPECT_TRUE(edgeNode.missing("rightSide"));
+                    }
+                    if (edgeJoint.has("left")) {
+                        CellI& edgeNode = edgeJoint["left"];
+                        EXPECT_TRUE(edgeNode.missing("rightSide"));
+                    }
+                }
+                if (currentShapePoint.missing("left")) {
+                    EXPECT_TRUE(edgeJoint.missing("left"));
+                    if (edgeJoint.has("up")) {
+                        CellI& edgeNode = edgeJoint["up"];
+                        EXPECT_TRUE(edgeNode.missing("rightSide"));
+                    }
+                    if (edgeJoint.has("down")) {
+                        CellI& edgeNode = edgeJoint["down"];
+                        EXPECT_TRUE(edgeNode.missing("rightSide"));
+                    }
+                }
+                if (currentShapePoint.missing("right")) {
+                    EXPECT_TRUE(edgeJoint.missing("right"));
+                    if (edgeJoint.has("up")) {
+                        CellI& edgeNode = edgeJoint["up"];
+                        EXPECT_TRUE(edgeNode.missing("leftSide"));
+                    }
+                    if (edgeJoint.has("down")) {
+                        CellI& edgeNode = edgeJoint["down"];
+                        EXPECT_TRUE(edgeNode.missing("leftSide"));
+                    }
+                }
+                if (currentShapePoint.has("up") && currentShapePoint.has("down") && currentShapePoint.has("left") && currentShapePoint.has("right")) {
+                    for (const auto& direction : { "up", "down", "left", "right" }) {
+                        if (edgeJoint.has(direction)) {
+                            CellI& egeNode = edgeJoint[direction];
+                            EXPECT_TRUE(egeNode.has("rightSide"));
+                            EXPECT_TRUE(egeNode.has("leftSide"));
+                        }
+                    }
+                }
+            }
+
+            if (currentShapePoint.has("right")) {
+                currentShapePointPtr = &currentShapePoint["right"];
+            } else if (currentShapePoint.has("down")) {
+                currentShapePointPtr = &(*firstColumnPointPtr)["down"];
+                firstColumnPointPtr  = currentShapePointPtr;
+            } else {
+                currentShapePointPtr = nullptr;
+            }
+        }
+    }
+
     CellI* firstShapePixelPtr()
     {
         Object& shapePixels = static_cast<Object&>(shaper()["shapePixels"]);
@@ -1467,10 +1550,23 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
 
     void printShapeIdGrid()
     {
+        DEBUG(shapeIdGrid, "printShapeIdGrid");
+
         ScanLineState scanLineState = ScanLineState::Up;
         CellI* firstColumnPixelPtr  = firstShapePixelPtr();
         CellI* currentShapePixelPtr = firstShapePixelPtr();
+        int shapesCount             = static_cast<List&>(shaper()["shapes"]).size();
+        int digits                  = 1;
+        if (shapesCount > 9 && shapesCount < 100) {
+            digits = 2;
+        } else if (shapesCount > 99) {
+            digits = 3;
+        }
+        auto printShapeId = [&digits](CellI& shape) -> std::string {
+            return fmt::format("{:>{}}", shape["id"].label(), digits);
+        };
 
+        std::stringstream ss;
         while (currentShapePixelPtr) {
             CellI& currentShapePixel            = *currentShapePixelPtr;
             hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>(currentShapePixel["pixel"]);
@@ -1485,41 +1581,41 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                     CellI& upShape = currentShapePixel["up"]["shape"];
                     if (&currentShape != &upShape) {
                         if (currentShapePixel.missing("right")) {
-                            std::cout << "--";
+                            ss << fmt::format("{0:-^{1}}", "", digits + 1);
                         } else if (currentShapePixel.missing("left")) {
-                            std::cout << "+-";
+                            ss << fmt::format("+{0:-^{1}}", "", digits);
                         } else {
-                            std::cout << "--";
+                            ss << fmt::format("{0:-^{1}}", "", digits + 1);
                         }
                     } else {
                         if (currentShapePixel.missing("right")) {
-                            std::cout << "..";
+                            ss << fmt::format("{0:.^{1}}", "", digits + 1);
                         } else if (currentShapePixel.missing("left")) {
-                            std::cout << "|.";
+                            ss << fmt::format("|{0:.^{1}}", "", digits);
                         } else {
                             if (currentShapePixel.has("left") && &currentShapePixel["left"]["shape"] != &currentShape) {
-                                std::cout << "+.";
+                                ss << fmt::format("+{0:.^{1}}", "", digits);
                             } else if (currentShapePixel.has("left") && currentShapePixel.has("up") && &currentShapePixel["left"]["up"]["shape"] != &currentShape) {
-                                std::cout << "+.";
+                                ss << fmt::format("+{0:.^{1}}", "", digits);
                             } else {
-                                std::cout << "..";
+                                ss << fmt::format("{0:.^{1}}", "", digits + 1);
                             }
                         }
                     }
                 } else {
                     if (currentShapePixel.missing("right")) {
-                        std::cout << "--";
+                        ss << fmt::format("{0:-^{1}}", "", digits + 1);
                     } else if (currentShapePixel.missing("left")) {
-                        std::cout << "+-";
+                        ss << fmt::format("+{0:-^{1}}", "", digits);
                     } else {
-                        std::cout << "--";
+                        ss << fmt::format("{0:-^{1}}", "", digits + 1);
                     }
                 }
                 if (currentShapePixel.missing("right")) {
                     if (currentShapePixel.missing("up")) {
-                        std::cout << "+";
+                        ss << "+";
                     } else {
-                        std::cout << "|";
+                        ss << "|";
                     }
                 }
                 break;
@@ -1527,24 +1623,24 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                 if (currentShapePixel.has("left")) {
                     CellI& leftShape = currentShapePixel["left"]["shape"];
                     if (&currentShape != &leftShape) {
-                        std::cout << "|" << currentShape["id"].label();
+                        ss << "|" << printShapeId(currentShape);
                     } else {
-                        std::cout << "." << currentShape["id"].label();
+                        ss << "." << printShapeId(currentShape);
                     }
                 } else {
-                    std::cout << "|" << currentShape["id"].label();
+                    ss << "|" << printShapeId(currentShape);
                 }
                 if (currentShapePixel.missing("right")) {
-                    std::cout << "|";
+                    ss << "|";
                 }
                 break;
             case ScanLineState::Down:
                 if (currentShapePixel.missing("right")) {
-                    std::cout << "--+";
+                    ss << fmt::format("{0:-^{1}}+", "", digits + 1);
                 } else if (currentShapePixel.missing("left")) {
-                    std::cout << "+-";
+                    ss << fmt::format("+{0:-^{1}}", "", digits);
                 } else {
-                    std::cout << "--";
+                    ss << fmt::format("{0:-^{1}}", "", digits + 1);
                 }
                 break;
             }
@@ -1554,7 +1650,8 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
             } else if (scanLineState == ScanLineState::Up) {
                 scanLineState        = ScanLineState::Middle;
                 currentShapePixelPtr = firstColumnPixelPtr;
-                std::cout << std::endl;
+                TRACE(shapeIdGrid, "{}", ss.str());
+                ss.str("");
             } else if (scanLineState == ScanLineState::Middle) {
                 if (currentShapePixel.has("down")) {
                     scanLineState        = ScanLineState::Up;
@@ -1564,13 +1661,53 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
                     scanLineState        = ScanLineState::Down;
                     currentShapePixelPtr = firstColumnPixelPtr;
                 }
-                std::cout << std::endl;
+                TRACE(shapeIdGrid, "{}", ss.str());
+                ss.str("");
             } else if (scanLineState == ScanLineState::Down) {
                 scanLineState        = ScanLineState::Up;
                 currentShapePixelPtr = nullptr;
             }
         }
-        std::cout << std::endl;
+    }
+
+    void printShapeIdGridAsJson()
+    {
+        DEBUG(shapeIdGrid, "printShapeIdGridAsJson");
+
+        int shapesCount = static_cast<List&>(shaper()["shapes"]).size();
+        int digits      = 1;
+        if (shapesCount > 9 && shapesCount < 100) {
+            digits = 2;
+        } else if (shapesCount > 99) {
+            digits = 3;
+        }
+
+        std::stringstream ss;
+        TRACE(shapeIdGrid, "[");
+        Object& shapePixels = static_cast<Object&>(shaper()["shapePixels"]);
+        for (int y = 0; y < inputHybridGrid().height(); ++y) {
+            ss << "  [";
+            bool firstColumn = true;
+            Object& colX = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, toCellNumber(y) }));
+            for (int x = 0; x < inputHybridGrid().width(); ++x) {
+                if (firstColumn) {
+                    firstColumn = false;
+                } else {
+                    ss << ", ";
+                }
+                firstColumn               = false;
+                CellI& shapePixel         = colX.method(kb.name("getValue"), { kb.ids.key, toCellNumber(x) });
+                CellI& shape              = shapePixel["shape"];
+                ss << fmt::format("{:>{}}", shape["id"].label(), digits);
+            }
+            ss << "]";
+            if (y != inputHybridGrid().height() - 1) {
+                ss << ",";
+            }
+            TRACE(shapeIdGrid, ss.str());
+            ss.str("");
+        }
+        TRACE(shapeIdGrid, "]");
     }
 
     void sortEdges()
@@ -1787,34 +1924,25 @@ Invalid   Skip     Continue  Continue Skip     Skip      Special  New edge New e
         std::cout << std::endl;
     }
 
-    void expectedShapeIds(const std::string& shapeIds)
+    void expectedShapeIds(const std::string& jsonStr)
     {
+        nlohmann::json arcMatrix = nlohmann::json::parse(jsonStr);
+        size_t matrixHeight      = arcMatrix.size();
+        size_t matrixWidth       = arcMatrix[0].size();
+        Object& shapePixels      = static_cast<Object&>(shaper()["shapePixels"]);
+
         int x = 0;
         int y = 0;
-        Object& shapePixels = static_cast<Object&>(shaper()["shapePixels"]);
-        for (char id : shapeIds) {
-            switch (id) {
-            case '\n': {
-                x = 0;
-                y += 1;
-            } break;
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9': {
-                CellI& currentId = kb.pools.numbers.get(id - '0');
+        for (auto inputRowIt = arcMatrix.begin(); inputRowIt != arcMatrix.end(); ++inputRowIt) {
+            for (const int id : *inputRowIt) {
+                CellI& currentId = kb.pools.numbers.get(id);
                 Object& colX      = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(y) }));
                 CellI& shapePixel = colX.method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(x) });
                 EXPECT_EQ(&shapePixel["shape"]["id"], &currentId);
                 x += 1;
             }
-            }
+            x = 0;
+            y += 1;
         }
     }
 
@@ -1868,14 +1996,17 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Input)
                   [0,0,0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0,0,0]])");
 
-    expectedShapeIds(R"(111111111
-                        111111111
-                        111111111
-                        112111111
-                        111111111
-                        111111111
-                        111111311
-                        111111111)");
+    expectedShapeIds(R"([
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 2, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 3, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1]
+                        ])");
     expectedShapesCount(3);
     expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 } });
 }
@@ -1920,16 +2051,19 @@ shape id 7
     edge id 2 contains: shape(8)
 #endif
 
-    expectedShapeIds(R"(111111111
-                        111111111
-                        121311111
-                        114111111
-                        151611111
-                        111111711
-                        111117871
-                        111111711)");
-    expectedShapesCount(8);
-    expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 2 }, { 8, 1 } });
+    expectedShapeIds(R"([
+                          [ 1,  1,  1,  1,  1,  1,  1,  1,  1],
+                          [ 1,  1,  1,  1,  1,  1,  1,  1,  1],
+                          [ 1,  2,  1,  3,  1,  1,  1,  1,  1],
+                          [ 1,  1,  4,  1,  1,  1,  1,  1,  1],
+                          [ 1,  5,  1,  6,  1,  1,  1,  1,  1],
+                          [ 1,  1,  1,  1,  1,  1,  7,  1,  1],
+                          [ 1,  1,  1,  1,  1,  8,  9, 10,  1],
+                          [ 1,  1,  1,  1,  1,  1, 11,  1,  1],
+                          [ 1,  1,  1,  1,  1,  1,  1,  1,  1]
+                        ])");
+    expectedShapesCount(11);
+    expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 }, { 8, 1 }, { 9, 1 }, { 10, 1 }, { 11, 1 } });
 }
 
 TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Input)
@@ -1944,15 +2078,17 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Input)
                   [0,2,0,0,0,0,0,0,0],
                   [0,0,0,0,0,0,0,0,0]])");
 
-    expectedShapeIds(R"(111211111
-                        111111111
-                        111111311
-                        114111111
-                        111111111
-                        111111111
-                        111111511
-                        161111111
-                        111111111)");
+    expectedShapeIds(R"([
+                          [1, 1, 1, 2, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 3, 1, 1],
+                          [1, 1, 4, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 5, 1, 1],
+                          [1, 6, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1]
+                        ])");
     expectedShapesCount(6);
     expectedShapeEdgeCounts({ { 1, 5 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 } });
 }
@@ -1969,7 +2105,7 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Output)
                   [0,2,0,0,0,0,7,0,0],
                   [4,0,4,0,0,0,0,0,0]])");
 
-    expectedShapesCount(16);
+    expectedShapesCount(24);
 }
 
 TEST_F(EdgeTester, EdgeTestWithArc_00d62c1b_Train5Input)
@@ -2286,9 +2422,11 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["left"]["leftSide"]["shape"]["id"], &_2_);
     EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("right"));
 
-    expectedShapeIds(R"(122
-                        222
-                        222)");
+    expectedShapeIds(R"([
+                          [1, 2, 2],
+                          [2, 2, 2],
+                          [2, 2, 2]
+                        ])");
     expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 } });
 }
 
@@ -2312,11 +2450,13 @@ TEST_F(EdgeTester, EdgeTest)
         TRACE(edge, fmt::format("({},{}){}", static_cast<Number&>(edgeNode["from"]["x"]).value(), static_cast<Number&>(edgeNode["from"]["y"]).value(), &edgeNode["direction"] == &DirectionRightEV ? "-" : "|"));
     });
 
-    expectedShapeIds(R"(11111
-                        12131
-                        11411
-                        15161
-                        11111)");
+    expectedShapeIds(R"([
+                          [1, 1, 1, 1, 1],
+                          [1, 2, 1, 3, 1],
+                          [1, 1, 4, 1, 1],
+                          [1, 5, 1, 6, 1],
+                          [1, 1, 1, 1, 1]
+                        ])");
     expectedShapeEdgeCounts({ { 1, 2 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 } });
 }
 
@@ -2326,9 +2466,11 @@ TEST_F(EdgeTester, EdgeTestTwoLeftCorners)
                   [7, 7, 7, 7],
                   [0, 7, 7, 7]])");
 
-    expectedShapeIds(R"(1222
-                        2222
-                        3222)");
+    expectedShapeIds(R"([
+                          [1, 2, 2, 2],
+                          [2, 2, 2, 2],
+                          [3, 2, 2, 2]
+                        ])");
     expectedShapesCount(3);
     expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 } });
 }
@@ -2339,9 +2481,11 @@ TEST_F(EdgeTester, EdgeTestWithFourCorners)
                   [7, 7, 7, 7],
                   [0, 7, 7, 0]])");
 
-    expectedShapeIds(R"(1223
-                        2222
-                        4225)");
+    expectedShapeIds(R"([
+                          [1, 2, 2, 3],
+                          [2, 2, 2, 2],
+                          [4, 2, 2, 5]
+                        ])");
     expectedShapesCount(5);
     expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 } });
 }
@@ -2354,13 +2498,15 @@ TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpLeft)
                   [0, 0, 0, 7, 0],
                   [0, 0, 0, 0, 7]])");
 
-    expectedShapeIds(R"(12222
-                        21222
-                        22122
-                        22212
-                        22221)");
-    expectedShapesCount(2);
-    expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 } });
+    expectedShapeIds(R"([
+                          [1, 2, 2, 2, 2],
+                          [3, 4, 2, 2, 2],
+                          [3, 3, 5, 2, 2],
+                          [3, 3, 3, 6, 2],
+                          [3, 3, 3, 3, 7]
+                        ])");
+    expectedShapesCount(7);
+    expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 } });
 }
 
 TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpRight)
@@ -2371,13 +2517,15 @@ TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpRight)
                   [0, 7, 0, 0, 0],
                   [7, 0, 0, 0, 0]])");
 
-    expectedShapeIds(R"(11112
-                        11121
-                        11211
-                        12111
-                        21111)");
-    expectedShapesCount(2);
-    expectedShapeEdgeCounts({ { 1, 2 }, { 2, 1 } });
+    expectedShapeIds(R"([
+                          [1, 1, 1, 1, 2],
+                          [1, 1, 1, 3, 4],
+                          [1, 1, 5, 4, 4],
+                          [1, 6, 4, 4, 4],
+                          [7, 4, 4, 4, 4]
+                        ])");
+    expectedShapesCount(7);
+    expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 } });
 }
 
 TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Input)

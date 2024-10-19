@@ -330,40 +330,31 @@ void Shaper::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
     shapePixel.set("pixel", checkPixel);
     colX.add(checkPixel["x"], shapePixel);
     m_inputPixels.remove(checkPixel);
-    CellI* pixel = processAdjacentPixel(kb.directions.up, shape, checkPixels, checkPixel);
-    if (pixel) {
-        processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
-        processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
-    }
-    pixel = processAdjacentPixel(kb.directions.down, shape, checkPixels, checkPixel);
-    if (pixel) {
-        processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
-        processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
-    }
+
+    processAdjacentPixel(kb.directions.up, shape, checkPixels, checkPixel);
+    processAdjacentPixel(kb.directions.down, shape, checkPixels, checkPixel);
     processAdjacentPixel(kb.directions.left, shape, checkPixels, checkPixel);
     processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
 }
 
-CellI* Shaper::processAdjacentPixel(CellI& direction, CellI& p_shape, Set& checkPixels, CellI& checkPixel)
+void Shaper::processAdjacentPixel(CellI& direction, CellI& p_shape, Set& checkPixels, CellI& checkPixel)
 {
-    if (checkPixel.has(direction)) {
-        CellI& pixel = checkPixel[direction];
-        if (m_shapePixels.hasKey(pixel["y"])) {
-            Map& colX = static_cast<Map&>(m_shapePixels.getValue(pixel["y"]));
-            if (colX.hasKey(pixel["x"])) {
-                CellI& shape = colX.getValue(pixel["x"])["shape"];
-                if (&p_shape == &shape) {
-                    return &pixel;
-                }
+    if (checkPixel.missing(direction)) {
+        return;
+    }
+    CellI& pixel = checkPixel[direction];
+    if (m_shapePixels.hasKey(pixel["y"])) {
+        Map& colX = static_cast<Map&>(m_shapePixels.getValue(pixel["y"]));
+        if (colX.hasKey(pixel["x"])) {
+            CellI& shape = colX.getValue(pixel["x"])["shape"];
+            if (&p_shape == &shape) {
+                return;
             }
         }
-        if (static_cast<Number&>(pixel["color"]).value() == static_cast<Number&>(p_shape["color"]).value()) {
-            checkPixels.add(pixel);
-        }
-        return &pixel;
     }
-
-    return nullptr;
+    if (static_cast<Number&>(pixel["color"]).value() == static_cast<Number&>(p_shape["color"]).value()) {
+        checkPixels.add(pixel);
+    }
 }
 
 } // namespace arc
