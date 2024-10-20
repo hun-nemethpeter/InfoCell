@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.27)
 
-project(infocell)
+project(InfoCell)
 
 # Conan integration
 list(APPEND CMAKE_MODULE_PATH ${INFOCELL_CONAN_PATH_BASE}/${CMAKE_BUILD_TYPE})

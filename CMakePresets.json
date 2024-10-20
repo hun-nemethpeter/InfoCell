@@ -12,9 +12,9 @@
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
         "INFOCELL_TTF_FONT_PATH": "C:/Windows/Fonts/",
-        "INFOCELL_ARC_TRAINING_PATH": "E:/Devel/ARC/ARC/data/training/",
-        "INFOCELL_ARC_PRIZE_PATH": "E:/Devel/ARC/arc-prize-2024/",
-        "INFOCELL_CONAN_PATH_BASE": "E:/Devel/ARC/conan"
+        "INFOCELL_ARC_TRAINING_PATH": "${sourceParentDir}/ARC/data/training/",
+        "INFOCELL_ARC_PRIZE_PATH": "${sourceParentDir}/arc-prize-2024/",
+        "INFOCELL_CONAN_PATH_BASE": "${sourceParentDir}/conan"
       },
       "condition": {
         "type": "equals",
@@ -27,14 +27,14 @@
       "description": "Target Linux with the gcc compiler and ninja build.",
       "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "INFOCELL_TTF_FONT_PATH": "/home/npeter/devel/",
-        "INFOCELL_ARC_PRIZE_PATH": "/home/npeter/devel/arc-prize-2024/",
-        "INFOCELL_CONAN_PATH_BASE": "/home/npeter/devel/conan"
+        "INFOCELL_TTF_FONT_PATH": "${sourceParentDir}",
+        "INFOCELL_ARC_PRIZE_PATH": "${sourceParentDir}/arc-prize-2024/",
+        "INFOCELL_CONAN_PATH_BASE": "${sourceParentDir}/conan"
       },
       "condition": {
         "type": "equals",
@@ -44,9 +44,10 @@
     },
     {
       "name": "WinDebug",
-      "displayName": "Win Debug",
+      "displayName": "Debug",
       "description": "Target Windows (64-bit) with the Visual Studio development environment. (Debug)",
       "inherits": "windows-base",
+      "binaryDir": "${sourceDir}/build/Debug",
       "architecture": {
         "value": "x64",
         "strategy": "external"
@@ -57,18 +58,20 @@
     },
     {
       "name": "WinRelease",
-      "displayName": "Win Release",
+      "displayName": "Release",
       "description": "Target Windows (64-bit) with the Visual Studio development environment. (Release)",
       "inherits": "WinDebug",
+      "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
       "name": "WinRelWithDebInfo",
-      "displayName": "Win RelWithDebInfo",
+      "displayName": "RelWithDebInfo",
       "description": "Target Windows (64-bit) with the Visual Studio development environment. (RelWithDebInfo)",
       "inherits": "WinDebug",
+      "binaryDir": "${sourceDir}/build/RelWithDebInfo",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
