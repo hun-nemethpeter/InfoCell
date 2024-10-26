@@ -1778,65 +1778,179 @@ For leftToRight direction edge from point middle
 
     void printEdges()
     {
+        DEBUG(edge, "printEdges");
+
         ScanLineState scanLineState = ScanLineState::Up;
-        CellI* firstColumnPixelPtr  = firstShapePixelPtr();
-        CellI* currentShapePixelPtr = firstShapePixelPtr();
-
-        while (currentShapePixelPtr) {
-            CellI& currentShapePixel            = *currentShapePixelPtr;
-            hybrid::arc::Pixel& currentArcPixel = static_cast<hybrid::arc::Pixel&>(currentShapePixel["pixel"]);
-            const int x                         = currentArcPixel.m_x.value();
-            const int y                         = currentArcPixel.m_y.value();
-
-            CellI& currentShape       = currentShapePixel["shape"];
+        CellI* currentShapePointPtr = &(*firstShapePixelPtr())["upLeftPoint"];
+        CellI* firstColumnPointPtr  = currentShapePointPtr;
+        std::stringstream ss;
+        while (currentShapePointPtr) {
+            CellI& shapePoint = *currentShapePointPtr;
+            int pointX        = static_cast<Number&>(shapePoint["x"]).value();
+            int pointY        = static_cast<Number&>(shapePoint["y"]).value();
 
             switch (scanLineState) {
             case ScanLineState::Up:
-                if (currentShapePixel.missing("up") || &currentShapePixel["up"]["shape"] != &currentShape) {
-                    // add edge
-                    std::cout << "--";
+                if (shapePoint.has("edgeJoint")) {
+                    CellI& edgeJoint = shapePoint["edgeJoint"];
+                    bool hasUp       = edgeJoint.has("upLeft") || edgeJoint.has("upRight");
+                    bool hasDown     = edgeJoint.has("downLeft") || edgeJoint.has("downRight");
+                    bool hasLeft     = edgeJoint.has("leftUp") || edgeJoint.has("leftDown");
+                    bool hasRight    = edgeJoint.has("rightUp") || edgeJoint.has("rightDown");
+
+#if 0
+                    0000 00
+                    0001 01
+                    0010 02
+                    0011 03
+                    0100 04
+                    0101 05
+                    0110 06
+                    0111 07
+                    1000 08
+                    1001 09
+                    1010 10
+                    1011 11
+                    1100 12
+                    1101 13
+                    1110 14
+                    1111 15
+#endif
+                    if (!hasUp && !hasDown && !hasLeft && !hasRight) { // 0
+                        throw "error";
+                    } else if (!hasUp && !hasDown && !hasLeft && hasRight) { //  1
+                        throw "error";
+                    } else if (!hasUp && !hasDown && hasLeft && !hasRight) { //  2
+                        throw "error";
+                    } else if (!hasUp && !hasDown && hasLeft && hasRight) { //  3
+                        ss << "─";
+                    } else if (!hasUp && hasDown && !hasLeft && !hasRight) { //  4
+                        throw "error";
+                    } else if (!hasUp && hasDown && !hasLeft && hasRight) { //  5
+                        ss << "┌";
+                    } else if (!hasUp && hasDown && hasLeft && !hasRight) { //  6
+                        ss << "┐";
+                    } else if (!hasUp && hasDown && hasLeft && hasRight) { //  7
+                        ss << "┬";
+                    } else if (hasUp && !hasDown && !hasLeft && !hasRight) { //  8
+                        throw "error";
+                    } else if (hasUp && !hasDown && !hasLeft && hasRight) { //  9
+                        ss << "└";
+                    } else if (hasUp && !hasDown && hasLeft && !hasRight) { // 10
+                        ss << "┘";
+                    } else if (hasUp && !hasDown && hasLeft && hasRight) { // 11
+                        ss << "┴";
+                    } else if (hasUp && hasDown && !hasLeft && !hasRight) { // 12
+                        ss << "│";
+                    } else if (hasUp && hasDown && !hasLeft && hasRight) { // 13
+                        ss << "├";
+                    } else if (hasUp && hasDown && hasLeft && !hasRight) { // 14
+                        ss << "┤";
+                    } else if (hasUp && hasDown && hasLeft && hasRight) { // 15
+                        ss << "┼";
+                    }
+                    if (!hasUp && !hasDown && !hasLeft && !hasRight) { // 0
+                        throw "error";
+                    } else if (!hasUp && !hasDown && !hasLeft && hasRight) { //  1
+                        throw "error";
+                    } else if (!hasUp && !hasDown && hasLeft && !hasRight) { //  2
+                        throw "error";
+                    } else if (!hasUp && !hasDown && hasLeft && hasRight) { //  3
+                        ss << "──";
+                    } else if (!hasUp && hasDown && !hasLeft && !hasRight) { //  4
+                        throw "error";
+                    } else if (!hasUp && hasDown && !hasLeft && hasRight) { //  5
+                        ss << "──";
+                    } else if (!hasUp && hasDown && hasLeft && !hasRight) { //  6
+                        ss << "  ";
+                    } else if (!hasUp && hasDown && hasLeft && hasRight) { //  7
+                        ss << "──";
+                    } else if (hasUp && !hasDown && !hasLeft && !hasRight) { //  8
+                        throw "error";
+                    } else if (hasUp && !hasDown && !hasLeft && hasRight) { //  9
+                        ss << "──";
+                    } else if (hasUp && !hasDown && hasLeft && !hasRight) { // 10
+                        ss << "  ";
+                    } else if (hasUp && !hasDown && hasLeft && hasRight) { // 11
+                        ss << "──";
+                    } else if (hasUp && hasDown && !hasLeft && !hasRight) { // 12
+                        ss << "  ";
+                    } else if (hasUp && hasDown && !hasLeft && hasRight) { // 13
+                        ss << "──";
+                    } else if (hasUp && hasDown && hasLeft && !hasRight) { // 14
+                        ss << "  ";
+                    } else if (hasUp && hasDown && hasLeft && hasRight) { // 15
+                        ss << "──";
+                    }
                 } else {
-                    std::cout << "  ";
+                    ss << "   ";
                 }
                 break;
             case ScanLineState::Middle:
-                if (currentShapePixel.missing("left") || &currentShapePixel["left"]["shape"] != &currentShape) {
-                    // add edge
-                    std::cout << "| ";
+                if (shapePoint.has("edgeJoint")) {
+                    CellI& edgeJoint = shapePoint["edgeJoint"];
+                    bool hasUp       = edgeJoint.has("upLeft") || edgeJoint.has("upRight");
+                    bool hasDown     = edgeJoint.has("downLeft") || edgeJoint.has("downRight");
+                    bool hasLeft     = edgeJoint.has("leftUp") || edgeJoint.has("leftDown");
+                    bool hasRight    = edgeJoint.has("rightUp") || edgeJoint.has("rightDown");
+                    if (!hasUp && !hasDown && !hasLeft && !hasRight) { // 0
+                        throw "error";
+                    } else if (!hasUp && !hasDown && !hasLeft && hasRight) { //  1
+                        throw "error";
+                    } else if (!hasUp && !hasDown && hasLeft && !hasRight) { //  2
+                        throw "error";
+                    } else if (!hasUp && !hasDown && hasLeft && hasRight) { //  3
+                        ss << "   ";
+                    } else if (!hasUp && hasDown && !hasLeft && !hasRight) { //  4
+                        throw "error";
+                    } else if (!hasUp && hasDown && !hasLeft && hasRight) { //  5
+                        ss << "│  ";
+                    } else if (!hasUp && hasDown && hasLeft && !hasRight) { //  6
+                        ss << "│  ";
+                    } else if (!hasUp && hasDown && hasLeft && hasRight) { //  7
+                        ss << "│  ";
+                    } else if (hasUp && !hasDown && !hasLeft && !hasRight) { //  8
+                        throw "error";
+                    } else if (hasUp && !hasDown && !hasLeft && hasRight) { //  9
+                        ss << "   ";
+                    } else if (hasUp && !hasDown && hasLeft && !hasRight) { // 10
+                        ss << "   ";
+                    } else if (hasUp && !hasDown && hasLeft && hasRight) { // 11
+                        ss << "   ";
+                    } else if (hasUp && hasDown && !hasLeft && !hasRight) { // 12
+                        ss << "│  ";
+                    } else if (hasUp && hasDown && !hasLeft && hasRight) { // 13
+                        ss << "│  ";
+                    } else if (hasUp && hasDown && hasLeft && !hasRight) { // 14
+                        ss << "│  ";
+                    } else if (hasUp && hasDown && hasLeft && hasRight) { // 15
+                        ss << "│  ";
+                    }
                 } else {
-                    std::cout << "  ";
+                    ss << "   ";
                 }
                 break;
-            case ScanLineState::Down:
-                std::cout << "--";
-                break;
-            }
-            if (currentShapePixel.missing("right")) {
-                std::cout << "|";
             }
 
-            if (currentShapePixelPtr->has("right")) {
-                currentShapePixelPtr = &(*currentShapePixelPtr)["right"];
-            } else if (scanLineState == ScanLineState::Up) {
-                scanLineState        = ScanLineState::Middle;
-                currentShapePixelPtr = firstColumnPixelPtr;
-                std::cout << std::endl;
-            } else if (scanLineState == ScanLineState::Middle) {
-                if (currentShapePixel.has("down")) {
-                    scanLineState        = ScanLineState::Up;
-                    currentShapePixelPtr = &(*firstColumnPixelPtr)["down"];
-                    firstColumnPixelPtr  = currentShapePixelPtr;
+            if (shapePoint.has("right")) {
+                currentShapePointPtr = &shapePoint["right"];
+            } else if (shapePoint.has("down")) {
+                if (scanLineState == ScanLineState::Up) {
+                    currentShapePointPtr = firstColumnPointPtr;
+                    scanLineState = ScanLineState::Middle;
                 } else {
-                    scanLineState        = ScanLineState::Down;
-                    currentShapePixelPtr = firstColumnPixelPtr;
+                    currentShapePointPtr = &(*firstColumnPointPtr)["down"];
+                    firstColumnPointPtr  = currentShapePointPtr;
+                    scanLineState        = ScanLineState::Up;
                 }
-                std::cout << std::endl;
-            } else if (scanLineState == ScanLineState::Down) {
-                scanLineState        = ScanLineState::Up;
-                currentShapePixelPtr = nullptr;
+                TRACE(edge, ss.str());
+                ss.str("");
+            } else {
+                currentShapePointPtr = nullptr;
+                TRACE(edge, ss.str());
+                ss.str("");
             }
         }
-        std::cout << std::endl;
     }
 
     void expectedShapeIds(const std::string& jsonStr)
@@ -2726,9 +2840,15 @@ and here is an observation which state that the distance is descibed by a distan
 Can we generalize this observation to at least one property?
 */
 
+#ifdef _WIN32
+#include "Windows.h"
+#endif
 
 int main(int argc, char** argv)
 {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+#endif
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;

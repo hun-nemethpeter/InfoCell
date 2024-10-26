@@ -1,5 +1,6 @@
 #define IS_LOG_ENABLED (SPDLOG_ACTIVE_LEVEL != SPDLOG_LEVEL_OFF)
 
+#pragma execution_character_set("utf-8")
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
