@@ -36,12 +36,13 @@ public:
             infocell::cells::brain::Brain::Logger::createLogger("shapeIdGrid");
             infocell::cells::brain::Brain::Logger::createLogger("grid");
 
+            spdlog::get("cells")->set_level(spdlog::level::trace);
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
             spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
             spdlog::get("edge")->set_level(spdlog::level::off);
             spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
             spdlog::get("grid")->set_level(spdlog::level::trace);
-            spdlog::get("shapeRelations")->set_level(spdlog::level::off);
+            spdlog::get("shapeRelations")->set_level(spdlog::level::trace);
         }),
         ShaperStruct(getStruct("arc::Shaper")),
         ShapeStruct(getStruct("arc::Shape")),
@@ -2851,7 +2852,7 @@ int main(int argc, char** argv)
 #endif
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
-    std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;
+    DEBUG(cells, "Constructed: {}, destructed: {}, live: {}", CellI::s_constructed, CellI::s_destructed, CellI::s_constructed - CellI::s_destructed);
 
     return ret;
 }

@@ -6547,6 +6547,7 @@ Brain::InitPhase Brain::initPhase()
 
 Brain::Logger::Logger(std::function<void()> loggerLevelInit)
 {
+    createLogger("cells");
     createLogger("compileStruct");
     createLogger("symbolResolver");
     createLogger("compiledSymbols");
