@@ -37,6 +37,7 @@
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
         "INFOCELL_TTF_FONT_PATH": "${sourceParentDir}",
+        "INFOCELL_ARC_TRAINING_PATH": "${sourceParentDir}/ARC/data/training/",
         "INFOCELL_ARC_PRIZE_PATH": "${sourceParentDir}/arc-prize-2024/",
         "INFOCELL_CONAN_PATH_BASE": "${sourceParentDir}/conan"
       },
@@ -44,6 +45,26 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
+      }
+    },
+    {
+      "name": "LinuxDebug",
+      "displayName": "Debug",
+      "description": "Target Linux (64-bit) with the g++ compiler. (Debug)",
+      "inherits": "linux-base",
+      "binaryDir": "${sourceDir}/build/Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "LinuxRelease",
+      "displayName": "Release",
+      "description": "Target Linux (64-bit) with the g++ compiler. (Release)",
+      "inherits": "linux-base",
+      "binaryDir": "${sourceDir}/build/Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
@@ -75,6 +96,18 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "LinuxDebug",
+      "displayName": "Linux Debug Build",
+      "configurePreset": "LinuxDebug"
+    },
+    {
+      "name": "LinuxRelease",
+      "displayName": "Linux Release Build",
+      "configurePreset": "LinuxRelease"
     }
   ]
 }
