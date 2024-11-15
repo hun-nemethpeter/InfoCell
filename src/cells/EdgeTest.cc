@@ -41,8 +41,8 @@ public:
             spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
             spdlog::get("edge")->set_level(spdlog::level::off);
             spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
-            spdlog::get("grid")->set_level(spdlog::level::info);
-            spdlog::get("shapeRelations")->set_level(spdlog::level::info);
+            spdlog::get("grid")->set_level(spdlog::level::trace);
+            spdlog::get("shapeRelations")->set_level(spdlog::level::trace);
         }),
         ShaperStruct(getStruct("arc::Shaper")),
         ShapeStruct(getStruct("arc::Shape")),
@@ -2154,26 +2154,103 @@ For leftToRight direction edge from point middle
         Visitor::visitList(shapesList, [this, targetContainedShapeCount, &backgroundShapePtr](CellI& shape, int, bool&) {
             Map& edgesMap  = static_cast<Map&>(shape["edges"]);
             int edgesCount = edgesMap.size();
-            if (edgesCount > 1) {
-                int containedShapeCount = 0;
-                Visitor::visitList(shape["edges"]["list"], [this, &containedShapeCount](CellI& edge, int, bool&) {
-                    if (!(&edge["kind"] == &InternalEdgeEV && edge.has("shapes"))) {
-                        return;
-                    }
-                    Visitor::visitList(edge["shapes"]["index"]["struct"]["slots"]["list"], [this, &containedShapeCount](CellI& slot, int, bool&) {
-                        CellI& shape = slot["slotRole"];
-                        containedShapeCount++;
-                    });
-                });
-                if (targetContainedShapeCount == containedShapeCount) {
-                    backgroundShapePtr = &shape;
+            if (edgesCount == 1) {
+                return;
+            }
+            int containedShapeCount = 0;
+            Visitor::visitList(shape["edges"]["list"], [this, &containedShapeCount](CellI& edge, int, bool&) {
+                if (!(&edge["kind"] == &InternalEdgeEV && edge.has("shapes"))) {
+                    return;
                 }
+                containedShapeCount += static_cast<Set&>(edge["shapes"]).size();
+            });
+            if (targetContainedShapeCount == containedShapeCount) {
+                TRACE(shapeRelations, "Perfect match for a backround");
+                backgroundShapePtr = &shape;
+            } else if (containedShapeCount > 1) {
+                // some heuristic about the longest border
+                CellI& externalEdge = shape["edges"]["list"]["first"]["value"];
+                std::map<int, int> longestBorder;
+                Visitor::visitList(externalEdge["edgeNodes"], [this, &longestBorder](CellI& edgeNode, int i, bool& stop) {
+                    int externalShapeId;
+                    if (edgeNode.has("externalShape")) {
+                        externalShapeId = static_cast<Number&>(edgeNode["externalShape"]["id"]).value();
+                    } else {
+                        externalShapeId = 0;
+                    }
+                    longestBorder[externalShapeId]++;
+                });
+                int longestBorderLength = 0;
+                int selectedShapeId     = -1;
+                std::set<int> lengthStat;
+                for (const auto& pair : longestBorder) {
+                    if (pair.second > longestBorderLength) {
+                        selectedShapeId     = pair.first;
+                        longestBorderLength = pair.second;
+                    }
+                    lengthStat.insert(pair.second);
+                }
+                int secondPlace = 0;
+                if (lengthStat.size() >= 2) {
+                    secondPlace = *(++(lengthStat.rbegin()));
+                }
+                TRACE(shapeRelations, "Longest border is with shape id: {}:{} second: {}", selectedShapeId, longestBorderLength, secondPlace);
             }
         });
         if (backgroundShapePtr) {
             CellI& backgroundShape = *backgroundShapePtr;
             INFO(shapeRelations, "    shape id {} can be a background as it contains all other shapes!", backgroundShape["id"].label());
         }
+#if 0
+        Next approach:
+        We need a shape assessment process
+
+            - a shape can be inside an other shape
+                0   1  2
+              ┌──┬──┬──┐
+            0 │❶ │❶ │❶ │
+              ├──∙──∙──┤
+            1 │❶ │❷ │❶ │
+              ├──∙──∙──┤
+            2 │❶ │❶ │❶ │
+              └──┴──┴──┘
+            - a shape can contains an other one
+                0   1  2    3  4
+              ┌──┬──┬──┬──┬──┐
+            0 │❶ │❶ │❷ │❶ │❶ │
+              ├──∙──∙──∙──∙──┤
+            1 │❶ │❷ │❸ │❷ │❶ │
+              ├──∙──∙──∙──∙──┤
+            2 │❶ │❶ │❷ │❶ │❶ │
+              ├──∙──∙──∙──∙──┤
+            3 │❶ │❶ │❶ │❶ │❶ │
+              └──┴──┴──┴──┴──┘
+            - backround can extend if the color is the same
+                0   1  2    3  4
+              ┌──┬──┬──┬──┬──┐
+            0 │❶ │❶ │❶ │❶ │❶ │
+              ├──∙──∙──∙──∙──┤
+            1 │❷ │❶ │❷ │❶ │❶ │
+              ├──∙──∙──∙──∙──┤
+            2 │❶ │❸ │❶ │❶ │❶ │
+              ├──∙──∙──∙──∙──┤
+            3 │❷ │❶ │❷ │❶ │❶ │
+              └──┴──┴──┴──┴──┘
+        An other idea:
+          if a shape contains other ones, lets examine it even more
+          so if this shape touch four external same edge (or missing external edges)
+              then calculate the conatined (between external edges) shapes also
+              - maybe just assume that the external edge is, where it has the most contact when doesn't contain it?
+          also we can shortcut in this case and pretend, that the external shape edge is the full edge
+              we need a frame object wich has the edge of the input grid
+
+       Ok, so looks like there isn't any perfect algorithm to detect a background, but we collect clues about it
+
+       One heuristic algo is, to predict the background real external edges by take into account the most "touched" edges.
+
+       An other clue is that what is fix and what is changing.
+
+#endif
     }
 
     CellI& ShaperStruct;
@@ -2196,23 +2273,6 @@ For leftToRight direction edge from point middle
     std::unique_ptr<cells::hybrid::arc::Shaper> m_hybridShaper;
     std::string m_outputSVGFileName;
 };
-
-TEST_F(EdgeTester, EdgeTestWithArc_2dd70a9a_Test1Input)
-{
-    testEdges(R"([[8,8,8,8,0,0,0,0,0,8,8,0,0],
-                  [8,0,0,0,0,8,2,2,0,0,0,0,0],
-                  [0,8,0,0,8,8,0,0,0,0,0,0,0],
-                  [0,0,8,0,0,0,0,0,8,0,0,0,8],
-                  [0,0,8,0,0,0,8,0,0,0,0,0,8],
-                  [0,0,0,8,0,0,0,0,8,0,8,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,8,0,0],
-                  [8,0,8,3,3,0,0,0,0,0,8,0,0],
-                  [0,8,8,0,0,8,0,0,0,0,8,0,0],
-                  [0,0,0,0,0,0,8,8,0,0,0,0,0],
-                  [0,8,8,0,0,0,8,0,0,0,0,0,0],
-                  [0,0,0,8,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,8,0]])");
-}
 
 TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Input)
 {
@@ -2335,6 +2395,64 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Output)
                   [4,0,4,0,0,0,0,0,0]])");
 
     expectedShapesCount(24);
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train3Input)
+{
+    testEdges(R"([[0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,2,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,6,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,1,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0]])");
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train3Output)
+{
+    testEdges(R"([[0,0,0,0,0,0,0,0,0],
+                  [0,4,0,4,0,0,0,0,0],
+                  [0,0,2,0,0,0,0,0,0],
+                  [0,4,0,4,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,6,0,0],
+                  [0,0,0,7,0,0,0,0,0],
+                  [0,0,7,1,7,0,0,0,0],
+                  [0,0,0,7,0,0,0,0,0]])");
+
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Test1Input)
+{
+    testEdges(R"([[0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,1,0,0],
+                  [0,0,2,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,8,0,0,0],
+                  [0,0,0,0,0,0,0,0,0],
+                  [0,6,0,0,0,0,0,2,0],
+                  [0,0,0,0,0,0,0,0,0]])");
+}
+
+TEST_F(EdgeTester, EdgeTestWithArc_2dd70a9a_Test1Input)
+{
+    exit(0);
+    testEdges(R"([[8,8,8,8,0,0,0,0,0,8,8,0,0],
+                  [8,0,0,0,0,8,2,2,0,0,0,0,0],
+                  [0,8,0,0,8,8,0,0,0,0,0,0,0],
+                  [0,0,8,0,0,0,0,0,8,0,0,0,8],
+                  [0,0,8,0,0,0,8,0,0,0,0,0,8],
+                  [0,0,0,8,0,0,0,0,8,0,8,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,8,0,0],
+                  [8,0,8,3,3,0,0,0,0,0,8,0,0],
+                  [0,8,8,0,0,8,0,0,0,0,8,0,0],
+                  [0,0,0,0,0,0,8,8,0,0,0,0,0],
+                  [0,8,8,0,0,0,8,0,0,0,0,0,0],
+                  [0,0,0,8,0,0,0,0,0,0,0,0,0],
+                  [0,0,0,0,0,0,0,0,0,0,0,8,0]])");
 }
 
 TEST_F(EdgeTester, EdgeTestWithArc_00d62c1b_Train5Input)
