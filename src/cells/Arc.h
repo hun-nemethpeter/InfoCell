@@ -9,6 +9,11 @@ namespace arc {
 class EdgeRelation
 {
 public:
+    bool isRelated() const
+    {
+        return m_rotatedWith || m_isHorizontallyMirrored || m_isVerticallyMirrored;
+    }
+
     bool isUnrelated() const
     {
         return !m_rotatedWith && !m_isHorizontallyMirrored && !m_isVerticallyMirrored;

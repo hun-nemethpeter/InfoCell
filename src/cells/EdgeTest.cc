@@ -1957,11 +1957,26 @@ For leftToRight direction edge from point middle
 
             if (shapePoint.has("edgeJoint")) {
                 CellI& edgeJoint = shapePoint["edgeJoint"];
+
                 if (edgeJoint.has("leftDown")) {
-                    CellI& node    = edgeJoint["leftDown"];
-                    CellI& corners = node["edge"]["mirroringCorners"];
-                    if (corners.missing("upRightNode")) {
-                        corners.set("upRightNode", node);
+                    CellI& node = edgeJoint["leftDown"];
+                    CellI& edge = node["edge"];
+                    if (&edge["kind"] == &ExternalEdgeEV) {
+                        CellI& corners = node["edge"]["mirroringCorners"];
+                        if (corners.missing("upRightNode")) {
+                            corners.set("upRightNode", node);
+                        }
+                    }
+                }
+
+                if (edgeJoint.has("leftUp")) {
+                    CellI& node = edgeJoint["leftUp"];
+                    CellI& edge = node["edge"];
+                    if (&edge["kind"] == &InternalEdgeEV) {
+                        CellI& corners = node["edge"]["mirroringCorners"];
+                        if (corners.missing("upRightNode")) {
+                            corners.set("upRightNode", node);
+                        }
                     }
                 }
             }
@@ -1987,11 +2002,26 @@ For leftToRight direction edge from point middle
 
             if (shapePoint.has("edgeJoint")) {
                 CellI& edgeJoint = shapePoint["edgeJoint"];
+
                 if (edgeJoint.has("rightUp")) {
-                    CellI& node    = edgeJoint["rightUp"];
-                    CellI& corners = node["edge"]["mirroringCorners"];
-                    if (corners.missing("downLeftNode")) {
-                        corners.set("downLeftNode", node);
+                    CellI& node = edgeJoint["rightUp"];
+                    CellI& edge = node["edge"];
+                    if (&edge["kind"] == &ExternalEdgeEV) {
+                        CellI& corners = node["edge"]["mirroringCorners"];
+                        if (corners.missing("downLeftNode")) {
+                            corners.set("downLeftNode", node);
+                        }
+                    }
+                }
+
+                if (edgeJoint.has("rightDown")) {
+                    CellI& node = edgeJoint["rightDown"];
+                    CellI& edge = node["edge"];
+                    if (&edge["kind"] == &InternalEdgeEV) {
+                        CellI& corners = node["edge"]["mirroringCorners"];
+                        if (corners.missing("downLeftNode")) {
+                            corners.set("downLeftNode", node);
+                        }
                     }
                 }
             }
@@ -2665,7 +2695,6 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate90)
     EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_90);
 }
 
-
 TEST_F(EdgeTester, ShapeWithHoleCompareRotate180)
 {
     const std::string& frame1 = R"([[0,7,0],
@@ -2701,6 +2730,160 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate180)
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_180);
     EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_180);
+}
+
+TEST_F(EdgeTester, ShapeWithHoleCompareRotate270)
+{
+    const std::string& frame1 = R"([[0,7,0],
+                                    [7,7,7],
+                                    [7,0,7],
+                                    [7,7,7]])";
+
+    const std::string& frame2 = R"([[0,0,7,7,7],
+                                    [0,7,7,0,7],
+                                    [0,0,7,7,7]])";
+    processFrame(frame1);
+    CellI& shape1       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape1_edge2 = static_cast<Map&>(shape1["edges"]).getValue(_2_);
+
+    processFrame(frame2);
+    CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
+
+    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downRight: ({},{})->{}, downLeft: ({},{})->{}\n",
+                             shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
+                             shape1_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
+                             shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
+                             shape1_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["direction"].label());
+    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downLeft: ({},{})->{}, downRight: ({},{})->{}\n",
+                             shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
+                             shape2_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
+                             shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
+                             shape2_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["direction"].label());
+
+    cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
+    EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_270);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_270);
+}
+
+TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal)
+{
+    const std::string& frame1 = R"([[0,7,7,7,7,7],
+                                    [0,0,0,7,0,7],
+                                    [7,7,7,7,7,7],
+                                    [7,0,7,0,0,0],
+                                    [7,7,7,0,0,0]])";
+
+    const std::string& frame2 = R"([[7,7,7,0,0,0],
+                                    [7,0,7,0,0,0],
+                                    [7,7,7,7,7,7],
+                                    [0,0,0,7,0,7],
+                                    [0,7,7,7,7,7]])";
+
+    processFrame(frame1);
+    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
+
+    processFrame(frame2);
+    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
+
+    cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
+    EXPECT_EQ(edgeRelation.m_rotatedWith, nullptr);
+    EXPECT_TRUE(edgeRelation.m_isHorizontallyMirrored);
+    EXPECT_FALSE(edgeRelation.m_isVerticallyMirrored);
+
+    cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
+    EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 3);
+
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, nullptr);
+    EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isHorizontallyMirrored);
+    EXPECT_FALSE(shapeRelation.m_edgeRelations[0].m_isVerticallyMirrored);
+
+    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, nullptr);
+    EXPECT_TRUE(shapeRelation.m_edgeRelations[1].m_isHorizontallyMirrored);
+    EXPECT_FALSE(shapeRelation.m_edgeRelations[1].m_isVerticallyMirrored);
+
+    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, nullptr);
+    EXPECT_TRUE(shapeRelation.m_edgeRelations[1].m_isHorizontallyMirrored);
+    EXPECT_FALSE(shapeRelation.m_edgeRelations[1].m_isVerticallyMirrored);
+}
+
+
+TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Vertical)
+{
+    const std::string& frame1 = R"([[0,7,7,7,7,7],
+                                    [0,0,0,7,0,7],
+                                    [7,7,7,7,7,7],
+                                    [7,0,7,0,0,0],
+                                    [7,7,7,0,0,0]])";
+
+    const std::string& frame2 = R"([[0,7,7,7,7,7,0],
+                                    [0,7,0,7,0,0,0],
+                                    [0,7,7,7,7,7,7],
+                                    [0,0,0,0,7,0,7],
+                                    [0,0,0,0,7,7,7]])";
+
+    processFrame(frame1);
+    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
+
+    processFrame(frame2);
+    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
+
+    cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
+    EXPECT_EQ(edgeRelation.m_rotatedWith, nullptr);
+    EXPECT_FALSE(edgeRelation.m_isHorizontallyMirrored);
+    EXPECT_TRUE(edgeRelation.m_isVerticallyMirrored);
+
+    cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
+    EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 3);
+
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, nullptr);
+    EXPECT_FALSE(shapeRelation.m_edgeRelations[0].m_isHorizontallyMirrored);
+    EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isVerticallyMirrored);
+
+    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, nullptr);
+    EXPECT_FALSE(shapeRelation.m_edgeRelations[1].m_isHorizontallyMirrored);
+    EXPECT_TRUE(shapeRelation.m_edgeRelations[1].m_isVerticallyMirrored);
+
+    EXPECT_EQ(shapeRelation.m_edgeRelations[2].m_rotatedWith, nullptr);
+    EXPECT_FALSE(shapeRelation.m_edgeRelations[2].m_isHorizontallyMirrored);
+    EXPECT_TRUE(shapeRelation.m_edgeRelations[2].m_isVerticallyMirrored);
+}
+
+TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal_And_Vertical)
+{
+    const std::string& frame1 = R"([[0,7,7],
+                                    [7,7,7],
+                                    [7,7,7],
+                                    [7,7,0]])";
+
+    const std::string& frame2 = R"([[7,7,0],
+                                    [7,7,7],
+                                    [7,7,7],
+                                    [0,7,7]])";
+
+    processFrame(frame1);
+    CellI& shape1 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
+    CellI& edge1  = static_cast<Map&>(shape1["edges"]).getValue(_1_);
+
+    processFrame(frame2);
+    CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
+    CellI& edge2  = static_cast<Map&>(shape2["edges"]).getValue(_1_);
+
+    cells::hybrid::arc::EdgeRelation edgeRelation = cells::hybrid::arc::compareEdges(edge1, edge2);
+    EXPECT_EQ(edgeRelation.m_rotatedWith, nullptr);
+    EXPECT_TRUE(edgeRelation.m_isHorizontallyMirrored);
+    EXPECT_TRUE(edgeRelation.m_isVerticallyMirrored);
+
+    cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
+    EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 1);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, nullptr);
+    EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isHorizontallyMirrored);
+    EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isVerticallyMirrored);
 }
 
 TEST_F(EdgeTester, ShapeCompareExactMatch)

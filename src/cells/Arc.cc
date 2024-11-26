@@ -190,16 +190,16 @@ EdgeRelation compareEdges2(CellI& lhs, CellI& rhs)
 
     for (CellI* transformation : { &Rotate_degree_0, &Rotate_degree_90, &Rotate_degree_180, &Rotate_degree_270 }) {
         EdgeRelation result = compareEdges(lhs, rhs, *transformation);
-        if (!result.m_rotatedWith) {
+        if (result.m_rotatedWith) {
             return result;
         }
     }
     for (CellI* transformation : { &Mirror_horizontal, &Mirror_vertical }) {
-        EdgeRelation result = compareEdges(lhs, rhs, *transformation);
-        if (result.m_isHorizontallyMirrored) {
+        EdgeRelation mirrorResult = compareEdges(lhs, rhs, *transformation);
+        if (mirrorResult.m_isHorizontallyMirrored) {
             result.m_isHorizontallyMirrored = true;
         }
-        if (result.m_isVerticallyMirrored) {
+        if (mirrorResult.m_isVerticallyMirrored) {
             result.m_isVerticallyMirrored = true;
         }
     }
@@ -362,6 +362,162 @@ EdgeRelation compareEdges(CellI& lhs, CellI& rhs)
 }
 
 ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
+{
+    brain::Brain& kb = lhs.kb;
+
+    static CellI& Rotate_degree_0   = kb.getVariable("arc::RotationDir::Degree_0");
+    static CellI& Rotate_degree_90  = kb.getVariable("arc::RotationDir::Degree_90");
+    static CellI& Rotate_degree_180 = kb.getVariable("arc::RotationDir::Degree_180");
+    static CellI& Rotate_degree_270 = kb.getVariable("arc::RotationDir::Degree_270");
+    static CellI& Mirror_horizontal = kb.getVariable("arc::LineSymmetry::horizontal");
+    static CellI& Mirror_vertical   = kb.getVariable("arc::LineSymmetry::vertical");
+
+    ShapeRelation result;
+    List& lhsEdges = static_cast<List&>(lhs["edges"]["list"]);
+    List& rhsEdges = static_cast<List&>(rhs["edges"]["list"]);
+
+    if (lhsEdges.empty() || rhsEdges.empty()) {
+        return result;
+    }
+
+    auto getEdge = [&kb](CellI& transformation, CellI& lhsEdge, CellI& firstLhsEdge, CellI& rhsShape) -> CellI* {
+        CellI* fromExternalX = nullptr;
+        CellI* fromExternalY = nullptr;
+
+        if (&transformation == &Rotate_degree_0) {
+            fromExternalX = &lhsEdge["fromExternalX"];
+            fromExternalY = &lhsEdge["fromExternalY"];
+        } else {
+            if (&transformation == &Rotate_degree_90) {
+                int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
+                int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["y"]).value();
+                int currentEdgeCornerX = static_cast<Number&>(lhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
+                int currentEdgeCornerY = static_cast<Number&>(lhsEdge["rotationCorners"]["downLeftNode"]["from"]["y"]).value();
+
+                int vectorX = currentEdgeCornerX - firstEdgeCornerX;
+                int vectorY = currentEdgeCornerY - firstEdgeCornerY;
+
+                // rotate vector 90
+                int rotatedVectorX = -vectorY;
+                int rotatedVectorY = vectorX;
+
+                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+            } else if (&transformation == &Rotate_degree_180) {
+                int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downRightNode"]["from"]["x"]).value();
+                int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downRightNode"]["from"]["y"]).value();
+                int currentEdgeCornerX = static_cast<Number&>(lhsEdge["rotationCorners"]["downRightNode"]["from"]["x"]).value();
+                int currentEdgeCornerY = static_cast<Number&>(lhsEdge["rotationCorners"]["downRightNode"]["from"]["y"]).value();
+
+                int vectorX = currentEdgeCornerX - firstEdgeCornerX;
+                int vectorY = currentEdgeCornerY - firstEdgeCornerY;
+
+                // rotate vector 180
+                int rotatedVectorX = -vectorX;
+                int rotatedVectorY = -vectorY;
+
+                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+            } else if (&transformation == &Rotate_degree_270) {
+                int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["upRightNode"]["from"]["x"]).value();
+                int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["upRightNode"]["from"]["y"]).value();
+                int currentEdgeCornerX = static_cast<Number&>(lhsEdge["rotationCorners"]["upRightNode"]["from"]["x"]).value();
+                int currentEdgeCornerY = static_cast<Number&>(lhsEdge["rotationCorners"]["upRightNode"]["from"]["y"]).value();
+
+                int vectorX = currentEdgeCornerX - firstEdgeCornerX;
+                int vectorY = currentEdgeCornerY - firstEdgeCornerY;
+
+                // rotate vector 270
+                int rotatedVectorX = vectorY;
+                int rotatedVectorY = -vectorX;
+
+                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+            } else if (&transformation == &Mirror_horizontal) {
+                int firstEdgeCornerX = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
+                int firstEdgeCornerY = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["y"]).value();
+                int currentEdgeCornerX = static_cast<Number&>(lhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
+                int currentEdgeCornerY = static_cast<Number&>(lhsEdge["rotationCorners"]["downLeftNode"]["from"]["y"]).value();
+
+                int vectorX = currentEdgeCornerX - firstEdgeCornerX;
+                int vectorY = currentEdgeCornerY - firstEdgeCornerY;
+
+                // mirror vector horizontally
+                int rotatedVectorX = vectorX;
+                int rotatedVectorY = -vectorY;
+
+                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+            } else if (&transformation == &Mirror_vertical) {
+                int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["mirroringCorners"]["upRightNode"]["from"]["x"]).value();
+                int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["mirroringCorners"]["upRightNode"]["from"]["y"]).value();
+                int currentEdgeCornerX = static_cast<Number&>(lhsEdge["mirroringCorners"]["upRightNode"]["from"]["x"]).value();
+                int currentEdgeCornerY = static_cast<Number&>(lhsEdge["mirroringCorners"]["upRightNode"]["from"]["y"]).value();
+
+                int vectorX = currentEdgeCornerX - firstEdgeCornerX;
+                int vectorY = currentEdgeCornerY - firstEdgeCornerY;
+
+                // mirror vector vertically
+                int rotatedVectorX = -vectorX;
+                int rotatedVectorY = vectorY;
+
+                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+            } else {
+                throw "error";
+            }
+        }
+
+        Map& internalEdgeLookup = static_cast<Map&>(rhsShape["internalEdges"]);
+        if (internalEdgeLookup.hasKey(*fromExternalY)) {
+            Map& colX = static_cast<Map&>(internalEdgeLookup.getValue(*fromExternalY));
+            if (colX.hasKey(*fromExternalX)) {
+                return &colX.getValue(*fromExternalX);
+            } else {
+                return nullptr;
+            }
+        } else {
+            return nullptr;
+        }
+    };
+
+    CellI& outerLhsEdge = lhsEdges["first"]["value"];
+    CellI& outerRhsEdge = rhsEdges["first"]["value"];
+
+    EdgeRelation outerResult = compareEdges2(outerLhsEdge, outerRhsEdge);
+    result.m_edgeRelations.push_back(outerResult);
+    if (lhsEdges.size() == 1) {
+        return result;
+    }
+
+    if (outerResult.isRelated()) {
+        CellI* transformationPtr = nullptr;
+        if (outerResult.m_rotatedWith) {
+            transformationPtr = outerResult.m_rotatedWith;
+        } else if (outerResult.m_isHorizontallyMirrored) {
+            transformationPtr = &Mirror_horizontal;
+        } else if (outerResult.m_isVerticallyMirrored) {
+            transformationPtr = &Mirror_vertical;
+        }
+        CellI& transformation = *transformationPtr;
+        Visitor::visitList(lhsEdges, [&kb, &rhs, &getEdge, &result, &outerLhsEdge, &transformation](CellI& lhsEdge, int i, bool& stop) {
+            if (&lhsEdge == &outerLhsEdge) {
+                return;
+            }
+            CellI* rhsEdgePtr = getEdge(transformation, lhsEdge, outerLhsEdge, rhs);
+            if (!rhsEdgePtr) {
+                return;
+            }
+            CellI& rhsEdge                  = *rhsEdgePtr;
+            EdgeRelation internalEdgeResult = compareEdges(lhsEdge, rhsEdge, transformation);
+            result.m_edgeRelations.push_back(internalEdgeResult);
+        });
+    }
+
+    return result;
+}
+
+ShapeRelation compareShapes2(CellI& lhs, CellI& rhs)
 {
     brain::Brain& kb                    = lhs.kb;
     static CellI& ExternalEdgeEV    = kb.getVariable("arc::ShapeEdgeKind::ExternalEdge");
