@@ -3,6 +3,7 @@
 #include "app/Colors.h"
 #include "app/Solver.h"
 #include "cells/Brain.h"
+#include "cells/Log.h"
 
 #include <array>
 #include <set>
@@ -25,49 +26,53 @@ struct TestCase
     std::function<void()> test;
 };
 
-struct TestBoard
-{
-    int width  = 0;
-    int height = 0;
-    std::vector<int> pixels;
-};
-static cells::hybrid::Picture convertTestCaseToPicture(const TestBoard& testBoard);
-
 class TestCases
 {
 public:
-    TestCases()
+    TestCases() :
+        kb([]() {
+            spdlog::get("cells")->set_level(spdlog::level::trace);
+            spdlog::get("compileStruct")->set_level(spdlog::level::off);
+            spdlog::get("symbolResolver")->set_level(spdlog::level::off);
+            spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
+        })
     {
         if (m_testCases.empty())
             addTestCases();
     }
 
-    static size_t size()
+    static TestCases& get()
+    {
+        static TestCases testCases;
+        return testCases;
+    }
+
+    size_t size()
     {
         return m_testCases.size();
     }
 
-    static void add(const TestCase& testCase)
+    void add(const TestCase& testCase)
     {
         m_testCases.push_back(testCase);
     }
 
-    static const std::vector<TestCase>& testCases()
+    const std::vector<TestCase>& testCases()
     {
         return m_testCases;
     }
 
 private:
-    static void addTestCases();
-    static std::vector<TestCase> m_testCases;
+    cells::brain::Brain kb;
+    void addTestCases();
+    std::vector<TestCase> m_testCases;
 };
-std::vector<TestCase> TestCases::m_testCases;
 
 void TestCases::addTestCases()
 {
-    add(TestCase("ShapeTest", []() {
+    cells::brain::Brain kb2;
+    add(TestCase("ShapeTest", [this]() {
         input::Grid inputGrid("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
-        cells::brain::Brain kb;
         cells::hybrid::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();
@@ -81,9 +86,8 @@ void TestCases::addTestCases()
         assert(shaper.shapes().size() == 3);
     }));
 
-    add(TestCase("ShapeTestDiagonal", []() {
+    add(TestCase("ShapeTestDiagonal", [this]() {
         input::Grid inputGrid("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
-        cells::brain::Brain kb;
         cells::hybrid::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();
@@ -97,9 +101,8 @@ void TestCases::addTestCases()
         assert(shaper.shapes().size() == 2);
     }));
 
-    add(TestCase("ShapeMergeTest", []() {
+    add(TestCase("ShapeMergeTest", [this]() {
         input::Grid inputGrid("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
-        cells::brain::Brain kb;
         cells::hybrid::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();

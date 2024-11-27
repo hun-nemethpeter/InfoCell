@@ -2,6 +2,10 @@
 #include <fmt/core.h>
 #include "Cells.h"
 
+namespace spdlog {
+class logger;
+}
+
 namespace infocell {
 namespace cells {
 namespace brain {
@@ -1156,7 +1160,12 @@ public:
     {
     public:
         Logger(std::function<void()> loggerLevelInit);
-        static void createLogger(const std::string& name);
+        ~Logger();
+        static std::shared_ptr<spdlog::logger> createLogger(const std::string& name);
+
+    private:
+        void registerLogger(const std::string& name);
+        std::vector<std::string> m_loggerNames;
     };
 
     enum class InitPhase

@@ -6609,19 +6609,33 @@ Brain::InitPhase Brain::initPhase()
 
 Brain::Logger::Logger(std::function<void()> loggerLevelInit)
 {
-    // handle if multiple Brain instance is created
-    auto logger = spdlog::get("cells");
-    if (logger) {
-        return;
-    }
-    createLogger("cells");
-    createLogger("compileStruct");
-    createLogger("symbolResolver");
-    createLogger("compiledSymbols");
+
+    registerLogger("cells");
+    registerLogger("compileStruct");
+    registerLogger("symbolResolver");
+    registerLogger("compiledSymbols");
     loggerLevelInit();
 }
 
-void Brain::Logger::createLogger(const std::string& name)
+Brain::Logger::~Logger()
+{
+    for (const auto& name : m_loggerNames) {
+        spdlog::drop(name);
+    }
+}
+
+void Brain::Logger::registerLogger(const std::string& name)
+{
+    // handle if multiple Brain instance is created
+    auto logger = spdlog::get(name);
+    if (logger) {
+        return;
+    }
+    createLogger(name);
+    m_loggerNames.push_back(name);
+}
+
+std::shared_ptr<spdlog::logger> Brain::Logger::createLogger(const std::string& name)
 {
     static auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
     console_sink->set_level(spdlog::level::trace);
@@ -6630,6 +6644,8 @@ void Brain::Logger::createLogger(const std::string& name)
     auto logger = std::make_shared<spdlog::logger>(name, console_sink);
     logger->set_level(spdlog::level::trace);
     spdlog::register_logger(logger);
+
+    return logger;
 }
 
 } // namespace brain
