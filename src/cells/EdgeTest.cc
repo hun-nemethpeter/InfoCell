@@ -41,10 +41,10 @@ public:
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
             spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
             spdlog::get("edge")->set_level(spdlog::level::off);
-            spdlog::get("shapeCorners")->set_level(spdlog::level::trace);
-            spdlog::get("shapeIdGrid")->set_level(spdlog::level::trace);
+            spdlog::get("shapeCorners")->set_level(spdlog::level::off);
+            spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
             spdlog::get("grid")->set_level(spdlog::level::trace);
-            spdlog::get("shapeRelations")->set_level(spdlog::level::trace);
+            spdlog::get("shapeRelations")->set_level(spdlog::level::off);
         }),
         ShaperStruct(getStruct("arc::Shaper")),
         ShapeStruct(getStruct("arc::Shape")),
@@ -1037,7 +1037,6 @@ For leftToRight direction edge from point middle
                         CellI& distanceY = kb.pools.numbers.get(pointY - startPointY);
                         newEdge.set("fromExternalX", distanceX);
                         newEdge.set("fromExternalY", distanceY);
-                        std::cout << fmt::format("shapeId:{}, edgeId:{}, distance x:{}, y:{}", currentShape["id"].label(), newEdgeId.label(), pointX - startPointX, pointY - startPointY) << std::endl;
                         CellI* internalEdgesPtr = nullptr;
                         if (currentShape.missing("internalEdges")) {
                             static CellI& InternalEdgeLookup = kb.getStruct("arc::Shape::InternalEdgeLookup");
@@ -2641,17 +2640,6 @@ TEST_F(EdgeTester, ShapeWithHoleCompareExactMatch)
     CellI& shape2 = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
 
-    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downRight: ({},{})->{}, downLeft: ({},{})->{}\n",
-                             shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["direction"].label());
-    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downLeft: ({},{})->{}, downRight: ({},{})->{}\n",
-                             shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["direction"].label());
-
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_0);
@@ -2677,17 +2665,6 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate90)
     processFrame(frame2);
     CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
-
-    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downRight: ({},{})->{}, downLeft: ({},{})->{}\n",
-                             shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["direction"].label());
-    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downLeft: ({},{})->{}, downRight: ({},{})->{}\n",
-                             shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["direction"].label());
 
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
@@ -2715,17 +2692,6 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate180)
     CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
 
-    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downRight: ({},{})->{}, downLeft: ({},{})->{}\n",
-                             shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["direction"].label());
-    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downLeft: ({},{})->{}, downRight: ({},{})->{}\n",
-                             shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["direction"].label());
-
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_180);
@@ -2749,17 +2715,6 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate270)
     processFrame(frame2);
     CellI& shape2       = static_cast<Object&>(shaper()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& shape2_edge2 = static_cast<Map&>(shape2["edges"]).getValue(_2_);
-
-    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downRight: ({},{})->{}, downLeft: ({},{})->{}\n",
-                             shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
-                             shape1_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape1_edge2["rotationCorners"]["downRightNode"]["direction"].label());
-    std::cout << fmt::format("upLeft: ({},{})->{}, upRight: ({},{})->{}, downLeft: ({},{})->{}, downRight: ({},{})->{}\n",
-                             shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upLeftNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["upRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["upRightNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downLeftNode"]["direction"].label(),
-                             shape2_edge2["rotationCorners"]["downRightNode"]["from"]["x"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["from"]["y"].label(), shape2_edge2["rotationCorners"]["downRightNode"]["direction"].label());
 
     cells::hybrid::arc::ShapeRelation shapeRelation = cells::hybrid::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
