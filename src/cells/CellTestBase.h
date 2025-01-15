@@ -28,6 +28,9 @@ public:
 
 class CellTest : public ::testing::Test
 {
+public:
+    static void freeKb();
+
 protected:
     CellTest(std::function<void()> loggerLevelInit = []() {});
 

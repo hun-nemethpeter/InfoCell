@@ -61,6 +61,11 @@ CellTest::CellTest(std::function<void()> loggerLevelInit) :
 {
 }
 
+void CellTest::freeKb()
+{
+    m_kb.reset();
+}
+
 void CellTest::printMethodInType(CellI& type, const std::string& method)
 {
     printAs.value(type[ids.methods][ids.index][kb.name(method)][ids.value]);

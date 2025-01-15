@@ -117,6 +117,7 @@ protected:
     brain::Brain& kb;
 
 public:
+    Object Activate;
     Object Add;
     Object And;
     Object Base;
@@ -127,7 +128,6 @@ public:
     Object Do;
     Object Equal;
     Object Erase;
-    Object EvalVar;
     Object Function;
     Object Get;
     Object GreaterThan;

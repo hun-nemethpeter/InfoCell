@@ -3922,6 +3922,7 @@ int main(int argc, char** argv)
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     DEBUG(cells, "Constructed: {}, destructed: {}, live: {}", CellI::s_constructed, CellI::s_destructed, CellI::s_constructed - CellI::s_destructed);
+    CellTest::freeKb();
 
     return ret;
 }

@@ -311,14 +311,16 @@ void Object::operator()()
                 }
             }
         });
+    } else if (&m_type == &kb.std.op.Activate) {
+        CellI& inputCell = get(kb.ids.cell);
+        inputCell();
+        CellI& cell = inputCell[kb.ids.value];
+        cell();
     } else if (&m_type == &kb.std.op.Return) {
         if (has(kb.ids.result)) {
             CellI& result = get(kb.ids.result);
             result();
         }
-    } else if (&m_type == &kb.std.op.EvalVar) {
-        CellI& value = get(kb.ids.value)[kb.ids.value];
-        value();
     } else if (&m_type == &kb.std.op.Function || (m_type.has(kb.ids.memberOf) && m_type[kb.ids.memberOf][kb.ids.index].has(kb.std.op.Function))) {
         if (has(kb.ids.op)) {
             CellI& op = get(kb.ids.op);

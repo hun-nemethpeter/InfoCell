@@ -125,11 +125,11 @@ void CellValuePrinter::printOpBlock(CellI& cell)
     m_ss << "}";
 }
 
-void CellValuePrinter::printOpEvalVar(CellI& cell)
+void CellValuePrinter::printOpActivate(CellI& cell)
 {
     brain::Brain& kb = cell.kb;
-    m_ss << "eval (";
-    printImpl(cell[kb.ids.value]);
+    m_ss << "activate (";
+    printImpl(cell[kb.ids.cell]);
     m_ss << ")";
 }
 
@@ -636,8 +636,8 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (is(kb.std.op.Block)) {
         printOpBlock(cell);
         return;
-    } else if (is(kb.std.op.EvalVar)) {
-        printOpEvalVar(cell);
+    } else if (is(kb.std.op.Activate)) {
+        printOpActivate(cell);
         return;
     } else if (is(kb.std.op.Function)) {
         printOpFunction(cell);

@@ -1943,6 +1943,7 @@ int main(int argc, char** argv)
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;
+    CellTest::freeKb();
 
     return ret;
 }

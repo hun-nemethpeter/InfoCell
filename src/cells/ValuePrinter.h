@@ -30,7 +30,7 @@ protected:
     void printImpl(CellI& list);
     void printTypeName(CellI& cell);
     void printOpBlock(CellI& cell);
-    void printOpEvalVar(CellI& cell);
+    void printOpActivate(CellI& cell);
     void printOpFunction(CellI& cell);
     void printOpDelete(CellI& cell);
     void printOpSet(CellI& cell);

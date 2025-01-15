@@ -106,6 +106,7 @@ namespace type {
 
 Op::Op(brain::Brain& kb) :
     kb(kb),
+    Activate(kb, kb.std.Struct, "op::Activate"),
     Add(kb, kb.std.Struct, "op::Add"),
     And(kb, kb.std.Struct, "op::And"),
     Base(kb, kb.std.Struct, "op::Base"),
@@ -116,7 +117,6 @@ Op::Op(brain::Brain& kb) :
     Do(kb, kb.std.Struct, "op::Do"),
     Equal(kb, kb.std.Struct, "op::Equal"),
     Erase(kb, kb.std.Struct, "op::Erase"),
-    EvalVar(kb, kb.std.Struct, "op::EvalVar"),
     Function(kb, kb.std.Struct, "op::Function"),
     Get(kb, kb.std.Struct, "op::Get"),
     GreaterThan(kb, kb.std.Struct, "op::GreaterThan"),
@@ -2741,11 +2741,12 @@ block {
                 compiledAsts.add(setParam);
             });
         }
-        CellI& evalMethod = *new Object(kb, kb.std.op.EvalVar, fmt::format("{}::Call {{ evalVar; }}", function.label()));
-        evalMethod.set("value", varMethod);
+        CellI& callMethod = *new Object(kb, kb.std.op.Activate, fmt::format("{}::Call {{ method(); }}", function.label()));
+        callMethod.set("cell", compile(kb.ast.get(_(varMethod), _(kb.ids.value))));
+
         compiledAsts.add(setStackNext);
         compiledAsts.add(setStackToNew);
-        compiledAsts.add(evalMethod);
+        compiledAsts.add(callMethod);
         compiledAsts.add(getResult);
         compiledAsts.add(revertStackVar);
         compiledAsts.add(setStackToOld);
@@ -4054,6 +4055,11 @@ void Brain::createOp(Ast::Scope& stdScope)
 
     auto& opScope = stdScope.add<Scope>("op");
     opScope.add<Struct>("Base");
+    opScope.add<Struct>("Activate")
+        .members(
+            member("ast", "ast::Base"),
+            member("cell", "Base"));
+
     opScope.add<Struct>("Add")
         .members(
             member("ast", "ast::Base"),
@@ -4112,11 +4118,6 @@ void Brain::createOp(Ast::Scope& stdScope)
             member("cell", "Base"),
             member("role", "Base"),
             member("value", "Base"));
-
-    opScope.add<Struct>("EvalVar")
-        .members(
-            member("ast", "ast::Base"),
-            member("value", "Var"));
 
     opScope.add<Struct>("Function")
         .members(
@@ -6270,6 +6271,7 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     createArcSolver();
     createTests();
     reigisterStructBeforeCompilation(tt_("std::List", "valueType", _(std.Char))); // TODO instantiate on demand in getStruct
+    registerBuiltInStruct("std::op::Activate", std.op.Activate);
     registerBuiltInStruct("std::op::Add", std.op.Add);
     registerBuiltInStruct("std::op::And", std.op.And);
     registerBuiltInStruct("std::op::Base", std.op.Base);
@@ -6280,7 +6282,6 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     registerBuiltInStruct("std::op::Do", std.op.Do);
     registerBuiltInStruct("std::op::Equal", std.op.Equal);
     registerBuiltInStruct("std::op::Erase", std.op.Erase);
-    registerBuiltInStruct("std::op::EvalVar", std.op.EvalVar);
     registerBuiltInStruct("std::op::Function", std.op.Function);
     registerBuiltInStruct("std::op::Get", std.op.Get);
     registerBuiltInStruct("std::op::GreaterThan", std.op.GreaterThan);
