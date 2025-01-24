@@ -311,6 +311,85 @@ void Object::operator()()
                 }
             }
         });
+    } else if (&m_type == &kb.std.op.Call) {
+        CellI& inputCell = get(kb.ids.cell);
+        inputCell();
+        CellI& cell = inputCell[kb.ids.value];
+
+        CellI& inputMethod = get(kb.ids.method);
+        inputMethod();
+        CellI& methodName = inputMethod[kb.ids.value];
+
+        CellI* methodPtr   = nullptr;
+        if (&get(kb.ids.ast).struct_() == &kb.std.ast.Call) {
+            methodPtr = &cell[kb.ids.struct_][kb.ids.methods];
+        } else {
+            methodPtr = &cell[kb.ids.methods];
+        }
+        CellI& method = (*methodPtr)[kb.ids.index][methodName][kb.ids.value];
+
+        CellI& inputStack = get(kb.ids.stack);
+        inputStack();
+        CellI& stack = inputStack[kb.ids.value];
+
+        CellI& stackFrame = *new Object(kb, kb.std.StackFrame);
+        stackFrame.set(kb.ids.method, method);
+
+        CellI& inputIndex = *new Object(kb, kb.std.Index);
+        inputIndex.set(kb.ids.self, cell);
+        if (has(kb.ids.parameters)) {
+            Visitor::visitList(get(kb.ids.parameters), [this, &inputIndex](CellI& parameter, int, bool& stop) {
+                parameter[kb.ids.slotType]();
+                inputIndex.set(parameter[kb.ids.slotRole], parameter[kb.ids.slotType][kb.ids.value]);
+            });
+        }
+        stackFrame.set(kb.ids.input, inputIndex);
+
+        if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.localVars)) {
+            CellI& localVarsList  = method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value][kb.ids.slots][kb.ids.list];
+            Index& localVarsIndex = *new Index(kb /*, method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value] */);
+            if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.localVars)) {
+                Visitor::visitList(localVarsList, [this, &localVarsIndex](CellI& slot, int, bool& stop) {
+                    localVarsIndex.set(slot[kb.ids.slotRole], *new Object(kb, kb.std.op.Var));
+                });
+                stackFrame.set(kb.ids.localVars, localVarsIndex);
+            }
+        }
+        if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.returnType)) {
+            CellI& returnVar = *new Object(kb, kb.std.op.Var);
+            returnVar.set(kb.ids.valueType, method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.returnType][kb.ids.value]);
+            stackFrame.set(kb.ids.output, returnVar);
+        }
+
+        CellI& newStackListItem = *new Object(kb, kb.std.ListItem);
+        newStackListItem.set(kb.ids.value, stackFrame);
+        newStackListItem.set(kb.ids.previous, stack);
+        stack.set(kb.ids.next, newStackListItem);
+
+        CellI* oldStackItem = method.has(kb.ids.stack) ? &method[kb.ids.stack] : nullptr;
+        method.set(kb.ids.stack, newStackListItem);
+
+        method();
+
+        if (oldStackItem) {
+            method.set(kb.ids.stack, *oldStackItem);
+        }
+        stack.erase(kb.ids.next);
+        if (stackFrame.has(kb.ids.output)) {
+            set(kb.ids.value, stackFrame[kb.ids.output][kb.ids.value]);
+            delete &stackFrame[kb.ids.output];
+        }
+        delete &inputIndex;
+        if (stackFrame.has(kb.ids.localVars)) {
+            CellI& localVarsList  = method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value][kb.ids.slots][kb.ids.list];
+            CellI& localVarsIndex = stackFrame[kb.ids.localVars];
+            Visitor::visitList(localVarsList, [this, &localVarsIndex](CellI& slot, int, bool& stop) {
+                delete &localVarsIndex[slot[kb.ids.slotRole]];
+            });
+            delete &localVarsIndex;
+        }
+        delete &newStackListItem;
+        delete &stackFrame;
     } else if (&m_type == &kb.std.op.Activate) {
         CellI& inputCell = get(kb.ids.cell);
         inputCell();

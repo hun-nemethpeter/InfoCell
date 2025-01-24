@@ -66,7 +66,32 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         if (&ast[kb.ids.cell].struct_() == &kb.std.ast.Parameter) {
             m_ss << "p_" << ast[kb.ids.cell][kb.ids.role].label();
         }
-        if (ast.has(kb.ids.method)) {
+        if (&cell.struct_() == &kb.std.op.Call) {
+            printOpCall(cell);
+            if (0) {
+                if (&ast.struct_() == &kb.std.ast.Call) {
+                    m_ss << ".";
+                } else {
+                    m_ss << "::";
+                }
+                m_ss << ast[kb.ids.method][kb.ids.value].label();
+                m_ss << "(";
+                if (cell.has(kb.ids.parameters)) {
+                    int paramNum = 0;
+                    Visitor::visitList(cell[kb.ids.parameters], [this, &kb, &paramNum](CellI& parameter, int, bool& stop) {
+                        if (paramNum++ > 0) {
+                            m_ss << ", ";
+                        }
+                        auto& paramRole  = parameter[kb.ids.slotRole];
+                        auto& paramValue = parameter[kb.ids.slotType];
+                        m_ss << paramRole.label();
+                        m_ss << ": ";
+                        printImpl(paramValue);
+                    });
+                }
+                m_ss << ")";
+            }
+        } else if (ast.has(kb.ids.method)) {
             if (&ast.struct_() == &kb.std.ast.Call) {
                 m_ss << ".";
             } else {
@@ -175,6 +200,49 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     m_ss << newLabel;
 
     printImpl(cell[kb.ids.op]);
+}
+
+void CellValuePrinter::printOpCall(CellI& cell)
+{
+    brain::Brain& kb = cell.kb;
+    CellI& ast       = cell[kb.ids.ast];
+
+    if (&ast[kb.ids.cell].struct_() == &kb.std.ast.Get && cell.label() != "New { call constructor; }") {
+        printImpl(ast[kb.ids.cell]);
+    }
+    if (&ast[kb.ids.cell].struct_() == &kb.std.ast.Self) {
+        m_ss << "self";
+    }
+    if (&ast[kb.ids.cell].struct_() == &kb.std.ast.Cell) {
+        m_ss << ast[kb.ids.cell][kb.ids.value].label();
+    }
+    if (&ast[kb.ids.cell].struct_() == &kb.std.ast.Member) {
+        m_ss << "m_" << ast[kb.ids.cell][kb.ids.role].label();
+    }
+    if (&ast[kb.ids.cell].struct_() == &kb.std.ast.Parameter) {
+        m_ss << "p_" << ast[kb.ids.cell][kb.ids.role].label();
+    }
+    if (&ast.struct_() == &kb.std.ast.Call) {
+        m_ss << ".";
+    } else {
+        m_ss << "::";
+    }
+    m_ss << ast[kb.ids.method][kb.ids.value].label();
+    m_ss << "(";
+    if (cell.has(kb.ids.parameters)) {
+        int paramNum = 0;
+        Visitor::visitList(cell[kb.ids.parameters], [this, &kb, &paramNum](CellI& parameter, int, bool& stop) {
+            if (paramNum++ > 0) {
+                m_ss << ", ";
+            }
+            auto& paramRole  = parameter[kb.ids.slotRole];
+            auto& paramValue = parameter[kb.ids.slotType];
+            m_ss << paramRole.label();
+            m_ss << ": ";
+            printImpl(paramValue);
+        });
+    }
+    m_ss << ")";
 }
 
 void CellValuePrinter::printOpDelete(CellI& cell)
@@ -641,6 +709,9 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     } else if (is(kb.std.op.Function)) {
         printOpFunction(cell);
+        return;
+    } else if (is(kb.std.op.Call)) {
+        printOpCall(cell);
         return;
     } else if (is(kb.std.op.Delete)) {
         printOpDelete(cell);

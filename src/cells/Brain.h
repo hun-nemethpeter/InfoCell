@@ -122,6 +122,7 @@ public:
     Object And;
     Object Base;
     Object Block;
+    Object Call;
     Object ConstVar;
     Object Delete;
     Object Divide;

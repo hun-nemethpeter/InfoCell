@@ -32,6 +32,7 @@ protected:
     void printOpBlock(CellI& cell);
     void printOpActivate(CellI& cell);
     void printOpFunction(CellI& cell);
+    void printOpCall(CellI& cell);
     void printOpDelete(CellI& cell);
     void printOpSet(CellI& cell);
     void printOpErase(CellI& cell);

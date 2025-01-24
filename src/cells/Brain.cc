@@ -111,6 +111,7 @@ Op::Op(brain::Brain& kb) :
     And(kb, kb.std.Struct, "op::And"),
     Base(kb, kb.std.Struct, "op::Base"),
     Block(kb, kb.std.Struct, "op::Block"),
+    Call(kb, kb.std.Struct, "op::Call"),
     ConstVar(kb, kb.std.Struct, "op::ConstVar"),
     Delete(kb, kb.std.Struct, "op::Delete"),
     Divide(kb, kb.std.Struct, "op::Divide"),
@@ -2516,51 +2517,6 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         }
         return block;
     } else if (&ast.struct_() == &kb.std.ast.Call || &ast.struct_() == &kb.std.ast.StaticCall) {
-/*
-block {
-    var_method.value  = m_list.type.methods.index.add;
-    var_method.value.stack = fn Map::add(self: Map, in_key: Cell, in_value: Cell).stack;
-    var_newStackItem.value = new ListItem;
-    var_newStackFrame.value = new StackFrame;
-    var_newStackItem.value.value = var_newStackFrame.value;
-    var_newStackItem.value.previous = var_method.value.stack;
-    var_inputIndex.value = new Index;
-    if var_method.value.type.subTypes.index has localVars then {
-        var_localVars.value = new var_method.value.type.subTypes.index.localVars;
-        var_newStackFrame.value.localVars = var_localVars.value;
-        var_localVarsListItem.value = var_method.value.type.subTypes.index.localVars.slots.list.first;
-        do {
-            var_localVarsListItemHasNext.value = true;
-            var_localVars.value.var_localVarsListItem.value.value.slotRole = new op::Var;
-            if var_localVarsListItem.value has next then
-                var_localVarsListItem.value = var_localVarsListItem.value.next;
-             else
-                var_localVarsListItemHasNext.value = false;
-        } (var_localVarsListItemHasNext.value is true);
-    };
-    var_newStackFrame.value.input = var_inputIndex.value;
-    if var_method.value.type.subTypes.index.output has slots then
-        if var_method.value.type.subTypes.index.output.slots.index has value then {
-        var_newStackFrame.value.output = new var_method.value.type.subTypes.index.output;
-        var_newStackFrame.value.output.value = new op::Var;
-    };
-    var_inputIndex.value.self = m_list;
-    var_inputIndex.value.value = in_value;
-    var_method.value.stack = var_newStackItem.value;
-    eval(var_method);
-    if var_method.value.type.subTypes.index.output has slots then
-        if var_method.value.type.subTypes.index.output.slots.index has value then
-            block.value = var_method.value.stack.value.output.value.value;
-    var_method.value.stack = var_method.value.stack.previous;
- }
-*/
-        CellI* prevBlock = nullptr;
-        if (state.has("lastBlock")) {
-
-            prevBlock = &state["lastBlock"];
-            state.erase("lastBlock");
-        }
-        const char* blockName  = &ast.struct_() == &kb.std.ast.Call ? "Call { ... }" : "SCall { ... }";
         Ast::Base& astCell     = static_cast<Ast::Base&>(ast[kb.ids.cell]);
         Ast::Base& astMethod   = static_cast<Ast::Base&>(ast[kb.ids.method]);
         auto& astMethodId      = astMethod[kb.ids.value];
@@ -2631,6 +2587,72 @@ block {
             WARN(compileStruct, "{} Unchecked method call {} in {}", ss.str(), astMethodId.label(), function.label());
         }
 #endif
+        if (1) {
+            Object& retOp = *new Object(kb, kb.std.op.Call);
+            retOp.set("ast", ast);
+            retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
+            retOp.set(kb.ids.method, compile(ast[kb.ids.method]));
+            retOp.set(kb.ids.stack, compile(kb.ast.get(_(function), _("stack"))));
+            if (ast.has("parameters")) {
+                List& parameters = *new List(kb, kb.std.Slot);
+                Visitor::visitList(ast[kb.ids.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
+                    CellI& slot = *new Object(kb, kb.std.Slot);
+                    slot.set("slotRole", param[kb.ids.slotRole]);
+                    slot.set("slotType", compile(param[kb.ids.slotType]));
+                    parameters.add(slot);
+                });
+                retOp.set(kb.ids.parameters, parameters);
+            }
+
+            return retOp;
+        }
+
+/*
+        block {
+            var_method.value  = m_list.type.methods.index.add;
+            var_method.value.stack = fn Map::add(self: Map, in_key: Cell, in_value: Cell).stack;
+            var_newStackItem.value = new ListItem;
+            var_newStackFrame.value = new StackFrame;
+            var_newStackItem.value.value = var_newStackFrame.value;
+            var_newStackItem.value.previous = var_method.value.stack;
+            var_inputIndex.value = new Index;
+            if var_method.value.type.subTypes.index has localVars then {
+                var_localVars.value = new var_method.value.type.subTypes.index.localVars;
+                var_newStackFrame.value.localVars = var_localVars.value;
+                var_localVarsListItem.value = var_method.value.type.subTypes.index.localVars.slots.list.first;
+                do {
+                    var_localVarsListItemHasNext.value = true;
+                    var_localVars.value.var_localVarsListItem.value.value.slotRole = new op::Var;
+                    if var_localVarsListItem.value has next then
+                        var_localVarsListItem.value = var_localVarsListItem.value.next;
+                     else
+                        var_localVarsListItemHasNext.value = false;
+                } (var_localVarsListItemHasNext.value is true);
+            };
+            var_newStackFrame.value.input = var_inputIndex.value;
+            if var_method.value.type.subTypes.index.output has slots then
+                if var_method.value.type.subTypes.index.output.slots.index has value then {
+                var_newStackFrame.value.output = new var_method.value.type.subTypes.index.output;
+                var_newStackFrame.value.output.value = new op::Var;
+            };
+            var_inputIndex.value.self = m_list;
+            var_inputIndex.value.value = in_value;
+            var_method.value.stack = var_newStackItem.value;
+            eval(var_method);
+            if var_method.value.type.subTypes.index.output has slots then
+                if var_method.value.type.subTypes.index.output.slots.index has value then
+                    block.value = var_method.value.stack.value.output.value.value;
+            var_method.value.stack = var_method.value.stack.previous;
+         }
+        */
+        const char* blockName = &ast.struct_() == &kb.std.ast.Call ? "Call { ... }" : "SCall { ... }";
+        CellI* prevBlock      = nullptr;
+        if (state.has("lastBlock")) {
+
+            prevBlock = &state["lastBlock"];
+            state.erase("lastBlock");
+        }
+
         Ast::Get* getMethodPtr = nullptr;
         if (&ast.struct_() == &kb.std.ast.Call) {
             getMethodPtr = &(kb.ast.get(astCell, _(kb.ids.struct_)) / "methods");
@@ -4079,6 +4101,15 @@ void Brain::createOp(Ast::Scope& stdScope)
             member("ast", "ast::Base"),
             member("status", "std::Cell"),
             member("ops", "std::Cell"),
+            member("value", "std::Cell"));
+
+    opScope.add<Struct>("Call")
+        .members(
+            member("ast", "ast::Base"),
+            member("cell", "ast::Base"),
+            member("method", "ast::Base"),
+            member("parameters", tt_("std::List", "valueType", "std::Slot")),
+            member("stack", "ast::Base"),
             member("value", "std::Cell"));
 
     opScope.add<Struct>("ConstVar")
@@ -6276,6 +6307,7 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     registerBuiltInStruct("std::op::And", std.op.And);
     registerBuiltInStruct("std::op::Base", std.op.Base);
     registerBuiltInStruct("std::op::Block", std.op.Block);
+    registerBuiltInStruct("std::op::Call", std.op.Call);
     registerBuiltInStruct("std::op::ConstVar", std.op.ConstVar);
     registerBuiltInStruct("std::op::Delete", std.op.Delete);
     registerBuiltInStruct("std::op::Divide", std.op.Divide);
