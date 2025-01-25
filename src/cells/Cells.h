@@ -138,7 +138,50 @@ protected:
     }
     void printIndent();
 
+    // core data handling
+    void opGet();
+    void opSet();
+    void opHas();
+    void opMissing();
+    void opErase();
+    void opNew();
+    void opDelete();
+
+    // code running
+    void opActivate();
+    void opCall();
+    void opFunction();
+    void opReturn();
+
+    // compare
+    void opSame();
+    void opNotSame();
+    void opEqual();
+    void opNotEqual();
+    void opLessThan();
+    void opLessThanOrEqual();
+    void opGreaterThan();
+    void opGreaterThanOrEqual();
+
+    // logic
+    void opAnd();
+    void opOr();
+    void opNot();
+
+    // branching
+    void opIf();
+    void opDo();
+    void opWhile();
+    void opBlock();
+
+    // math
+    void opAdd();
+    void opSubtract();
+    void opMultiply();
+    void opDivide();
+
     static int s_indent;
+    static bool s_debugFunctionCalls;
     CellI& m_type;
     std::map<CellI*, CellI*> m_slots;
 };
