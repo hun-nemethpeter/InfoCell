@@ -3676,7 +3676,7 @@ TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
                   [3]])");
 }
 
-TEST_F(EdgeTester, DISABLED_EdgeTestWithAllArcTask)
+TEST_F(EdgeTester, EdgeTestWithAllArcTask)
 {
     TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
     // TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);

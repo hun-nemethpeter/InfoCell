@@ -1,12 +1,13 @@
 [requires]
-nlohmann_json/3.11.3
-utfcpp/4.0.5
-ftxui/5.0.0
-boost/1.86.0
+boost/1.87.0
+cli11/2.5.0
+fmt/11.1.3
 freetype/2.13.3
-gtest/1.15.0
-fmt/10.2.1
-spdlog/1.14.1
+ftxui/5.0.0
+gtest/1.16.0
+nlohmann_json/3.12.0
+spdlog/1.15.1
+utfcpp/4.0.5
 
 [generators]
 CMakeDeps

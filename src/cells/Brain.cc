@@ -649,7 +649,7 @@ Ast::Self::Self(brain::Brain& kb) :
 {
 }
 
-Ast::Call& Ast::Self::call(const std::string& method)
+Ast::Call& Ast::Self::operator()(const std::string& method)
 {
     return kb.ast.call(*this, method);
 }
@@ -2989,7 +2989,15 @@ Ast::Missing& Ast::Member::missing()
     return Missing::New(kb, Self::New(kb), Cell::New(kb, get("role")));
 }
 
-Ast::Call& Ast::Member::call(const std::string& method) {
+#if 0
+Ast::Call& Ast::Member::call(const std::string& method)
+{
+    return kb.ast.call(*this, method);
+}
+#endif
+
+Ast::Call& Ast::Member::operator()(const std::string& method)
+{
     return kb.ast.call(*this, method);
 }
 
@@ -4640,7 +4648,7 @@ void Brain::createStd()
         .code(
             ast.if_(m_("subTypes").missing())
                     .then_(m_("subTypes") = ast.new_(tt_("Map", "keyType", _(std.Cell), "valueType", "Struct"), "constructor")),
-            m_("subTypes").call("add", param("key", p_("slotRole")), param("value", p_("slotType"))));
+            m_("subTypes")("add", param("key", p_("slotRole")), param("value", p_("slotType"))));
 
     structStruct.addMethod("addMembership")
         .parameters(
@@ -4648,7 +4656,7 @@ void Brain::createStd()
         .code(
             ast.if_(m_("memberOf").missing())
                 .then_(m_("memberOf") = ast.new_(tt_("Map", "keyType", "Struct", "valueType", "Struct"), "constructor")),
-            m_("memberOf").call("add", param("key", p_("cell")), param("value", p_("cell"))));
+            m_("memberOf")("add", param("key", p_("cell")), param("value", p_("cell"))));
 
     structStruct.addMethod("addSlot")
         .parameters(
@@ -4660,7 +4668,7 @@ void Brain::createStd()
             var_("slot") = ast.new_(_(std.Slot)),
             ast.set(*var_("slot"), "slotRole", p_("slotRole")),
             ast.set(*var_("slot"), "slotType", p_("slotType")),
-            m_("slots").call("add", param("key", p_("slotRole")), param("value", *var_("slot"))));
+            m_("slots")("add", param("key", p_("slotRole")), param("value", *var_("slot"))));
 
     structStruct.addMethod("addSlots")
         .parameters(
@@ -4673,7 +4681,7 @@ void Brain::createStd()
                 .then_(m_("slots") = ast.new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
             ast.do_(ast.block(
                         var_("next") = true_(),
-                        m_("slots").call("add", param("key", *var_("item") / "value" / "slotRole"), param("value", *var_("item") / "value")),
+                        m_("slots")("add", param("key", *var_("item") / "value" / "slotRole"), param("value", *var_("item") / "value")),
                         ast.if_(ast.has(*var_("item"), "next"))
                             .then_(var_("item") = *var_("item") / "next")
                             .else_(var_("next") = false_())))
@@ -4686,7 +4694,7 @@ void Brain::createStd()
         .code(
             ast.if_(m_("slots").missing())
                 .then_(ast.return_(false_())),
-            ast.return_(m_("slots").call("hasKey", param("key", p_("slotRole")))));
+            ast.return_(m_("slots")("hasKey", param("key", p_("slotRole")))));
 
     structStruct.addMethod("removeSlot")
         .parameters(
@@ -4694,7 +4702,7 @@ void Brain::createStd()
         .code(
             ast.if_(m_("slots").missing())
                 .then_(ast.return_()),
-            m_("slots").call("remove", param("key", p_("slotRole"))));
+            m_("slots")("remove", param("key", p_("slotRole"))));
 #pragma endregion
 #pragma region Index
     auto& indexStruct
@@ -4743,7 +4751,7 @@ void Brain::createStd()
             ast.set(ast.self(), p_("key"), p_("value")),
             ast.if_(ast.and_(ast.has(m_("struct"), "sharedObject"), ast.same(m_("struct") / "sharedObject" / "slotRole", ast.self())))
                 .then_(ast.return_()),
-            m_("struct").call("addSlot", param("slotRole", p_("key")), param("slotType", _(std.Slot))));
+            m_("struct")("addSlot", param("slotRole", p_("key")), param("slotType", _(std.Slot))));
 
     indexStruct.addMethod("empty")
         .returnType(_(std.Boolean))
@@ -4764,10 +4772,10 @@ void Brain::createStd()
         .parameters(
             param("key", _(std.Cell)))
         .code(
-            ast.if_(ast.not_(m_("struct").call("hasSlot", param("slotRole", p_("key")))))
+            ast.if_(ast.not_(m_("struct")("hasSlot", param("slotRole", p_("key")))))
                 .then_(ast.return_()),
             ast.erase(ast.self(), p_("key")),
-            m_("struct").call("removeSlot", param("slotRole", p_("key"))));
+            m_("struct")("removeSlot", param("slotRole", p_("key"))));
 
     indexStruct.addMethod("size")
         .returnType(_(std.Number))
@@ -4870,8 +4878,8 @@ void Brain::createStd()
             ast.if_(ast.has(m_("index"), p_("key")))
                 .then_(ast.return_()),
             m_("size")   = ast.add(m_("size"), _(_1_)),
-            var_("item") = m_("list").call("add", param("value", p_("value"))),
-            m_("index").call("insert", param("key", p_("key")), param("value", *var_("item"))));
+            var_("item") = m_("list")("add", param("value", p_("value"))),
+            m_("index")("insert", param("key", p_("key")), param("value", *var_("item"))));
 
     /*
     void Map::remove(CellI& key)
@@ -4891,8 +4899,8 @@ void Brain::createStd()
         .code(
             ast.if_(ast.missing(m_("index"), p_("key")))
                 .then_(ast.return_()),
-            m_("list").call("remove", param("item", m_("index") / p_("key"))),
-            m_("index").call("remove", param("key", p_("key"))),
+            m_("list")("remove", param("item", m_("index") / p_("key"))),
+            m_("index")("remove", param("key", p_("key"))),
             m_("size") = ast.subtract(m_("size"), _(_1_)));
 
     mapStructT.addMethod("size")
@@ -5172,7 +5180,7 @@ void Brain::createStd()
                     ast.if_(ast.has(*var_("keyItem"), "next"))
                         .then_(var_("keyItem") = *var_("keyItem") / "next")
                         .else_(var_("keyItem") = _(ids.emptyObject)))),
-            var_("item") = m_("list").call("add", param("value", ast.new_(st_("pairType"), "constructor", param("key", p_("key")), param("value", p_("value"))))),
+            var_("item") = m_("list")("add", param("value", ast.new_(st_("pairType"), "constructor", param("key", p_("key")), param("value", p_("value"))))),
             ast.set(*var_("currentNode"), "data", *var_("item")),
             m_("size") = ast.add(m_("size"), _(_1_)));
 
@@ -5279,7 +5287,7 @@ void Brain::createStd()
                     ast.if_(ast.has(*var_("keyItem"), "previous"))
                         .then_(var_("keyItem") = *var_("keyItem") / "previous")
                         .else_(ast.break_()))),
-            m_("list").call("remove", param("item", *var_("valueItem"))),
+            m_("list")("remove", param("item", *var_("valueItem"))),
             m_("size") = ast.subtract(m_("size"), _(_1_)));
 
     trieMapStructT.addMethod("size")
@@ -5408,6 +5416,19 @@ void Brain::createArcSolver()
                   member("examples", tt_("std::List", "valueType", "Example")),
                   member("tests", tt_("std::List", "valueType", "Example")),
                   member("solution", _(std.Grid)));
+
+    arcScope.add<Enum>("ArcColor")
+        .values(
+            ev_("black", _(_0_)),
+            ev_("blue", _(_1_)),
+            ev_("red", _(_2_)),
+            ev_("green", _(_3_)),
+            ev_("yellow", _(_4_)),
+            ev_("grey", _(_5_)),
+            ev_("fuschia", _(_6_)),
+            ev_("orange", _(_7_)),
+            ev_("teal", _(_8_)),
+            ev_("brown", _(_9_)));
 
     arcScope.add<Enum>("RotationDir")
         .values(
@@ -5587,7 +5608,7 @@ void Brain::createArcSolver()
                                 .else_(var_("pixel") = _(ids.emptyObject)),
                             ast.continue_())),
                     var_("vector") = ast.new_("Vector", "constructor", param("x", ast.subtract(*var_("pixel") / "value" / "x", *var_("prevPixel") / "x")), param("y", ast.subtract(*var_("pixel") / "value" / "y", *var_("prevPixel") / "y"))),
-                    m_("vectors").call("add", param("value", *var_("vector"))),
+                    m_("vectors")("add", param("value", *var_("vector"))),
                     var_("prevPixel") = *var_("pixel") / "value",
                     ast.if_(ast.has(*var_("pixel"), "next"))
                         .then_(var_("pixel") = *var_("pixel") / "next")
@@ -5782,8 +5803,8 @@ void Brain::createArcSolver()
         .parameters(
             param("pixel", struct_("Pixel")))
         .code(
-            m_("pixels").call("add", param("value", ast.new_("Pixel", "constructor", param("x", p_("pixel") / _(coordinates.x)), param("y", p_("pixel") / _(coordinates.y))))),
-            m_("hybridPixels").call("add", param("value", p_("pixel"))));
+            m_("pixels")("add", param("value", ast.new_("Pixel", "constructor", param("x", p_("pixel") / _(coordinates.x)), param("y", p_("pixel") / _(coordinates.y))))),
+            m_("hybridPixels")("add", param("value", p_("pixel"))));
 
     /*
     bool Shape::hasPixel(cells::hybrid::Pixel& pixel) const
@@ -5796,7 +5817,7 @@ void Brain::createArcSolver()
             param("pixel", _(std.Pixel)))
         .returnType(_(std.Boolean))
         .code(
-            ast.return_(m_("hybridPixels").call("contains", param("value", p_("pixel")))));
+            ast.return_(m_("hybridPixels")("contains", param("value", p_("pixel")))));
 
     shapeStruct.addMethod("toVectorShape")
         .returnType(struct_("VectorShape"))
@@ -5845,7 +5866,7 @@ void Brain::createArcSolver()
             m_("shapePixels") = ast.new_(st_("tableType"), "constructor"),
             m_("shapeMap")    = ast.new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"), "constructor"),
             m_("inputPixels") = ast.new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
-            ast.self().call("processInputPixels"));
+            ast.self()("processInputPixels"));
     /*
     void Frame::processInputPixels()
     {
@@ -5863,7 +5884,7 @@ void Brain::createArcSolver()
                 .then_(var_("pixel") = *var_("pixels") / "first"),
             ast.while_(ast.notSame(*var_("pixel"), _(ids.emptyObject)))
                 .do_(ast.block(
-                    m_("inputPixels").call("add", param("value", *var_("pixel") / "value")),
+                    m_("inputPixels")("add", param("value", *var_("pixel") / "value")),
                     ast.if_(ast.has(*var_("pixel"), "next"))
                         .then_(var_("pixel") = *var_("pixel") / "next")
                         .else_(var_("pixel") = _(ids.emptyObject)))));
@@ -5895,9 +5916,9 @@ void Brain::createArcSolver()
     frameStruct.addMethod("process")
         .code(
             var_("shapeId") = _(_1_),
-            ast.while_(ast.not_(m_("inputPixels").call("empty")))
+            ast.while_(ast.not_(m_("inputPixels")("empty")))
                 .do_(ast.block(
-                    var_("firstPixel")  = m_("inputPixels").call("first"),
+                    var_("firstPixel")  = m_("inputPixels")("first"),
                     var_("shape")       = ast.new_("Shape", "constructor", param("id", *var_("shapeId")), param("color", *var_("firstPixel") / "color"), param("width", m_("width")), param("height", m_("height"))),
                     var_("shapeId")     = ast.add(*var_("shapeId"), _(_1_)),
                     var_("checkPixels") = ast.new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
@@ -5905,12 +5926,12 @@ void Brain::createArcSolver()
                     ast.while_(ast.not_(ast.call(*var_("checkPixels"), _("empty"))))
                         .do_(ast.block(
                             var_("checkPixel") = ast.call(*var_("checkPixels"), "first"),
-                            ast.self().call("processPixel", param("shape", *var_("shape")), param("checkPixels", *var_("checkPixels")), param("checkPixel", *var_("checkPixel"))),
+                            ast.self()("processPixel", param("shape", *var_("shape")), param("checkPixels", *var_("checkPixels")), param("checkPixel", *var_("checkPixel"))),
                             ast.call(*var_("checkPixels"), "remove", param("value", *var_("checkPixel"))))))),
             var_("y") = _(_0_),
             ast.while_(ast.lessThan(*var_("y"), m_("height")))
                 .do_(ast.block(
-                    var_("colX") = m_("shapePixels").call("getValue", param("key", *var_("y"))),
+                    var_("colX") = m_("shapePixels")("getValue", param("key", *var_("y"))),
                     var_("x")    = _(_0_),
                     ast.while_(ast.lessThan(*var_("x"), m_("width")))
                         .do_(ast.block(
@@ -5918,10 +5939,10 @@ void Brain::createArcSolver()
                             var_("shape")      = *var_("shapePixel") / "shape",
                             var_("pixel")      = *var_("shapePixel") / "pixel",
                             ast.call(*var_("shape"), "addPixel", param("pixel", *var_("pixel"))),
-                            ast.if_(ast.not_(m_("shapeMap").call("hasKey", param("key", *var_("shape") / "id"))))
+                            ast.if_(ast.not_(m_("shapeMap")("hasKey", param("key", *var_("shape") / "id"))))
                                 .then_(ast.block(
-                                    m_("shapeMap").call("add", param("key", *var_("shape") / "id"), param("value", *var_("shape"))),
-                                    m_("shapes").call("add", param("value", *var_("shape"))))),
+                                    m_("shapeMap")("add", param("key", *var_("shape") / "id"), param("value", *var_("shape"))),
+                                    m_("shapes")("add", param("value", *var_("shape"))))),
                             var_("x") = ast.add(*var_("x"), _(_1_)))),
                     var_("y") = ast.add(*var_("y"), _(_1_)))));
 
@@ -5949,23 +5970,23 @@ void Brain::createArcSolver()
             param("checkPixels", tt_("std::Set", "valueType", "Pixel")),
             param("checkPixel", struct_("Pixel")))
         .code(
-            ast.if_(ast.not_(m_("shapePixels").call("hasKey", param("key", p_("checkPixel") / _(coordinates.y)))))
-                .then_(m_("shapePixels").call("add", param("key", p_("checkPixel") / _(coordinates.y)), param("value", ast.new_(st_("tableType"), "constructor")))), // TODO just a TableRow, not a full TableType
-            var_("colX") = m_("shapePixels").call("getValue", param("key", p_("checkPixel") / _(coordinates.y))),
+            ast.if_(ast.not_(m_("shapePixels")("hasKey", param("key", p_("checkPixel") / _(coordinates.y)))))
+                .then_(m_("shapePixels")("add", param("key", p_("checkPixel") / _(coordinates.y)), param("value", ast.new_(st_("tableType"), "constructor")))), // TODO just a TableRow, not a full TableType
+            var_("colX") = m_("shapePixels")("getValue", param("key", p_("checkPixel") / _(coordinates.y))),
             ast.call(*var_("colX"), "add", param("key", p_("checkPixel") / _(coordinates.x)), param("value", ast.new_("ShapePixel", "constructor", param("shape", p_("shape")), param("pixel", p_("checkPixel"))))),
-            m_("inputPixels").call("remove", param("value", p_("checkPixel"))),
-            var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+            m_("inputPixels")("remove", param("value", p_("checkPixel"))),
+            var_("pixel") = ast.self()("processAdjacentPixel", param("direction", _(directions.up)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
             ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)))
                 .then_(ast.block(
-                    ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
-                    ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
-            var_("pixel") = ast.self().call("processAdjacentPixel", param("direction", _(directions.down)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+                    ast.self()("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
+                    ast.self()("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
+            var_("pixel") = ast.self()("processAdjacentPixel", param("direction", _(directions.down)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
             ast.if_(ast.notSame(*var_("pixel"), _(ids.emptyObject)))
                 .then_(ast.block(
-                    ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
-                    ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
-            ast.self().call("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
-            ast.self().call("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))));
+                    ast.self()("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))),
+                    ast.self()("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", *var_("pixel"))))),
+            ast.self()("processAdjacentPixel", param("direction", _(directions.left)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))),
+            ast.self()("processAdjacentPixel", param("direction", _(directions.right)), param("shape", p_("shape")), param("checkPixels", p_("checkPixels")), param("checkPixel", p_("checkPixel"))));
 
     /*
     cells::hybrid::Pixel* Frame::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
@@ -5992,9 +6013,9 @@ void Brain::createArcSolver()
             ast.if_(ast.has(p_("checkPixel"), p_("direction")))
                 .then_(ast.block(
                     var_("pixel") = p_("checkPixel") / p_("direction"),
-                    ast.if_(m_("shapePixels").call("hasKey", param("key", *var_("pixel") / _(coordinates.y))))
+                    ast.if_(m_("shapePixels")("hasKey", param("key", *var_("pixel") / _(coordinates.y))))
                         .then_(ast.block(
-                            var_("colX") = m_("shapePixels").call("getValue", param("key", *var_("pixel") / _(coordinates.y))),
+                            var_("colX") = m_("shapePixels")("getValue", param("key", *var_("pixel") / _(coordinates.y))),
                             ast.if_(ast.call(*var_("colX"), "hasKey", param("key", *var_("pixel") / _(coordinates.x))))
                                 .then_(ast.block(
                                     var_("shape") = ast.get(ast.call(*var_("colX"), "getValue", param("key", *var_("pixel") / _(coordinates.x))), "shape"),
@@ -6045,7 +6066,7 @@ void Brain::createTests()
         .returnType(_(std.Number))
         .code(
             ast.if_(ast.greaterThanOrEqual(p_("input"), _(_1_)))
-                    .then_(ast.return_(ast.multiply(p_("input"), ast.self().call("factorial", param("input", ast.subtract(p_("input"), _(_1_)))))))
+                    .then_(ast.return_(ast.multiply(p_("input"), ast.self()("factorial", param("input", ast.subtract(p_("input"), _(_1_)))))))
                     .else_(ast.return_(_(_1_))));
 
     testScope.add<Enum>("TestEnum")

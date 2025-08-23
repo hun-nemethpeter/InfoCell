@@ -10,19 +10,6 @@ using namespace infocell::input;
 
 namespace infocell {
 
-static const std::array<Color, 10> cellColors = {
-    Color(0x00, 0x00, 0x00), /* black */
-    Color(0x00, 0x74, 0xD9), /* blue */
-    Color(0xFF, 0x41, 0x36), /* red */
-    Color(0x2E, 0xCC, 0x40), /* green */
-    Color(0xFF, 0xDC, 0x00), /* yellow */
-    Color(0xAA, 0xAA, 0xAA), /* grey */
-    Color(0xF0, 0x12, 0xBE), /* fuschia */
-    Color(0xFF, 0x85, 0x1B), /* orange */
-    Color(0x7F, 0xDB, 0xFF), /* teal */
-    Color(0x87, 0x0C, 0x25)  /* brown */
-};
-
 ArcDemonstration::ArcDemonstration(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
     m_number(number),
     m_inputPicture(fmt::format("Train input {}", number)),

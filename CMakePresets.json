@@ -16,7 +16,7 @@
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
         "INFOCELL_TTF_FONT_PATH": "C:/Windows/Fonts/",
-        "INFOCELL_ARC_TRAINING_PATH": "${sourceParentDir}/ARC/data/training/",
+        "INFOCELL_ARC_TRAINING_PATH": "${sourceParentDir}/ARC-AGI/data/training/",
         "INFOCELL_ARC_PRIZE_PATH": "${sourceParentDir}/arc-prize-2024/",
         "INFOCELL_CONAN_PATH_BASE": "${sourceParentDir}/conan"
       },
@@ -36,8 +36,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
-        "INFOCELL_TTF_FONT_PATH": "${sourceParentDir}",
-        "INFOCELL_ARC_TRAINING_PATH": "${sourceParentDir}/ARC/data/training/",
+        "INFOCELL_TTF_FONT_PATH": "${sourceParentDir}/",
+        "INFOCELL_ARC_TRAINING_PATH": "${sourceParentDir}/ARC-AGI/data/training/",
         "INFOCELL_ARC_PRIZE_PATH": "${sourceParentDir}/arc-prize-2024/",
         "INFOCELL_CONAN_PATH_BASE": "${sourceParentDir}/conan"
       },

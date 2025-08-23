@@ -441,6 +441,7 @@ void Object::opDelete()
     CellI* cell = &input[kb.ids.value];
 
     delete cell;
+    input.erase(kb.ids.value);
 }
 
 // code running

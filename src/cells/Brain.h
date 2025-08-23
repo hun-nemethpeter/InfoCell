@@ -314,7 +314,7 @@ public:
                   public NewT<T>
     {
     public:
-        BaseT<T>(brain::Brain& kb, CellI& classCell, const std::string& label) :
+        BaseT(brain::Brain& kb, CellI& classCell, const std::string& label) :
             Base(kb, classCell, label)
         {
         }
@@ -338,9 +338,9 @@ public:
     {
     public:
         Self(brain::Brain& kb);
-        Call& call(const std::string& method);
+        Call& operator()(const std::string& method);
         template <typename... Args>
-        Call& call(const std::string& method, Args&&... args);
+        Call& operator()(const std::string& method, Args&&... args);
     };
     class SelfFn : public BaseT<SelfFn>
     {
@@ -811,9 +811,9 @@ public:
         Get& operator/(const std::string& role);
         Has& exist();
         Missing& missing();
-        Call& call(const std::string& method);
+        Call& operator()(const std::string& method);
         template <typename... Args>
-        Call& call(const std::string& method, Args&&... args);
+        Call& operator()(const std::string& method, Args&&... args);
     };
     class SubType : public BaseT<SubType>
     {
@@ -1383,13 +1383,13 @@ Ast::New& Ast::new_(const std::string& objectType, const std::string& constructo
 }
 
 template <typename... Args>
-Ast::Call& Ast::Self::call(const std::string& method, Args&&... args)
+Ast::Call& Ast::Self::operator()(const std::string& method, Args&&... args)
 {
     return kb.ast.call(*this, method, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
-Ast::Call& Ast::Member::call(const std::string& method, Args&&... args)
+Ast::Call& Ast::Member::operator()(const std::string& method, Args&&... args)
 {
     return kb.ast.call(*this, method, std::forward<Args>(args)...);
 }
