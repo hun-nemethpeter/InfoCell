@@ -1083,6 +1083,99 @@ public:
     Object negative;
 };
 
+
+class AstHelper : public Ast
+{
+public:
+    AstHelper(brain::Brain& kb);
+
+protected:
+    CellI& name(const std::string& str);
+    Ast::Cell& _(CellI& cell);
+    Ast::Cell& _(const std::string& id);
+    Ast::Cell& true_();
+    Ast::Cell& false_();
+    Ast::Parameter& p_(const std::string& nameStr);
+    Ast::Member& m_(const std::string& nameStr);
+    Ast::Var& var_(const std::string& nameStr);
+    Ast::Slot& param(const std::string& nameStr, CellI& value);
+    Ast::Slot& member(const std::string& nameStr, const std::string& type);
+    Ast::Slot& member(const std::string& nameStr, CellI& type);
+    Ast::EnumValue& ev_(const std::string& nameStr);
+    Ast::EnumValue& ev_(const std::string& nameStr, CellI& value);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type, CellI& value);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, CellI& value);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type, const std::string& valueStr);
+    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, const std::string& valueStr);
+    template <typename... Args>
+    Ast::SubType& st_(const std::string& nameStr, Args&&... args);
+    Ast::TemplateParam& tp_(const std::string& name);
+    template <typename... Args>
+    Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
+    Ast::StructName& struct_(const std::string& name);
+    CellI& ListOf(CellI& type);
+    CellI& MapOf(CellI& keyType, CellI& valueType);
+    template <typename... Args>
+    List& list(CellI& value, Args&&... args);
+
+    template <typename... Args>
+    Map& map(CellI& key, CellI& value, Args&&... args);
+
+    Ast::Scope& globalScope;
+    ID& ids;
+    Std& std;
+    Directions& directions;
+    Coordinates& coordinates;
+    CellI& _0_;
+    CellI& _1_;
+    CellI& _2_;
+    CellI& _3_;
+    CellI& _4_;
+    CellI& _5_;
+    CellI& _6_;
+    CellI& _7_;
+    CellI& _8_;
+    CellI& _9_;
+};
+
+template <typename... Args>
+Ast::SubType& AstHelper::st_(const std::string& nameStr, Args&&... args)
+{
+    return subType(name(nameStr), std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+Ast::TemplatedType& AstHelper::tt_(const std::string& nameStr, Args&&... args)
+{
+    return templatedType(nameStr, std::forward<Args>(args)...);
+}
+
+
+template <typename... Args>
+List& AstHelper::list(CellI& value, Args&&... args)
+{
+    List& ret = *new List(kb, value.struct_());
+    ret.add(value);
+    if constexpr (sizeof...(Args) > 0) {
+        ret.add(std::forward<Args>(args)...);
+    }
+
+    return ret;
+}
+
+template <typename... Args>
+Map& AstHelper::map(CellI& key, CellI& value, Args&&... args)
+{
+    Map& ret = *new Map(kb, key.struct_(), value.struct_(), fmt::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
+    if constexpr (sizeof...(Args) > 0) {
+        ret.add(std::forward<Args>(args)...);
+    }
+
+    return ret;
+}
+
 namespace pools {
 
 class Chars
@@ -1180,34 +1273,12 @@ public:
 protected:
     InitPhase m_initPhase = InitPhase::Init;
     friend class Std;
-    void createOp(Ast::Scope& stdScope);
-    void createAst(Ast::Scope& stdScope);
-    void createStd();
-    void createArcSolver();
+    void createContent();
     void createTests();
 
 public:
     Ast::Cell& _(CellI& cell);
     Ast::Cell& _(const std::string& id);
-    Ast::Cell& true_();
-    Ast::Cell& false_();
-    Ast::Parameter& p_(const std::string& nameStr);
-    Ast::Member& m_(const std::string& nameStr);
-    Ast::Var& var_(const std::string& nameStr);
-    Ast::Slot& param(const std::string& nameStr, CellI& value);
-    Ast::Slot& member(const std::string& nameStr, const std::string& type);
-    Ast::Slot& member(const std::string& nameStr, CellI& type);
-    Ast::EnumValue& ev_(const std::string& nameStr);
-    Ast::EnumValue& ev_(const std::string& nameStr, CellI& value);
-    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type);
-    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr);
-    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type, CellI& value);
-    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, CellI& value);
-    Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type, const std::string& valueStr);
-    Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, const std::string& valueStr);
-    template <typename... Args>
-    Ast::SubType& st_(const std::string& nameStr, Args&&... args);
-    Ast::TemplateParam& tp_(const std::string& name);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
     Ast::StructName& struct_(const std::string& name);
@@ -1280,12 +1351,6 @@ public:
 };
 
 #pragma region Brain
-template <typename... Args>
-Ast::SubType& Brain::st_(const std::string& nameStr, Args&&... args)
-{
-    return ast.subType(name(nameStr), std::forward<Args>(args)...);
-}
-
 template <typename... Args>
 Ast::TemplatedType& Brain::tt_(const std::string& nameStr, Args&&... args)
 {
