@@ -3932,14 +3932,20 @@ Ast::StructName& Brain::struct_(const std::string& nameStr)
     return ast.structName(nameStr);
 }
 
-class AstOp : public AstHelper
+
+class AstStd : public AstHelper
 {
 public:
-    AstOp(brain::Brain& kb, Ast::Scope& stdScope);
+    AstStd(Brain& kb);
+
+private:
+    void createOp();
+    void createAst();
+
+    Scope& stdScope;
 };
 
-AstOp::AstOp(brain::Brain& kb, Ast::Scope& stdScope) :
-    AstHelper(kb)
+void AstStd::createOp()
 {
     auto& opScope = stdScope.add<Scope>("op");
     opScope.add<Struct>("Base");
@@ -4160,14 +4166,7 @@ AstOp::AstOp(brain::Brain& kb, Ast::Scope& stdScope) :
             member("statement", "Base"));
 }
 
-class AstAst : public AstHelper
-{
-public:
-    AstAst(brain::Brain& kb, Ast::Scope& stdScope);
-};
-
-AstAst::AstAst(brain::Brain& kb, Ast::Scope& stdScope) :
-    AstHelper(kb)
+void AstStd::createAst()
 {
     auto& astScope = stdScope.add<Scope>("ast");
     astScope.add<Struct>("Base");
@@ -4436,18 +4435,12 @@ AstAst::AstAst(brain::Brain& kb, Ast::Scope& stdScope) :
             member("statement", "Base"));
 }
 
-class AstStd : public AstHelper
-{
-public:
-    AstStd(brain::Brain& kb);
-};
-
 AstStd::AstStd(brain::Brain& kb) :
-    AstHelper(kb)
+    AstHelper(kb),
+    stdScope(kb.globalScope.add<Scope>("std"))
 {
-    auto& stdScope = globalScope.add<Scope>("std");
-    AstOp astOp(kb, stdScope);
-    AstAst astAst(kb, stdScope);
+    createOp();
+    createAst();
 
         /*
      * enum type
