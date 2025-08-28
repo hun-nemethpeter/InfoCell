@@ -4212,6 +4212,19 @@ void AstStd::createAst()
             member("condition", "Base"),
             member("statement", "Base"));
 
+    astScope.add<Struct>("Enum")
+        .members(
+            member("name", "std::Cell"),
+            member("fullyQualifiedName", "std::Cell"),
+            member("scope", "Scope"),
+            member("values", "TrieMap"));
+
+    astScope.add<Struct>("EnumValue")
+        .members(
+            member("name", "std::Cell"),
+            member("enum", "Enum"),
+            member("value", "std::Cell"));
+
     astScope.add<Struct>("Equal")
         .members(
             member("lhs", "Base"),
@@ -4345,6 +4358,7 @@ void AstStd::createAst()
             member("functions", "std::TrieMap"),
             member("structs", "std::TrieMap"),
             member("structTs", "std::TrieMap"),
+            member("enums", "std::TrieMap"),
             member("variables", ListOf(std.ast.Slot)));
 
     astScope.add<Struct>("Self");
@@ -4371,6 +4385,7 @@ void AstStd::createAst()
     astScope.add<Struct>("Struct")
         .members(
             member("name", "std::Cell"),
+            member("compiledStruct", "std::op::Base"),
             member("fullyQualifiedName", "std::Cell"),
             member("incomplete", "std::Boolean"),
             member("instanceOf", "Base"),
@@ -4424,8 +4439,16 @@ void AstStd::createAst()
             member("tryBranch", "Base"),
             member("catchBranch", "Base"));
 
+    astScope.add<Struct>("TypedEnumValue")
+        .members(
+            member("name", "std::Cell"),
+            member("enum", "Enum"),
+            member("enumType", "Struct"),
+            member("value", "std::Cell"));
+
     astScope.add<Struct>("Var")
         .members(
+            member("name", "std::Cell"),
             member("role", "Base"),
             member("scope", "Scope"));
 
@@ -6230,6 +6253,8 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     registerBuiltInStruct("std::ast::Delete", std.ast.Delete);
     registerBuiltInStruct("std::ast::Divide", std.ast.Divide);
     registerBuiltInStruct("std::ast::Do", std.ast.Do);
+    registerBuiltInStruct("std::ast::Enum", std.ast.Enum);
+    registerBuiltInStruct("std::ast::EnumValue", std.ast.EnumValue);
     registerBuiltInStruct("std::ast::Equal", std.ast.Equal);
     registerBuiltInStruct("std::ast::Erase", std.ast.Erase);
     registerBuiltInStruct("std::ast::Function", std.ast.Function);
@@ -6266,6 +6291,7 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     registerBuiltInStruct("std::ast::SubTypeName", std.ast.SubTypeName);
     registerBuiltInStruct("std::ast::TemplatedType", std.ast.TemplatedType);
     registerBuiltInStruct("std::ast::TemplateParam", std.ast.TemplateParam);
+    registerBuiltInStruct("std::ast::TypedEnumValue", std.ast.TypedEnumValue);
     registerBuiltInStruct("std::ast::Var", std.ast.Var);
     registerBuiltInStruct("std::ast::While", std.ast.While);
     registerBuiltInStruct("std::Cell", std.Cell);
