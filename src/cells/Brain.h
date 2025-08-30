@@ -513,7 +513,7 @@ public:
         Struct* resolveFullStructName(CellI& scopeList, CellI& name);
         Base* resolveFullNameInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
         Base* resolveFullNameInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
-        void resolveTypes(CellI& state);
+        Ast::Scope& resolveTypes(CellI& state);
         void compileTheResolvedAsts(CellI& programData, CellI& state);
 
         friend class ItemsI<Scope>;

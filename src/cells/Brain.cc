@@ -898,8 +898,6 @@ CellI& Ast::Scope::compile()
     auto& programData = *new Object(kb, kb.std.ProgramData, "ProgramData");
     program.set(kb.ids.data, programData);
 
-    auto& resolvedScope = *new Ast::Scope(kb, label());
-    set(kb.ids.resolvedScope, resolvedScope);
 
     auto& compileState      = *new Object(kb, kb.std.CompileState, "CompileState");
     auto& compiledFunctions = *new TrieMap(kb, kb.std.Cell, kb.std.op.Function, "Functions");
@@ -926,14 +924,11 @@ CellI& Ast::Scope::compile()
     compileState.set("instanceAsts", instanceAsts);
     compileState.set("unknownInstanceAsts", unknownInstanceAsts);
     compileState.set("variables", compiledVariables);
-    compileState.set("resolvedScope", resolvedScope);
-    compileState.set("globalScope", *this);
-    compileState.set("globalResolvedScope", resolvedScope);
 
     registerEarlyStructs(unknownStructs, unknownInstances);
 
     // Step 1. creating a shadow AST tree where templated thing are resolved
-    resolveTypes(compileState);
+    auto& resolvedScope = resolveTypes(compileState);
 
     resolveEarlyStructs(unknownStructs, unknownInstances, resolvedScope);
 
@@ -1220,10 +1215,12 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
     }
 }
 
-void Ast::Scope::resolveTypes(CellI& state)
+Ast::Scope& Ast::Scope::resolveTypes(CellI& state)
 {
+    auto& resolvedScope = *new Ast::Scope(kb, label());
+    set(kb.ids.resolvedScope, resolvedScope);
     state.set("scope", *this);
-    Ast::Scope& resolvedScope = static_cast<Ast::Scope&>(state[kb.ids.resolvedScope]);
+    state.set("resolvedScope", resolvedScope);
 
     if (has("functions")) {
         state.erase("currentStruct");
@@ -1256,15 +1253,13 @@ void Ast::Scope::resolveTypes(CellI& state)
     if (has("scopes")) {
         Visitor::visitList(items<Scope>()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstScopeCell, int i, bool& stop) {
             Ast::Scope& origAstScope = static_cast<Ast::Scope&>(origAstScopeCell[kb.ids.value]);
-            auto& newResolvedScope   = *new Ast::Scope(kb, origAstScope.label());
-            origAstScope.set("resolvedScope", newResolvedScope);
-            resolvedScope.add<Scope>(newResolvedScope);
-            state.set("resolvedScope", newResolvedScope);
-            origAstScope.resolveTypes(state);
+            Ast::Scope& resolvedAstScope = origAstScope.resolveTypes(state);
+            resolvedScope.add<Scope>(resolvedAstScope);
             state.set("scope", *this);
-            state.set("resolvedScope", resolvedScope);
         });
     }
+
+    return resolvedScope;
 }
 
 Ast::StructBase::StructBase(brain::Brain& kb, CellI& astType, CellI& name, const std::string& nameStr) :
@@ -2667,7 +2662,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             auto& astMembersType = function[kb.ids.ast][kb.ids.structType];
             if (&astMemberId == &kb.ids.struct_) {
                 // std::cout << "DDDD " << astMembersType.label();
-                auto& stdScope = static_cast<Scope&>(state[kb.ids.globalScope]).getItem<Scope>("std");
+                auto& stdScope = kb.globalScope.getItem<Scope>("std");
                 auto& type     = stdScope.getItem<Struct>("Struct");
                 checkMethodCall(type, astMethodId, state);
                 checked        = true;
