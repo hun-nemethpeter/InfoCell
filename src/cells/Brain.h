@@ -339,8 +339,6 @@ public:
     public:
         Self(brain::Brain& kb);
         Call& operator()(const std::string& method);
-        template <typename... Args>
-        Call& operator()(const std::string& method, Args&&... args);
     };
     class SelfFn : public BaseT<SelfFn>
     {
@@ -380,6 +378,7 @@ public:
         Parameter(brain::Brain& kb, CellI& role);
         Get& operator/(Base& role);
         Get& operator/(const std::string& role);
+        Call& operator()(const std::string& method);
     };
     class ResolvedType : public BaseT<ResolvedType>
     {
@@ -396,14 +395,7 @@ public:
     public:
         Call(brain::Brain& kb, CellI& cell, CellI& method);
 
-        void addParam(Slot& slot);
-
-        template <typename... Args>
-        void addParam(Slot& slot, Args&&... args)
-        {
-            addParam(slot);
-            addParam(std::forward<Args>(args)...);
-        }
+        Call& operator()(const std::string& nameStr, CellI& value);
     };
 
     class StaticCall : public BaseT<StaticCall>
@@ -798,6 +790,7 @@ public:
         CellI& getFullyQualifiedName();
         Set& operator=(Base& value);
         Get& operator*();
+        Call& operator()(const std::string& method);
     };
     class Has;
     class Missing;
@@ -812,8 +805,6 @@ public:
         Has& exist();
         Missing& missing();
         Call& operator()(const std::string& method);
-        template <typename... Args>
-        Call& operator()(const std::string& method, Args&&... args);
     };
     class SubType : public BaseT<SubType>
     {
@@ -855,14 +846,7 @@ public:
         New(brain::Brain& kb, Base& objectType);
         New(brain::Brain& kb, Base& objectType, Base& constructor);
 
-        void addParam(Slot& slot);
-
-        template <typename... Args>
-        void addParam(Slot& slot, Args&&... args)
-        {
-            addParam(slot);
-            addParam(std::forward<Args>(args)...);
-        }
+        New& operator()(const std::string& nameStr, CellI& value);
     };
     class Same : public BaseT<Same>
     {
@@ -900,6 +884,7 @@ public:
         Get(brain::Brain& kb, Base& cell, Base& role);
         Get& operator/(Base& role);
         Get& operator/(const std::string& role);
+        Call& operator()(const std::string& method);
     };
     class And : public BaseT<And>
     {
@@ -981,8 +966,6 @@ public:
 
     Call& call(CellI& object, const std::string& method);
     Call& call(CellI& object, CellI& method);
-    template <typename... Args>
-    Call& call(CellI& object, const std::string& method, Args&&... args);
 
     StaticCall& scall(CellI& type, const std::string& method);
     StaticCall& scall(CellI& type, CellI& method);
@@ -1013,14 +996,9 @@ public:
 
     TemplateParam& templateParam(CellI& role);
     New& new_(Base& objectType);
+    New& new_(Base& objectType, const std::string& constructor);
     New& new_(Base& objectType, Base& constructor);
-
-    template<typename... Args>
-    New& new_(Base& objectType, const std::string& constructor, Args&&... params);
-
-    template <typename... Args>
-    New& new_(const std::string& objectType, const std::string& constructor, Args&&... params);
-
+    New& new_(const std::string& objectType, const std::string& constructor);
     Same& same(Base& lhs, Base& rhs);
     NotSame& notSame(Base& lhs, Base& rhs);
     Equal& equal(Base& lhs, Base& rhs);
@@ -1096,9 +1074,10 @@ protected:
     Ast::Cell& true_();
     Ast::Cell& false_();
     Ast::Parameter& p_(const std::string& nameStr);
+    Ast::Slot& p_(const std::string& nameStr, CellI& value);
+    Ast::Slot& parameter(const std::string& nameStr, CellI& value);
     Ast::Member& m_(const std::string& nameStr);
     Ast::Var& var_(const std::string& nameStr);
-    Ast::Slot& param(const std::string& nameStr, CellI& value);
     Ast::Slot& member(const std::string& nameStr, const std::string& type);
     Ast::Slot& member(const std::string& nameStr, CellI& type);
     Ast::EnumValue& ev_(const std::string& nameStr);
@@ -1424,49 +1403,6 @@ template <typename... Args>
 Ast::Block& Ast::block(Args&&... args)
 {
     return *new Block(kb, kb.list(std::forward<Args>(args)...));
-}
-
-
-template <typename... Args>
-Ast::New& Ast::new_(Base& objectType, const std::string& constructor, Args&&... args)
-{
-    auto& ret = new_(objectType, kb.ast.cell(kb.name(constructor)));
-    if constexpr (sizeof...(Args) > 0) {
-        ret.addParam(std::forward<Args>(args)...);
-    }
-    return ret;
-}
-
-template <typename... Args>
-Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor, Args&&... args)
-{
-    auto& ret = new_(kb.ast.structName(kb.name(objectType)), kb.ast.cell(kb.name(constructor)));
-    if constexpr (sizeof...(Args) > 0) {
-        ret.addParam(std::forward<Args>(args)...);
-    }
-    return ret;
-}
-
-template <typename... Args>
-Ast::Call& Ast::Self::operator()(const std::string& method, Args&&... args)
-{
-    return kb.ast.call(*this, method, std::forward<Args>(args)...);
-}
-
-template <typename... Args>
-Ast::Call& Ast::Member::operator()(const std::string& method, Args&&... args)
-{
-    return kb.ast.call(*this, method, std::forward<Args>(args)...);
-}
-
-template <typename... Args>
-Ast::Call& Ast::call(CellI& object, const std::string& method, Args&&... args)
-{
-    auto& ret = call(object, method);
-    if constexpr (sizeof...(Args) > 0) {
-        ret.addParam(std::forward<Args>(args)...);
-    }
-    return ret;
 }
 
 template <typename... Args>
