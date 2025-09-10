@@ -634,6 +634,9 @@ CellI& Frame::operator[](CellI& role)
     static CellI& name_downLeftPoint  = kb.name("downLeftPoint");
     static CellI& name_downRightPoint = kb.name("downRightPoint");
 
+    if (missing(role)) {
+        throw "No such role!";
+    }
     if (&role == &kb.ids.struct_) {
         return FrameStruct;
     }

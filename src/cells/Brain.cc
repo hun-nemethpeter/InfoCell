@@ -621,14 +621,16 @@ Ast::StaticCall::StaticCall(brain::Brain& kb, CellI& cell, CellI& method) :
     set(kb.ids.method, method);
 }
 
-void Ast::StaticCall::addParam(Slot& slot)
+Ast::StaticCall& Ast::StaticCall::operator()(const std::string& nameStr, CellI& value)
 {
+    Slot& slot = Slot::New(kb, kb.name(nameStr), value);
     if (missing(kb.ids.parameters)) {
         set(kb.ids.parameters, kb.list(slot));
     } else {
-        List& paramList = static_cast<List&>(get("parameters"));
+        List& paramList = static_cast<List&>(get(kb.ids.parameters));
         paramList.add(slot);
     }
+    return *this;
 }
 
 Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
@@ -4301,6 +4303,10 @@ void AstStd::createOp()
             member("value", "std::Number"));
 
     opScope.add<Struct>("Var")
+        .description(
+            var_("x")("isA")("struct", m_("valueType")),
+            self()("hasA")("member", member("ast", "ast::Base")),
+            self()("stores")("place", m_("value"))("value", var_("x")))
         .members(
             member("ast", "ast::Base"),
             member("valueType", "std::Struct"),
@@ -4595,8 +4601,6 @@ void AstStd::createAst()
             member("value", "std::Cell"));
 
     astScope.add<Struct>("Var")
-        .description(
-            self()("kb::stores")("place", m_("value"))("value", m_("value") / _("value")))
         .members(
             member("name", "std::Cell"),
             member("role", "Base"),
@@ -6019,7 +6023,8 @@ AstArc::AstArc(brain::Brain& kb) :
             m_("color")        = p_("color"),
             m_("width")        = p_("width"),
             m_("height")       = p_("height"),
-            m_("lastEdgeId")   = _(_1_),
+            m_("lastEdgeId")   = _(_0_),
+            m_("edges")        = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"), "constructor"),
             m_("hybridPixels") = new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
             m_("pixels")       = new_(tt_("std::List", "valueType", "Pixel"), "constructor"));
 
@@ -6076,16 +6081,7 @@ AstArc::AstArc(brain::Brain& kb) :
                   member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape")),
                   member("inputPixels", tt_("std::Set", "valueType", _(std.Pixel))));
 
-    /*
-    Frame::Frame(const cells::hybrid::Picture& picture) :
-        m_width(picture.width()),
-        m_height(picture.height()),
-        m_picture(picture),
-        kb(picture.kb)
-    {
-        processInputPixels();
-    }
-    */
+    // Frame::Frame
     frameStruct.addMethod("constructor")
         .parameters(
             parameter("grid", _(std.Grid)))
@@ -6098,52 +6094,23 @@ AstArc::AstArc(brain::Brain& kb) :
             m_("shapeMap")    = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"), "constructor"),
             m_("inputPixels") = new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
             self()("processInputPixels"));
-    /*
-    void Frame::processInputPixels()
-    {
-        std::vector<cells::hybrid::Pixel>& pixels = const_cast<cells::hybrid::Picture&>(m_picture).pixels();
-        for (cells::hybrid::Pixel& pixel : pixels) {
-            m_inputPixels.insert(&pixel);
-        }
-    }
-    */
+
+    // Frame::processInputPixels
     frameStruct.addMethod("processInputPixels")
         .instructions(
             var_("pixels") = m_("grid") / "pixels",
-            var_("pixel")  = _(ids.emptyObject),
-            if_(has(*var_("pixels"), "first"))
-                .then_(var_("pixel") = *var_("pixels") / "first"),
-            while_(notSame(*var_("pixel"), _(ids.emptyObject)))
+            if_(missing(*var_("pixels"), "first"))
+                .then_(return_()),
+            var_("pixel") = *var_("pixels") / "first",
+            while_(true_())
                 .do_(block(
                     m_("inputPixels")("add")("value", *var_("pixel") / "value"),
-                    if_(has(*var_("pixel"), "next"))
-                        .then_(var_("pixel") = *var_("pixel") / "next")
-                        .else_(var_("pixel") = _(ids.emptyObject)))));
+                   if_(missing(*var_("pixel"), "next"))
+                       .then_(return_()),
+                   var_("pixel") = *var_("pixel") / "next")));
 
-    /*
-    void Frame::process()
-    {
-        int shapeId = 1;
-        while (!m_inputPixels.empty()) {
-            cells::hybrid::Pixel& firstPixel = **m_inputPixels.begin();
-            m_shapes.push_back(std::make_shared<Shape>(shapeId++, firstPixel.color(), m_width, m_height));
-            Shape& shape = *m_shapes.back();
-            std::set<cells::hybrid::Pixel*> checkPixels;
-            checkPixels.insert(&firstPixel);
-            while (!checkPixels.empty()) {
-                auto checkPixelIt                = checkPixels.begin();
-                cells::hybrid::Pixel& checkPixel = **checkPixelIt;
-                processPixel(shape, checkPixels, checkPixel);
-                checkPixels.erase(checkPixelIt);
-            }
-            shape.sortPixels();
-        }
-        std::sort(m_shapes.begin(), m_shapes.end(),
-            [](const std::shared_ptr<Shape>& lhs, const std::shared_ptr<Shape>& rhs)
-            { return *lhs < *rhs; }
-        );
-    }
-    */
+
+    // Frame::process
     frameStruct.addMethod("process")
         .instructions(
             var_("shapeId") = _(_1_),
@@ -6177,24 +6144,7 @@ AstArc::AstArc(brain::Brain& kb) :
                             var_("x") = add(*var_("x"), _(_1_)))),
                     var_("y") = add(*var_("y"), _(_1_)))));
 
-    /*
-    void Frame::processPixel(Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
-    {
-        shape.addPixel(checkPixel);
-        m_inputPixels.erase(&checkPixel);
-
-        if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.up, shape, checkPixels, checkPixel)) {
-            processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
-            processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
-        }
-        if (cells::hybrid::Pixel* pixel = processAdjacentPixel(kb.directions.down, shape, checkPixels, checkPixel)) {
-            processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
-            processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
-        }
-        processAdjacentPixel(kb.directions.left, shape, checkPixels, checkPixel);
-        processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
-    }
-    */
+    // Frame::processPixel
     frameStruct.addMethod("processPixel")
         .parameters(
             parameter("shape", struct_("Shape")),
@@ -6206,40 +6156,18 @@ AstArc::AstArc(brain::Brain& kb) :
             var_("colX") = m_("shapePixels")("getValue")("key", p_("checkPixel") / _(coordinates.y)),
             var_("colX")("add")("key", p_("checkPixel") / _(coordinates.x))("value", new_("ShapePixel", "constructor")("shape", p_("shape"))("pixel", p_("checkPixel"))),
             m_("inputPixels")("remove")("value", p_("checkPixel")),
-            var_("pixel") = self()("processAdjacentPixel")("direction", _(directions.up))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
-            if_(notSame(*var_("pixel"), _(ids.emptyObject)))
-                .then_(block(
-                    self()("processAdjacentPixel")("direction", _(directions.left))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", *var_("pixel")),
-                    self()("processAdjacentPixel")("direction", _(directions.right))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", *var_("pixel")))),
-            var_("pixel") = self()("processAdjacentPixel")("direction", _(directions.down))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
-            if_(notSame(*var_("pixel"), _(ids.emptyObject)))
-                .then_(block(
-                    self()("processAdjacentPixel")("direction", _(directions.left))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", *var_("pixel")),
-                    self()("processAdjacentPixel")("direction", _(directions.right))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", *var_("pixel")))),
+            self()("processAdjacentPixel")("direction", _(directions.up))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
+            self()("processAdjacentPixel")("direction", _(directions.down))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
             self()("processAdjacentPixel")("direction", _(directions.left))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
             self()("processAdjacentPixel")("direction", _(directions.right))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")));
 
-    /*
-    cells::hybrid::Pixel* Frame::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::hybrid::Pixel*>& checkPixels, cells::hybrid::Pixel& checkPixel)
-    {
-        if (checkPixel.has(direction)) {
-            cells::hybrid::Pixel& pixel = static_cast<cells::hybrid::Pixel&>(checkPixel[direction]);
-            if (pixel.color() == shape.color() && !shape.hasPixel(pixel)) {
-                checkPixels.insert(&pixel);
-            }
-            return &pixel;
-        }
-
-        return nullptr;
-    }
-    */
+    // Frame::processAdjacentPixel
     frameStruct.addMethod("processAdjacentPixel")
         .parameters(
             parameter("direction", _(std.Directions)),
             parameter("shape", struct_("Shape")),
             parameter("checkPixels", tt_("std::Set", "valueType", _(std.Pixel))),
             parameter("checkPixel", _(std.Pixel)))
-        .returnType(_(std.Pixel))
         .instructions(
             if_(has(p_("checkPixel"), p_("direction")))
                 .then_(block(
@@ -6251,11 +6179,9 @@ AstArc::AstArc(brain::Brain& kb) :
                                 .then_(block(
                                     var_("shape") = get(var_("colX")("getValue")("key", *var_("pixel") / _(coordinates.x)), "shape"),
                                     if_(same(p_("shape"), *var_("shape")))
-                                        .then_(return_(*var_("pixel"))))))),
+                                        .then_(return_()))))),
                     if_(equal(*var_("pixel") / "color", p_("shape") / "color"))
-                        .then_(p_("checkPixels")("add")("value", *var_("pixel"))),
-                    return_(*var_("pixel"))))
-                .else_(return_(_(ids.emptyObject))));
+                        .then_(p_("checkPixels")("add")("value", *var_("pixel"))))));
 }
 
 

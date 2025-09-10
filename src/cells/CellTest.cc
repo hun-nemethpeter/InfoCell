@@ -1434,13 +1434,21 @@ TEST_F(CellTest, FrameTest)
     Object frame2(kb, FrameStruct, kb.name("constructor"), { "grid", grid2 });
     frame2.method("process");
     printAs.value(frame2["shapes"]["size"], "frame[shapes][size]");
-    EXPECT_EQ(&frame2["shapes"]["size"], &_2_);
+    EXPECT_EQ(&frame2["shapes"]["size"], &_5_);
     printShapeList(frame2["shapes"]);
     auto& shape2_1pixels = frame2["shapes"]["first"]["value"]["pixels"];
     //                                      |x  y |x  y |x  y
-    EXPECT_EQ(printPixels(shape2_1pixels), "[0, 0]" \
-                                                 "[1, 1]" \
-                                                       "[2, 2]");
+    EXPECT_EQ(printPixels(shape2_1pixels), "[0, 0]");
+
+    auto& shape2_2pixels = frame2["shapes"]["first"]["next"]["value"]["pixels"];
+    //                                      |x  y |x  y |x  y
+    EXPECT_EQ(printPixels(shape2_2pixels),       "[1, 0][2, 0]"
+                                                 "[2, 1]");
+
+    auto& shape2_3pixels = frame2["shapes"]["first"]["next"]["next"]["value"]["pixels"];
+    //                                      |x  y |x  y |x  y
+    EXPECT_EQ(printPixels(shape2_3pixels), "[0, 1]"
+                                           "[0, 2][1, 2]");
 
     // 7 0 7
     // 7 0 7

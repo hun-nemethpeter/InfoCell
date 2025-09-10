@@ -113,6 +113,9 @@ bool CellI::isA(CellI& cell, CellI& type) const
 
 bool CellI::operator==(CellI& rhs)
 {
+    if (this == &rhs) {
+        return true;
+    }
     if (&struct_() != &rhs.struct_()) {
         return false;
     }
@@ -2769,19 +2772,22 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
     brain::Brain& kb = list.kb;
     int i            = 0;
 
-    CellI* currentListItemPtr = list.has(kb.ids.first) ? &list[kb.ids.first] : nullptr;
-    while (currentListItemPtr) {
+    if (list.missing(kb.ids.first)) {
+        return;
+    }
+
+    for (CellI* currentListItemPtr = &list[kb.ids.first];;) {
         CellI& currentListItem = *currentListItemPtr;
         CellI& value           = currentListItem[kb.ids.value];
         bool stop              = false;
 
         visitFn(value, i++, stop);
-        if (stop) {
+        if (stop || currentListItem.missing(kb.ids.next)) {
             return;
         }
 
-        currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
-    }
+        currentListItemPtr = &currentListItem[kb.ids.next];
+    };
 }
 
 
@@ -2790,18 +2796,21 @@ void Visitor::visitListInReverse(CellI& list, std::function<void(CellI& value, i
     brain::Brain& kb = list.kb;
     int i            = 0;
 
-    CellI* currentListItemPtr = list.has(kb.ids.last) ? &list[kb.ids.last] : nullptr;
-    while (currentListItemPtr) {
+    if (list.missing(kb.ids.last)) {
+        return;
+    }
+
+    for (CellI* currentListItemPtr = &list[kb.ids.last];;) {
         CellI& currentListItem = *currentListItemPtr;
         CellI& value           = currentListItem[kb.ids.value];
         bool stop              = false;
 
         visitFn(value, i++, stop);
-        if (stop) {
+        if (stop || currentListItem.missing(kb.ids.previous)) {
             return;
         }
 
-        currentListItemPtr = currentListItem.has(kb.ids.previous) ? &currentListItem[kb.ids.previous] : nullptr;
+        currentListItemPtr = &currentListItem[kb.ids.previous];
     }
 }
 

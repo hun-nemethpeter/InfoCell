@@ -404,14 +404,7 @@ public:
     public:
         StaticCall(brain::Brain& kb, CellI& cell, CellI& method);
 
-        void addParam(Slot& slot);
-
-        template <typename... Args>
-        void addParam(Slot& slot, Args&&... args)
-        {
-            addParam(slot);
-            addParam(std::forward<Args>(args)...);
-        }
+        StaticCall& operator()(const std::string& nameStr, CellI& value);
     };
 
     class Block : public BaseT<Block>
@@ -977,15 +970,10 @@ public:
     EnumValue& enumValue(const std::string& nameStr, CellI& init);
     TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& value);
     TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& type, CellI& value);
-
     Call& call(CellI& object, const std::string& method);
     Call& call(CellI& object, CellI& method);
-
     StaticCall& scall(CellI& type, const std::string& method);
     StaticCall& scall(CellI& type, CellI& method);
-    template <typename... Args>
-    StaticCall& scall(CellI& type, const std::string& method, Args&&... args);
-
 
     template <typename... Args>
     Block& block(Args&&... args);
@@ -1415,16 +1403,6 @@ template <typename... Args>
 Ast::Block& Ast::block(Args&&... args)
 {
     return *new Block(kb, kb.list(std::forward<Args>(args)...));
-}
-
-template <typename... Args>
-Ast::StaticCall& Ast::scall(CellI& object, const std::string& method, Args&&... args)
-{
-    auto& ret = scall(object, method);
-    if constexpr (sizeof...(Args) > 0) {
-        ret.addParam(std::forward<Args>(args)...);
-    }
-    return ret;
 }
 
 template <typename... Args>
