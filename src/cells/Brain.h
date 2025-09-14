@@ -28,6 +28,7 @@ public:
     List compiled;
     List condition;
     List constructor;
+    List container;
     List continue_;
     List currentFn;
     List currentStruct;
@@ -103,6 +104,7 @@ public:
     List unknownStructs;
     List value;
     List valueType;
+    List variable;
     List variables;
     List width;
 };
@@ -177,6 +179,7 @@ public:
     Object EnumValue;
     Object Equal;
     Object Erase;
+    Object For;
     Object Function;
     Object FunctionT;
     Object Get;
@@ -213,6 +216,8 @@ public:
     Object TemplatedType;
     Object TemplateParam;
     Object Throw;
+    Object Trait;
+    Object TraitImpl;
     Object Try;
     Object TypedEnumValue;
     Object Var;
@@ -419,6 +424,8 @@ public:
     class Struct;
     class StructT;
     class Enum;
+    class Trait;
+    class TraitImpl;
 
     template <class MapType, class TAst>
     class Items
@@ -522,6 +529,8 @@ public:
         Items<TrieMap, Var> variablesImpl;
         Items<TrieMap, Struct> structsImpl;
         Items<TrieMap, StructT> structTsImpl;
+        Items<TrieMap, Trait> traitsImpl;
+        Items<TrieMap, TraitImpl> traitImplsImpl;
         Items<TrieMap, Enum> enumsImpl;
     };
 
@@ -598,10 +607,10 @@ public:
         StructT(brain::Brain& kb, const std::string& nameStr);
         StructT(brain::Brain& kb, CellI& id);
 
-        Ast::StructT& templateParams(Slot& param);
+        StructT& templateParams(Slot& param);
 
         template <typename... Args>
-        Ast::StructT& templateParams(Slot& param, Args&&... args)
+        StructT& templateParams(Slot& param, Args&&... args)
         {
             templateParams(param);
             templateParams(std::forward<Args>(args)...);
@@ -615,6 +624,68 @@ public:
         CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, CellI& state);
         Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, CellI& state);
         Map& templateParams();
+    };
+
+    class Trait : public StructBase,
+                  public NewT<Trait>
+    {
+    public:
+        using StructBase::kb;
+        Trait(brain::Brain& kb, const std::string& nameStr);
+        Trait(brain::Brain& kb, CellI& id);
+
+        Trait& templateParams(Slot& param);
+
+        template <typename... Args>
+        Trait& templateParams(Slot& param, Args&&... args)
+        {
+            templateParams(param);
+            templateParams(std::forward<Args>(args)...);
+
+            return *this;
+        }
+
+        Trait& associatedTypes(Slot& param);
+        template <typename... Args>
+        Trait& associatedTypes(Slot& param, Args&&... args)
+        {
+            associatedTypes(param);
+            associatedTypes(std::forward<Args>(args)...);
+            return *this;
+        }
+    };
+
+    class TraitImpl : public StructBase,
+                      public NewT<TraitImpl>
+    {
+    public:
+        using StructBase::kb;
+        TraitImpl(brain::Brain& kb, const std::string& nameStr);
+        TraitImpl(brain::Brain& kb, CellI& id);
+
+        TraitImpl& templateParams(Slot& param);
+
+        template <typename... Args>
+        TraitImpl& templateParams(Slot& param, Args&&... args)
+        {
+            templateParams(param);
+            templateParams(std::forward<Args>(args)...);
+
+            return *this;
+        }
+
+        TraitImpl& implementedFor(CellI& structType);
+
+        TraitImpl& associatedTypes(Slot& param);
+
+        template <typename... Args>
+        TraitImpl& associatedTypes(Slot& param, Args&&... args)
+        {
+            associatedTypes(param);
+            associatedTypes(std::forward<Args>(args)...);
+
+            return *this;
+        }
     };
 
     class EnumValue : public BaseT<EnumValue>
@@ -788,6 +859,13 @@ public:
         While(brain::Brain& kb, Base& condition);
         While& do_(Base& statement);
     };
+    class For : public BaseT<For>
+    {
+    public:
+        For(brain::Brain& kb, const std::string& varName);
+        For& in(Base& container);
+        For& operator()(Base& statement);
+    };
     class Var : public BaseT<Var>
     {
     public:
@@ -846,6 +924,12 @@ public:
     public:
         TemplateParam(const TemplateParam&) = delete;
         TemplateParam(brain::Brain& kb, CellI& role);
+    };
+    class AssociatedType : public BaseT<AssociatedType>
+    {
+    public:
+        AssociatedType(const AssociatedType&) = delete;
+        AssociatedType(brain::Brain& kb, CellI& role);
     };
     class New : public BaseT<New>
     {
@@ -986,6 +1070,7 @@ public:
     Match& match_(Base& enum_);
     Do& do_(Base& condition);
     While& while_(Base& condition);
+    For& for_(const std::string& varName);
     Var& var(CellI& name);
     Var& var(const std::string& nameStr);
     Member& member(CellI& role);
@@ -997,6 +1082,7 @@ public:
     TemplatedType& templatedType(const std::string& id, const std::string& role, const std::string& type, Args&&... args);
 
     TemplateParam& templateParam(CellI& role);
+    AssociatedType& associatedType(CellI& role);
     New& new_(Base& objectType);
     New& new_(Base& objectType, const std::string& constructor);
     New& new_(Base& objectType, Base& constructor);
@@ -1093,6 +1179,7 @@ protected:
     template <typename... Args>
     Ast::SubType& st_(const std::string& nameStr, Args&&... args);
     Ast::TemplateParam& tp_(const std::string& name);
+    Ast::AssociatedType& at_(const std::string& name);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
     Ast::StructName& struct_(const std::string& name);

@@ -23,6 +23,7 @@ ID::ID(brain::Brain& kb) :
     compiled(kb, kb.std.Char, "compiled"),
     condition(kb, kb.std.Char, "condition"),
     constructor(kb, kb.std.Char, "constructor"),
+    container(kb, kb.std.Char, "container"),
     continue_(kb, kb.std.Char, "continue_"),
     currentFn(kb, kb.std.Char, "currentFn"),
     currentStruct(kb, kb.std.Char, "currentStruct"),
@@ -98,6 +99,7 @@ ID::ID(brain::Brain& kb) :
     unknownStructs(kb, kb.std.Char, "unknownStructs"),
     value(kb, kb.std.Char, "value"),
     valueType(kb, kb.std.Char, "valueType"),
+    variable(kb, kb.std.Char, "variable"),
     variables(kb, kb.std.Char, "variables"),
     width(kb, kb.std.Char, "width")
 {
@@ -160,6 +162,7 @@ Ast::Ast(brain::Brain& kb) :
     EnumValue(kb, kb.std.Struct, "ast::EnumValue"),
     Equal(kb, kb.std.Struct, "ast::Equal"),
     Erase(kb, kb.std.Struct, "ast::Erase"),
+    For(kb, kb.std.Struct, "ast::For"),
     Function(kb, kb.std.Struct, "ast::Function"),
     FunctionT(kb, kb.std.Struct, "ast::FunctionT"),
     Get(kb, kb.std.Struct, "ast::Get"),
@@ -196,6 +199,8 @@ Ast::Ast(brain::Brain& kb) :
     TemplatedType(kb, kb.std.Struct, "ast::TemplatedType"),
     TemplateParam(kb, kb.std.Struct, "ast::TemplateParam"),
     Throw(kb, kb.std.Struct, "ast::Throw"),
+    Trait(kb, kb.std.Struct, "ast::Trait"),
+    TraitImpl(kb, kb.std.Struct, "ast::TraitImpl"),
     Try(kb, kb.std.Struct, "ast::Try"),
     TypedEnumValue(kb, kb.std.Struct, "ast::TypedEnumValue"),
     Var(kb, kb.std.Struct, "ast::Var"),
@@ -751,6 +756,18 @@ Ast::Items<TrieMap, Ast::StructT>& Ast::Scope::getItemMember()
 }
 
 template <>
+Ast::Items<TrieMap, Ast::Trait>& Ast::Scope::getItemMember()
+{
+    return traitsImpl;
+}
+
+template <>
+Ast::Items<TrieMap, Ast::TraitImpl>& Ast::Scope::getItemMember()
+{
+    return traitImplsImpl;
+}
+
+template <>
 Ast::Items<TrieMap, Ast::Enum>& Ast::Scope::getItemMember()
 {
     return enumsImpl;
@@ -764,6 +781,8 @@ Ast::Scope::Scope(brain::Brain& kb, const std::string& nameStr) :
     variablesImpl(kb, "variables", *this),
     structsImpl(kb, "structs", *this),
     structTsImpl(kb, "structTs", *this),
+    traitsImpl(kb, "traits", *this),
+    traitImplsImpl(kb, "traitImpls", *this),
     enumsImpl(kb, "enums", *this),
     earlyStructs(kb, kb.std.Cell, kb.std.Cell, "earlyStructs")
 {
@@ -1436,7 +1455,7 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& resolvedSubTypeType = resolveType(subTypeType, state);
             ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
             if (IS_LOG_ENABLED) {
-                subTypesStrs.push_back(fmt::format("    alias {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()));
+                subTypesStrs.push_back(fmt::format("    type {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()));
             }
         });
     }
@@ -1486,6 +1505,11 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
             CellI& memberType = memberCell[kb.ids.slotType];
             CellI& resolvedMemberType = resolveType(memberType, state);
             ret.members(kb.ast.slot(memberId, resolvedMemberType));
+            if (label() == "ListItem" && memberId.label() == "value")
+            {
+                CellI& compiledType = getCompiledTypeFromResolvedType(resolvedMemberType);
+                std::cout << "";
+            }
             TRACE(compileStruct, "    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label());
         });
     }
@@ -1869,6 +1893,62 @@ Map& Ast::StructT::templateParams()
     } else {
         return static_cast<Map&>(get("templateParams"));
     }
+}
+
+Ast::Trait::Trait(brain::Brain& kb, CellI& name) :
+    StructBase(kb, kb.std.ast.Trait, name, name.label())
+{
+}
+
+Ast::Trait::Trait(brain::Brain& kb, const std::string& nameStr) :
+    StructBase(kb, kb.std.ast.Trait, kb.name(nameStr), nameStr)
+{
+}
+
+Ast::Trait& Ast::Trait::templateParams(Slot& slot)
+{
+    // TODO
+
+    return *this;
+}
+
+Ast::Trait& Ast::Trait::associatedTypes(Slot& slot)
+{
+    // TODO
+
+    return *this;
+}
+
+
+Ast::TraitImpl::TraitImpl(brain::Brain& kb, CellI& name) :
+    StructBase(kb, kb.std.ast.TraitImpl, name, name.label())
+{
+}
+
+Ast::TraitImpl::TraitImpl(brain::Brain& kb, const std::string& nameStr) :
+    StructBase(kb, kb.std.ast.TraitImpl, kb.name(nameStr), nameStr)
+{
+}
+
+Ast::TraitImpl& Ast::TraitImpl::templateParams(Slot& slot)
+{
+    // TODO
+
+    return *this;
+}
+
+Ast::TraitImpl& Ast::TraitImpl::implementedFor(CellI& structType)
+{
+    // TODO
+
+    return *this;
+}
+
+Ast::TraitImpl& Ast::TraitImpl::associatedTypes(Slot& slot)
+{
+    // TODO
+
+    return *this;
 }
 
 Ast::EnumValue::EnumValue(brain::Brain& kb, const std::string& name) :
@@ -3058,6 +3138,24 @@ Ast::While& Ast::While::do_(Base& statement)
     return *this;
 }
 
+Ast::For::For(brain::Brain& kb, const std::string& varName) :
+    BaseT<For>(kb, kb.std.ast.For, "ast.For")
+{
+    set(kb.ids.variable, kb.name(varName));
+}
+
+Ast::For& Ast::For::in(Base& container)
+{
+    set(kb.ids.container, container);
+    return *this;
+}
+
+Ast::For& Ast::For::operator()(Base& statement)
+{
+    set(kb.ids.statement, statement);
+    return *this;
+}
+
 Ast::Var::Var(brain::Brain& kb, const std::string& nameStr) :
     BaseT<Var>(kb, kb.std.ast.Var, nameStr)
 {
@@ -3153,6 +3251,12 @@ void Ast::TemplatedType::addParam(const std::string& role, const std::string& ty
 
 Ast::TemplateParam::TemplateParam(brain::Brain& kb, CellI& role) :
     BaseT<TemplateParam>(kb, kb.std.ast.TemplateParam, "ast.templateParam")
+{
+    set(kb.ids.role, role);
+}
+
+Ast::AssociatedType::AssociatedType(brain::Brain& kb, CellI& role) :
+    BaseT<AssociatedType>(kb, kb.std.ast.TemplateParam, "ast.associatedType")
 {
     set(kb.ids.role, role);
 }
@@ -3492,6 +3596,11 @@ Ast::While& Ast::while_(Base& condition)
     return While::New(kb, condition);
 }
 
+Ast::For& Ast::for_(const std::string& varName)
+{
+    return For::New(kb, varName);
+}
+
 Ast::Var& Ast::var(CellI& name)
 {
     return Var::New(kb, name);
@@ -3524,6 +3633,11 @@ Ast::TemplatedType& Ast::templatedType(const std::string& idStr, CellI& type)
 Ast::TemplateParam& Ast::templateParam(CellI& role)
 {
     return TemplateParam::New(kb, role);
+}
+
+Ast::AssociatedType& Ast::associatedType(CellI& role)
+{
+    return AssociatedType::New(kb, role);
 }
 
 Ast::New& Ast::new_(Base& objectType)
@@ -3798,6 +3912,11 @@ Ast::TemplateParam& AstHelper::tp_(const std::string& nameStr)
     return templateParam(name(nameStr));
 }
 
+Ast::AssociatedType& AstHelper::at_(const std::string& nameStr)
+{
+    return associatedType(name(nameStr));
+}
+
 Ast::StructName& AstHelper::struct_(const std::string& nameStr)
 {
     return structName(nameStr);
@@ -3944,6 +4063,7 @@ Strings::Strings(brain::Brain& kb) :
         { "compiled", kb.ids.compiled },
         { "condition", kb.ids.condition },
         { "constructor", kb.ids.constructor },
+        { "container", kb.ids.container },
         { "continue_", kb.ids.continue_ },
         { "currentFn", kb.ids.currentFn },
         { "currentStruct", kb.ids.currentStruct },
@@ -4016,6 +4136,7 @@ Strings::Strings(brain::Brain& kb) :
         { "unknownStructs", kb.ids.unknownStructs },
         { "value", kb.ids.value },
         { "valueType", kb.ids.valueType },
+        { "variable", kb.ids.variable },
         { "variables", kb.ids.variables },
         { "width", kb.ids.width },
         { "up", kb.directions.up },
@@ -4389,6 +4510,12 @@ void AstStd::createAst()
             member("cell", "Base"),
             member("role", "Base"));
 
+    astScope.add<Struct>("For")
+        .members(
+            member("variable", "std::Cell"),
+            member("container", "Base"),
+            member("statement", "Base"));
+
     astScope.add<Struct>("Function")
         .members(
             member("name", "std::Cell"),
@@ -4588,6 +4715,24 @@ void AstStd::createAst()
         .members(
             member("value", "Base"));
 
+    astScope.add<Struct>("Trait")
+        .members(
+            member("name", "std::Cell"),
+            member("scope", "Base"),
+            member("methods", MapOf(std.Cell, std.ast.Function)),
+            member("associatedTypes", ListOf(std.ast.Slot)),
+            member("subTypes", ListOf(std.ast.Slot)),
+            member("templateParams", MapOf(std.Cell, std.Struct)));
+
+    astScope.add<Struct>("TraitImpl")
+        .members(
+            member("name", "std::Cell"),
+            member("scope", "Base"),
+            member("methods", MapOf(std.Cell, std.ast.Function)),
+            member("associatedTypes", ListOf(std.ast.Slot)),
+            member("subTypes", ListOf(std.ast.Slot)),
+            member("templateParams", MapOf(std.Cell, std.Struct)));
+
     astScope.add<Struct>("Try")
         .members(
             member("tryBranch", "Base"),
@@ -4715,11 +4860,11 @@ AstStd::AstStd(brain::Brain& kb) :
 #pragma region ListItem
     stdScope.add<Struct>("ListItem")
         .subTypes(
-            p_("valueType", struct_("Cell")))
+            p_("ValueType", struct_("Cell")))
         .members(
             member("previous", "ListItem"),
             member("next", "ListItem"),
-            member("value", "Cell"));
+            member("value", st_("ValueType")));
 
     auto& listItemStructT
         = stdScope.add<StructT>("ListItem")
@@ -4749,6 +4894,7 @@ AstStd::AstStd(brain::Brain& kb) :
             member("first", "ListItem"),
             member("last", "ListItem"),
             member("size", _(std.Number)));
+
     auto& listStructT
         = stdScope.add<StructT>("List")
               .templateParams(
@@ -4763,6 +4909,91 @@ AstStd::AstStd(brain::Brain& kb) :
                   member("first", st_("itemType")),
                   member("last", st_("itemType")),
                   member("size", _(std.Number)));
+
+    auto& listIteratorStructT
+        = stdScope.add<StructT>("ListIterator")
+              .templateParams(
+                  parameter("valueType", _(std.Struct)))
+              .members(
+                  member("node", tp_("valueType")));
+
+    /*
+    trait Iterable {
+        type Iterator: std::Iterator;
+
+        fn iterator() -> Self::Iterator;
+    }
+    */
+    auto& iterableTrait
+        = stdScope.add<Trait>("Iterable")
+              .associatedTypes(
+                  parameter("Iterator", _("Iterator")))
+              .addMethod("iterator").returnType(at_("Iterator"));
+
+    auto& implIterableTraitForListT
+        = stdScope.add<TraitImpl>("Iterable")
+              .templateParams(
+                  parameter("valueType", _(std.Struct)))
+              .implementedFor(tt_("ListIterator", "valueType", tp_("valueType")))
+              .associatedTypes(
+                  parameter("ValueType", tp_("valueType")))
+              .members(
+                  member("node", tp_("valueType")));
+
+    /*
+    trait Iterator
+    {
+        type ValueType;
+
+        bool isEmpty();
+        void setFirstValue();
+        ValueType getCurrentValue();
+        bool hasNextValue();
+        void setNextValue();
+    }
+    */
+    auto& iteratorTrait
+        = stdScope.add<Trait>("Iterator")
+              .associatedTypes(parameter("ValueType", _(std.Struct)));
+
+    iteratorTrait.addMethod("isEmpty").returnType(_(std.Boolean));
+    iteratorTrait.addMethod("setFirstValue");
+    iteratorTrait.addMethod("getCurrentValue").returnType(_(std.Boolean));
+    iteratorTrait.addMethod("hasNextValue").returnType(_(std.Boolean));
+    iteratorTrait.addMethod("setNextValue");
+
+    auto& implIteratorTraitForListT
+        = stdScope.add<TraitImpl>("Iterator")
+              .templateParams(
+                  parameter("ValueType", _(std.Struct)))
+              .implementedFor(tt_("ListIterator", "valueType", tp_("ValueType")))
+              .associatedTypes(
+                  parameter("NodeType", tp_("ValueType")))
+              .members(
+                  member("node", tp_("ValueType")));
+
+    implIteratorTraitForListT.addMethod("isEmpty")
+        .returnType(_(std.Boolean))
+        .instructions(
+            return_(equal(m_("size"), _(_0_))));
+
+    implIteratorTraitForListT.addMethod("setFirstValue")
+        .instructions(
+            set(m_("node"), _(ids.value), m_("first")));
+
+    implIteratorTraitForListT.addMethod("getCurrentValue")
+        .returnType(st_("NodeType"))
+        .instructions(
+            return_(m_("node")));
+
+    implIteratorTraitForListT.addMethod("hasNextValue")
+        .returnType(_(std.Boolean))
+        .instructions(
+            return_(has(m_("node"), "next")));
+
+    implIteratorTraitForListT.addMethod("setNextValue")
+        .instructions(
+            m_("node") = m_("node") / "next");
 
     listStructT.addMethod("constructor")
         .instructions(
@@ -6109,6 +6340,14 @@ AstArc::AstArc(brain::Brain& kb) :
                        .then_(return_()),
                    var_("pixel") = *var_("pixel") / "next")));
 
+#if 0
+    // Frame::processInputPixels
+    frameStruct.addMethod("processInputPixelsTest")
+        .instructions(
+            for_("pixel").in(m_("grid") / "pixels")(block(
+                m_("inputPixels")("add")("value", *var_("pixel"))
+            )));
+#endif
 
     // Frame::process
     frameStruct.addMethod("process")
@@ -6366,6 +6605,8 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     registerBuiltInStruct("std::ast::SubTypeName", std.ast.SubTypeName);
     registerBuiltInStruct("std::ast::TemplatedType", std.ast.TemplatedType);
     registerBuiltInStruct("std::ast::TemplateParam", std.ast.TemplateParam);
+    registerBuiltInStruct("std::ast::Trait", std.ast.Trait);
+    registerBuiltInStruct("std::ast::TraitImpl", std.ast.TraitImpl);
     registerBuiltInStruct("std::ast::TypedEnumValue", std.ast.TypedEnumValue);
     registerBuiltInStruct("std::ast::Var", std.ast.Var);
     registerBuiltInStruct("std::ast::While", std.ast.While);

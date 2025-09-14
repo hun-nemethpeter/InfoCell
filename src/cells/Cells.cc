@@ -2767,6 +2767,7 @@ Number& Grid::heightCell()
 
 } // namespace hybrid
 
+#if 0
 void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
 {
     brain::Brain& kb = list.kb;
@@ -2789,7 +2790,71 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
         currentListItemPtr = &currentListItem[kb.ids.next];
     };
 }
+#else
 
+void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
+{
+    class ListIterator
+    {
+    public:
+        ListIterator(CellI& list) :
+            kb(list.kb), m_list(list), m_nodePtr(nullptr)
+        {
+        }
+
+        bool isEmpty() {
+            return m_list.missing(kb.ids.first);
+        }
+
+        void setFirstValue()
+        {
+            m_nodePtr = &m_list[kb.ids.first];
+        }
+
+        CellI& getCurrentValue()
+        {
+            return (*m_nodePtr)[kb.ids.value];
+        }
+
+        bool hasNextValue()
+        {
+            return (*m_nodePtr).has(kb.ids.next);
+        }
+
+        void setNextValue()
+        {
+            m_nodePtr = &(*m_nodePtr)[kb.ids.next];
+        }
+
+    private:
+        brain::Brain& kb;
+        CellI& m_list;
+        CellI* m_nodePtr;
+    };
+
+    ListIterator iterator(list);
+
+    if (iterator.isEmpty()) {
+        return;
+    } else {
+        iterator.setFirstValue();
+    }
+
+    int i = 0;
+    do {
+        bool stop = false;
+        visitFn(iterator.getCurrentValue(), i++, stop);
+        if (stop) {
+            return;
+        }
+        if (iterator.hasNextValue()) {
+            iterator.setNextValue();
+        } else {
+            return;
+        }
+    } while (true);
+}
+#endif
 
 void Visitor::visitListInReverse(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
 {

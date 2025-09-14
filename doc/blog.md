@@ -43,3 +43,84 @@ The LED is in kb.output.led. The green is in kb.colors.green.
 So with ASTs I can write
 
 SAME(GET(_(kb.output.led), _(kb.ids.color)), _(kb.colors.green))
+
+
+2025-09-14
+==========
+
+Ok so I went to a direction of sorting out the for loop as I want see how can handle multiple values in a container.
+
+The Rust way:
+
+pub trait IntoIterator {
+    type Item;
+    type IntoIter: Iterator<Item = Self::Item>;
+
+    // Required method
+    fn into_iter(self) -> Self::IntoIter;
+}
+
+pub trait Iterator {
+    type Item;
+    ...
+}
+
+impl<T, A: Allocator> IntoIterator for LinkedList<T, A> {
+    type Item = T;
+    type IntoIter = Iter<T>;
+
+    fn into_iter(self) -> Iter<T> {
+        self.iter()
+    }
+}
+
+impl<T, A: Allocator> LinkedList<T, A> {
+
+    pub fn iter(&self) -> Iter<'_, T> {
+        Iter { head: self.head, tail: self.tail, len: self.len, marker: PhantomData }
+    }
+
+}
+
+pub struct Iter<T> {
+    head: Node<T>,
+    tail: Node<T>,
+    len: usize
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    #[inline]
+    fn next(&mut self) -> Option<&'a T> {
+      ...
+    }
+
+}
+
+My idea
+
+    List<T> has trait Iterable
+
+    so
+
+	var list = List<int>(); // for a list instance
+	var iteratorForList = cast<Iterable>(list).iterator(); // we can have an iterator
+
+
+	trait Iterable {
+        type Iterator : Iterator;
+
+        fn iterator() -> Self::Iterator;
+    }
+
+    trait Iterator
+    {
+        type ValueType;
+
+        bool isEmpty();
+        void setFirstValue();
+        Self::ValueType getCurrentValue();
+        bool hasNextValue();
+        void setNextValue();
+    }
