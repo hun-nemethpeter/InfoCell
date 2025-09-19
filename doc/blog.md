@@ -124,3 +124,12 @@ My idea
         bool hasNextValue();
         void setNextValue();
     }
+
+2025-09-14
+==========
+
+Ok, this should work. A trait doesn't contains member definitions.
+
+struct Map {
+    traits Container; // this will be registered when impl<T> Container for List<T>
+}

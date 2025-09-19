@@ -4915,8 +4915,14 @@ AstStd::AstStd(brain::Brain& kb) :
               .templateParams(
                   parameter("valueType", _(std.Struct)))
               .members(
+                  member("list", tt_("List", "valueType", tp_("valueType"))),
                   member("node", tp_("valueType")));
 
+    listIteratorStructT.addMethod("constructor")
+        .parameters(
+            parameter("list", tt_("List", "valueType", tp_("valueType"))))
+        .instructions(
+            m_("list") = p_("list"));
     /*
     trait Iterable {
         type Iterator: std::Iterator;
@@ -4930,15 +4936,27 @@ AstStd::AstStd(brain::Brain& kb) :
                   parameter("Iterator", _("Iterator")))
               .addMethod("iterator").returnType(at_("Iterator"));
 
+    /*
+    impl<T> trait Iterable for List<T> {
+        type Iterator = ListIterator<T>;
+
+        fn iterator() -> Self::Iterator {
+            return new Self::Iterator(list=self())
+        }
+    }
+    */
     auto& implIterableTraitForListT
         = stdScope.add<TraitImpl>("Iterable")
               .templateParams(
                   parameter("valueType", _(std.Struct)))
-              .implementedFor(tt_("ListIterator", "valueType", tp_("valueType")))
+              .implementedFor(tt_("List", "valueType", tp_("valueType")))
               .associatedTypes(
-                  parameter("ValueType", tp_("valueType")))
-              .members(
-                  member("node", tp_("valueType")));
+                  parameter("Iterator", tt_("ListIterator", tp_("valueType"))));
+
+    implIterableTraitForListT.addMethod("iterator")
+        .returnType(at_("ValueType"))
+        .instructions(
+            return_(new_(at_("Iterator"), "constructor")("list", self())));
 
     /*
     trait Iterator
