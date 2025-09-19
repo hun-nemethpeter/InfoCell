@@ -445,55 +445,7 @@ public:
         Base& m_parent;
     };
 
-    template <class Derived>
-    class ItemsI
-    {
-    public:
-        template <typename TAst>
-        bool hasItem(CellI& name)
-        {
-            return derived().template getItemMember<TAst>().has(name);
-        }
-
-        template <typename TAst>
-        TAst& getItem(const std::string& nameStr)
-        {
-            return derived().template getItemMember<TAst>().get(nameStr);
-        }
-
-        template <typename TAst>
-        TAst& getItem(CellI& name)
-        {
-            return derived().template getItemMember<TAst>().get(name);
-        }
-
-        template <typename TAst>
-        TAst& add(const std::string& nameStr)
-        {
-            return derived().template getItemMember<TAst>().add(nameStr);
-        }
-
-        template <typename TAst>
-        void add(TAst& scope)
-        {
-            derived().template getItemMember<TAst>().add(scope);
-        }
-
-        template <typename TAst>
-        TrieMap& items()
-        {
-            return derived().template getItemMember<TAst>().items();
-        }
-
-    protected:
-        Derived& derived()
-        {
-            return static_cast<Derived&>(*this);
-        }
-    };
-
-    class Scope : public BaseT<Scope>,
-                  public ItemsI<Scope>
+    class Scope : public BaseT<Scope>
     {
     public:
         Scope(brain::Brain& kb, const std::string& nameStr);
@@ -506,6 +458,42 @@ public:
         CellI& reigisterStructBeforeCompilation(CellI& id);
         void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
 
+        template <typename TAst>
+        bool hasItem(CellI& name)
+        {
+            return getItemMember<TAst>().has(name);
+        }
+
+        template <typename TAst>
+        TAst& getItem(const std::string& nameStr)
+        {
+            return getItemMember<TAst>().get(nameStr);
+        }
+
+        template <typename TAst>
+        TAst& getItem(CellI& name)
+        {
+            return getItemMember<TAst>().get(name);
+        }
+
+        template <typename TAst>
+        TAst& add(const std::string& nameStr)
+        {
+            return getItemMember<TAst>().add(nameStr);
+        }
+
+        template <typename TAst>
+        void add(TAst& scope)
+        {
+            getItemMember<TAst>().add(scope);
+        }
+
+        template <typename TAst>
+        TrieMap& items()
+        {
+            return getItemMember<TAst>().items();
+        }
+
     protected:
         void registerEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances);
         void resolveEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope);
@@ -516,8 +504,6 @@ public:
         Base* resolveFullNameInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
         Ast::Scope& resolveTypes(CellI& state);
         void compileTheResolvedAsts(CellI& programData, CellI& state);
-
-        friend class ItemsI<Scope>;
 
         template<class TAst>
         Items<TrieMap, TAst>& getItemMember();
