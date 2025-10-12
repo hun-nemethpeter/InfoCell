@@ -285,6 +285,7 @@ void Object::resetIndent()
     s_indent = 0;
 }
 
+#if 0
 void Object::operator()()
 {
     s_debugFunctionCalls = false; // Turn on / off debug here
@@ -351,6 +352,907 @@ void Object::operator()()
         opDivide();
     }
 }
+#else
+// core data handling
+static void evalOpGet(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputCell = self[kb.ids.cell];
+        previousCell     = currentCell;
+        currentCell      = &inputCell;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        CellI& inputRole = self[kb.ids.role];
+        previousCell     = currentCell;
+        currentCell      = &inputRole;
+        self.set(kb.ids.state, kb.ids.stateParam2);
+    } else if (&state == &kb.ids.stateParam2) {
+        CellI& cell = self[kb.ids.cell][kb.ids.value];
+        CellI& role = self[kb.ids.role][kb.ids.value];
+
+        self.set(kb.ids.value, cell[role]);
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpSet(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputCell = self[kb.ids.cell];
+        previousCell     = currentCell;
+        currentCell      = &inputCell;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        CellI& inputRole = self[kb.ids.role];
+        previousCell     = currentCell;
+        currentCell      = &inputRole;
+        self.set(kb.ids.state, kb.ids.stateParam2);
+    } else if (&state == &kb.ids.stateParam2) {
+        CellI& inputValue = self[kb.ids.value];
+        previousCell      = currentCell;
+        currentCell       = &inputValue;
+        self.set(kb.ids.state, kb.ids.stateParam3);
+    } else if (&state == &kb.ids.stateParam3) {
+        CellI& cell  = self[kb.ids.cell][kb.ids.value];
+        CellI& role  = self[kb.ids.role][kb.ids.value];
+        CellI& value = self[kb.ids.value][kb.ids.value];
+
+        cell.set(role, value);
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpHas(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputCell = self[kb.ids.cell];
+        previousCell     = currentCell;
+        currentCell      = &inputCell;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        CellI& inputRole = self[kb.ids.role];
+        previousCell     = currentCell;
+        currentCell      = &inputRole;
+        self.set(kb.ids.state, kb.ids.stateParam2);
+    } else if (&state == &kb.ids.stateParam2) {
+        CellI& cell = self[kb.ids.cell][kb.ids.value];
+        CellI& role = self[kb.ids.role][kb.ids.value];
+
+        self.set(kb.ids.value, kb.toKbBool(cell.has(role)));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpMissing(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputCell = self[kb.ids.cell];
+        previousCell     = currentCell;
+        currentCell      = &inputCell;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        CellI& inputRole = self[kb.ids.role];
+        previousCell     = currentCell;
+        currentCell      = &inputRole;
+        self.set(kb.ids.state, kb.ids.stateParam2);
+    } else if (&state == &kb.ids.stateParam2) {
+        CellI& cell = self[kb.ids.cell][kb.ids.value];
+        CellI& role = self[kb.ids.role][kb.ids.value];
+
+        self.set(kb.ids.value, kb.toKbBool(cell.missing(role)));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpErase(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputCell = self[kb.ids.cell];
+        previousCell     = currentCell;
+        currentCell      = &inputCell;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        CellI& inputRole = self[kb.ids.role];
+        previousCell     = currentCell;
+        currentCell      = &inputRole;
+        self.set(kb.ids.state, kb.ids.stateParam2);
+    } else if (&state == &kb.ids.stateParam2) {
+        CellI& cell = self[kb.ids.cell][kb.ids.value];
+        CellI& role = self[kb.ids.role][kb.ids.value];
+
+        cell.erase(role);
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpNew(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputObjectType = self[kb.ids.objectType];
+        previousCell           = currentCell;
+        currentCell            = &inputObjectType;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        CellI& cell = self[kb.ids.cell][kb.ids.value];
+        CellI& objectType = self[kb.ids.objectType][kb.ids.value];
+
+        if (&objectType == &kb.std.Number) {
+            self.set(kb.ids.value, *new Number(kb));
+        } else if (&objectType == &kb.std.String) {
+            self.set(kb.ids.value, *new String(kb));
+        } else {
+            self.set(kb.ids.value, *new Object(kb, objectType));
+        }
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpDelete(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& input = self[kb.ids.input];
+        previousCell = currentCell;
+        currentCell  = &input;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        CellI& input = self[kb.ids.input];
+        CellI* cell  = &input[kb.ids.value];
+
+        delete cell;
+        input.erase(kb.ids.value);
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+// code running
+static void evalOpActivate(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputCell = self[kb.ids.cell];
+
+        previousCell = currentCell;
+        currentCell  = &inputCell;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        previousCell     = currentCell;
+        CellI& inputCell = self[kb.ids.cell];
+        CellI* status    = nullptr;
+        if (&inputCell.struct_() == &kb.std.op.Return) {
+            status = &kb.ids.return_;
+        } else {
+            status = &kb.ids.process;
+        }
+        self.set(kb.ids.status, *status);
+        if (status == &kb.ids.process && self.has(kb.ids.next)) {
+            CellI& nextCell = self[kb.ids.next];
+            currentCell     = &nextCell;
+        } else {
+            currentCell = &self[kb.ids.previous];
+        }
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+}
+
+static void evalOpFunction(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& op    = self[kb.ids.op];
+        previousCell = currentCell;
+        currentCell  = &op;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpIf(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputCondition = self[kb.ids.condition];
+
+        previousCell = currentCell;
+        currentCell  = &inputCondition;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        previousCell     = currentCell;
+        self.set(kb.ids.status, kb.ids.process);
+        CellI* branchPtr = nullptr;
+        bool condition   = &self[kb.ids.condition][kb.ids.value] == &kb.boolean.true_;
+        if (condition) {
+            branchPtr = &self[kb.ids.then];
+            self.set(kb.ids.state, kb.ids.stateThen);
+        } else if (self.has(kb.ids.else_)) {
+            branchPtr = &self[kb.ids.else_];
+            self.set(kb.ids.state, kb.ids.stateElse);
+        }
+        if (branchPtr) {
+            currentCell = branchPtr;
+        } else {
+            currentCell = &self[kb.ids.previous];
+            self.set(kb.ids.state, kb.ids.stateParamInit);
+        }
+    } else if (&state == &kb.ids.stateThen || &state == &kb.ids.stateElse) {
+        previousCell  = currentCell;
+        CellI& branch = &state == &kb.ids.stateThen ? self[kb.ids.then] : self[kb.ids.else_];
+        if (&branch.struct_() == &kb.std.op.Return) {
+            self.set(kb.ids.status, kb.ids.return_);
+        } else if (branch.has(kb.ids.status)) {
+            self.set(kb.ids.status, branch[kb.ids.status]);
+        }
+        currentCell = &self[kb.ids.previous];
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+}
+
+static void evalOpDo(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+}
+
+static void evalOpWhile(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+}
+
+static void evalOpBlock(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& ops   = self[kb.ids.ops];
+        previousCell = currentCell;
+        currentCell  = &ops;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+#if 0
+    if (&op.struct_() == &kb.std.op.Return) {
+        op();
+        set(kb.ids.status, kb.ids.return_);
+        break;
+    }
+    set(kb.ids.status, kb.ids.process);
+    op();
+    if (&(*this)[kb.ids.status] == &kb.ids.continue_ || &(*this)[kb.ids.status] == &kb.ids.break_) {
+        break;
+    }
+    if (op.has(kb.ids.status)) {
+        if (&op[kb.ids.status] == &kb.ids.return_ || &op[kb.ids.status] == &kb.ids.continue_ || &op[kb.ids.status] == &kb.ids.break_) {
+            set(kb.ids.status, op[kb.ids.status]);
+            break;
+        }
+    }
+#endif
+}
+
+static void evalOpReturn(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+#if 0 // TODO
+    if (has(kb.ids.result)) {
+        CellI& result = get(kb.ids.result);
+        result();
+    }
+#endif
+}
+
+// compare
+static void evalOpSame(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs  = self[kb.ids.lhs];
+        previousCell     = currentCell;
+        currentCell      = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs  = self[kb.ids.rhs];
+        previousCell     = currentCell;
+        currentCell      = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        CellI* lhs = &self[kb.ids.lhs][kb.ids.value];
+        CellI* rhs = &self[kb.ids.rhs][kb.ids.value];
+
+        self.set(kb.ids.value, kb.toKbBool(lhs == rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpNotSame(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self[kb.ids.lhs];
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self[kb.ids.rhs];
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        CellI* lhs = &self[kb.ids.lhs][kb.ids.value];
+        CellI* rhs = &self[kb.ids.rhs][kb.ids.value];
+
+        self.set(kb.ids.value, kb.toKbBool(lhs != rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self[kb.ids.previous];
+    }
+}
+
+static void evalOpEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        CellI& lhs = self[kb.ids.lhs][kb.ids.value];
+        CellI& rhs = self[kb.ids.rhs][kb.ids.value];
+
+        self.set(kb.ids.value, kb.toKbBool(lhs == rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpNotEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        CellI& lhs = self[kb.ids.lhs][kb.ids.value];
+        CellI& rhs = self[kb.ids.rhs][kb.ids.value];
+
+        self.set(kb.ids.value, kb.toKbBool(lhs != rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpLessThan(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        int lhs = static_cast<Number&>(self[kb.ids.lhs][kb.ids.value]).value();
+        int rhs = static_cast<Number&>(self[kb.ids.rhs][kb.ids.value]).value();
+
+        self.set(kb.ids.value, lhs < rhs ? kb.boolean.true_ : kb.boolean.false_);
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpLessThanOrEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        int lhs = static_cast<Number&>(self[kb.ids.lhs][kb.ids.value]).value();
+        int rhs = static_cast<Number&>(self[kb.ids.rhs][kb.ids.value]).value();
+
+        self.set(kb.ids.value, lhs <= rhs ? kb.boolean.true_ : kb.boolean.false_);
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpGreaterThan(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        int lhs = static_cast<Number&>(self[kb.ids.lhs][kb.ids.value]).value();
+        int rhs = static_cast<Number&>(self[kb.ids.rhs][kb.ids.value]).value();
+
+        self.set(kb.ids.value, lhs > rhs ? kb.boolean.true_ : kb.boolean.false_);
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        int lhs = static_cast<Number&>(self[kb.ids.lhs][kb.ids.value]).value();
+        int rhs = static_cast<Number&>(self[kb.ids.rhs][kb.ids.value]).value();
+
+        self.set(kb.ids.value, lhs >= rhs ? kb.boolean.true_ : kb.boolean.false_);
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+// logic
+static void evalOpAnd(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        bool lhs = &self[kb.ids.lhs][kb.ids.value] == &kb.boolean.true_;
+        // shortcut, if the left hand side already false we don't evaluate the right hand side
+        if (lhs == false) {
+            self.set(kb.ids.value, kb.boolean.false_);
+            self.set(kb.ids.state, kb.ids.stateParamInit);
+            previousCell = currentCell;
+            currentCell  = &self.get(kb.ids.previous);
+        } else {
+            CellI& inputRhs = self.get(kb.ids.rhs);
+            previousCell    = currentCell;
+            currentCell     = &inputRhs;
+            self.set(kb.ids.state, kb.ids.stateRhs);
+        }
+    } else if (&state == &kb.ids.stateRhs) {
+        bool lhs = &self[kb.ids.lhs][kb.ids.value] == &kb.boolean.true_;
+        bool rhs = &self[kb.ids.rhs][kb.ids.value] == &kb.boolean.true_;
+
+        self.set(kb.ids.value, kb.toKbBool(lhs && rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpOr(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        bool lhs = &self[kb.ids.lhs][kb.ids.value] == &kb.boolean.true_;
+        bool rhs = &self[kb.ids.rhs][kb.ids.value] == &kb.boolean.true_;
+
+        self.set(kb.ids.value, kb.toKbBool(lhs || rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpNot(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& input = self[kb.ids.input];
+        previousCell = currentCell;
+        currentCell  = &input;
+        self.set(kb.ids.state, kb.ids.stateParam1);
+    } else if (&state == &kb.ids.stateParam1) {
+        bool res = &self[kb.ids.input][kb.ids.value] == &kb.boolean.true_;
+
+        self.set(kb.ids.value, kb.toKbBool(!res));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+// math
+static void evalOpAdd(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        int lhs = static_cast<Number&>(self[kb.ids.lhs][kb.ids.value]).value();
+        int rhs = static_cast<Number&>(self[kb.ids.rhs][kb.ids.value]).value();
+
+        self.set(kb.ids.value, kb.pools.numbers.get(lhs + rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpSubtract(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        int lhs = static_cast<Number&>(self[kb.ids.lhs][kb.ids.value]).value();
+        int rhs = static_cast<Number&>(self[kb.ids.rhs][kb.ids.value]).value();
+
+        self.set(kb.ids.value, kb.pools.numbers.get(lhs - rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpMultiply(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        int lhs = static_cast<Number&>(self[kb.ids.lhs][kb.ids.value]).value();
+        int rhs = static_cast<Number&>(self[kb.ids.rhs][kb.ids.value]).value();
+
+        self.set(kb.ids.value, kb.pools.numbers.get(lhs * rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+static void evalOpDivide(CellI& self, CellI*& currentCell, CellI* previousCell)
+{
+    brain::Brain& kb = self.kb;
+    if (self.missing(kb.ids.state)) {
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self.get(kb.ids.state);
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        CellI& inputLhs = self.get(kb.ids.lhs);
+        previousCell    = currentCell;
+        currentCell     = &inputLhs;
+        self.set(kb.ids.state, kb.ids.stateLhs);
+    } else if (&state == &kb.ids.stateLhs) {
+        CellI& inputRhs = self.get(kb.ids.rhs);
+        previousCell    = currentCell;
+        currentCell     = &inputRhs;
+        self.set(kb.ids.state, kb.ids.stateRhs);
+    } else if (&state == &kb.ids.stateRhs) {
+        int lhs = static_cast<Number&>(self[kb.ids.lhs][kb.ids.value]).value();
+        int rhs = static_cast<Number&>(self[kb.ids.rhs][kb.ids.value]).value();
+
+        self.set(kb.ids.value, kb.pools.numbers.get(lhs / rhs));
+        self.set(kb.ids.state, kb.ids.stateParamInit);
+        previousCell = currentCell;
+        currentCell  = &self.get(kb.ids.previous);
+    }
+}
+
+void Object::operator()()
+{
+    s_debugFunctionCalls = true; // Turn on / off debug here
+
+    CellI* currentCell  = this;
+    CellI* previousCell = &kb.ids.emptyObject;
+
+    while (currentCell) {
+        CellI& self = *currentCell;
+        CellI& type = self.struct_();
+        if (&type == &kb.std.op.Get) {
+            evalOpGet(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Set) {
+            evalOpSet(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Has) {
+            evalOpHas(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Missing) {
+            evalOpMissing(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Erase) {
+            evalOpErase(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.New) {
+            evalOpNew(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Delete) {
+            evalOpDelete(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Activate) {
+            evalOpActivate(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Call) {
+            opCall();
+        } else if (&type == &kb.std.op.Function || (type.has(kb.ids.memberOf) && type[kb.ids.memberOf][kb.ids.index].has(kb.std.op.Function))) {
+            if (s_debugFunctionCalls && (self.missing(kb.ids.state) || (&self[kb.ids.state] == &kb.ids.stateParamInit))) {
+                printIndent();
+                s_indent++;
+                std::cout << self.label() << std::endl;
+            }
+            if (s_debugFunctionCalls && (self.has(kb.ids.state) && (&self[kb.ids.state] == &kb.ids.stateParam1))) {
+                s_indent--;
+            }
+            evalOpFunction(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Return) {
+            opReturn();
+        } else if (&type == &kb.std.op.Same) {
+            evalOpSame(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.NotSame) {
+            evalOpNotSame(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Equal) {
+            evalOpEqual(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.NotEqual) {
+            evalOpNotEqual(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.LessThan) {
+            evalOpLessThan(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.LessThanOrEqual) {
+            evalOpLessThanOrEqual(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.GreaterThan) {
+            evalOpGreaterThan(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.GreaterThanOrEqual) {
+            evalOpGreaterThanOrEqual(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.And) {
+            evalOpAnd(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Or) {
+            evalOpOr(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Not) {
+            evalOpNot(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.If) {
+            evalOpIf(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Do) {
+            evalOpDo(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.While) {
+            evalOpWhile(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Block) {
+            evalOpBlock(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Add) {
+            evalOpAdd(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Subtract) {
+            evalOpSubtract(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Multiply) {
+            evalOpMultiply(self, currentCell, previousCell);
+        } else if (&type == &kb.std.op.Divide) {
+            evalOpDivide(self, currentCell, previousCell);
+        } else {
+            // assuming it is a datacell, so do nothing
+            std::swap(currentCell, previousCell);
+        }
+
+        if (currentCell == &kb.ids.emptyObject) {
+            currentCell = nullptr;
+        }
+    }
+}
+#endif
 
 // core data handling
 void Object::opGet()
@@ -800,9 +1702,6 @@ void Object::opBlock()
         }
         set(kb.ids.status, kb.ids.process);
         op();
-        if (&(*this)[kb.ids.status] == &kb.ids.continue_) {
-            break;
-        }
         if (&(*this)[kb.ids.status] == &kb.ids.continue_ || &(*this)[kb.ids.status] == &kb.ids.break_) {
             break;
         }

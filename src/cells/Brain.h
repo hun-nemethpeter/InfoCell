@@ -89,7 +89,16 @@ public:
     List slots;
     List slotType;
     List stack;
+    List state;
+    List stateElse;
+    List stateLhs;
     List statement;
+    List stateParam1;
+    List stateParam2;
+    List stateParam3;
+    List stateParamInit;
+    List stateRhs;
+    List stateThen;
     List static_;
     List status;
     List struct_;

@@ -84,7 +84,16 @@ ID::ID(brain::Brain& kb) :
     slots(kb, kb.std.Char, "slots"),
     slotType(kb, kb.std.Char, "slotType"),
     stack(kb, kb.std.Char, "stack"),
+    state(kb, kb.std.Char, "state"),
+    stateElse(kb, kb.std.Char, "stateElse"),
+    stateLhs(kb, kb.std.Char, "stateLhs"),
     statement(kb, kb.std.Char, "statement"),
+    stateParam1(kb, kb.std.Char, "stateParam1"),
+    stateParam2(kb, kb.std.Char, "stateParam2"),
+    stateParam3(kb, kb.std.Char, "stateParam3"),
+    stateParamInit(kb, kb.std.Char, "stateParamInit"),
+    stateRhs(kb, kb.std.Char, "stateRhs"),
+    stateThen(kb, kb.std.Char, "stateThen"),
     static_(kb, kb.std.Char, "static_"),
     status(kb, kb.std.Char, "status"),
     struct_(kb, kb.std.Char, "struct"),
@@ -2445,19 +2454,21 @@ CellI& Ast::Function::compile(CellI& state)
     functionType.set("subTypes", subTypesMap);
 
     CellI* map = &kb.slots(
-        kb.std.slot("ast", kb.std.ast.Base),
-        kb.std.slot("stack", kb.std.Stack),
-        kb.std.slot("op", kb.ListOf(kb.std.op.Base)),
-        kb.std.slot("static_", kb.std.Boolean));
-    functionType.set("slots", *map);
+        kb.std.slot(kb.ids.ast, kb.std.ast.Base),
+        kb.std.slot(kb.ids.state, kb.std.Cell),
+        kb.std.slot(kb.ids.previous, kb.std.Cell),
+        kb.std.slot(kb.ids.stack, kb.std.Stack),
+        kb.std.slot(kb.ids.op, kb.ListOf(kb.std.op.Base)),
+        kb.std.slot(kb.ids.static_, kb.std.Boolean));
+    functionType.set(kb.ids.slots, *map);
 
     cells::Object& function = *new cells::Object(kb, functionType);
     compileParams(function, subTypesMap, state);
     functionType.label(fmt::format("Type for {}", function.label()));
-    function.set("ast", *this);
-    function.set("op", compileAst(instructions(), function, state));
-    if (has("static_")) {
-        function.set("static_", get("static_"));
+    function.set(kb.ids.ast, *this);
+    function.set(kb.ids.op, compileAst(instructions(), function, state));
+    if (has(kb.ids.static_)) {
+        function.set(kb.ids.static_, get(kb.ids.static_));
     }
 
     return function;
@@ -2546,14 +2557,26 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         if (state.has("lastBlock")) {
             prevBlock = &state["lastBlock"];
         }
-        auto& compiledAsts = *new cells::List(kb, kb.std.op.Base);
-        Object& opBlock    = *new Object(kb, kb.std.op.Block);
+        CellI* firstOpBlockNode   = nullptr;
+        CellI* currentOpBlockNode = nullptr;
+        Object& opBlock           = *new Object(kb, kb.std.op.Block);
         state.set("lastBlock", opBlock);
-        Visitor::visitList(list, [this, &compile, &compiledAsts, &function](CellI& ast, int, bool&) {
-            compiledAsts.add(compile(ast));
+        Visitor::visitList(list, [this, &compile, &opBlock, &firstOpBlockNode, &currentOpBlockNode, &function](CellI& ast, int, bool&) {
+            CellI& newOpBlockNode = *new Object(kb, kb.std.op.Activate);
+            newOpBlockNode.set(kb.ids.cell, compile(ast));
+            newOpBlockNode.set(kb.ids.parent, opBlock);
+
+            if (!firstOpBlockNode) {
+                firstOpBlockNode = &newOpBlockNode;
+            } else {
+                (*currentOpBlockNode).set(kb.ids.next, newOpBlockNode);
+            }
+            currentOpBlockNode = &newOpBlockNode;
         });
         opBlock.set(kb.ids.ast, ast);
-        opBlock.set(kb.ids.ops, compiledAsts);
+        if (firstOpBlockNode) {
+            opBlock.set(kb.ids.ops, *firstOpBlockNode);
+        }
 
         if (prevBlock) {
             state.set("lastBlock", *prevBlock);
@@ -4121,7 +4144,16 @@ Strings::Strings(brain::Brain& kb) :
         { "slots", kb.ids.slots },
         { "slotType", kb.ids.slotType },
         { "stack", kb.ids.stack },
+        { "state", kb.ids.state },
+        { "stateElse", kb.ids.stateElse },
+        { "stateLhs", kb.ids.stateLhs },
         { "statement", kb.ids.statement },
+        { "stateParam1", kb.ids.stateParam1 },
+        { "stateParam2", kb.ids.stateParam2 },
+        { "stateParam3", kb.ids.stateParam3 },
+        { "stateParamInit", kb.ids.stateParamInit },
+        { "stateRhs", kb.ids.stateRhs },
+        { "stateThen", kb.ids.stateThen },
         { "static_", kb.ids.static_ },
         { "status", kb.ids.status },
         { "struct", kb.ids.struct_ },
@@ -4223,7 +4255,9 @@ void AstStd::createOp()
     opScope.add<Struct>("Activate")
         .members(
             member("ast", "ast::Base"),
-            member("cell", "Base"));
+            member("cell", "Base"),
+            member("previous", "std::Cell"),
+            member("state", "std::Cell"));
 
     opScope.add<Struct>("Add")
         .members(
@@ -4242,6 +4276,8 @@ void AstStd::createOp()
     opScope.add<Struct>("Block")
         .members(
             member("ast", "ast::Base"),
+            member("previous", "std::Cell"),
+            member("state", "std::Cell"),
             member("status", "std::Cell"),
             member("ops", "std::Cell"),
             member("value", "std::Cell"));
@@ -4305,6 +4341,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("cell", "Base"),
             member("role", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Cell"));
 
     opScope.add<Struct>("GreaterThan")
@@ -4326,6 +4364,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("cell", "Base"),
             member("role", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("If")
@@ -4333,6 +4373,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("status", "std::Cell"),
             member("condition", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("then", "Base"),
             member("else_", "Base"));
 
@@ -4407,6 +4449,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("lhs", "Base"),
             member("rhs", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
     opScope.add<Struct>("Set")
@@ -4414,6 +4458,8 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("cell", "Base"),
             member("role", "Base"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("value", "Base"));
 
     opScope.add<Struct>("Subtract")
