@@ -26,6 +26,7 @@ ID::ID(brain::Brain& kb) :
     container(kb, kb.std.Char, "container"),
     continue_(kb, kb.std.Char, "continue_"),
     currentFn(kb, kb.std.Char, "currentFn"),
+    currentParam(kb, kb.std.Char, "currentParam"),
     currentStruct(kb, kb.std.Char, "currentStruct"),
     data(kb, kb.std.Char, "data"),
     description(kb, kb.std.Char, "description"),
@@ -48,6 +49,7 @@ ID::ID(brain::Brain& kb) :
     key(kb, kb.std.Char, "key"),
     keyType(kb, kb.std.Char, "keyType"),
     last(kb, kb.std.Char, "last"),
+    lastOp(kb, kb.std.Char, "lastOp"),
     lhs(kb, kb.std.Char, "lhs"),
     list(kb, kb.std.Char, "list"),
     listType(kb, kb.std.Char, "listType"),
@@ -91,6 +93,7 @@ ID::ID(brain::Brain& kb) :
     stateParam1(kb, kb.std.Char, "stateParam1"),
     stateParam2(kb, kb.std.Char, "stateParam2"),
     stateParam3(kb, kb.std.Char, "stateParam3"),
+    stateParamEval(kb, kb.std.Char, "stateParamEval"),
     stateParamInit(kb, kb.std.Char, "stateParamInit"),
     stateRhs(kb, kb.std.Char, "stateRhs"),
     stateStackCall(kb, kb.std.Char, "stateStackCall"),
@@ -2454,17 +2457,18 @@ CellI& Ast::Function::compile(CellI& state)
     }
     functionType.set("subTypes", subTypesMap);
 
-    CellI* map = &kb.slots(
+    Map& functionSlots = kb.slots(
         kb.std.slot(kb.ids.ast, kb.std.ast.Base),
         kb.std.slot(kb.ids.state, kb.std.Cell),
         kb.std.slot(kb.ids.previous, kb.std.Cell),
         kb.std.slot(kb.ids.stack, kb.std.Stack),
+        kb.std.slot(kb.ids.lastOp, kb.std.op.Base),
         kb.std.slot(kb.ids.op, kb.ListOf(kb.std.op.Base)),
         kb.std.slot(kb.ids.static_, kb.std.Boolean));
-    functionType.set(kb.ids.slots, *map);
+    functionType.set(kb.ids.slots, functionSlots);
 
     cells::Object& function = *new cells::Object(kb, functionType);
-    compileParams(function, subTypesMap, state);
+    compileParams(function, functionSlots, subTypesMap, state);
     functionType.label(fmt::format("Type for {}", function.label()));
     function.set(kb.ids.ast, *this);
     function.set(kb.ids.op, compileAst(instructions(), function, state));
@@ -2479,8 +2483,8 @@ std::string Ast::Function::shortName()
 {
     std::stringstream iss;
     std::stringstream oss;
-    if (has("parameters") || has("structType")) {
-        if (has("parameters")) {
+    if (has(kb.ids.parameters) || has(kb.ids.structType)) {
+        if (has(kb.ids.parameters)) {
             Visitor::visitList(parameters(), [this, &iss](CellI& slot, int i, bool& stop) {
                 if (i > 0) {
                     iss << ", ";
@@ -2489,13 +2493,13 @@ std::string Ast::Function::shortName()
             });
         }
     }
-    if (has("returnType")) {
+    if (has(kb.ids.returnType)) {
         oss << getCompiledTypeFromResolvedType(returnType()).label();
     }
-    if (has("returnType")) {
-        return fmt::format("fn {}({}) -> {}", get("name").label(), iss.str(), oss.str());
+    if (has(kb.ids.returnType)) {
+        return fmt::format("fn {}({}) -> {}", get(kb.ids.name).label(), iss.str(), oss.str());
     } else {
-        return fmt::format("fn {}({})", get("name").label(), iss.str());
+        return fmt::format("fn {}({})", get(kb.ids.name).label(), iss.str());
     }
 }
 
@@ -2504,7 +2508,7 @@ CellI& Ast::Function::getFullyQualifiedName()
     return getFullyQualifiedNameImpl();
 }
 
-void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesMap, CellI& state)
+void Ast::Function::compileParams(cells::Object& function, cells::Map& functionSlots, cells::Map& subTypesMap, CellI& state)
 {
     std::stringstream iss;
     std::stringstream oss;
@@ -2516,10 +2520,10 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
             CellI& type = get("structType");
             Object& var = *new Object(kb, kb.std.op.Var, "self");
             var.set("valueType", type);
-            slots.add(kb.name("self"), kb.std.slot("self", type));
+            slots.add(kb.ids.self, kb.std.slot("self", type));
             structTypeStr = fmt::format("{}::", type.label());
         }
-        if (has("parameters")) {
+        if (has(kb.ids.parameters)) {
             Visitor::visitList(parameters(), [this, &slots, &iss](CellI& slot, int i, bool& stop) {
                 if (i > 0) {
                     iss << ", ";
@@ -2531,19 +2535,20 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& subTypesM
                 slots.add(slotRole, kb.std.slot(slotRole, compiledSlotType));
             });
         }
-        parametersType.set("slots", slots);
-        subTypesMap.add(kb.name("parameters"), parametersType);
+        parametersType.set(kb.ids.slots, slots);
+        subTypesMap.add(kb.ids.parameters, parametersType);
     }
-    if (has("returnType")) {
-        auto& asrReturnType      = returnType();
-        auto& compiledReturnType = getCompiledTypeFromResolvedType(asrReturnType);
+    if (has(kb.ids.returnType)) {
+        auto& astReturnType      = returnType();
+        auto& compiledReturnType = getCompiledTypeFromResolvedType(astReturnType);
         oss << compiledReturnType.label();
-        subTypesMap.add(kb.name("returnType"), compiledReturnType);
+        subTypesMap.add(kb.ids.returnType, compiledReturnType);
+        functionSlots.add(kb.ids.value, compiledReturnType);
     }
-    if (has("returnType")) {
-        function.label(fmt::format("fn {}{}({}) -> {}", structTypeStr, get("name").label(), iss.str(), oss.str()));
+    if (has(kb.ids.returnType)) {
+        function.label(fmt::format("fn {}{}({}) -> {}", structTypeStr, get(kb.ids.name).label(), iss.str(), oss.str()));
     } else {
-        function.label(fmt::format("fn {}{}({})", structTypeStr, get("name").label(), iss.str()));
+        function.label(fmt::format("fn {}{}({})", structTypeStr, get(kb.ids.name).label(), iss.str()));
     }
 }
 
@@ -2642,7 +2647,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Object& retOp = *new Object(kb, kb.std.op.Return, "op.return");
         retOp.set(kb.ids.ast, ast);
         if (ast.has(kb.ids.value)) {
-            retOp.set(kb.ids.result, compile(kb.ast.set(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.output), _(kb.ids.value), static_cast<Ast::Base&>(ast[kb.ids.value]))));
+            retOp.set(kb.ids.result, compile(kb.ast.set(_(function), _(kb.ids.value), static_cast<Ast::Base&>(ast[kb.ids.value]))));
         }
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Var) {
@@ -4097,6 +4102,7 @@ Strings::Strings(brain::Brain& kb) :
         { "container", kb.ids.container },
         { "continue_", kb.ids.continue_ },
         { "currentFn", kb.ids.currentFn },
+        { "currentParam", kb.ids.currentParam },
         { "currentStruct", kb.ids.currentStruct },
         { "data", kb.ids.data },
         { "description", kb.ids.description },
@@ -4118,6 +4124,7 @@ Strings::Strings(brain::Brain& kb) :
         { "key", kb.ids.key },
         { "keyType", kb.ids.keyType },
         { "last", kb.ids.last },
+        { "lastOp", kb.ids.lastOp },
         { "lhs", kb.ids.lhs },
         { "list", kb.ids.list },
         { "listType", kb.ids.listType },
@@ -4159,6 +4166,7 @@ Strings::Strings(brain::Brain& kb) :
         { "stateParam1", kb.ids.stateParam1 },
         { "stateParam2", kb.ids.stateParam2 },
         { "stateParam3", kb.ids.stateParam3 },
+        { "stateParamEval", kb.ids.stateParamEval },
         { "stateParamInit", kb.ids.stateParamInit },
         { "stateRhs", kb.ids.stateRhs },
         { "stateStackCall", kb.ids.stateStackCall },
@@ -4300,6 +4308,7 @@ void AstStd::createOp()
             member("ast", "ast::Base"),
             member("cell", "ast::Base"),
             member("method", "ast::Base"),
+            member("currentParam", "std::Cell"),
             member("parameters", tt_("std::List", "valueType", "std::Slot")),
             member("stack", "ast::Base"),
             member("state", "std::Cell"),
@@ -4908,8 +4917,8 @@ AstStd::AstStd(brain::Brain& kb) :
     stdScope.add<Struct>("StackFrame")
         .members(
             member("method", "op::Function"),
+            member("ops", "List"),
             member("input", "Index"),
-            member("output", "op::Var"),
             member("localVars", "Index"));
 
     stdScope.add<Struct>("Program")
@@ -5305,6 +5314,7 @@ AstStd::AstStd(brain::Brain& kb) :
                 .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.Slot))),
                                  set(p_("indexType") / "sharedObject", "slotRole", self()),
                                  set(p_("indexType") / "sharedObject", "slotType", struct_("Index")))),
+            set(p_("indexType"), "methods", m_("struct") / "methods"),
             set(self(), "struct", p_("indexType")));
 
     /*

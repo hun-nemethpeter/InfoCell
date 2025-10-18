@@ -31,6 +31,7 @@ public:
     List container;
     List continue_;
     List currentFn;
+    List currentParam;
     List currentStruct;
     List data;
     List description;
@@ -53,6 +54,7 @@ public:
     List key;
     List keyType;
     List last;
+    List lastOp;
     List lhs;
     List list;
     List listType;
@@ -96,6 +98,7 @@ public:
     List stateParam1;
     List stateParam2;
     List stateParam3;
+    List stateParamEval;
     List stateParamInit;
     List stateRhs;
     List stateStackCall;
@@ -764,7 +767,7 @@ public:
     protected:
         Ast::Base& resolveTypesInCode(CellI& resolveState, CellI& ast);
         void addBlock(Block& block);
-        void compileParams(cells::Object& function, cells::Map& subTypesMap, CellI& state);
+        void compileParams(cells::Object& function, cells::Map& functionSlots, cells::Map& subTypesMap, CellI& state);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI& state);
         void checkMethodCall(CellI& astType, CellI& astMethodId, CellI& state);
         List& parameters();

@@ -114,6 +114,7 @@ public:
     CellI& smethod(CellI& role, Param param1, Param param2);
     CellI& smethod(CellI& role, Param param1, Param param2, Param param3);
     CellI& smethod(CellI& role, Param param1, Param param2, Param param3, Param param4);
+    void printIndent();
     void resetIndent();
     static void clearStack(CellI& method);
 
@@ -136,7 +137,6 @@ protected:
         setFnParam(fn, param);
         setFnParam(fn, std::forward<Args>(args)...);
     }
-    void printIndent();
 
     // core data handling
     void opGet();
