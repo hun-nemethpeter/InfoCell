@@ -578,27 +578,10 @@ static void evalOpActivate(CellI& self, CellI*& currentCell, CellI*& previousCel
         previousCell     = currentCell;
         CellI& inputCell = self[kb.ids.cell];
         CellI* status    = &kb.ids.process;
-#if 0
-       if (&op.struct_() == &kb.std.op.Return) {
-            op();
-            set(kb.ids.status, kb.ids.return_);
-            break;
-        }
-        set(kb.ids.status, kb.ids.process);
-        op();
-        if (&(*this)[kb.ids.status] == &kb.ids.continue_ || &(*this)[kb.ids.status] == &kb.ids.break_) {
-            break;
-        }
-        if (op.has(kb.ids.status)) {
-            if (&op[kb.ids.status] == &kb.ids.return_ || &op[kb.ids.status] == &kb.ids.continue_ || &op[kb.ids.status] == &kb.ids.break_) {
-                set(kb.ids.status, op[kb.ids.status]);
-                break;
-            }
-        }
-#endif
+
         if (self.has(kb.ids.parent)) {
             CellI& parent = self[kb.ids.parent];
-            if (&inputCell.struct_() == &kb.std.op.Return) {
+            if (&inputCell.struct_() == &kb.std.op.Return || (inputCell.has(kb.ids.status) && (&inputCell[kb.ids.status] == &kb.ids.return_))) {
                 parent.set(kb.ids.status, kb.ids.return_);
                 status = &kb.ids.return_;
             } else if (&parent[kb.ids.status] == &kb.ids.continue_ || &parent[kb.ids.status] == &kb.ids.break_) {
@@ -820,8 +803,10 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
             //        std::cout << "delete newStackListItem: " << &newStackListItem << std::endl;
             delete &stackFrame;
             delete &stackNode;
+            currentCell = &self[kb.ids.previous];
+        } else {
+            currentCell = &kb.ids.emptyObject;
         }
-        currentCell = &self[kb.ids.previous];
 #if 0
     } else if (&state == &kb.ids.stateStackCall) {
         CellI& cell             = self[kb.ids.cell][kb.ids.value];
@@ -2259,10 +2244,6 @@ void Object::clearStack(CellI& method)
     CellI* stackListItem0 = &(*stackListItem1)["previous"];
     CellI* stackFrame     = &(*stackListItem1)["value"];
     CellI* inputIndex     = &(*stackFrame)["input"];
-    if (method.struct_()["subTypes"]["index"].has("returnType")) {
-        CellI* outputIndex = &(*stackFrame)["output"];
-        delete outputIndex;
-    }
     if (method.struct_()["subTypes"]["index"].has("localVars")) {
         CellI* localVarsIndex = &(*stackFrame)["localVars"];
         delete localVarsIndex;
