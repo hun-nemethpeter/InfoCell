@@ -916,6 +916,7 @@ TEST_F(CellTest, TrieMap)
     EXPECT_EQ(&trieMap.method(kb.name("size")), &_1_);
     EXPECT_EQ(&trieMap[ids.list][ids.size], &_1_);
     EXPECT_EQ(&trieMap.method(kb.name("empty")), &false_);
+    CellI& test = trieMap.method(kb.name("hasKey"), { ids.key, kb.list(_1_, _1_, _1_, _1_) });
     EXPECT_EQ(&trieMap.method(kb.name("hasKey"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }), &true_);
     EXPECT_EQ(&trieMap.method(kb.name("getValue"), { ids.key, kb.list(_1_, _1_, _1_, _1_) }), &kb.ids.red);
 

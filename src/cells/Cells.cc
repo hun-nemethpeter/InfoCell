@@ -982,28 +982,32 @@ static void evalOpIf(CellI& self, CellI*& currentCell, CellI*& previousCell)
         if (condition) {
             branchPtr = &self[kb.ids.then];
             self.set(kb.ids.state, kb.ids.stateThen);
-        } else if (self.has(kb.ids.else_)) {
-            branchPtr = &self[kb.ids.else_];
-            self.set(kb.ids.state, kb.ids.stateElse);
+        }
+ else if (self.has(kb.ids.else_)) {
+     branchPtr = &self[kb.ids.else_];
+     self.set(kb.ids.state, kb.ids.stateElse);
         }
         previousCell = currentCell;
         if (branchPtr) {
             currentCell = branchPtr;
-        } else {
+        }
+        else {
             currentCell = &self[kb.ids.previous];
             self.set(kb.ids.state, kb.ids.stateParamInit);
         }
-    } else if (&state == &kb.ids.stateThen || &state == &kb.ids.stateElse) {
-        CellI& branch = &state == &kb.ids.stateThen ? self[kb.ids.then] : self[kb.ids.else_];
-        if (&branch.struct_() == &kb.std.op.Return) {
-            self.set(kb.ids.status, kb.ids.return_);
-        } else if (branch.has(kb.ids.status)) {
-            self.set(kb.ids.status, branch[kb.ids.status]);
-        }
+    }
+ else if (&state == &kb.ids.stateThen || &state == &kb.ids.stateElse) {
+     CellI& branch = &state == &kb.ids.stateThen ? self[kb.ids.then] : self[kb.ids.else_];
+     if (&branch.struct_() == &kb.std.op.Return) {
+         self.set(kb.ids.status, kb.ids.return_);
+     }
+     else if (branch.has(kb.ids.status)) {
+         self.set(kb.ids.status, branch[kb.ids.status]);
+     }
 
-        previousCell = currentCell;
-        currentCell  = &self[kb.ids.previous];
-        self.set(kb.ids.state, kb.ids.stateParamInit);
+     previousCell = currentCell;
+     currentCell = &self[kb.ids.previous];
+     self.set(kb.ids.state, kb.ids.stateParamInit);
     }
 }
 
@@ -1013,6 +1017,51 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        self.set(kb.ids.status, kb.ids.process);
+        CellI& statement = self[kb.ids.statement];
+        previousCell = currentCell;
+        currentCell = &statement;
+        self.set(kb.ids.state, kb.ids.stateStatement);
+    }
+    else if (&state == &kb.ids.stateParamEval) {
+        CellI& statement = self[kb.ids.statement];
+        previousCell = currentCell;
+        currentCell = &statement;
+        self.set(kb.ids.state, kb.ids.stateStatement);
+    }
+    else if (&state == &kb.ids.stateStatement) {
+        CellI& statement = self[kb.ids.statement];
+        if (&statement.struct_() == &kb.std.op.Return) {
+            self.set(kb.ids.status, kb.ids.return_);
+        }
+        else if (statement.has(kb.ids.status)) {
+            self.set(kb.ids.status, statement[kb.ids.status]);
+        }
+        CellI& inputCondition = self[kb.ids.condition];
+        previousCell = currentCell;
+        currentCell = &inputCondition;
+        self.set(kb.ids.state, kb.ids.stateCondition);
+    }
+    else if (&state == &kb.ids.stateCondition) {
+        previousCell = currentCell;
+        if (self.has(kb.ids.status) && (&self[kb.ids.status] == &kb.ids.return_)) {
+            currentCell = &self[kb.ids.previous];
+            self.set(kb.ids.state, kb.ids.stateParamInit);
+        } else {
+            self.set(kb.ids.status, kb.ids.process);
+            bool condition = &self[kb.ids.condition][kb.ids.value] == &kb.boolean.true_;
+            if (condition) {
+                currentCell = &self[kb.ids.statement];
+                self.set(kb.ids.state, kb.ids.stateParamEval);
+            } else {
+                currentCell = &self[kb.ids.previous];
+                self.set(kb.ids.state, kb.ids.stateParamInit);
+            }
+        }
+    }
 }
 
 static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
@@ -1020,6 +1069,51 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
     brain::Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
+    }
+    CellI& state = self[kb.ids.state];
+    if (&state == &kb.ids.stateParamInit) {
+        self.set(kb.ids.previous, *previousCell);
+        self.set(kb.ids.status, kb.ids.process);
+        CellI& inputCondition = self[kb.ids.condition];
+        previousCell = currentCell;
+        currentCell = &inputCondition;
+        self.set(kb.ids.state, kb.ids.stateCondition);
+    }
+    else if (&state == &kb.ids.stateParamEval) {
+        CellI& statement = self[kb.ids.statement];
+        previousCell = currentCell;
+        currentCell = &statement;
+        self.set(kb.ids.state, kb.ids.stateStatement);
+    }
+    else if (&state == &kb.ids.stateStatement) {
+        CellI& statement = self[kb.ids.statement];
+        if (&statement.struct_() == &kb.std.op.Return) {
+            self.set(kb.ids.status, kb.ids.return_);
+        }
+        else if (statement.has(kb.ids.status)) {
+            self.set(kb.ids.status, statement[kb.ids.status]);
+        }
+        CellI& inputCondition = self[kb.ids.condition];
+        previousCell = currentCell;
+        currentCell = &inputCondition;
+        self.set(kb.ids.state, kb.ids.stateCondition);
+    }
+    else if (&state == &kb.ids.stateCondition) {
+        previousCell = currentCell;
+        if (self.has(kb.ids.status) && (&self[kb.ids.status] == &kb.ids.return_)) {
+            currentCell = &self[kb.ids.previous];
+            self.set(kb.ids.state, kb.ids.stateParamInit);
+        } else {
+            self.set(kb.ids.status, kb.ids.process);
+            bool condition = &self[kb.ids.condition][kb.ids.value] == &kb.boolean.true_;
+            if (condition) {
+                currentCell = &self[kb.ids.statement];
+                self.set(kb.ids.state, kb.ids.stateParamEval);
+            } else {
+                currentCell = &self[kb.ids.previous];
+                self.set(kb.ids.state, kb.ids.stateParamInit);
+            }
+        }
     }
 }
 

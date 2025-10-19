@@ -92,6 +92,7 @@ public:
     List slotType;
     List stack;
     List state;
+    List stateCondition;
     List stateElse;
     List stateLhs;
     List statement;
@@ -102,6 +103,7 @@ public:
     List stateParamInit;
     List stateRhs;
     List stateStackCall;
+    List stateStatement;
     List stateThen;
     List static_;
     List status;

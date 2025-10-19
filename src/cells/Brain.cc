@@ -87,6 +87,7 @@ ID::ID(brain::Brain& kb) :
     slotType(kb, kb.std.Char, "slotType"),
     stack(kb, kb.std.Char, "stack"),
     state(kb, kb.std.Char, "state"),
+    stateCondition(kb, kb.std.Char, "stateCondition"),
     stateElse(kb, kb.std.Char, "stateElse"),
     stateLhs(kb, kb.std.Char, "stateLhs"),
     statement(kb, kb.std.Char, "statement"),
@@ -97,6 +98,7 @@ ID::ID(brain::Brain& kb) :
     stateParamInit(kb, kb.std.Char, "stateParamInit"),
     stateRhs(kb, kb.std.Char, "stateRhs"),
     stateStackCall(kb, kb.std.Char, "stateStackCall"),
+    stateStatement(kb, kb.std.Char, "stateStatement"),
     stateThen(kb, kb.std.Char, "stateThen"),
     static_(kb, kb.std.Char, "static_"),
     status(kb, kb.std.Char, "status"),
@@ -4161,6 +4163,7 @@ Strings::Strings(brain::Brain& kb) :
         { "slotType", kb.ids.slotType },
         { "stack", kb.ids.stack },
         { "state", kb.ids.state },
+        { "stateCondition", kb.ids.stateCondition },
         { "stateElse", kb.ids.stateElse },
         { "stateLhs", kb.ids.stateLhs },
         { "statement", kb.ids.statement },
@@ -4171,6 +4174,7 @@ Strings::Strings(brain::Brain& kb) :
         { "stateParamInit", kb.ids.stateParamInit },
         { "stateRhs", kb.ids.stateRhs },
         { "stateStackCall", kb.ids.stateStackCall },
+        { "stateStatement", kb.ids.stateStatement },
         { "stateThen", kb.ids.stateThen },
         { "static_", kb.ids.static_ },
         { "status", kb.ids.status },
@@ -4546,6 +4550,8 @@ void AstStd::createOp()
         .members(
             member("ast", "ast::Base"),
             member("status", "std::Cell"),
+            member("state", "std::Cell"),
+            member("previous", "std::Cell"),
             member("condition", "Base"),
             member("statement", "Base"));
 }
