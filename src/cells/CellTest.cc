@@ -168,6 +168,8 @@ TEST_F(CellTest, RecursiveCall)
 {
     auto& TestStruct = getStruct("test::TestStruct");
     Object testNumber(kb, TestStruct, "testNumber");
+    CellI& TestStructMethodsIndex = testNumber.struct_()[kb.ids.methods][kb.ids.index];
+    CellI& factorialMethod        = TestStructMethodsIndex[kb.name("factorial")][kb.ids.value];
 
     EXPECT_EQ(&testNumber.method(kb.name("factorial"), { ids.input, _0_ }), &_1_);
     EXPECT_EQ(&testNumber.method(kb.name("factorial"), { ids.input, _1_ }), &_1_);
@@ -176,8 +178,6 @@ TEST_F(CellTest, RecursiveCall)
     EXPECT_EQ(&testNumber.method(kb.name("factorial"), { ids.input, _4_ }), &kb.pools.numbers.get(24));
     EXPECT_EQ(&testNumber.method(kb.name("factorial"), { ids.input, _5_ }), &kb.pools.numbers.get(120));
 
-    CellI& TestStructMethodsIndex = testNumber.struct_()[kb.ids.methods][kb.ids.index];
-    CellI& factorialMethod        = TestStructMethodsIndex[kb.name("factorial")][kb.ids.value];
     int liveCells                 = CellI::s_constructed - CellI::s_destructed;
     for (int i = 0; i < 10; ++i) {
         EXPECT_EQ(&testNumber.method(kb.name("factorial"), { ids.input, _5_ }), &kb.pools.numbers.get(120));

@@ -271,6 +271,7 @@ public:
     void remove(Item* item);
     bool empty() const;
     int size();
+    void clear();
 
 protected:
     CellI& m_valueType;

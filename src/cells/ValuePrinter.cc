@@ -108,18 +108,28 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         }
         CellI& objectType = *objectTypePtr;
         if (ast.has(kb.ids.constructor)) {
-            CellI& constructorOps = cell[kb.ids.ops][kb.ids.first][kb.ids.next][kb.ids.value];
+            CellI& constructorOps = cell[kb.ids.ops][kb.ids.next][kb.ids.cell];
             printOpBlock(constructorOps);
         }
         return;
     }
     m_ss << "{\n";
     m_indent++;
+    CellI* activeNodePtr = &cell[kb.ids.ops];
+    while (activeNodePtr) {
+        CellI& activeNode = *activeNodePtr;
+        printIndent();
+        printImpl(activeNode[kb.ids.cell]);
+        m_ss << ";\n";
+        activeNodePtr = activeNode.has(kb.ids.next) ? &activeNode[kb.ids.next] : nullptr;
+    }
+#if 0
     Visitor::visitList(cell[kb.ids.ops], [this](CellI& op, int, bool&) {
         printIndent();
         printImpl(op);
         m_ss << ";\n";
     });
+#endif
     m_indent--;
     printIndent();
     m_ss << "}";

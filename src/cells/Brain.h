@@ -256,6 +256,7 @@ public:
     Object Slot;
     Object Struct;
     Object Enum;
+    Object OpState;
     Object Container;
     Object List;
     Object ListItem;
