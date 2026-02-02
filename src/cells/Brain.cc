@@ -288,6 +288,488 @@ cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
 
     return ret;
 }
+// ============================================================================
+CellTrie::Node::~Node()
+{
+    for (auto& pair : m_children) {
+        delete pair.second;
+    }
+}
+
+CellTrie::CellTrie(brain::Brain& kb) :
+    kb(kb)
+{
+    m_root = std::make_unique<Node>();
+}
+
+bool CellTrie::empty()
+{
+    return m_root->m_children.empty();
+}
+
+CellI& CellTrie::serializeAst(CellI& ast)
+{
+    CellI& slotList    = ast.struct_()[kb.ids.slots][kb.ids.list];
+    CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
+    List& ret          = *new List(kb, kb.std.Cell);
+    ret.label(ast.label());
+    struct Context
+    {
+        CellI& ast;
+        CellI& slotItem;
+    };
+    std::stack<Context> stack;
+    bool first        = true;
+    CellI* currentPtr = &ast;
+    while (slotItemPtr) {
+        CellI& slotItem = *slotItemPtr;
+        CellI& slot     = slotItem[kb.ids.value];
+        CellI& role     = slot[kb.ids.slotRole];
+        CellI& current  = *currentPtr;
+
+        if (first) {
+            first = false;
+            ret.add(kb.ids.struct_);
+            ret.add(current.struct_());
+        }
+
+        if (current.has(role)) {
+            CellI& value = current[role];
+            ret.add(role);
+            if (&role == &kb.ids.struct_) {
+                ret.add(value);
+                if (&role == &kb.ids.op) {
+                    ret.add(value);
+                }
+            } else if (&value.struct_() == &kb.std.ast.Cell) {
+                ret.add(value[kb.ids.value]);
+                if (&value[kb.ids.value] == &kb.ids.op) {
+                    ret.add(value[kb.ids.value]);
+                }
+            } else if (&value.struct_() == &kb.std.ast.Member) {
+                ret.add(kb.ids.op);
+                ret.add(kb.ids.variable);
+            } else if ((&role != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
+                ret.add(kb.ids.op);
+                ret.add(kb.ids.push);
+                stack.push({ current, *slotItemPtr });
+                first       = true;
+                currentPtr  = &value;
+                slotItemPtr = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
+                continue;
+            }
+        }
+
+        slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
+        if (!slotItemPtr && !stack.empty()) {
+            slotItemPtr = &stack.top().slotItem;
+            currentPtr  = &stack.top().ast;
+            stack.pop();
+            ret.add(kb.ids.op);
+            ret.add(kb.ids.pop);
+            slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+        }
+    }
+
+    return ret;
+}
+void CellTrie::addValue(Node*& node, CellI& value)
+{
+    Node*& roleNode = node->m_children[&value];
+    if (roleNode == nullptr) {
+        roleNode = new Node();
+    }
+    node = roleNode;
+}
+
+void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
+{
+    struct Context
+    {
+        CellI& ast;
+        CellI& slotItem;
+    };
+    std::deque<Context> stack;
+
+    Node* currentNode  = m_root.get();
+    CellI& slotList    = ast.struct_()[kb.ids.slots][kb.ids.list];
+    CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
+    bool first         = true;
+    CellI* currentPtr  = &ast;
+    Map memberIds(kb, kb.std.Cell, kb.std.Cell);
+
+    while (slotItemPtr) {
+        CellI& slotItem = *slotItemPtr;
+        CellI& slot     = slotItem[kb.ids.value];
+        CellI& role     = slot[kb.ids.slotRole];
+        CellI& current  = *currentPtr;
+
+        if (first) {
+            first = false;
+            addValue(currentNode, kb.ids.struct_);
+            addValue(currentNode, current.struct_());
+        }
+
+        if (current.has(role)) {
+            CellI& value = current[role];
+            addValue(currentNode, role);
+            if (&value.struct_() == &kb.std.ast.Cell) {
+                addValue(currentNode, value[kb.ids.value]);
+                if (&value[kb.ids.value] == &kb.ids.op) {
+                    addValue(currentNode, value[kb.ids.value]);
+                }
+            } else if (&value.struct_() == &kb.std.ast.Member) {
+                addValue(currentNode, kb.ids.op);
+                addValue(currentNode, kb.ids.variable);
+                CellI& role = value[kb.ids.role];
+                if (!memberIds.hasKey(role)) {
+                    List& path = *new List(kb, kb.std.Cell, fmt::format("path for {}", role.label()));
+                    for (auto& stackItem : stack) {
+                        auto& slotRole = stackItem.slotItem[kb.ids.value][kb.ids.slotRole];
+                        path.add(slotRole);
+                    }
+                    path.add(slotItem[kb.ids.value][kb.ids.slotRole]);
+                    memberIds.add(role, path);
+                }
+            } else if ((&role != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
+                addValue(currentNode, kb.ids.op);
+                addValue(currentNode, kb.ids.push);
+                stack.push_back({ current, *slotItemPtr });
+                first       = true;
+                currentPtr  = &value;
+                slotItemPtr = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
+                continue;
+            }
+        }
+
+        slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
+        if (!slotItemPtr && !stack.empty()) {
+            currentPtr  = &stack.back().ast;
+            slotItemPtr = &stack.back().slotItem;
+            stack.pop_back();
+            addValue(currentNode, kb.ids.op);
+            addValue(currentNode, kb.ids.pop);
+            slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+        }
+    }
+
+    // At the end of the word, mark this node as the leaf node
+    currentNode->m_isLeaf = 1;
+    currentNode->m_data   = processToolAst(ast, tool, memberIds, compiledToolType);
+}
+
+CellI* CellTrie::processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds, CellI& compiledToolType)
+{
+    CellI& membersList = toolAst[kb.ids.members][kb.ids.list];
+    CellI* slotItemPtr = membersList.has(kb.ids.first) ? &membersList[kb.ids.first] : nullptr;
+    bool first         = true;
+    List& builder      = *new List(kb, kb.std.Cell, fmt::format("builder for {}", toolAst.label()));
+
+    while (slotItemPtr) {
+        CellI& slotItem = *slotItemPtr;
+        CellI& slot     = slotItem[kb.ids.value];
+        CellI& role     = slot[kb.ids.slotRole];
+
+        if (first) {
+            first = false;
+            builder.add(kb.ast.cell(kb.ids.struct_));
+            builder.add(kb.ast.cell(compiledToolType));
+            continue;
+        }
+        builder.add(kb.ast.cell(role));
+        builder.add(memberIds.getValue(role));
+
+        slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
+    }
+
+    return &builder;
+}
+
+void CellTrie::handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, std::stack<FindToolStackNode>& stack)
+{
+    slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+    while (!slotItemPtr) {
+        if (stack.empty()) {
+            return;
+        }
+
+        auto opFindIt = node->m_children.find(&kb.ids.op);
+        if (opFindIt == node->m_children.end()) {
+            return;
+        }
+        Node* opNode   = opFindIt->second;
+        auto popFindIt = opNode->m_children.find(&kb.ids.pop);
+        if (popFindIt == opNode->m_children.end()) {
+            return;
+        }
+        node = popFindIt->second;
+
+        slotItemPtr = &stack.top().slotItem;
+        astCellPtr  = &stack.top().astCell;
+        stack.pop();
+        slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+    }
+}
+
+bool CellTrie::checkValue(CellI*& astCellPtr, CellI*& slotItemPtr, bool& first, Node*& node, std::stack<FindToolStackNode>& stack, CellI& role, CellI& value)
+{
+    auto roleFindIt = node->m_children.find(&role);
+    if (roleFindIt == node->m_children.end()) {
+        node = nullptr;
+        return false;
+    } else {
+        node = roleFindIt->second;
+    }
+
+    auto findIt = node->m_children.find(&value);
+    if (findIt == node->m_children.end()) {
+        auto opFindIt = node->m_children.find(&kb.ids.op);
+        if (opFindIt == node->m_children.end()) {
+            node = nullptr;
+            return false;
+        } else {
+            // ok, so value not found but we have an op here
+            Node* opNode = opFindIt->second;
+
+            for (auto& [key, nextNode] : opNode->m_children) {
+                if (key == &kb.ids.variable) {
+                    node = nextNode;
+                    handleStep(astCellPtr, slotItemPtr, node, stack);
+                    return true;
+                }
+                if (key == &kb.ids.push) {
+                    stack.push({ .astCell = *astCellPtr, .slotItem = *slotItemPtr });
+                    astCellPtr  = &(*astCellPtr)[role];
+                    slotItemPtr = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
+                    node        = nextNode;
+                    first       = true;
+                    return true;
+                }
+                if (key == &kb.ids.pop) {
+                    if (stack.empty()) {
+                        return false;
+                    }
+                    slotItemPtr = &stack.top().slotItem;
+                    astCellPtr  = &stack.top().astCell;
+                    stack.pop();
+                    slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+                    node        = nextNode;
+                    if (!slotItemPtr) {
+                        handleStep(astCellPtr, slotItemPtr, node, stack);
+                    }
+                    return true;
+                }
+            }
+        }
+    } else {
+        node = findIt->second;
+    }
+    // the first slot is the kb.ids.struct_ but it is not in the slot list
+    if (first) {
+        first = false;
+        return true;
+    }
+    handleStep(astCellPtr, slotItemPtr, node, stack);
+
+    return true;
+}
+
+CellI* CellTrie::findToolByAst(CellI& ast)
+{
+    std::stack<FindToolStackNode> stack;
+
+    Node* currentNode  = m_root.get();
+    CellI& slotList    = ast.struct_()[kb.ids.slots][kb.ids.list];
+    CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
+    bool first         = true;
+    CellI* astCellPtr  = &ast;
+
+    while (slotItemPtr) {
+        CellI& role = (*slotItemPtr)[kb.ids.value][kb.ids.slotRole];
+
+        if (first && !checkValue(astCellPtr, slotItemPtr, first, currentNode, stack, kb.ids.struct_, (*astCellPtr).struct_())) {
+            return nullptr;
+        }
+
+        if ((*astCellPtr).has(role) && !checkValue(astCellPtr, slotItemPtr, first, currentNode, stack, role, (*astCellPtr)[role])) {
+            return nullptr;
+        }
+    }
+
+    if (currentNode && currentNode->m_isLeaf == 1)
+        return currentNode->m_data;
+
+    return nullptr;
+}
+
+CellI* CellTrie::findToolByList(CellI& list)
+{
+    brain::Brain& kb  = this->kb;
+    Node* currentNode = m_root.get();
+
+    for (CellI* currentListItemPtr = &list[kb.ids.first];;) {
+        CellI& value = (*currentListItemPtr)[kb.ids.value];
+
+        if (&value == &kb.ids.op) {
+            CellI* nextListItemPtr = &(*currentListItemPtr)[kb.ids.next];
+            CellI& nextValue       = (*nextListItemPtr)[kb.ids.value];
+            if (&nextValue == &kb.ids.variable) {
+            } else if (&nextValue == &kb.ids.push) {
+            } else if (&nextValue == &kb.ids.pop) {
+            }
+        }
+        auto chFindIt = currentNode->m_children.find(&value);
+        if (chFindIt == currentNode->m_children.end()) {
+            auto opFindIt = currentNode->m_children.find(&kb.ids.op);
+            if (opFindIt == currentNode->m_children.end()) {
+                currentNode = nullptr;
+                break;
+            } else {
+                // ok, so value not found but we have an op here
+                Node* opNode   = opFindIt->second;
+                auto varFindIt = opNode->m_children.find(&kb.ids.variable);
+                if (varFindIt == opNode->m_children.end()) {
+                    currentNode = nullptr;
+                    break;
+                }
+                currentNode = varFindIt->second;
+            }
+        } else {
+            currentNode = chFindIt->second;
+        }
+
+        if ((*currentListItemPtr).missing(kb.ids.next)) {
+            break;
+        }
+        currentListItemPtr = &(*currentListItemPtr)[kb.ids.next];
+    }
+
+    if (currentNode && currentNode->m_isLeaf == 1)
+        return currentNode->m_data;
+
+    return nullptr;
+}
+
+void CellTrie::createTool(CellI& var, CellI& inputAst, CellI& inputToolDesc)
+{
+    auto& ListOfCellStruct = kb.getStruct(kb.templateId("std::List", kb.ids.valueType, kb.std.Cell));
+
+    brain::Brain& kb        = this->kb;
+    List& toCreate          = *new List(kb, kb.std.Cell);
+    Index& toCreateItemRoot = *new Index(kb);
+    toCreateItemRoot.set(kb.ids.ast, inputAst);
+    toCreateItemRoot.set(kb.ids.description, inputToolDesc);
+    toCreateItemRoot.set(kb.ids.cell, var);
+    toCreateItemRoot.set(kb.ids.role, kb.ids.name);
+
+    toCreate.add(toCreateItemRoot);
+    CellI* toCreateItemPtr = &toCreate[kb.ids.first];
+    while (toCreateItemPtr) {
+        CellI& toCreateItem = (*toCreateItemPtr)[kb.ids.value];
+        CellI& ast          = toCreateItem[kb.ids.ast];
+        CellI& toolDesc     = toCreateItem[kb.ids.description];
+        CellI* ret          = &toCreateItem[kb.ids.cell];
+        CellI& retKey       = toCreateItem[kb.ids.role];
+
+        CellI* slotItemPtr = &toolDesc[kb.ids.first];
+        bool first         = true;
+        List& subTools     = *new List(kb, kb.std.Cell);
+        while (slotItemPtr) {
+            CellI& key = (*slotItemPtr)[kb.ids.value];
+
+            if (first) {
+                if (&key.struct_() != &kb.std.ast.Cell && (&key[kb.ids.value] != &kb.ids.struct_)) {
+                    throw "Tool description without type!";
+                }
+                first               = false;
+                CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
+                CellI& valueCell    = nextSlotItem[kb.ids.value];
+                if (&valueCell.struct_() != &kb.std.ast.Cell) {
+                    throw "Tool description type is not constant value!";
+                }
+                CellI& type   = valueCell[kb.ids.value];
+                CellI* newObj = new Object(kb, type, toolDesc.label());
+                ret->set(retKey, *newObj);
+                ret = newObj;
+
+                slotItemPtr = &nextSlotItem;
+            } else if (&key.struct_() == &kb.std.ast.Cell) {
+                CellI& role         = key[kb.ids.value];
+                CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
+                CellI& valueCell    = nextSlotItem[kb.ids.value];
+                CellI* valuePtr     = nullptr;
+                if (&valueCell.struct_() == &kb.std.ast.Cell) {
+                    valuePtr = &ast[role];
+                    ret->set(role, *valuePtr);
+                } else if (&valueCell.struct_() == &ListOfCellStruct) {
+                    valuePtr = &ast;
+                    Visitor::visitList(valueCell, [&valuePtr, &kb](CellI& pathItem, int, bool& stop) {
+                        CellI& currentValue = *valuePtr;
+                        valuePtr            = &currentValue[pathItem];
+                    });
+                    ret->set(role, *valuePtr);
+                } else {
+                    throw "Tool description value is not a constant value or List!";
+                }
+                if (&(*valuePtr).struct_() != &kb.std.ast.Cell) {
+                    static CellI& retVal = *new Object(kb, kb.std.ast.Return);
+                    retVal.set(kb.ids.value, *valuePtr);
+                    subTools.add(kb.ast.slot(*ret, role));
+                }
+                slotItemPtr = &nextSlotItem;
+            } else {
+                throw "Tool description role is not constant value!";
+            }
+
+            slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+        }
+        CellI* subpToolItemPtr = &subTools[kb.ids.first];
+        static CellI& retVal   = *new Object(kb, kb.std.ast.Return);
+        while (subpToolItemPtr) {
+            CellI& slot       = (*subpToolItemPtr)[kb.ids.value];
+            CellI& key        = slot[kb.ids.slotRole];
+            CellI& value      = slot[kb.ids.slotType];
+            CellI& subToolAst = key[value];
+
+            retVal.set(kb.ids.value, subToolAst);
+
+            CellI* subToolDesc = findToolByAst(retVal);
+
+            if (!subToolDesc) {
+                throw "Sub tool not found!";
+            }
+            Index& toCreateItemSub = *new Index(kb);
+            toCreateItemSub.set(kb.ids.ast, subToolAst);
+            toCreateItemSub.set(kb.ids.description, *subToolDesc);
+            toCreateItemSub.set(kb.ids.cell, (*ret));
+            toCreateItemSub.set(kb.ids.role, value);
+            toCreate.add(toCreateItemSub);
+
+            CellI* toDelete = subpToolItemPtr;
+            subpToolItemPtr = (*subpToolItemPtr).has(kb.ids.next) ? &(*subpToolItemPtr)[kb.ids.next] : nullptr;
+            subTools.remove((List::Item*)toDelete);
+        }
+        CellI* toDelete = toCreateItemPtr;
+        toCreateItemPtr = (*toCreateItemPtr).has(kb.ids.next) ? &(*toCreateItemPtr)[kb.ids.next] : nullptr;
+        toCreate.remove((List::Item*)toDelete);
+    }
+}
+
+void CellTrie::print()
+{
+    if (empty())
+        return;
+    printCb(m_root.get());
+}
+
+void CellTrie::printCb(Node* node)
+{
+    printf("%s -> ", node->m_data->label().c_str());
+
+    for (auto& it : node->m_children) {
+        printCb(it.second);
+    }
+}
 
 // ============================================================================
 Ast::Base::Base(brain::Brain& kb, CellI& classCell, const std::string& label) :
@@ -991,6 +1473,9 @@ CellI& Ast::Scope::compile()
     // Step 3. actual compilation
     compileTheResolvedAsts(programData, compileState);
 
+    // Step 3. process descriptions
+    processDescriptionsInAsts(programData, compileState);
+
     return program;
 }
 
@@ -1252,6 +1737,39 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
             state.set("scope", *this);
             state.set("resolvedScope", resolvedScope);
         });
+    }
+}
+
+void Ast::Scope::processDescriptionsInAsts(CellI& programData, CellI& state)
+{
+    auto& compiledStructs = static_cast<TrieMap&>(programData[kb.ids.structs]);
+    m_cellTrie            = new CellTrie(kb);
+    CellTrie& cellTrie = *m_cellTrie;
+    auto& astScope = getItem<Scope>("std").getItem<Scope>("ast");
+    if (astScope.has("structs")) {
+        Visitor::visitList(astScope.items<Struct>()[kb.ids.list], [this, &cellTrie, &compiledStructs](CellI& struct_, int i, bool& stop) {
+            Struct& astStruct = static_cast<Struct&>(struct_[kb.ids.value]);
+            if (astStruct.has(kb.ids.description) && astStruct[kb.ids.description].has(kb.ids.asts)) {
+                auto& asts = astStruct[kb.ids.description][kb.ids.asts];
+                std::cout << astStruct.label() << " => ";
+                Visitor::visitList(asts, [this, &astStruct, &cellTrie, &compiledStructs](CellI& ast, int i, bool& stop) {
+                    auto& compiledAstStruct = compiledStructs.getValue(static_cast<Ast::Struct&>(astStruct).getFullyQualifiedName());
+                    cellTrie.add(ast, astStruct, compiledAstStruct);
+                    {
+                        CellI& astAsList = cellTrie.serializeAst(ast);
+                        std::stringstream ss;
+                        Visitor::visitList(astAsList, [&ss](CellI& value, int, bool& stop) {
+                            ss << value.label() << " ";
+                        });
+                        std::cout << ss.str();
+                    }
+
+                });
+                std::cout << std::endl;
+            }
+        });
+
+        std::cout << "";
     }
 }
 
@@ -4563,6 +5081,8 @@ void AstStd::createAst()
     auto& astScope = stdScope.add<Scope>("ast");
     astScope.add<Struct>("Base");
     astScope.add<Struct>("Add")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             equal(subtract(return_(), m_("rhs")), m_("lhs")),
             return_(add(m_("lhs"), m_("rhs"))),
@@ -4572,6 +5092,10 @@ void AstStd::createAst()
             member("rhs", "Base"));
 
     astScope.add<Struct>("And")
+        .memberOf(
+            _(std.ast.Base))
+        .description(
+            return_(and_(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4599,6 +5123,8 @@ void AstStd::createAst()
             member("cell", "Base"));
 
     astScope.add<Struct>("Divide")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             // TODO check rhs != 0
             equal(multiply(return_(), m_("rhs")), m_("lhs")),
@@ -4626,6 +5152,8 @@ void AstStd::createAst()
             member("value", "std::Cell"));
 
     astScope.add<Struct>("Equal")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             return_(equal(m_("lhs"), m_("rhs"))))
         .members(
@@ -4666,6 +5194,8 @@ void AstStd::createAst()
             member("static_", "std::Boolean"));
 
     astScope.add<Struct>("Get")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             return_(m_("cell") / m_("role")))
         .members(
@@ -4673,6 +5203,8 @@ void AstStd::createAst()
             member("role", "Base"));
 
     astScope.add<Struct>("GreaterThan")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             lessThan(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
             return_(greaterThan(m_("lhs"), m_("rhs"))))
@@ -4681,6 +5213,8 @@ void AstStd::createAst()
             member("rhs", "Base"));
 
     astScope.add<Struct>("GreaterThanOrEqual")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             lessThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
             return_(greaterThanOrEqual(m_("lhs"), m_("rhs"))))
@@ -4689,6 +5223,8 @@ void AstStd::createAst()
             member("rhs", "Base"));
 
     astScope.add<Struct>("Has")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             return_(has(m_("cell"), m_("role"))))
         .members(
@@ -4696,16 +5232,20 @@ void AstStd::createAst()
             member("role", "Base"));
 
     astScope.add<Struct>("If")
+#if 0 // for the CellTrie we have to reference _every_ member but the else_ here is optional so this is a TODO
         .description(
-            equal(_("ActivationPointer") / _("currentCell"), _("condition")), // do we need this?!
+//            equal(_("ActivationPointer") / _("currentCell"), _("condition")), // do we need this?!
             if_(m_("condition")).then_(m_("then")) // is this enough?!
             )
+#endif
         .members(
             member("condition", "Base"),
             member("then", "Base"),
             member("else_", "Base"));
 
     astScope.add<Struct>("LessThan")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             greaterThan(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
             return_(lessThan(m_("lhs"), m_("rhs"))))
@@ -4714,6 +5254,8 @@ void AstStd::createAst()
             member("rhs", "Base"));
 
     astScope.add<Struct>("LessThanOrEqual")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             greaterThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
             return_(lessThanOrEqual(m_("lhs"), m_("rhs"))))
@@ -4726,6 +5268,8 @@ void AstStd::createAst()
             member("role", "Base"));
 
     astScope.add<Struct>("Missing")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             return_(missing(m_("cell"), m_("role"))))
         .members(
@@ -4733,9 +5277,18 @@ void AstStd::createAst()
             member("role", "Base"));
 
     astScope.add<Struct>("Multiply")
+        .memberOf(
+            _(std.ast.Base))
         .description(
+#if 0 // we need a precondition secton for this if block
             if_(notSame(m_("lhs"), _(kb._0_))).then_(
-                equal(divide(return_(), m_("lhs")), m_("rhs"))),
+#endif
+            equal(divide(return_(), m_("lhs")), m_("rhs"))
+#if 0 // we need a precondition secton for this if block
+            )
+#else
+            ,
+#endif
             return_(multiply(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
@@ -4752,6 +5305,8 @@ void AstStd::createAst()
             member("input", "Base"));
 
     astScope.add<Struct>("NotEqual")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             return_(notEqual(m_("lhs"), m_("rhs"))))
         .members(
@@ -4759,6 +5314,8 @@ void AstStd::createAst()
             member("rhs", "Base"));
 
     astScope.add<Struct>("NotSame")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             return_(notSame(m_("lhs"), m_("rhs"))))
         .members(
@@ -4766,6 +5323,10 @@ void AstStd::createAst()
             member("rhs", "Base"));
 
     astScope.add<Struct>("Or")
+        .memberOf(
+            _(std.ast.Base))
+        .description(
+            return_(or_(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -4780,10 +5341,14 @@ void AstStd::createAst()
             member("compiled", "std::Struct"));
 
     astScope.add<Struct>("Return")
+        .memberOf(
+            _(std.ast.Base))
         .members(
             member("value", "std::Cell"));
 
     astScope.add<Struct>("Same")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             return_(same(m_("lhs"), m_("rhs"))))
         .members(
@@ -4808,6 +5373,8 @@ void AstStd::createAst()
     astScope.add<Struct>("SelfFn");
 
     astScope.add<Struct>("Set")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             equal(m_("cell") / m_("role"), m_("value")))
         .members(
@@ -4860,6 +5427,8 @@ void AstStd::createAst()
             member("name", "std::Cell"));
 
     astScope.add<Struct>("Subtract")
+        .memberOf(
+            _(std.ast.Base))
         .description(
             equal(add(return_(), m_("rhs")), m_("lhs")),
             return_(add(m_("lhs"), m_("rhs"))))

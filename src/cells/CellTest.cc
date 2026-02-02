@@ -28,6 +28,125 @@ using infocell::cells::test::CellTest;
 // type checking
 // remove .label() from CellI
 
+TEST_F(CellTest, CellTrieTestForSet)
+{
+    brain::CellTrie& cellTrie = *kb.globalScope.m_cellTrie;
+    // test the pixel.set(green, 5)
+    Object& pixel           = *new Object(kb, kb.std.Color, "pixel");
+    CellI& requestForSetGet = *new Object(kb, kb.std.ast.Get);
+    requestForSetGet.set(kb.ids.cell, kb.ast.cell(pixel));
+    requestForSetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+
+    CellI& requestForSet = *new Object(kb, kb.std.ast.Equal, "pixel.get(green) == 5");
+    requestForSet.set(kb.ids.lhs, requestForSetGet);
+    requestForSet.set(kb.ids.rhs, kb.ast.cell(kb._5_));
+
+    CellI& requestForSetAstList = cellTrie.serializeAst(requestForSet);
+    {
+        std::stringstream ss;
+        Visitor::visitList(requestForSetAstList, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell pixel role green op pop rhs 5 ");
+    }
+
+    CellI* toolBuilder      = cellTrie.findToolByAst(requestForSet);
+    CellI& resultToolAstVar = *new Object(kb, kb.std.ast.Var, "resultToolAstVar");
+    cellTrie.createTool(resultToolAstVar, requestForSet, *toolBuilder);
+    CellI& resultToolAst = resultToolAstVar[kb.ids.name];
+
+    EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &pixel);
+    EXPECT_EQ(&resultToolAst[kb.ids.role].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.role][kb.ids.value], &kb.ids.green);
+    EXPECT_EQ(&resultToolAst[kb.ids.value].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.value], &kb._5_);
+}
+
+TEST_F(CellTest, CellTrieTestForGet)
+{
+    brain::CellTrie& cellTrie = *kb.globalScope.m_cellTrie;
+    Object& pixel             = *new Object(kb, kb.std.Color, "pixel");
+
+    // test the return get(x, y)
+    CellI& requestForGetGet = *new Object(kb, kb.std.ast.Get);
+    requestForGetGet.set(kb.ids.cell, kb.ast.cell(pixel));
+    requestForGetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+
+    CellI& requestForGet = *new Object(kb, kb.std.ast.Return, "return pixel.get(green)");
+    requestForGet.set(kb.ids.value, requestForGetGet);
+
+    CellI& requestForGetAstList = cellTrie.serializeAst(requestForGet);
+    {
+        std::stringstream ss;
+        Visitor::visitList(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        EXPECT_EQ(ss.str(), "struct ast::Return value op push struct ast::Get cell pixel role green op pop ");
+    }
+
+    CellI* toolBuilder      = cellTrie.findToolByAst(requestForGet);
+    CellI& resultToolAstVar = *new Object(kb, kb.std.ast.Var, "resultToolAstVar");
+    cellTrie.createTool(resultToolAstVar, requestForGet, *toolBuilder);
+    CellI& resultToolAst = resultToolAstVar[kb.ids.name];
+
+    EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Get);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &pixel);
+    EXPECT_EQ(&resultToolAst[kb.ids.role].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.role][kb.ids.value], &kb.ids.green);
+}
+
+TEST_F(CellTest, CellTrieTestForGetInGet)
+{
+    brain::CellTrie& cellTrie = *kb.globalScope.m_cellTrie;
+
+    // currentTheme is a test structure to be able to test a nested get. So instead of pixel.get(green) we can replace the "green" node with "currentTheme / std.Color" so we can write
+    // pixel.get(currentTheme.get(std.Color)) == 5
+    Index currentTheme(kb, "currentTheme");
+    currentTheme.set(kb.std.Color, kb.ids.green);
+
+    // test the return get((get(...), y)
+    CellI& requestForSetWithGetGetGet = *new Object(kb, kb.std.ast.Get, "currentTheme.get(std.Color)");
+    requestForSetWithGetGetGet.set(kb.ids.cell, kb.ast.cell(currentTheme));
+    requestForSetWithGetGetGet.set(kb.ids.role, kb.ast.cell(kb.std.Color));
+
+    CellI& requestForSetWithGetGet = *new Object(kb, kb.std.ast.Get, "currentTheme.get(std.Color).get(green)");
+    requestForSetWithGetGet.set(kb.ids.cell, requestForSetWithGetGetGet);
+    requestForSetWithGetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+
+    CellI& requestForSetWithGet = *new Object(kb, kb.std.ast.Equal, "currentTheme.get(std.Color).get(green) == 5");
+    requestForSetWithGet.set(kb.ids.lhs, requestForSetWithGetGet);
+    requestForSetWithGet.set(kb.ids.rhs, kb.ast.cell(kb._5_));
+
+    CellI& requestForSetWithGetAstList = cellTrie.serializeAst(requestForSetWithGet);
+    {
+        std::stringstream ss;
+        Visitor::visitList(requestForSetWithGetAstList, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op push struct ast::Get cell currentTheme role Color op pop role green op pop rhs 5 ");
+    }
+
+    CellI* toolBuilder      = cellTrie.findToolByAst(requestForSetWithGet);
+    CellI& resultToolAstVar = *new Object(kb, kb.std.ast.Var, "resultToolAstVar");
+    cellTrie.createTool(resultToolAstVar, requestForSetWithGet, *toolBuilder);
+    CellI& resultToolAst = resultToolAstVar[kb.ids.name];
+
+    EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Get);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.cell].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.cell][kb.ids.value], &currentTheme);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.role].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.role][kb.ids.value], &kb.std.Color);
+    EXPECT_EQ(&resultToolAst[kb.ids.role].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.role][kb.ids.value], &kb.ids.green);
+    EXPECT_EQ(&resultToolAst[kb.ids.value].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.value], &kb._5_);
+    std::cout << "";
+}
+
 TEST_F(CellTest, Numbers)
 {
     CellI& digit_0 = kb.pools.digits[0];

@@ -1,5 +1,7 @@
 #pragma once
 #include <fmt/core.h>
+#include <stack>
+#include <deque>
 #include "Cells.h"
 
 namespace spdlog {
@@ -305,6 +307,44 @@ template <class T, class EnumValue, class TypedEnumValue>
 concept EnumValueConcept = std::is_same<T, EnumValue>::value || std::is_same<T, TypedEnumValue>::value;
 #endif
 
+class CellTrie
+{
+    struct FindToolStackNode
+    {
+        CellI& astCell;
+        CellI& slotItem;
+    };
+
+    struct Node
+    {
+        ~Node();
+
+        CellI* m_data = 0;
+        std::map<CellI*, Node*> m_children;
+        bool m_isLeaf = false;
+    };
+
+public:
+    CellTrie(brain::Brain& kb);
+    bool empty();
+    CellI& serializeAst(CellI& ast);
+    void add(CellI& ast, CellI& tool, CellI& compiledToolType);
+    CellI* findToolByAst(CellI& ast);
+    CellI* findToolByList(CellI& list);
+    void print();
+    void createTool(CellI& var, CellI& ast, CellI& toolDesc);
+
+private:
+    void addValue(Node*& node, CellI& value);
+    bool checkValue(CellI*& astCellPtr, CellI*& slotItemPtr, bool& first, Node*& node, std::stack<FindToolStackNode>& stack, CellI& role, CellI& value);
+    void handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, std::stack<FindToolStackNode>& stack);
+    void printCb(Node* node);
+    CellI* processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds, CellI& compiledToolType);
+
+    brain::Brain& kb;
+    std::unique_ptr<Node> m_root;
+};
+
 class Ast
 {
 public:
@@ -512,6 +552,8 @@ public:
             return getItemMember<TAst>().items();
         }
 
+        CellTrie* m_cellTrie = nullptr;
+
     protected:
         void registerEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances);
         void resolveEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope);
@@ -522,6 +564,7 @@ public:
         Base* resolveFullNameInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
         Ast::Scope& resolveTypes(CellI& state);
         void compileTheResolvedAsts(CellI& programData, CellI& state);
+        void processDescriptionsInAsts(CellI& programData, CellI& state);
 
         template<class TAst>
         Items<TrieMap, TAst>& getItemMember();
