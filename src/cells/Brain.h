@@ -330,7 +330,6 @@ public:
     CellI& serializeAst(CellI& ast);
     void add(CellI& ast, CellI& tool, CellI& compiledToolType);
     CellI* findToolByAst(CellI& ast);
-    CellI* findToolByList(CellI& list);
     void print();
     void createTool(CellI& var, CellI& ast, CellI& toolDesc);
 

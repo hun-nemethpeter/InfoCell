@@ -86,9 +86,14 @@ TEST_F(CellTest, CellTrieTestForGet)
         EXPECT_EQ(ss.str(), "struct ast::Return value op push struct ast::Get cell pixel role green op pop ");
     }
 
+    // the trick here is that we finding tool for "return get(x, y)" but creating tool with just "get(x, y)" without return...
+    // so we can test tool creation in a composed tool as "return get(x, y)" doesn't make sense as a standalone request
+
+    // passing requestForGet here which is "return get(x, y)"
     CellI* toolBuilder      = cellTrie.findToolByAst(requestForGet);
     CellI& resultToolAstVar = *new Object(kb, kb.std.ast.Var, "resultToolAstVar");
-    cellTrie.createTool(resultToolAstVar, requestForGet, *toolBuilder);
+    // for tool creation we pass requestForGetGet which is just "get(x, y)"
+    cellTrie.createTool(resultToolAstVar, requestForGetGet, *toolBuilder);
     CellI& resultToolAst = resultToolAstVar[kb.ids.name];
 
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Get);
@@ -1932,7 +1937,6 @@ TEST_F(CellTest, CellTrieTest)
         });
         EXPECT_EQ(ss.str(), "struct ast::Return value op push struct ast::Get cell pixel role green op pop ");
     }
-
     testFindToolByAst(cellTrie, requestForGet);
     testFindToolByList(cellTrie, requestForGetAstList);
 

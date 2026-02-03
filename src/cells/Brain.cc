@@ -421,15 +421,21 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
             } else if (&value.struct_() == &kb.std.ast.Member) {
                 addValue(currentNode, kb.ids.op);
                 addValue(currentNode, kb.ids.variable);
-                CellI& role = value[kb.ids.role];
-                if (!memberIds.hasKey(role)) {
-                    List& path = *new List(kb, kb.std.Cell, fmt::format("path for {}", role.label()));
+                CellI& memberRole = value[kb.ids.role];
+                if (!memberIds.hasKey(memberRole)) {
+                    List& path = *new List(kb, kb.std.Cell, fmt::format("path for {}", memberRole.label()));
+                    if (path.label() == "path for cell" && tool.label() == "Get") {
+                        std::cout << "" << std::endl;
+                    }
                     for (auto& stackItem : stack) {
+                        if (&stackItem.ast.struct_() == &kb.std.ast.Return) {
+                            continue;
+                        }
                         auto& slotRole = stackItem.slotItem[kb.ids.value][kb.ids.slotRole];
                         path.add(slotRole);
                     }
                     path.add(slotItem[kb.ids.value][kb.ids.slotRole]);
-                    memberIds.add(role, path);
+                    memberIds.add(memberRole, path);
                 }
             } else if ((&role != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
                 addValue(currentNode, kb.ids.op);
@@ -594,54 +600,6 @@ CellI* CellTrie::findToolByAst(CellI& ast)
         if ((*astCellPtr).has(role) && !checkValue(astCellPtr, slotItemPtr, first, currentNode, stack, role, (*astCellPtr)[role])) {
             return nullptr;
         }
-    }
-
-    if (currentNode && currentNode->m_isLeaf == 1)
-        return currentNode->m_data;
-
-    return nullptr;
-}
-
-CellI* CellTrie::findToolByList(CellI& list)
-{
-    brain::Brain& kb  = this->kb;
-    Node* currentNode = m_root.get();
-
-    for (CellI* currentListItemPtr = &list[kb.ids.first];;) {
-        CellI& value = (*currentListItemPtr)[kb.ids.value];
-
-        if (&value == &kb.ids.op) {
-            CellI* nextListItemPtr = &(*currentListItemPtr)[kb.ids.next];
-            CellI& nextValue       = (*nextListItemPtr)[kb.ids.value];
-            if (&nextValue == &kb.ids.variable) {
-            } else if (&nextValue == &kb.ids.push) {
-            } else if (&nextValue == &kb.ids.pop) {
-            }
-        }
-        auto chFindIt = currentNode->m_children.find(&value);
-        if (chFindIt == currentNode->m_children.end()) {
-            auto opFindIt = currentNode->m_children.find(&kb.ids.op);
-            if (opFindIt == currentNode->m_children.end()) {
-                currentNode = nullptr;
-                break;
-            } else {
-                // ok, so value not found but we have an op here
-                Node* opNode   = opFindIt->second;
-                auto varFindIt = opNode->m_children.find(&kb.ids.variable);
-                if (varFindIt == opNode->m_children.end()) {
-                    currentNode = nullptr;
-                    break;
-                }
-                currentNode = varFindIt->second;
-            }
-        } else {
-            currentNode = chFindIt->second;
-        }
-
-        if ((*currentListItemPtr).missing(kb.ids.next)) {
-            break;
-        }
-        currentListItemPtr = &(*currentListItemPtr)[kb.ids.next];
     }
 
     if (currentNode && currentNode->m_isLeaf == 1)
