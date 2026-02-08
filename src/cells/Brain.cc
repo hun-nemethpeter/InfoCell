@@ -346,9 +346,13 @@ CellI& CellTrie::serializeAst(CellI& ast)
                 if (&value[kb.ids.value] == &kb.ids.op) {
                     ret.add(value[kb.ids.value]);
                 }
-            } else if (&value.struct_() == &kb.std.ast.Member) {
+            } else if (&value.struct_() == &kb.std.ast.Member || &value.struct_() == &kb.std.ast.Return) {
                 ret.add(kb.ids.op);
-                ret.add(kb.ids.variable);
+                if (&value.struct_() == &kb.std.ast.Member) {
+                    ret.add(kb.ids.variable);
+                } else {
+                    ret.add(kb.ids.return_);
+                }
             } else if ((&role != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
                 ret.add(kb.ids.op);
                 ret.add(kb.ids.push);
@@ -418,10 +422,18 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
                 if (&value[kb.ids.value] == &kb.ids.op) {
                     addValue(currentNode, value[kb.ids.value]);
                 }
-            } else if (&value.struct_() == &kb.std.ast.Member) {
+            } else if (&value.struct_() == &kb.std.ast.Member || &value.struct_() == &kb.std.ast.Return) {
                 addValue(currentNode, kb.ids.op);
-                addValue(currentNode, kb.ids.variable);
-                CellI& memberRole = value[kb.ids.role];
+                CellI* memberRolePtr = nullptr;
+                if (&value.struct_() == &kb.std.ast.Member) {
+                    addValue(currentNode, kb.ids.variable);
+                    memberRolePtr = &value[kb.ids.role];
+                } else {
+                    addValue(currentNode, kb.ids.return_);
+                    // TODO kb.ids.return_ can not be a member name
+                    memberRolePtr = &kb.ids.return_;
+                }
+                CellI& memberRole = *memberRolePtr;
                 if (!memberIds.hasKey(memberRole)) {
                     List& path = *new List(kb, kb.std.Cell, fmt::format("path for {}", memberRole.label()));
                     if (path.label() == "path for cell" && tool.label() == "Get") {
@@ -517,8 +529,14 @@ void CellTrie::handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, 
     }
 }
 
-bool CellTrie::checkValue(CellI*& astCellPtr, CellI*& slotItemPtr, bool& first, Node*& node, std::stack<FindToolStackNode>& stack, CellI& role, CellI& value)
+bool CellTrie::checkValue(FindContext& findContext, CellI& role, CellI& value)
 {
+    Node*& node                          = findContext.currentNode;
+    CellI*& slotItemPtr                  = findContext.slotItemPtr;
+    bool& first                          = findContext.first;
+    CellI*& astCellPtr                   = findContext.astCellPtr;
+    std::stack<FindToolStackNode>& stack = findContext.stack;
+
     auto roleFindIt = node->m_children.find(&role);
     if (roleFindIt == node->m_children.end()) {
         node = nullptr;
@@ -541,6 +559,17 @@ bool CellTrie::checkValue(CellI*& astCellPtr, CellI*& slotItemPtr, bool& first, 
                 if (key == &kb.ids.variable) {
                     node = nextNode;
                     handleStep(astCellPtr, slotItemPtr, node, stack);
+                    return true;
+                }
+                if (key == &kb.ids.return_) {
+                    if (findContext.toolKind == ToolKind::Expression) {
+                        // TODO What to do if there are two "op return" in the effect description?
+                        throw "Not implemented! Handling more then one op return is missing";
+                    }
+                    node = nextNode;
+                    handleStep(astCellPtr, slotItemPtr, node, stack);
+                    findContext.toolKind = ToolKind::Expression;
+                    findContext.expressionToolPtr = &(*astCellPtr)[role];
                     return true;
                 }
                 if (key == &kb.ids.push) {
@@ -582,33 +611,54 @@ bool CellTrie::checkValue(CellI*& astCellPtr, CellI*& slotItemPtr, bool& first, 
 
 CellI* CellTrie::findToolByAst(CellI& ast)
 {
-    std::stack<FindToolStackNode> stack;
+    CellI& slotList = ast.struct_()[kb.ids.slots][kb.ids.list];
+    FindContext findContext = {
+        .currentNode = m_root.get(),
+        .slotList    = &slotList,
+        .slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr,
+        .first       = true,
+        .astCellPtr  = &ast,
+    };
 
-    Node* currentNode  = m_root.get();
-    CellI& slotList    = ast.struct_()[kb.ids.slots][kb.ids.list];
-    CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
-    bool first         = true;
-    CellI* astCellPtr  = &ast;
+    do {
+        findContext.toolKind = ToolKind::Statement;
+        while (findContext.slotItemPtr)
+        {
+            CellI& role = (*findContext.slotItemPtr)[kb.ids.value][kb.ids.slotRole];
+            if (findContext.first && !checkValue(findContext, kb.ids.struct_, (*findContext.astCellPtr).struct_())) {
+                return nullptr;
+            }
 
-    while (slotItemPtr) {
-        CellI& role = (*slotItemPtr)[kb.ids.value][kb.ids.slotRole];
-
-        if (first && !checkValue(astCellPtr, slotItemPtr, first, currentNode, stack, kb.ids.struct_, (*astCellPtr).struct_())) {
-            return nullptr;
+            if ((*findContext.astCellPtr).has(role) && !checkValue(findContext, role, (*findContext.astCellPtr)[role])) {
+                return nullptr;
+            }
         }
+        if (findContext.toolKind == ToolKind::Expression) {
+            if (!(findContext.currentNode && findContext.currentNode->m_isLeaf)) {
+                return nullptr;
+            }
+            static CellI& newAst = *new Object(kb, kb.std.ast.Equal);
 
-        if ((*astCellPtr).has(role) && !checkValue(astCellPtr, slotItemPtr, first, currentNode, stack, role, (*astCellPtr)[role])) {
-            return nullptr;
+            newAst.set(kb.ids.lhs, *findContext.expressionToolPtr);
+            createTool(newAst, kb.ids.rhs, ast, *findContext.currentNode->m_data);
+
+            CellI& newSlotList      = newAst.struct_()[kb.ids.slots][kb.ids.list];
+
+            findContext.currentNode = m_root.get();
+            findContext.slotList    = &newSlotList;
+            findContext.slotItemPtr = newSlotList.has(kb.ids.first) ? &newSlotList[kb.ids.first] : nullptr;
+            findContext.first       = true;
+            findContext.astCellPtr  = &newAst;
         }
-    }
+    } while (findContext.toolKind == ToolKind::Expression);
 
-    if (currentNode && currentNode->m_isLeaf == 1)
-        return currentNode->m_data;
+    if (findContext.currentNode && findContext.currentNode->m_isLeaf)
+        return findContext.currentNode->m_data;
 
     return nullptr;
 }
 
-void CellTrie::createTool(CellI& var, CellI& inputAst, CellI& inputToolDesc)
+void CellTrie::createTool(CellI& outCell, CellI& outRole, CellI& inputAst, CellI& inputToolDesc)
 {
     auto& ListOfCellStruct = kb.getStruct(kb.templateId("std::List", kb.ids.valueType, kb.std.Cell));
 
@@ -617,8 +667,8 @@ void CellTrie::createTool(CellI& var, CellI& inputAst, CellI& inputToolDesc)
     Index& toCreateItemRoot = *new Index(kb);
     toCreateItemRoot.set(kb.ids.ast, inputAst);
     toCreateItemRoot.set(kb.ids.description, inputToolDesc);
-    toCreateItemRoot.set(kb.ids.cell, var);
-    toCreateItemRoot.set(kb.ids.role, kb.ids.name);
+    toCreateItemRoot.set(kb.ids.cell, outCell);
+    toCreateItemRoot.set(kb.ids.role, outRole);
 
     toCreate.add(toCreateItemRoot);
     CellI* toCreateItemPtr = &toCreate[kb.ids.first];
@@ -646,7 +696,7 @@ void CellTrie::createTool(CellI& var, CellI& inputAst, CellI& inputToolDesc)
                     throw "Tool description type is not constant value!";
                 }
                 CellI& type   = valueCell[kb.ids.value];
-                CellI* newObj = new Object(kb, type, toolDesc.label());
+                CellI* newObj = new Object(kb, type, fmt::format("built from {}", toolDesc.label()));
                 ret->set(retKey, *newObj);
                 ret = newObj;
 
@@ -5041,13 +5091,17 @@ void AstStd::createAst()
     astScope.add<Struct>("Add")
         .memberOf(
             _(std.ast.Base))
+#if 0
+        .primitiveTool().returnType("std::Number")
+#endif
         .description(
             equal(subtract(return_(), m_("rhs")), m_("lhs")),
+            equal(subtract(return_(), m_("lhs")), m_("rhs")),
             return_(add(m_("lhs"), m_("rhs"))),
             return_(add(m_("rhs"), m_("lhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", "std::Number"),
+            member("rhs", "std::Number"));
 
     astScope.add<Struct>("And")
         .memberOf(

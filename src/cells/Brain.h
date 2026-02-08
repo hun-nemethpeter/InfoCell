@@ -324,6 +324,24 @@ class CellTrie
         bool m_isLeaf = false;
     };
 
+    enum ToolKind
+    {
+        Statement,
+        Expression
+    };
+
+    struct FindContext
+    {
+        Node* currentNode;
+        CellI* slotList;
+        CellI* slotItemPtr;
+        bool first;
+        CellI* astCellPtr;
+        std::stack<FindToolStackNode> stack;
+        ToolKind toolKind;
+        CellI* expressionToolPtr;
+    };
+
 public:
     CellTrie(brain::Brain& kb);
     bool empty();
@@ -331,11 +349,11 @@ public:
     void add(CellI& ast, CellI& tool, CellI& compiledToolType);
     CellI* findToolByAst(CellI& ast);
     void print();
-    void createTool(CellI& var, CellI& ast, CellI& toolDesc);
+    void createTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& toolDesc);
 
 private:
     void addValue(Node*& node, CellI& value);
-    bool checkValue(CellI*& astCellPtr, CellI*& slotItemPtr, bool& first, Node*& node, std::stack<FindToolStackNode>& stack, CellI& role, CellI& value);
+    bool checkValue(FindContext& findContext, CellI& role, CellI& value);
     void handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, std::stack<FindToolStackNode>& stack);
     void printCb(Node* node);
     CellI* processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds, CellI& compiledToolType);
