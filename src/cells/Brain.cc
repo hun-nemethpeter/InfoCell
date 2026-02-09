@@ -611,6 +611,18 @@ bool CellTrie::checkValue(FindContext& findContext, CellI& role, CellI& value)
 
 CellI* CellTrie::findToolByAst(CellI& ast)
 {
+    CellI* toolAst = nullptr;
+    CellI* tool    = findToolByAstImpl(ast, toolAst);
+    if (!tool) {
+        return nullptr;
+    }
+    static Object retVal(kb, kb.std.ast.Cell);
+    createTool(retVal, kb.ids.value, *toolAst, *tool);
+    return &retVal[kb.ids.value];
+}
+
+CellI* CellTrie::findToolByAstImpl(CellI& ast, CellI*& toolAst)
+{
     CellI& slotList = ast.struct_()[kb.ids.slots][kb.ids.list];
     FindContext findContext = {
         .currentNode = m_root.get(),
@@ -619,6 +631,7 @@ CellI* CellTrie::findToolByAst(CellI& ast)
         .first       = true,
         .astCellPtr  = &ast,
     };
+    toolAst = &ast;
 
     do {
         findContext.toolKind = ToolKind::Statement;
@@ -649,6 +662,7 @@ CellI* CellTrie::findToolByAst(CellI& ast)
             findContext.slotItemPtr = newSlotList.has(kb.ids.first) ? &newSlotList[kb.ids.first] : nullptr;
             findContext.first       = true;
             findContext.astCellPtr  = &newAst;
+            toolAst                 = &newAst;
         }
     } while (findContext.toolKind == ToolKind::Expression);
 
@@ -740,8 +754,8 @@ void CellTrie::createTool(CellI& outCell, CellI& outRole, CellI& inputAst, CellI
             CellI& subToolAst = key[value];
 
             retVal.set(kb.ids.value, subToolAst);
-
-            CellI* subToolDesc = findToolByAst(retVal);
+            CellI* toolAst     = nullptr;
+            CellI* subToolDesc = findToolByAstImpl(retVal, toolAst);
 
             if (!subToolDesc) {
                 throw "Sub tool not found!";
@@ -5443,7 +5457,7 @@ void AstStd::createAst()
             _(std.ast.Base))
         .description(
             equal(add(return_(), m_("rhs")), m_("lhs")),
-            return_(add(m_("lhs"), m_("rhs"))))
+            return_(subtract(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));

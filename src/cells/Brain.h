@@ -349,9 +349,10 @@ public:
     void add(CellI& ast, CellI& tool, CellI& compiledToolType);
     CellI* findToolByAst(CellI& ast);
     void print();
-    void createTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& toolDesc);
 
 private:
+    CellI* findToolByAstImpl(CellI& ast, CellI*& toolAst);
+    void createTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& toolDesc);
     void addValue(Node*& node, CellI& value);
     bool checkValue(FindContext& findContext, CellI& role, CellI& value);
     void handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, std::stack<FindToolStackNode>& stack);
