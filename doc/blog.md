@@ -1279,3 +1279,122 @@ In this case we have to mark the original request, for example `x + 2 == 3` as a
 
 After thinking on numbers there are some problem. First the x + x == 2 can't be solved without dividing. Second, the known - unknown problems, so in case
 of `x.add(y) == z` this is only relevant if and only if the `x` and `y` are known. Otherwise `x + x == 2` leads to `x == 2 - x` which is not really useful.
+
+2026-02-14
+==========
+
+Ok, so math tools are kinda working now. At least the `x + 2 = 4` can be solved if we write it as `equal(add(get(x, value), 2)), 4)` but
+`2 + x = 4` == `equal(add(2, get(x, value))), 4)` doesn't work. There are two problem here.
+
+In the first case `equal(add(get(x, value), 2)), 4)` will match with `subtract` effect of `equal(add(return_(), m_("rhs")), m_("lhs"))` so we go forward with
+`equal(get(x, value), subtract(4, 2))` (basically `x = 4 -2`) will match with `set` effect of `equal(m_("cell") / m_("role"), m_("value"))` so we end up with
+a good tool `set(x, value, subtract(4, 2))`.
+
+In the second case `equal(add(2, get(x, value))), 4)` will also match with `subtract` effect of `equal(add(return_(), m_("rhs")), m_("lhs"))` so we go forward with
+`equal(2, subtract(4, get(x, value)))` (basically `2 = 4 - x`) which is a dead end.
+- First there is no `equal(variable, fnX())` pattern registered as variable is on the right side now.
+- Second `2 = 4 - x` is mathematically doesn``t bring closer to the solution as `x` and constant values are not separated.
+
+```
+2 + x + 2 + x + x + 2 + 2 + 2 + x
+add(2, add(x, add(2, add(x, add(x, add(2, add(2, add(2, x))))))))
+...
+add(2, add(x, add(2, add(x, add(x,         add(2, add(2, add(x, 2))))))))
+add(2, add(x, add(2, add(x, add(x,         add(2, add(x, add(2, 2))))))))
+add(2, add(x, add(2, add(x, add(x,  add(x, add(2, add(2, 2))))))))
+add(2, add(x, add(2, add(x, add(mul(2, x), add(2, add(2, 2)))))))
+add(2, add(x, add(2, add(mul(3, x),        add(2, add(2, 2))))))
+add(2, add(x, add(mul(3, x), add(2,        add(2, add(2, 2))))))
+add(2, add(mul(4, x),        add(2,        add(2, add(2, 2)))))
+add(mul(4, x), add(2,        add(2,        add(2, add(2, 2)))))
+```
+
+Sooo I need to add some types to the matchers...
+
+- `x + 2 = 4` =>
+    - `equal(add(return_():Any, m_("rhs"):Number), m_("lhs"):Number)` match
+    - `equal(add(m_("rhs"):Number, return_():Any), m_("lhs"):Number)` doesn''t match
+- `2 + x = 4` => `equal(add(return_():Any, m_("rhs"):Number), m_("lhs"):Number)` doesn''t match
+    - `equal(add(return_():Any, m_("rhs"):Number), m_("lhs"):Number)` doesn''t match
+    - `equal(add(m_("rhs"):Number, return_():Any), m_("lhs"):Number)` match
+
+We can do this with a precondition check for every tool effect
+```
+if_(and(equal(m_("lhs") / _(ids.struct_), _(std.Number)), equal(m_("rhs") / _(ids.struct_), _(std.Number))).then_(
+   `equal(add(return_():Any, m_("rhs"):Number), m_("lhs"):Number)`
+)
+```
+
+Other problems
+
+- need a forest diff kinda thing, idea here is to find a tool that do a transformation
+
+  The first pair of tree in forest contains two number `pair1.number = 1` and `pair2.number = 3`. The known tools that input two numbers and output one are
+  `add`, `subtract`, `divide`, `multiply`.
+
+  - for `add` => `1 + x = 3` so the transformation rule candidate `add(pair1.number, 2)` as `x = 2`
+  - for `subtract` => `1 - x = 3` so the transformation rule candidate `subtract(pair1.number, -2)` as `x = -2`
+  - for `divide` => `1 / x = 3`so the transformation rule candidate `divide(pair1.number1, 1/3)` as `x = 1/3`
+  - for `multiply` => `1 * x = 3` so the transformation rule candidate `multiply(pair1.number, 3)` as `x = 3`
+
+  The second pair of tree in forest contains two number `pair1.number = 3` and `pair2.number = 5`. The known tools that input two numbers and output one are
+  `add`, `subtract`, `divide`, `multiply`.
+
+  - for `add` => `3 + x = 5` so the transformation rule candidate `add(pair1.number, 2)` as `x = 2`
+  - for `subtract` => `3 - x = 5` so the transformation rule candidate `subtract(pair1.number, -2)` as `x = -2`
+  - for `divide` => `3 / x = 5`so the transformation rule candidate `divide(pair1.number1, 3/5)` as `x = 3/5`
+  - for `multiply` => `3 * x = 5` so the transformation rule candidate `multiply(pair1.number, 5/3)` as `x = 5/3`
+
+  So the add/subtract and divide/multiply solutions are connected.
+
+- if/do/while cells ...
+
+  I need a good request example for these
+
+- the list
+
+  maybe time for iteration trait
+
+2026-02-17
+==========
+
+For the list, there is a simple problem idea:
+
+- given an empty list
+- result described as
+  - every list item is 1
+  - the list size is 5
+
+Expressing every item without iterator can be
+
+```
+Given an empty list
+
+var node = list(ids.first) // TODO: what is an empty node?!
+while (has(node, ids.value)) {
+   get(node, ids.value) == _(_1_);
+   get(node, ids.value) == get(node, ids.next);
+}
+list(ids.size) == 5
+
+for (var listValue : list) {
+   listValue.value == 1;
+}
+```
+
+As `list.size` defined as increase a number on every item and `every list item is ..` also involve the same iteration we have to unify the two thing.
+
+
+2026-02-22
+==========
+
+`1 + 2 + x` = `1 + x + 2` = `2 + 1 + x` = `2 + x + 1` = `x + 1 + 2` = `x + 2 + 1`
+
+How to prove that `1 + 2 + x` equals `x + 2 + 1`?
+- `1 + 2 + x` can be written as `add(1, add(2, x))` and also `add(add(1, 2), x)` as we can swap lhs and rhs the followings are also true:
+  - `add(1, add(2, x))` with swapped lhs and rhs is `add(add(2, x), 1)`
+  - `add(add(1, 2), x)` with swapped lhs and rhs is `add(x, add(1, 2))` so
+
+- But how to prove that `1 + 2 + x` can be written as `add(1, add(2, x))` and also `add(add(1, 2), x)`?
+  - `add(1, add(2, x))` with swapped lhs and rhs is `add(add(2, x), 1)`
+  - `add(add(1, 2), x)` with swapped lhs and rhs is `add(x, add(1, 2))`
