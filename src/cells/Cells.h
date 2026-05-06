@@ -26,25 +26,25 @@ public:
     CellI(const CellI& rhs);
     virtual ~CellI();
 
-    virtual bool has(CellI& role)               = 0;
-    virtual void set(CellI& role, CellI& value) = 0;
-    virtual void erase(CellI& role)             = 0;
-    virtual void operator()()                   = 0;
-    virtual CellI& operator[](CellI& role)      = 0;
-    virtual void accept(Visitor& visitor)       = 0;
+    virtual bool has(CellI& key)               = 0;
+    virtual void set(CellI& key, CellI& value) = 0;
+    virtual void erase(CellI& key)             = 0;
+    virtual void operator()()                  = 0;
+    virtual CellI& operator[](CellI& key)      = 0;
+    virtual void accept(Visitor& visitor)      = 0;
 
-    bool has(const std::string& role);
-    void set(const std::string& role, CellI& value);
-    void erase(const std::string& role);
-    CellI& operator[](const std::string& role);
-    bool missing(const std::string& role);
-    CellI& get(const std::string& role);
+    bool has(const std::string& key);
+    void set(const std::string& key, CellI& value);
+    void erase(const std::string& key);
+    CellI& operator[](const std::string& key);
+    bool missing(const std::string& key);
+    CellI& get(const std::string& key);
 
     CellI& call(CellI& method);
     CellI& call(CellI& method, CellI& param1Role, CellI& param1Value);
 
-    bool missing(CellI& role);
-    CellI& get(CellI& role);
+    bool missing(CellI& key);
+    CellI& get(CellI& key);
     CellI& struct_();
     void eval();
 
@@ -66,12 +66,12 @@ public:
 
 struct Param
 {
-    Param(CellI& role, CellI& value) :
-        role(role), value(value) { }
+    Param(CellI& key, CellI& value) :
+        key(key), value(value) { }
 
-    Param(const std::string& role, CellI& value);
+    Param(const std::string& key, CellI& value);
 
-    CellI& role;
+    CellI& key;
     CellI& value;
 };
 
@@ -94,26 +94,26 @@ public:
     using CellI::missing;
     using CellI::operator[];
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
-    CellI& method(const std::string& role);
+    CellI& method(const std::string& key);
 
-    CellI& method(CellI& role);
-    CellI& method(CellI& role, Param param1);
-    CellI& method(CellI& role, Param param1, Param param2);
-    CellI& method(CellI& role, Param param1, Param param2, Param param3);
-    CellI& method(CellI& role, Param param1, Param param2, Param param3, Param param4);
+    CellI& method(CellI& key);
+    CellI& method(CellI& key, Param param1);
+    CellI& method(CellI& key, Param param1, Param param2);
+    CellI& method(CellI& key, Param param1, Param param2, Param param3);
+    CellI& method(CellI& key, Param param1, Param param2, Param param3, Param param4);
 
-    CellI& smethod(CellI& role);
-    CellI& smethod(CellI& role, Param param1);
-    CellI& smethod(CellI& role, Param param1, Param param2);
-    CellI& smethod(CellI& role, Param param1, Param param2, Param param3);
-    CellI& smethod(CellI& role, Param param1, Param param2, Param param3, Param param4);
+    CellI& smethod(CellI& key);
+    CellI& smethod(CellI& key, Param param1);
+    CellI& smethod(CellI& key, Param param1, Param param2);
+    CellI& smethod(CellI& key, Param param1, Param param2, Param param3);
+    CellI& smethod(CellI& key, Param param1, Param param2, Param param3, Param param4);
     void printIndent();
     void resetIndent();
     static void clearStack(CellI& method);
@@ -121,9 +121,9 @@ public:
 protected:
     void destructor();
 
-    bool hasMethod(CellI& role);
-    CellI& getMethod(CellI& role);
-    CellI& getStaticMethod(CellI& role);
+    bool hasMethod(CellI& key);
+    CellI& getMethod(CellI& key);
+    CellI& getStaticMethod(CellI& key);
     void createStack(CellI& method);
     void initLocalVars(CellI& method);
     CellI& getFnValue(CellI& fn);
@@ -170,11 +170,11 @@ public:
         using CellI::erase;
         using CellI::operator[];
 
-        bool has(CellI& role) override;
-        void set(CellI& role, CellI& value) override;
-        void erase(CellI& role) override;
+        bool has(CellI& key) override;
+        void set(CellI& key, CellI& value) override;
+        void erase(CellI& key) override;
         void operator()() override;
-        CellI& operator[](CellI& role) override;
+        CellI& operator[](CellI& key) override;
         void accept(Visitor& visitor) override;
 
         List& m_list;
@@ -211,11 +211,11 @@ public:
         }
     }
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     Item* add(CellI& value);
@@ -257,16 +257,16 @@ public:
     using CellI::erase;
     using CellI::operator[];
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
-    void addSlot(CellI& role, CellI& slot);
-    bool hasSlot(CellI& role);
-    void removeSlot(CellI& role);
+    void addSlot(CellI& key, CellI& slot);
+    bool hasSlot(CellI& key);
+    void removeSlot(CellI& key);
 
     CellI* m_name = nullptr;
     Map& m_slots;
@@ -289,11 +289,11 @@ public:
     using CellI::erase;
     using CellI::operator[];
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     void insert(CellI& key, CellI& value);
@@ -319,11 +319,11 @@ public:
     using CellI::erase;
     using CellI::operator[];
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     bool hasKey(CellI& key);
@@ -362,11 +362,11 @@ public:
     using CellI::erase;
     using CellI::operator[];
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     bool hasKey(CellI& key);
@@ -399,11 +399,11 @@ class Set : public CellI
 public:
     Set(brain::Brain& kb, CellI& valueType, const std::string& label = "");
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     bool contains(CellI& key);
@@ -433,11 +433,11 @@ class Number : public CellI
 public:
     explicit Number(brain::Brain& kb, int value = 0);
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     int value() const;
@@ -466,11 +466,11 @@ public:
     using CellI::erase;
     using CellI::operator[];
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     const std::string& value() const;
@@ -491,11 +491,11 @@ class ActivationPointer : public CellI
 public:
     ActivationPointer(brain::Brain& kb);
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     CellI* m_currentCell  = nullptr;
@@ -509,11 +509,11 @@ class Color : public CellI
 public:
     Color(brain::Brain& kb, const input::Color& inputColor);
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     const input::Color& color() const;
@@ -528,11 +528,11 @@ class Pixel : public CellI
 public:
     Pixel(brain::Brain& kb, int x, int y, const input::Color& inputColor);
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     const input::Color& color() const;
@@ -555,11 +555,11 @@ class Picture : public CellI
 public:
     Picture(brain::Brain& kb, input::Grid& screen);
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     Pixel& getPixel(int x, int y);
@@ -593,11 +593,11 @@ class Pixel : public CellI
 public:
     Pixel(brain::Brain& kb, int x, int y, int arcColor, Grid& grid);
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     const int color() const;
@@ -616,11 +616,11 @@ class Grid : public CellI
 public:
     Grid(brain::Brain& kb, input::Grid& screen);
 
-    bool has(CellI& role) override;
-    void set(CellI& role, CellI& value) override;
-    void erase(CellI& role) override;
+    bool has(CellI& key) override;
+    void set(CellI& key, CellI& value) override;
+    void erase(CellI& key) override;
     void operator()() override;
-    CellI& operator[](CellI& role) override;
+    CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
     Pixel& getPixel(int x, int y);

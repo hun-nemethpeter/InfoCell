@@ -85,7 +85,6 @@ public:
     List return_;
     List returnType;
     List rhs;
-    List role;
     List rootNode;
     List scope;
     List scopes;
@@ -250,8 +249,8 @@ class Std
 public:
     Std(brain::Brain& kb);
 
-    cells::CellI& slot(const std::string& role, cells::CellI& type);
-    cells::CellI& slot(cells::CellI& role, cells::CellI& type);
+    cells::CellI& slot(const std::string& key, cells::CellI& type);
+    cells::CellI& slot(cells::CellI& key, cells::CellI& type);
     cells::CellI& kvPair(cells::CellI& key, cells::CellI& value);
 
 protected:
@@ -354,7 +353,7 @@ private:
     CellI* findToolByAstImpl(CellI& ast, CellI*& toolAst);
     void createTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& toolDesc);
     void addValue(Node*& node, CellI& value);
-    bool checkValue(FindContext& findContext, CellI& role, CellI& value);
+    bool checkValue(FindContext& findContext, CellI& key, CellI& value);
     void handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, std::stack<FindToolStackNode>& stack);
     void printCb(Node* node);
     CellI* processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds, CellI& compiledToolType);
@@ -407,8 +406,8 @@ public:
     {
     public:
         Cell(brain::Brain& kb, CellI& value);
-        Get& operator/(Base& role);
-        Get& operator/(const std::string& role);
+        Get& operator/(Base& key);
+        Get& operator/(const std::string& key);
     };
     class StructName : public BaseT<StructName>
     {
@@ -457,9 +456,9 @@ public:
     class Parameter : public BaseT<Parameter>
     {
     public:
-        Parameter(brain::Brain& kb, CellI& role);
-        Get& operator/(Base& role);
-        Get& operator/(const std::string& role);
+        Parameter(brain::Brain& kb, CellI& key);
+        Get& operator/(Base& key);
+        Get& operator/(const std::string& key);
         Call& operator()(const std::string& method);
     };
     class ResolvedType : public BaseT<ResolvedType>
@@ -470,7 +469,7 @@ public:
     class Slot : public BaseT<Slot>
     {
     public:
-        Slot(brain::Brain& kb, CellI& role, CellI& value);
+        Slot(brain::Brain& kb, CellI& key, CellI& value);
     };
     class Call : public BaseT<Call>
     {
@@ -886,12 +885,12 @@ public:
     class Set : public BaseT<Set>
     {
     public:
-        Set(brain::Brain& kb, Base& cell, Base& role, Base& value);
+        Set(brain::Brain& kb, Base& cell, Base& key, Base& value);
     };
     class Erase : public BaseT<Erase>
     {
     public:
-        Erase(brain::Brain& kb, Base& cell, Base& role);
+        Erase(brain::Brain& kb, Base& cell, Base& key);
     };
     class If : public BaseT<If>
     {
@@ -948,10 +947,10 @@ public:
     {
     public:
         Member(const Member&) = delete;
-        Member(brain::Brain& kb, CellI& role);
+        Member(brain::Brain& kb, CellI& key);
         Set& operator=(Base& value);
-        Get& operator/(Base& role);
-        Get& operator/(const std::string& role);
+        Get& operator/(Base& key);
+        Get& operator/(const std::string& key);
         Has& exist();
         Missing& missing();
         Call& operator()(const std::string& method);
@@ -968,19 +967,19 @@ public:
         TemplatedType(const TemplatedType&) = delete;
         TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList);
 
-        void addParam(const std::string& role, CellI& type);
-        void addParam(const std::string& role, const std::string& type);
+        void addParam(const std::string& key, CellI& type);
+        void addParam(const std::string& key, const std::string& type);
 
         template <typename... Args>
-        void addParam(const std::string& role, CellI& type, Args&&... args)
+        void addParam(const std::string& key, CellI& type, Args&&... args)
         {
-            addParam(role, type);
+            addParam(key, type);
             addParam(std::forward<Args>(args)...);
         }
         template <typename... Args>
-        void addParam(const std::string& role, const std::string& type, Args&&... args)
+        void addParam(const std::string& key, const std::string& type, Args&&... args)
         {
-            addParam(role, type);
+            addParam(key, type);
             addParam(std::forward<Args>(args)...);
         }
     };
@@ -988,13 +987,13 @@ public:
     {
     public:
         TemplateParam(const TemplateParam&) = delete;
-        TemplateParam(brain::Brain& kb, CellI& role);
+        TemplateParam(brain::Brain& kb, CellI& key);
     };
     class AssociatedType : public BaseT<AssociatedType>
     {
     public:
         AssociatedType(const AssociatedType&) = delete;
-        AssociatedType(brain::Brain& kb, CellI& role);
+        AssociatedType(brain::Brain& kb, CellI& key);
     };
     class New : public BaseT<New>
     {
@@ -1027,19 +1026,19 @@ public:
     class Has : public BaseT<Has>
     {
     public:
-        Has(brain::Brain& kb, Base& cell, Base& role);
+        Has(brain::Brain& kb, Base& cell, Base& key);
     };
     class Missing : public BaseT<Missing>
     {
     public:
-        Missing(brain::Brain& kb, Base& cell, Base& role);
+        Missing(brain::Brain& kb, Base& cell, Base& key);
     };
     class Get : public BaseT<Get>
     {
     public:
-        Get(brain::Brain& kb, Base& cell, Base& role);
-        Get& operator/(Base& role);
-        Get& operator/(const std::string& role);
+        Get(brain::Brain& kb, Base& cell, Base& key);
+        Get& operator/(Base& key);
+        Get& operator/(const std::string& key);
         Call& operator()(const std::string& method);
     };
     class And : public BaseT<And>
@@ -1112,9 +1111,9 @@ public:
     Try& try_(Base& tryBranch, Base& catchBranch);
     Return& return_();
     Return& return_(Base& value);
-    Parameter& parameter(CellI& role);
-    Slot& slot(const std::string& role, CellI& type);
-    Slot& slot(CellI& role, CellI& type);
+    Parameter& parameter(CellI& key);
+    Slot& slot(const std::string& key, CellI& type);
+    Slot& slot(CellI& key, CellI& type);
     EnumValue& enumValue(const std::string& nameStr);
     EnumValue& enumValue(const std::string& nameStr, CellI& init);
     TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& value);
@@ -1127,10 +1126,10 @@ public:
     template <typename... Args>
     Block& block(Args&&... args);
     Delete& delete_(Base& cell);
-    Set& set(Base& cell, Base& role, Base& value);
-    Set& set(Base& cell, const std::string& role, Base& value);
-    Erase& erase(Base& cell, Base& role);
-    Erase& erase(Base& cell, const std::string& role);
+    Set& set(Base& cell, Base& key, Base& value);
+    Set& set(Base& cell, const std::string& key, Base& value);
+    Erase& erase(Base& cell, Base& key);
+    Erase& erase(Base& cell, const std::string& key);
     If& if_(Base& condition);
     Match& match_(Base& enum_);
     Do& do_(Base& condition);
@@ -1138,16 +1137,16 @@ public:
     For& for_(const std::string& varName);
     Var& var(CellI& name);
     Var& var(const std::string& nameStr);
-    Member& member(CellI& role);
-    SubType& subType(CellI& role);
+    Member& member(CellI& key);
+    SubType& subType(CellI& key);
     TemplatedType& templatedType(const std::string& id, CellI& type);
     template <typename... Args>
-    TemplatedType& templatedType(const std::string& id, const std::string& role, CellI& type, Args&&... args);
+    TemplatedType& templatedType(const std::string& id, const std::string& key, CellI& type, Args&&... args);
     template <typename... Args>
-    TemplatedType& templatedType(const std::string& id, const std::string& role, const std::string& type, Args&&... args);
+    TemplatedType& templatedType(const std::string& id, const std::string& key, const std::string& type, Args&&... args);
 
-    TemplateParam& templateParam(CellI& role);
-    AssociatedType& associatedType(CellI& role);
+    TemplateParam& templateParam(CellI& key);
+    AssociatedType& associatedType(CellI& key);
     New& new_(Base& objectType);
     New& new_(Base& objectType, const std::string& constructor);
     New& new_(Base& objectType, Base& constructor);
@@ -1156,12 +1155,12 @@ public:
     NotSame& notSame(Base& lhs, Base& rhs);
     Equal& equal(Base& lhs, Base& rhs);
     NotEqual& notEqual(Base& lhs, Base& rhs);
-    Has& has(Base& cell, Base& role);
-    Has& has(Base& cell, const std::string& role);
-    Missing& missing(Base& cell, Base& role);
+    Has& has(Base& cell, Base& key);
+    Has& has(Base& cell, const std::string& key);
+    Missing& missing(Base& cell, Base& key);
     Missing& missing(Base& cell, const std::string& id);
-    Get& get(Base& cell, const std::string& role);
-    Get& get(Base& cell, Base& role);
+    Get& get(Base& cell, const std::string& key);
+    Get& get(Base& cell, Base& key);
     And& and_(Base& lhs, Base& rhs);
     Or& or_(Base& lhs, Base& rhs);
     Not& not_(Base& input);
@@ -1559,9 +1558,9 @@ Ast::Block& Ast::block(Args&&... args)
 }
 
 template <typename... Args>
-Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& role, CellI& type, Args&&... args)
+Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& key, CellI& type, Args&&... args)
 {
-    auto& ret = templatedType(id, kb.ast.slot(role, type));
+    auto& ret = templatedType(id, kb.ast.slot(key, type));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
@@ -1569,9 +1568,9 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 }
 
 template <typename... Args>
-Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& role, const std::string& type, Args&&... args)
+Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& key, const std::string& type, Args&&... args)
 {
-    auto& ret  = templatedType(id, kb.ast.slot(role, kb.ast.structName(type)));
+    auto& ret  = templatedType(id, kb.ast.slot(key, kb.ast.structName(type)));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }

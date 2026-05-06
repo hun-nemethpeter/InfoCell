@@ -78,7 +78,6 @@ ID::ID(brain::Brain& kb) :
     return_(kb, kb.std.Char, "return_"),
     returnType(kb, kb.std.Char, "returnType"),
     rhs(kb, kb.std.Char, "rhs"),
-    role(kb, kb.std.Char, "role"),
     rootNode(kb, kb.std.Char, "rootNode"),
     scope(kb, kb.std.Char, "scope"),
     scopes(kb, kb.std.Char, "scopes"),
@@ -262,19 +261,19 @@ Std::Std(brain::Brain& kb) :
 {
 }
 
-cells::CellI& Std::slot(cells::CellI& role, cells::CellI& type)
+cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
 {
     CellI& ret = *new Object(kb, kb.std.Slot);
-    ret.set(kb.ids.slotRole, role);
+    ret.set(kb.ids.slotRole, key);
     ret.set(kb.ids.slotType, type);
 
     return ret;
 }
 
-cells::CellI& Std::slot(const std::string& role, cells::CellI& type)
+cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
 {
     CellI& ret = *new Object(kb, kb.std.Slot);
-    ret.set(kb.ids.slotRole, kb.name(role));
+    ret.set(kb.ids.slotRole, kb.name(key));
     ret.set(kb.ids.slotType, type);
 
     return ret;
@@ -324,7 +323,7 @@ CellI& CellTrie::serializeAst(CellI& ast)
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.ids.value];
-        CellI& role     = slot[kb.ids.slotRole];
+        CellI& key     = slot[kb.ids.slotRole];
         CellI& current  = *currentPtr;
 
         if (first) {
@@ -333,12 +332,12 @@ CellI& CellTrie::serializeAst(CellI& ast)
             ret.add(current.struct_());
         }
 
-        if (current.has(role)) {
-            CellI& value = current[role];
-            ret.add(role);
-            if (&role == &kb.ids.struct_) {
+        if (current.has(key)) {
+            CellI& value = current[key];
+            ret.add(key);
+            if (&key == &kb.ids.struct_) {
                 ret.add(value);
-                if (&role == &kb.ids.op) {
+                if (&key == &kb.ids.op) {
                     ret.add(value);
                 }
             } else if (&value.struct_() == &kb.std.ast.Cell) {
@@ -353,7 +352,7 @@ CellI& CellTrie::serializeAst(CellI& ast)
                 } else {
                     ret.add(kb.ids.return_);
                 }
-            } else if ((&role != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
+            } else if ((&key != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
                 ret.add(kb.ids.op);
                 ret.add(kb.ids.push);
                 stack.push({ current, *slotItemPtr });
@@ -405,7 +404,7 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.ids.value];
-        CellI& role     = slot[kb.ids.slotRole];
+        CellI& key     = slot[kb.ids.slotRole];
         CellI& current  = *currentPtr;
 
         if (first) {
@@ -414,9 +413,9 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
             addValue(currentNode, current.struct_());
         }
 
-        if (current.has(role)) {
-            CellI& value = current[role];
-            addValue(currentNode, role);
+        if (current.has(key)) {
+            CellI& value = current[key];
+            addValue(currentNode, key);
             if (&value.struct_() == &kb.std.ast.Cell) {
                 addValue(currentNode, value[kb.ids.value]);
                 if (&value[kb.ids.value] == &kb.ids.op) {
@@ -427,7 +426,7 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
                 CellI* memberRolePtr = nullptr;
                 if (&value.struct_() == &kb.std.ast.Member) {
                     addValue(currentNode, kb.ids.variable);
-                    memberRolePtr = &value[kb.ids.role];
+                    memberRolePtr = &value[kb.ids.key];
                 } else {
                     addValue(currentNode, kb.ids.return_);
                     // TODO kb.ids.return_ can not be a member name
@@ -449,7 +448,7 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
                     path.add(slotItem[kb.ids.value][kb.ids.slotRole]);
                     memberIds.add(memberRole, path);
                 }
-            } else if ((&role != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
+            } else if ((&key != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
                 addValue(currentNode, kb.ids.op);
                 addValue(currentNode, kb.ids.push);
                 stack.push_back({ current, *slotItemPtr });
@@ -486,7 +485,7 @@ CellI* CellTrie::processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.ids.value];
-        CellI& role     = slot[kb.ids.slotRole];
+        CellI& key     = slot[kb.ids.slotRole];
 
         if (first) {
             first = false;
@@ -494,8 +493,8 @@ CellI* CellTrie::processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds
             builder.add(kb.ast.cell(compiledToolType));
             continue;
         }
-        builder.add(kb.ast.cell(role));
-        builder.add(memberIds.getValue(role));
+        builder.add(kb.ast.cell(key));
+        builder.add(memberIds.getValue(key));
 
         slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
     }
@@ -529,7 +528,7 @@ void CellTrie::handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, 
     }
 }
 
-bool CellTrie::checkValue(FindContext& findContext, CellI& role, CellI& value)
+bool CellTrie::checkValue(FindContext& findContext, CellI& key, CellI& value)
 {
     Node*& node                          = findContext.currentNode;
     CellI*& slotItemPtr                  = findContext.slotItemPtr;
@@ -537,7 +536,7 @@ bool CellTrie::checkValue(FindContext& findContext, CellI& role, CellI& value)
     CellI*& astCellPtr                   = findContext.astCellPtr;
     std::stack<FindToolStackNode>& stack = findContext.stack;
 
-    auto roleFindIt = node->m_children.find(&role);
+    auto roleFindIt = node->m_children.find(&key);
     if (roleFindIt == node->m_children.end()) {
         node = nullptr;
         return false;
@@ -555,13 +554,13 @@ bool CellTrie::checkValue(FindContext& findContext, CellI& role, CellI& value)
             // ok, so value not found but we have an op here
             Node* opNode = opFindIt->second;
 
-            for (auto& [key, nextNode] : opNode->m_children) {
-                if (key == &kb.ids.variable) {
+            for (auto& [opKey, nextNode] : opNode->m_children) {
+                if (opKey == &kb.ids.variable) {
                     node = nextNode;
                     handleStep(astCellPtr, slotItemPtr, node, stack);
                     return true;
                 }
-                if (key == &kb.ids.return_) {
+                if (opKey == &kb.ids.return_) {
                     if (findContext.toolKind == ToolKind::Expression) {
                         // TODO What to do if there are two "op return" in the effect description?
                         throw "Not implemented! Handling more then one op return is missing";
@@ -569,18 +568,18 @@ bool CellTrie::checkValue(FindContext& findContext, CellI& role, CellI& value)
                     node = nextNode;
                     handleStep(astCellPtr, slotItemPtr, node, stack);
                     findContext.toolKind = ToolKind::Expression;
-                    findContext.expressionToolPtr = &(*astCellPtr)[role];
+                    findContext.expressionToolPtr = &(*astCellPtr)[key];
                     return true;
                 }
-                if (key == &kb.ids.push) {
+                if (opKey == &kb.ids.push) {
                     stack.push({ .astCell = *astCellPtr, .slotItem = *slotItemPtr });
-                    astCellPtr  = &(*astCellPtr)[role];
+                    astCellPtr  = &(*astCellPtr)[key];
                     slotItemPtr = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
                     node        = nextNode;
                     first       = true;
                     return true;
                 }
-                if (key == &kb.ids.pop) {
+                if (opKey == &kb.ids.pop) {
                     if (stack.empty()) {
                         return false;
                     }
@@ -637,12 +636,12 @@ CellI* CellTrie::findToolByAstImpl(CellI& ast, CellI*& toolAst)
         findContext.toolKind = ToolKind::Statement;
         while (findContext.slotItemPtr)
         {
-            CellI& role = (*findContext.slotItemPtr)[kb.ids.value][kb.ids.slotRole];
+            CellI& key = (*findContext.slotItemPtr)[kb.ids.value][kb.ids.slotRole];
             if (findContext.first && !checkValue(findContext, kb.ids.struct_, (*findContext.astCellPtr).struct_())) {
                 return nullptr;
             }
 
-            if ((*findContext.astCellPtr).has(role) && !checkValue(findContext, role, (*findContext.astCellPtr)[role])) {
+            if ((*findContext.astCellPtr).has(key) && !checkValue(findContext, key, (*findContext.astCellPtr)[key])) {
                 return nullptr;
             }
         }
@@ -672,7 +671,7 @@ CellI* CellTrie::findToolByAstImpl(CellI& ast, CellI*& toolAst)
     return nullptr;
 }
 
-void CellTrie::createTool(CellI& outCell, CellI& outRole, CellI& inputAst, CellI& inputToolDesc)
+void CellTrie::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI& inputToolDesc)
 {
     auto& ListOfCellStruct = kb.getStruct(kb.templateId("std::List", kb.ids.valueType, kb.std.Cell));
 
@@ -682,7 +681,7 @@ void CellTrie::createTool(CellI& outCell, CellI& outRole, CellI& inputAst, CellI
     toCreateItemRoot.set(kb.ids.ast, inputAst);
     toCreateItemRoot.set(kb.ids.description, inputToolDesc);
     toCreateItemRoot.set(kb.ids.cell, outCell);
-    toCreateItemRoot.set(kb.ids.role, outRole);
+    toCreateItemRoot.set(kb.ids.key, outKey);
 
     toCreate.add(toCreateItemRoot);
     CellI* toCreateItemPtr = &toCreate[kb.ids.first];
@@ -691,7 +690,7 @@ void CellTrie::createTool(CellI& outCell, CellI& outRole, CellI& inputAst, CellI
         CellI& ast          = toCreateItem[kb.ids.ast];
         CellI& toolDesc     = toCreateItem[kb.ids.description];
         CellI* ret          = &toCreateItem[kb.ids.cell];
-        CellI& retKey       = toCreateItem[kb.ids.role];
+        CellI& retKey       = toCreateItem[kb.ids.key];
 
         CellI* slotItemPtr = &toolDesc[kb.ids.first];
         bool first         = true;
@@ -716,31 +715,31 @@ void CellTrie::createTool(CellI& outCell, CellI& outRole, CellI& inputAst, CellI
 
                 slotItemPtr = &nextSlotItem;
             } else if (&key.struct_() == &kb.std.ast.Cell) {
-                CellI& role         = key[kb.ids.value];
+                CellI& unwrappedKey         = key[kb.ids.value];
                 CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
                 CellI& valueCell    = nextSlotItem[kb.ids.value];
                 CellI* valuePtr     = nullptr;
                 if (&valueCell.struct_() == &kb.std.ast.Cell) {
-                    valuePtr = &ast[role];
-                    ret->set(role, *valuePtr);
+                    valuePtr = &ast[unwrappedKey];
+                    ret->set(unwrappedKey, *valuePtr);
                 } else if (&valueCell.struct_() == &ListOfCellStruct) {
                     valuePtr = &ast;
                     Visitor::visitList(valueCell, [&valuePtr, &kb](CellI& pathItem, int, bool& stop) {
                         CellI& currentValue = *valuePtr;
                         valuePtr            = &currentValue[pathItem];
                     });
-                    ret->set(role, *valuePtr);
+                    ret->set(unwrappedKey, *valuePtr);
                 } else {
                     throw "Tool description value is not a constant value or List!";
                 }
                 if (&(*valuePtr).struct_() != &kb.std.ast.Cell) {
                     static CellI& retVal = *new Object(kb, kb.std.ast.Return);
                     retVal.set(kb.ids.value, *valuePtr);
-                    subTools.add(kb.ast.slot(*ret, role));
+                    subTools.add(kb.ast.slot(*ret, unwrappedKey));
                 }
                 slotItemPtr = &nextSlotItem;
             } else {
-                throw "Tool description role is not constant value!";
+                throw "Tool description key is not constant value!";
             }
 
             slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
@@ -764,7 +763,7 @@ void CellTrie::createTool(CellI& outCell, CellI& outRole, CellI& inputAst, CellI
             toCreateItemSub.set(kb.ids.ast, subToolAst);
             toCreateItemSub.set(kb.ids.description, *subToolDesc);
             toCreateItemSub.set(kb.ids.cell, (*ret));
-            toCreateItemSub.set(kb.ids.role, value);
+            toCreateItemSub.set(kb.ids.key, value);
             toCreate.add(toCreateItemSub);
 
             CellI* toDelete = subpToolItemPtr;
@@ -1087,10 +1086,10 @@ Ast::ResolvedType& Ast::Base::resolvedType(CellI& astType, CellI& compiledType)
     return ResolvedType::New(kb, astType, compiledType);
 }
 
-Ast::Parameter::Parameter(brain::Brain& kb, CellI& role) :
-    BaseT<Parameter>(kb, kb.std.ast.Parameter, role.label())
+Ast::Parameter::Parameter(brain::Brain& kb, CellI& key) :
+    BaseT<Parameter>(kb, kb.std.ast.Parameter, key.label())
 {
-    set("role", role);
+    set("key", key);
 }
 
 Ast::ResolvedType::ResolvedType(brain::Brain& kb, CellI& astType, CellI& compiledType) :
@@ -1100,14 +1099,14 @@ Ast::ResolvedType::ResolvedType(brain::Brain& kb, CellI& astType, CellI& compile
     set(kb.ids.compiled, compiledType);
 }
 
-Ast::Get& Ast::Parameter::operator/(Base& role)
+Ast::Get& Ast::Parameter::operator/(Base& key)
 {
-    return Get::New(kb, *this, role);
+    return Get::New(kb, *this, key);
 }
 
-Ast::Get& Ast::Parameter::operator/(const std::string& role)
+Ast::Get& Ast::Parameter::operator/(const std::string& key)
 {
-    return Get::New(kb, *this, kb._(role));
+    return Get::New(kb, *this, kb._(key));
 }
 
 Ast::Call& Ast::Parameter::operator()(const std::string& method)
@@ -1115,10 +1114,10 @@ Ast::Call& Ast::Parameter::operator()(const std::string& method)
     return kb.ast.call(*this, method);
 }
 
-Ast::Slot::Slot(brain::Brain& kb, CellI& role, CellI& type) :
+Ast::Slot::Slot(brain::Brain& kb, CellI& key, CellI& type) :
     BaseT<Slot>(kb, kb.std.ast.Slot, "ast.slot")
 {
-    set(kb.ids.slotRole, role);
+    set(kb.ids.slotRole, key);
     set(kb.ids.slotType, type);
 }
 
@@ -1166,14 +1165,14 @@ Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
     set(kb.ids.value, value);
 }
 
-Ast::Get& Ast::Cell::operator/(Base& role)
+Ast::Get& Ast::Cell::operator/(Base& key)
 {
-    return Get::New(kb, *this, role);
+    return Get::New(kb, *this, key);
 }
 
-Ast::Get& Ast::Cell::operator/(const std::string& role)
+Ast::Get& Ast::Cell::operator/(const std::string& key)
 {
-    return Get::New(kb, *this, kb._(role));
+    return Get::New(kb, *this, kb._(key));
 }
 Ast::StructName::StructName(brain::Brain& kb, CellI& name) :
     BaseT<StructName>(kb, kb.std.ast.StructName, "ast.structName")
@@ -1714,18 +1713,18 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
             if (compiledStruct.has("subTypes")) {
                 CellI& subTypesIndex = compiledStruct["subTypes"][kb.ids.index];
                 Visitor::visitList(subTypesIndex[kb.ids.struct_][kb.ids.slots][kb.ids.list], [this, &structFullName, &subTypesIndex, &compiledStructs](CellI& subType, int i, bool& stop) {
-                    CellI& role = subType["slotRole"];
-                    CellI& value = subTypesIndex[role][kb.ids.value];
+                    CellI& key = subType["slotRole"];
+                    CellI& value = subTypesIndex[key][kb.ids.value];
                     List& aliasName = *new List(kb, kb.std.Char);
                     Visitor::visitList(structFullName, [&aliasName](CellI& character, int i, bool& stop) {
                         aliasName.add(character);
                     });
                     aliasName.add(kb.pools.chars.get(':'));
                     aliasName.add(kb.pools.chars.get(':'));
-                    Visitor::visitList(role, [&aliasName](CellI& character, int i, bool& stop) {
+                    Visitor::visitList(key, [&aliasName](CellI& character, int i, bool& stop) {
                         aliasName.add(character);
                     });
-                    aliasName.label(structFullName.label() + "::" + role.label());
+                    aliasName.label(structFullName.label() + "::" + key.label());
                     if (IS_LOG_ENABLED) {
                         TRACE(compileStruct, "{}: {}\n", aliasName.label(), value.label());
                     }
@@ -2275,7 +2274,7 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
 CellI& Ast::StructT::instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, CellI& state)
 {
     if (&param.struct_() == &kb.std.ast.TemplateParam) {
-        CellI& paramValue = param[kb.ids.role];
+        CellI& paramValue = param[kb.ids.key];
         if (!inputParameters.hasKey(paramValue)) {
             throw "Instantiating with unknown template parameter!";
         }
@@ -2375,15 +2374,15 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
             return kb.ast.throw_();
         }
     } else if (&ast.struct_() == &kb.std.ast.Parameter) {
-        return kb.ast.parameter(ast[kb.ids.role]);
+        return kb.ast.parameter(ast[kb.ids.key]);
     } else if (&ast.struct_() == &kb.std.ast.Var) {
         return kb.ast.var(ast[kb.ids.name]);
     } else if (&ast.struct_() == &kb.std.ast.Delete) {
         return kb.ast.delete_(instantiate(ast[kb.ids.cell]));
     } else if (&ast.struct_() == &kb.std.ast.Set) {
-        return kb.ast.set(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]), instantiate(ast[kb.ids.value]));
+        return kb.ast.set(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]), instantiate(ast[kb.ids.value]));
     } else if (&ast.struct_() == &kb.std.ast.Erase) {
-        return kb.ast.erase(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]));
+        return kb.ast.erase(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]));
     } else if (&ast.struct_() == &kb.std.ast.If) {
         if (ast.has("else_")) {
             return kb.ast.if_(instantiate(ast[kb.ids.condition]))
@@ -2427,13 +2426,13 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
     } else if (&ast.struct_() == &kb.std.ast.NotEqual) {
         return kb.ast.notEqual(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
     } else if (&ast.struct_() == &kb.std.ast.Has) {
-        return kb.ast.has(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]));
+        return kb.ast.has(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]));
     } else if (&ast.struct_() == &kb.std.ast.Missing) {
-        return kb.ast.missing(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]));
+        return kb.ast.missing(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]));
     } else if (&ast.struct_() == &kb.std.ast.Get) {
-        return kb.ast.get(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.role]));
+        return kb.ast.get(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]));
     } else if (&ast.struct_() == &kb.std.ast.Member) {
-        return kb.ast.member(ast[kb.ids.role]);
+        return kb.ast.member(ast[kb.ids.key]);
     } else if (&ast.struct_() == &kb.std.ast.Return) {
         if (ast.has("value")) {
             return kb.ast.return_(static_cast<Base&>(instantiate(ast[kb.ids.value])));
@@ -2910,15 +2909,15 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
             return kb.ast.throw_();
         }
     } else if (&ast.struct_() == &kb.std.ast.Parameter) {
-        return kb.ast.parameter(ast[kb.ids.role]);
+        return kb.ast.parameter(ast[kb.ids.key]);
     } else if (&ast.struct_() == &kb.std.ast.Var) {
         return kb.ast.var(ast[kb.ids.name]);
     } else if (&ast.struct_() == &kb.std.ast.Delete) {
         return kb.ast.delete_(resolveNode(ast[kb.ids.cell]));
     } else if (&ast.struct_() == &kb.std.ast.Set) {
-        return kb.ast.set(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]), resolveNode(ast[kb.ids.value]));
+        return kb.ast.set(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]), resolveNode(ast[kb.ids.value]));
     } else if (&ast.struct_() == &kb.std.ast.Erase) {
-        return kb.ast.erase(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]));
+        return kb.ast.erase(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]));
     } else if (&ast.struct_() == &kb.std.ast.If) {
         if (ast.has("else_")) {
             return kb.ast.if_(resolveNode(ast[kb.ids.condition]))
@@ -2970,13 +2969,13 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
     } else if (&ast.struct_() == &kb.std.ast.NotEqual) {
         return kb.ast.notEqual(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
     } else if (&ast.struct_() == &kb.std.ast.Has) {
-        return kb.ast.has(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]));
+        return kb.ast.has(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]));
     } else if (&ast.struct_() == &kb.std.ast.Missing) {
-        return kb.ast.missing(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]));
+        return kb.ast.missing(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]));
     } else if (&ast.struct_() == &kb.std.ast.Get) {
-        return kb.ast.get(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.role]));
+        return kb.ast.get(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]));
     } else if (&ast.struct_() == &kb.std.ast.Member) {
-        return kb.ast.member(ast[kb.ids.role]);
+        return kb.ast.member(ast[kb.ids.key]);
     } else if (&ast.struct_() == &kb.std.ast.Return) {
         if (ast.has("value")) {
             return kb.ast.return_(static_cast<Base&>(resolveNode(ast[kb.ids.value])));
@@ -3181,11 +3180,11 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         }
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Parameter) {
-        CellI& retOp = compile(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.input) / _(ast[kb.ids.role]));
+        CellI& retOp = compile(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.input) / _(ast[kb.ids.key]));
         retOp.set(kb.ids.ast, ast);
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Member) {
-        CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast[kb.ids.role])));
+        CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast[kb.ids.key])));
         member.set(kb.ids.ast, ast);
         return member;
     } else if (&ast.struct_() == &kb.std.ast.Return) {
@@ -3221,14 +3220,14 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Object& retOp = *new Object(kb, kb.std.op.Set);
         retOp.set(kb.ids.ast, ast);
         retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
         retOp.set(kb.ids.value, compile(ast[kb.ids.value]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Erase) {
         Object& retOp = *new Object(kb, kb.std.op.Erase);
         retOp.set(kb.ids.ast, ast);
         retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.If) {
         Object& retOp = *new Object(kb, kb.std.op.If);
@@ -3277,7 +3276,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Object& opSet = *new Object(kb, kb.std.op.Set, "New { block.value = new objectType(); }");
         opSet.set(kb.ids.ast, ast);
         opSet.set(kb.ids.cell, compile(kb.ast.cell(block)));
-        opSet.set(kb.ids.role, compile(kb.ast.cell(kb.ids.value)));
+        opSet.set(kb.ids.key, compile(kb.ast.cell(kb.ids.value)));
 
         Object& opNew = *new Object(kb, kb.std.op.New);
         opNew.set(kb.ids.ast, ast);
@@ -3327,7 +3326,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             ss << "In " << astVar.label() << " ";
         // m_xxx.method(...)
         } else if (&astCell.struct_() == &kb.std.ast.Member) {
-            auto& astMemberId = astCell[kb.ids.role];
+            auto& astMemberId = astCell[kb.ids.key];
             auto& astMembersType = function[kb.ids.ast][kb.ids.structType];
             if (&astMemberId == &kb.ids.struct_) {
                 // std::cout << "DDDD " << astMembersType.label();
@@ -3351,7 +3350,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             checkMethodCall(astSelfType, astMethodId, state);
             checked = true;
         } else if (&astCell.struct_() == &kb.std.ast.Parameter) {
-            auto& parameterRole         = astCell[kb.ids.role];
+            auto& parameterRole         = astCell[kb.ids.key];
             auto& astFunctionParameters = function[kb.ids.ast][kb.ids.parameters];
             Slot* astFunctionParameterSlot = nullptr;
             Visitor::visitList(astFunctionParameters, [this, &parameterRole, &astFunctionParameterSlot](CellI& slot, int i, bool& stop) {
@@ -3486,19 +3485,19 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
         Object& retOp = *new Object(kb, kb.std.op.Has);
         retOp.set(kb.ids.ast, ast);
         retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Missing) {
         Object& retOp = *new Object(kb, kb.std.op.Missing);
         retOp.set(kb.ids.ast, ast);
         retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
         return retOp;
     } else if (&ast.struct_() == &kb.std.ast.Get) {
         Object& retOp = *new Object(kb, kb.std.op.Get);
         retOp.set(kb.ids.ast, ast);
         retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.role, compile(ast[kb.ids.role]));
+        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
         return retOp;
     }
 
@@ -3625,19 +3624,19 @@ Ast::Delete::Delete(brain::Brain& kb, Base& cell) :
     set(kb.ids.cell, cell);
 }
 
-Ast::Set::Set(brain::Brain& kb, Base& cell, Base& role, Base& value) :
+Ast::Set::Set(brain::Brain& kb, Base& cell, Base& key, Base& value) :
     BaseT<Set>(kb, kb.std.ast.Set, "ast.set")
 {
     set(kb.ids.cell, cell);
-    set(kb.ids.role, role);
+    set(kb.ids.key, key);
     set(kb.ids.value, value);
 }
 
-Ast::Erase::Erase(brain::Brain& kb, Base& cell, Base& role) :
+Ast::Erase::Erase(brain::Brain& kb, Base& cell, Base& key) :
     BaseT<Erase>(kb, kb.std.ast.Erase, "ast.erase")
 {
     set(kb.ids.cell, cell);
-    set(kb.ids.role, role);
+    set(kb.ids.key, key);
 }
 
 Ast::If::If(brain::Brain& kb, Base& condition) :
@@ -3769,36 +3768,36 @@ Ast::Call& Ast::Var::operator()(const std::string& method)
     return kb.ast.call(*(*this), method);
 }
 
-Ast::Member::Member(brain::Brain& kb, CellI& role) :
+Ast::Member::Member(brain::Brain& kb, CellI& key) :
     BaseT<Member>(kb, kb.std.ast.Member, "ast.member")
 {
-    set(kb.ids.role, role);
+    set(kb.ids.key, key);
 }
 
 Ast::Set& Ast::Member::operator=(Base& value)
 {
-    Ast::Set& ret = Set::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.role)), value);
+    Ast::Set& ret = Set::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.key)), value);
     return ret;
 }
 
-Ast::Get& Ast::Member::operator/(Base& role)
+Ast::Get& Ast::Member::operator/(Base& key)
 {
-    return Get::New(kb, *this, role);
+    return Get::New(kb, *this, key);
 }
 
-Ast::Get& Ast::Member::operator/(const std::string& role)
+Ast::Get& Ast::Member::operator/(const std::string& key)
 {
-    return Get::New(kb, *this, kb._(role));
+    return Get::New(kb, *this, kb._(key));
 }
 
 Ast::Has& Ast::Member::exist()
 {
-    return Has::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.role)));
+    return Has::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.key)));
 }
 
 Ast::Missing& Ast::Member::missing()
 {
-    return Missing::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.role)));
+    return Missing::New(kb, Self::New(kb), Cell::New(kb, get(kb.ids.key)));
 }
 
 Ast::Call& Ast::Member::operator()(const std::string& method)
@@ -3819,27 +3818,27 @@ Ast::TemplatedType::TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList) 
     set(kb.ids.parameters, typeList);
 }
 
-void Ast::TemplatedType::addParam(const std::string& role, CellI& type)
+void Ast::TemplatedType::addParam(const std::string& key, CellI& type)
 {
     List& paramList = static_cast<List&>(get(kb.ids.parameters));
-    paramList.add(kb.ast.slot(role, type));
+    paramList.add(kb.ast.slot(key, type));
 }
 
-void Ast::TemplatedType::addParam(const std::string& role, const std::string& type)
+void Ast::TemplatedType::addParam(const std::string& key, const std::string& type)
 {
-    addParam(role, kb.ast.structName(type));
+    addParam(key, kb.ast.structName(type));
 }
 
-Ast::TemplateParam::TemplateParam(brain::Brain& kb, CellI& role) :
+Ast::TemplateParam::TemplateParam(brain::Brain& kb, CellI& key) :
     BaseT<TemplateParam>(kb, kb.std.ast.TemplateParam, "ast.templateParam")
 {
-    set(kb.ids.role, role);
+    set(kb.ids.key, key);
 }
 
-Ast::AssociatedType::AssociatedType(brain::Brain& kb, CellI& role) :
+Ast::AssociatedType::AssociatedType(brain::Brain& kb, CellI& key) :
     BaseT<AssociatedType>(kb, kb.std.ast.TemplateParam, "ast.associatedType")
 {
-    set(kb.ids.role, role);
+    set(kb.ids.key, key);
 }
 
 Ast::New::New(brain::Brain& kb, Base& objectType) :
@@ -3896,34 +3895,34 @@ Ast::NotEqual::NotEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Has::Has(brain::Brain& kb, Base& cell, Base& role) :
+Ast::Has::Has(brain::Brain& kb, Base& cell, Base& key) :
     BaseT<Has>(kb, kb.std.ast.Has, "ast.has")
 {
     set(kb.ids.cell, cell);
-    set(kb.ids.role, role);
+    set(kb.ids.key, key);
 }
 
-Ast::Missing::Missing(brain::Brain& kb, Base& cell, Base& role) :
+Ast::Missing::Missing(brain::Brain& kb, Base& cell, Base& key) :
     BaseT<Missing>(kb, kb.std.ast.Missing, "ast.missing")
 {
     set(kb.ids.cell, cell);
-    set(kb.ids.role, role);
+    set(kb.ids.key, key);
 }
 
-Ast::Get::Get(brain::Brain& kb, Base& cell, Base& role) :
+Ast::Get::Get(brain::Brain& kb, Base& cell, Base& key) :
     BaseT<Get>(kb, kb.std.ast.Get, "ast.get")
 {
     set(kb.ids.cell, cell);
-    set(kb.ids.role, role);
+    set(kb.ids.key, key);
 }
 
-Ast::Get& Ast::Get::operator/(Base& role)
+Ast::Get& Ast::Get::operator/(Base& key)
 {
-    return Get::New(kb, *this, role);
+    return Get::New(kb, *this, key);
 }
-Ast::Get& Ast::Get::operator/(const std::string& role)
+Ast::Get& Ast::Get::operator/(const std::string& key)
 {
-    return Get::New(kb, *this, kb._(role));
+    return Get::New(kb, *this, kb._(key));
 }
 
 Ast::Call& Ast::Get::operator()(const std::string& method)
@@ -4076,20 +4075,20 @@ Ast::Return& Ast::return_(Base& value)
     return Return::New(kb, value);
 }
 
-Ast::Parameter& Ast::parameter(CellI& role)
+Ast::Parameter& Ast::parameter(CellI& key)
 {
     auto& ast = kb.ast;
-    return Parameter::New(kb, role);
+    return Parameter::New(kb, key);
 }
 
-Ast::Slot& Ast::slot(const std::string& role, CellI& type)
+Ast::Slot& Ast::slot(const std::string& key, CellI& type)
 {
-    return Slot::New(kb, kb.name(role), type);
+    return Slot::New(kb, kb.name(key), type);
 }
 
-Ast::Slot& Ast::slot(CellI& role, CellI& type)
+Ast::Slot& Ast::slot(CellI& key, CellI& type)
 {
-    return Slot::New(kb, role, type);
+    return Slot::New(kb, key, type);
 }
 
 Ast::EnumValue& Ast::enumValue(const std::string& nameStr)
@@ -4137,24 +4136,24 @@ Ast::Delete& Ast::delete_(Base& ast)
     return Delete::New(kb, ast);
 }
 
-Ast::Set& Ast::set(Base& cell, Base& role, Base& value)
+Ast::Set& Ast::set(Base& cell, Base& key, Base& value)
 {
-    return Set::New(kb, cell, role, value);
+    return Set::New(kb, cell, key, value);
 }
 
-Ast::Set& Ast::set(Base& cell, const std::string& role, Base& value)
+Ast::Set& Ast::set(Base& cell, const std::string& key, Base& value)
 {
-    return Set::New(kb, cell, kb._(role), value);
+    return Set::New(kb, cell, kb._(key), value);
 }
 
-Ast::Erase& Ast::erase(Base& cell, Base& role)
+Ast::Erase& Ast::erase(Base& cell, Base& key)
 {
-    return Erase::New(kb, cell, role);
+    return Erase::New(kb, cell, key);
 }
 
-Ast::Erase& Ast::erase(Base& cell, const std::string& role)
+Ast::Erase& Ast::erase(Base& cell, const std::string& key)
 {
-    return Erase::New(kb, cell, kb._(role));
+    return Erase::New(kb, cell, kb._(key));
 }
 
 Ast::If& Ast::if_(Base& condition)
@@ -4192,14 +4191,14 @@ Ast::Var& Ast::var(const std::string& nameStr)
     return Var::New(kb, nameStr);
 }
 
-Ast::Member& Ast::member(CellI& role)
+Ast::Member& Ast::member(CellI& key)
 {
-    return Member::New(kb, role);
+    return Member::New(kb, key);
 }
 
-Ast::SubType& Ast::subType(CellI& role)
+Ast::SubType& Ast::subType(CellI& key)
 {
-    return SubType::New(kb, role);
+    return SubType::New(kb, key);
 }
 
 Ast::TemplatedType& Ast::templatedType(const std::string& idStr, CellI& type)
@@ -4211,14 +4210,14 @@ Ast::TemplatedType& Ast::templatedType(const std::string& idStr, CellI& type)
     return static_cast<Ast::TemplatedType&>(ret);
 }
 
-Ast::TemplateParam& Ast::templateParam(CellI& role)
+Ast::TemplateParam& Ast::templateParam(CellI& key)
 {
-    return TemplateParam::New(kb, role);
+    return TemplateParam::New(kb, key);
 }
 
-Ast::AssociatedType& Ast::associatedType(CellI& role)
+Ast::AssociatedType& Ast::associatedType(CellI& key)
 {
-    return AssociatedType::New(kb, role);
+    return AssociatedType::New(kb, key);
 }
 
 Ast::New& Ast::new_(Base& objectType)
@@ -4261,34 +4260,34 @@ Ast::NotEqual& Ast::notEqual(Base& lhs, Base& rhs)
     return NotEqual::New(kb, lhs, rhs);
 }
 
-Ast::Has& Ast::has(Base& cell, Base& role)
+Ast::Has& Ast::has(Base& cell, Base& key)
 {
-    return Has::New(kb, cell, role);
+    return Has::New(kb, cell, key);
 }
 
-Ast::Has& Ast::has(Base& cell, const std::string& role)
+Ast::Has& Ast::has(Base& cell, const std::string& key)
 {
-    return Has::New(kb, cell, kb._(role));
+    return Has::New(kb, cell, kb._(key));
 }
 
-Ast::Missing& Ast::missing(Base& cell, Base& role)
+Ast::Missing& Ast::missing(Base& cell, Base& key)
 {
-    return Missing::New(kb, cell, role);
+    return Missing::New(kb, cell, key);
 }
 
-Ast::Missing& Ast::missing(Base& cell, const std::string& role)
+Ast::Missing& Ast::missing(Base& cell, const std::string& key)
 {
-    return Missing::New(kb, cell, kb._(role));
+    return Missing::New(kb, cell, kb._(key));
 }
 
-Ast::Get& Ast::get(Base& cell, const std::string& role)
+Ast::Get& Ast::get(Base& cell, const std::string& key)
 {
-    return Get::New(kb, cell, kb._(role));
+    return Get::New(kb, cell, kb._(key));
 }
 
-Ast::Get& Ast::get(Base& cell, Base& role)
+Ast::Get& Ast::get(Base& cell, Base& key)
 {
-    return Get::New(kb, cell, role);
+    return Get::New(kb, cell, key);
 }
 
 Ast::And& Ast::and_(Base& lhs, Base& rhs)
@@ -4694,7 +4693,7 @@ Strings::Strings(brain::Brain& kb) :
         { "result", kb.ids.result },
         { "returnType", kb.ids.returnType },
         { "rhs", kb.ids.rhs },
-        { "role", kb.ids.role },
+        { "key", kb.ids.key },
         { "rootNode", kb.ids.rootNode },
         { "scope", kb.ids.scope },
         { "scopes", kb.ids.scopes },
@@ -4905,7 +4904,7 @@ void AstStd::createOp()
         .members(
             member("ast", "ast::Base"),
             member("cell", "Base"),
-            member("role", "Base"),
+            member("key", "Base"),
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
             member("value", "Base"));
@@ -4923,7 +4922,7 @@ void AstStd::createOp()
         .members(
             member("ast", "ast::Base"),
             member("cell", "Base"),
-            member("role", "Base"),
+            member("key", "Base"),
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
             member("value", "std::Cell"));
@@ -4950,7 +4949,7 @@ void AstStd::createOp()
         .members(
             member("ast", "ast::Base"),
             member("cell", "Base"),
-            member("role", "Base"),
+            member("key", "Base"),
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
             member("value", "std::Boolean"));
@@ -4987,7 +4986,7 @@ void AstStd::createOp()
         .members(
             member("ast", "ast::Base"),
             member("cell", "Base"),
-            member("role", "Base"),
+            member("key", "Base"),
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
             member("value", "std::Boolean"));
@@ -5064,7 +5063,7 @@ void AstStd::createOp()
         .members(
             member("ast", "ast::Base"),
             member("cell", "Base"),
-            member("role", "Base"),
+            member("key", "Base"),
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
             member("value", "Base"));
@@ -5188,10 +5187,10 @@ void AstStd::createAst()
 
     astScope.add<Struct>("Erase")
         .description(
-            equal(has(m_("cell"), m_("role")), false_()))
+            equal(has(m_("cell"), m_("key")), false_()))
         .members(
             member("cell", "Base"),
-            member("role", "Base"));
+            member("key", "Base"));
 
     astScope.add<Struct>("For")
         .members(
@@ -5223,10 +5222,10 @@ void AstStd::createAst()
         .memberOf(
             _(std.ast.Base))
         .description(
-            return_(m_("cell") / m_("role")))
+            return_(m_("cell") / m_("key")))
         .members(
             member("cell", "Base"),
-            member("role", "Base"));
+            member("key", "Base"));
 
     astScope.add<Struct>("GreaterThan")
         .memberOf(
@@ -5252,10 +5251,10 @@ void AstStd::createAst()
         .memberOf(
             _(std.ast.Base))
         .description(
-            return_(has(m_("cell"), m_("role"))))
+            return_(has(m_("cell"), m_("key"))))
         .members(
             member("cell", "Base"),
-            member("role", "Base"));
+            member("key", "Base"));
 
     astScope.add<Struct>("If")
 #if 0 // for the CellTrie we have to reference _every_ member but the else_ here is optional so this is a TODO
@@ -5291,16 +5290,16 @@ void AstStd::createAst()
 
     astScope.add<Struct>("Member")
         .members(
-            member("role", "Base"));
+            member("key", "Base"));
 
     astScope.add<Struct>("Missing")
         .memberOf(
             _(std.ast.Base))
         .description(
-            return_(missing(m_("cell"), m_("role"))))
+            return_(missing(m_("cell"), m_("key"))))
         .members(
             member("cell", "Base"),
-            member("role", "Base"));
+            member("key", "Base"));
 
     astScope.add<Struct>("Multiply")
         .memberOf(
@@ -5359,7 +5358,7 @@ void AstStd::createAst()
 
     astScope.add<Struct>("Parameter")
         .members(
-            member("role", "std::Cell"));
+            member("key", "std::Cell"));
 
     astScope.add<Struct>("ResolvedType")
         .members(
@@ -5402,10 +5401,10 @@ void AstStd::createAst()
         .memberOf(
             _(std.ast.Base))
         .description(
-            equal(m_("cell") / m_("role"), m_("value")))
+            equal(m_("cell") / m_("key"), m_("value")))
         .members(
             member("cell", "Base"),
-            member("role", "Base"),
+            member("key", "Base"),
             member("value", "Base"));
 
     astScope.add<Struct>("Slot")
@@ -5472,7 +5471,7 @@ void AstStd::createAst()
 
     astScope.add<Struct>("TemplateParam")
         .members(
-            member("role", "std::Cell"));
+            member("key", "std::Cell"));
 
     astScope.add<Struct>("Throw")
         .members(
@@ -6011,13 +6010,13 @@ AstStd::AstStd(brain::Brain& kb) :
             return_((m_("struct") / "slots")("empty")));
 
     /*
-    void Index::erase(CellI& role)
+    void Index::erase(CellI& key)
     {
-        if (!m_type->hasSlot(role)) {
+        if (!m_type->hasSlot(key)) {
             return;
         }
-        m_slots.erase(&role);
-        m_type->removeSlot(role);
+        m_slots.erase(&key);
+        m_type->removeSlot(key);
     }
     */
     indexStruct.addMethod("remove")
@@ -6094,7 +6093,7 @@ AstStd::AstStd(brain::Brain& kb) :
         if (m_index.has(key)) {
             return m_index[key][kb.ids.value];
         }
-        throw "No such role!";
+        throw "No such key!";
     }
     */
     mapStructT.addMethod("getValue")
@@ -6113,7 +6112,7 @@ AstStd::AstStd(brain::Brain& kb) :
             throw "ids.type can not be stored in a map!";
         }
         if (m_index.has(key)) {
-            throw "A value already registered with this role";
+            throw "A value already registered with this key";
         }
         List::Item& item = *m_list.add(value);
         m_index.insert(key, item);
