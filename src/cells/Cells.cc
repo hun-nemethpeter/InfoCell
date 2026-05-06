@@ -124,7 +124,7 @@ bool CellI::operator==(CellI& rhs)
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.ids.value];
-        CellI& key     = slot[kb.ids.slotRole];
+        CellI& key      = slot[kb.ids.key];
 
         bool hasLeftSlot = has(key);
         if (hasLeftSlot != rhs.has(key)) {
@@ -705,7 +705,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
             }
         }
         if (paramNodePtr) {
-            CellI& param = (*paramNodePtr)[kb.ids.value][kb.ids.slotType];
+            CellI& param = (*paramNodePtr)[kb.ids.value][kb.ids.type];
             self.set(kb.ids.currentParam, *paramNodePtr);
             previousCell = currentCell;
             currentCell  = &param;
@@ -732,9 +732,9 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         inputIndex.set(kb.ids.self, cell);
         if (self.has(kb.ids.parameters)) {
             Visitor::visitList(self[kb.ids.parameters], [&self, &kb, &inputIndex](CellI& parameter, int, bool& stop) {
-                inputIndex.set(parameter[kb.ids.slotRole], parameter[kb.ids.slotType][kb.ids.value]);
+                inputIndex.set(parameter[kb.ids.key], parameter[kb.ids.type][kb.ids.value]);
 //                static_cast<Object&>(self).printIndent();
-//                std::cout << parameter[kb.ids.slotRole].label() << ":" << parameter[kb.ids.slotType][kb.ids.value].label() << std::endl;
+//                std::cout << parameter[kb.ids.key].label() << ":" << parameter[kb.ids.type][kb.ids.value].label() << std::endl;
             });
         }
         stackFrame.set(kb.ids.input, inputIndex);
@@ -744,7 +744,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
             Index& localVarsIndex = *new Index(kb /*, method.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value] */);
             if (method.struct_()[kb.ids.subTypes][kb.ids.index].has(kb.ids.localVars)) {
                 Visitor::visitList(localVarsList, [&self, &kb, &localVarsIndex](CellI& slot, int, bool& stop) {
-                    localVarsIndex.set(slot[kb.ids.slotRole], *new Object(kb, kb.std.op.Var));
+                    localVarsIndex.set(slot[kb.ids.key], *new Object(kb, kb.std.op.Var));
                 });
                 stackFrame.set(kb.ids.localVars, localVarsIndex);
             }
@@ -851,7 +851,7 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
                 CellI& localVarsList  = self.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value][kb.ids.slots][kb.ids.list];
                 CellI& localVarsIndex = stackFrame[kb.ids.localVars];
                 Visitor::visitList(localVarsList, [&self, &kb, &localVarsIndex](CellI& slot, int, bool& stop) {
-                    delete &localVarsIndex[slot[kb.ids.slotRole]];
+                    delete &localVarsIndex[slot[kb.ids.key]];
                 });
                 delete &localVarsIndex;
             }
@@ -1791,10 +1791,10 @@ void Object::initLocalVars(CellI& method)
     CellI& stackFrame      = method[kb.ids.stack][kb.ids.value];
     stackFrame.set(kb.ids.localVars, localVarsIndex);
     Visitor::visitList(localVarsType[kb.ids.slots][kb.ids.list], [this, &localVarsIndex](CellI& slot, int i, bool&) {
-        auto& slotRole   = slot[kb.ids.slotRole];
-        Object& localVar = *new Object(kb, kb.std.op.Var, fmt::format("var {}", slotRole.label()));
-        localVar.set(kb.ids.valueType, slot[kb.ids.slotType]);
-        localVarsIndex.set(slotRole, localVar);
+        auto& key        = slot[kb.ids.key];
+        Object& localVar = *new Object(kb, kb.std.op.Var, fmt::format("var {}", key.label()));
+        localVar.set(kb.ids.valueType, slot[kb.ids.type]);
+        localVarsIndex.set(key, localVar);
     });
 }
 
@@ -2223,8 +2223,8 @@ void Index::insert(CellI& key, CellI& value)
         return;
     }
     Object& slot = *new Object(kb, kb.std.Slot);
-    slot.set(kb.ids.slotRole, key);
-    slot.set(kb.ids.slotType, kb.std.Slot);
+    slot.set(kb.ids.key, key);
+    slot.set(kb.ids.type, kb.std.Slot);
     m_type->addSlot(key, slot);
 }
 
@@ -2697,7 +2697,7 @@ int Set::size()
 
 CellI& Set::first()
 {
-    return m_index["struct"]["slots"]["list"]["first"]["value"]["slotRole"];
+    return m_index["struct"]["slots"]["list"]["first"]["value"]["key"];
 }
 
 void Set::accept(Visitor& visitor)

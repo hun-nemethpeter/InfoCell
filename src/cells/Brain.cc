@@ -83,9 +83,7 @@ ID::ID(brain::Brain& kb) :
     scopes(kb, kb.std.Char, "scopes"),
     self(kb, kb.std.Char, "self"),
     size(kb, kb.std.Char, "size"),
-    slotRole(kb, kb.std.Char, "slotRole"),
     slots(kb, kb.std.Char, "slots"),
-    slotType(kb, kb.std.Char, "slotType"),
     stack(kb, kb.std.Char, "stack"),
     state(kb, kb.std.Char, "state"),
     stateCondition(kb, kb.std.Char, "stateCondition"),
@@ -111,6 +109,7 @@ ID::ID(brain::Brain& kb) :
     templateParams(kb, kb.std.Char, "templateParams"),
     then(kb, kb.std.Char, "then"),
     throw_(kb, kb.std.Char, "throw"),
+    type(kb, kb.std.Char, "type"),
     unknownInstances(kb, kb.std.Char, "unknownInstances"),
     unknownStructs(kb, kb.std.Char, "unknownStructs"),
     value(kb, kb.std.Char, "value"),
@@ -264,8 +263,8 @@ Std::Std(brain::Brain& kb) :
 cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
 {
     CellI& ret = *new Object(kb, kb.std.Slot);
-    ret.set(kb.ids.slotRole, key);
-    ret.set(kb.ids.slotType, type);
+    ret.set(kb.ids.key, key);
+    ret.set(kb.ids.type, type);
 
     return ret;
 }
@@ -273,8 +272,8 @@ cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
 cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
 {
     CellI& ret = *new Object(kb, kb.std.Slot);
-    ret.set(kb.ids.slotRole, kb.name(key));
-    ret.set(kb.ids.slotType, type);
+    ret.set(kb.ids.key, kb.name(key));
+    ret.set(kb.ids.type, type);
 
     return ret;
 }
@@ -323,7 +322,7 @@ CellI& CellTrie::serializeAst(CellI& ast)
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.ids.value];
-        CellI& key     = slot[kb.ids.slotRole];
+        CellI& key     = slot[kb.ids.key];
         CellI& current  = *currentPtr;
 
         if (first) {
@@ -404,7 +403,7 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.ids.value];
-        CellI& key     = slot[kb.ids.slotRole];
+        CellI& key     = slot[kb.ids.key];
         CellI& current  = *currentPtr;
 
         if (first) {
@@ -442,10 +441,10 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
                         if (&stackItem.ast.struct_() == &kb.std.ast.Return) {
                             continue;
                         }
-                        auto& slotRole = stackItem.slotItem[kb.ids.value][kb.ids.slotRole];
-                        path.add(slotRole);
+                        auto& key = stackItem.slotItem[kb.ids.value][kb.ids.key];
+                        path.add(key);
                     }
-                    path.add(slotItem[kb.ids.value][kb.ids.slotRole]);
+                    path.add(slotItem[kb.ids.value][kb.ids.key]);
                     memberIds.add(memberRole, path);
                 }
             } else if ((&key != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
@@ -485,7 +484,7 @@ CellI* CellTrie::processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.ids.value];
-        CellI& key     = slot[kb.ids.slotRole];
+        CellI& key     = slot[kb.ids.key];
 
         if (first) {
             first = false;
@@ -636,7 +635,7 @@ CellI* CellTrie::findToolByAstImpl(CellI& ast, CellI*& toolAst)
         findContext.toolKind = ToolKind::Statement;
         while (findContext.slotItemPtr)
         {
-            CellI& key = (*findContext.slotItemPtr)[kb.ids.value][kb.ids.slotRole];
+            CellI& key = (*findContext.slotItemPtr)[kb.ids.value][kb.ids.key];
             if (findContext.first && !checkValue(findContext, kb.ids.struct_, (*findContext.astCellPtr).struct_())) {
                 return nullptr;
             }
@@ -748,8 +747,8 @@ void CellTrie::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI&
         static CellI& retVal   = *new Object(kb, kb.std.ast.Return);
         while (subpToolItemPtr) {
             CellI& slot       = (*subpToolItemPtr)[kb.ids.value];
-            CellI& key        = slot[kb.ids.slotRole];
-            CellI& value      = slot[kb.ids.slotType];
+            CellI& key        = slot[kb.ids.key];
+            CellI& value      = slot[kb.ids.type];
             CellI& subToolAst = key[value];
 
             retVal.set(kb.ids.value, subToolAst);
@@ -891,12 +890,12 @@ CellI& Ast::Base::getFullyQualifiedNameImpl()
     if (has("instanceOf")) {
         ss << "<";
         Visitor::visitList(get(kb.ids.templateParams), [this, &ss](CellI& slot, int i, bool& stop) {
-            CellI& slotRole = slot[kb.ids.slotRole];
-            CellI& slotType = slot[kb.ids.slotType];
+            CellI& key  = slot[kb.ids.key];
+            CellI& type = slot[kb.ids.type];
             if (i != 0) {
                 ss << ", ";
             }
-            ss << fmt::format("{}={}", slotRole.label(), getCompiledTypeFromResolvedType(slotType).label());
+            ss << fmt::format("{}={}", key.label(), getCompiledTypeFromResolvedType(type).label());
         });
         ss << ">";
     }
@@ -1065,15 +1064,15 @@ List& Ast::Base::generateTemplateId(CellI& id, CellI& parameters, CellI& resolve
         if (i != 0) {
             ss << ", ";
         }
-        CellI& slotRole         = slot[kb.ids.slotRole];
-        CellI& slotType         = slot[kb.ids.slotType];
-        CellI& resolvedSlotType = resolveType(slotType, resolveState);
+        CellI& key              = slot[kb.ids.key];
+        CellI& type             = slot[kb.ids.type];
+        CellI& resolvedSlotType = resolveType(type, resolveState);
         CellI& compiledSlotType = getCompiledTypeFromResolvedType(resolvedSlotType);
 
-        idCell.add(slotRole);
+        idCell.add(key);
         idCell.add(compiledSlotType);
-        resolvedParams.add(kb.ast.slot(slotRole, resolvedSlotType));
-        ss << fmt::format("{}={}", slotRole.label(), compiledSlotType.label());
+        resolvedParams.add(kb.ast.slot(key, resolvedSlotType));
+        ss << fmt::format("{}={}", key.label(), compiledSlotType.label());
     });
     ss << ">";
     idCell.label(ss.str());
@@ -1117,8 +1116,8 @@ Ast::Call& Ast::Parameter::operator()(const std::string& method)
 Ast::Slot::Slot(brain::Brain& kb, CellI& key, CellI& type) :
     BaseT<Slot>(kb, kb.std.ast.Slot, "ast.slot")
 {
-    set(kb.ids.slotRole, key);
-    set(kb.ids.slotType, type);
+    set(kb.ids.key, key);
+    set(kb.ids.type, type);
 }
 
 Ast::Call::Call(brain::Brain& kb, CellI& cell, CellI& method) :
@@ -1526,13 +1525,13 @@ CellI& Ast::Scope::reigisterStructBeforeCompilation(CellI& structAst)
             if (i != 0) {
                 ss << ", ";
             }
-            CellI& slotRole         = slot[kb.ids.slotRole];
-            CellI& slotType         = slot[kb.ids.slotType];
-            CellI& compiledSlotType = reigisterStructBeforeCompilation(slotType);
+            CellI& key              = slot[kb.ids.key];
+            CellI& type             = slot[kb.ids.type];
+            CellI& compiledSlotType = reigisterStructBeforeCompilation(type);
 
-            idCell.add(slotRole);
+            idCell.add(key);
             idCell.add(compiledSlotType);
-            ss << fmt::format("{}={}", slotRole.label(), compiledSlotType.label());
+            ss << fmt::format("{}={}", key.label(), compiledSlotType.label());
         });
         ss << ">";
         idCell.label(ss.str());
@@ -1593,8 +1592,8 @@ void Ast::Scope::registerEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownI
 {
     Visitor::visitList(earlyStructs[kb.ids.list], [this, &unknownStructs, &unknownInstances](CellI& earlyStructKV, int i, bool& stop) {
         auto& structId       = earlyStructKV[kb.ids.key];
-        auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.slotRole];
-        auto& compiledStruct = earlyStructKV[kb.ids.value][kb.ids.slotType];
+        auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.key];
+        auto& compiledStruct = earlyStructKV[kb.ids.value][kb.ids.type];
 
         TRACE(compileStruct, "early struct: {}", earlyStructKV[kb.ids.key].label());
 
@@ -1620,8 +1619,8 @@ void Ast::Scope::resolveEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownIn
 
     Visitor::visitList(earlyStructs[kb.ids.list], [this, &unknownStructs, &unknownInstances, &stdScope, &resolvedStdScope](CellI& earlyStructKV, int i, bool& stop) {
         auto& structId       = earlyStructKV[kb.ids.key];
-        auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.slotRole];
-        auto& compiledStruct = earlyStructKV[kb.ids.value][kb.ids.slotType];
+        auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.key];
+        auto& compiledStruct = earlyStructKV[kb.ids.value][kb.ids.type];
 
         TRACE(compileStruct, "resolve early struct: {}", earlyStructKV[kb.ids.key].label());
 
@@ -1668,8 +1667,8 @@ int Ast::Scope::instantiateTemplateInstances(TrieMap& unknownInstances, Object& 
         ss << fmt::format("        in scope: {}", idScope.getFullyQualifiedName().label());
         ss << fmt::format("  instantiate id: {}<", templateId.label());
         Visitor::visitList(templateParams, [this, &ss, &compileState](CellI& param, int i, bool& stop) {
-            CellI& paramId   = param[kb.ids.slotRole];
-            CellI& paramType = param[kb.ids.slotType];
+            CellI& paramId   = param[kb.ids.key];
+            CellI& paramType = param[kb.ids.type];
             if (i > 0) {
                 ss << ", ";
             }
@@ -1713,7 +1712,7 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
             if (compiledStruct.has("subTypes")) {
                 CellI& subTypesIndex = compiledStruct["subTypes"][kb.ids.index];
                 Visitor::visitList(subTypesIndex[kb.ids.struct_][kb.ids.slots][kb.ids.list], [this, &structFullName, &subTypesIndex, &compiledStructs](CellI& subType, int i, bool& stop) {
-                    CellI& key = subType["slotRole"];
+                    CellI& key = subType["key"];
                     CellI& value = subTypesIndex[key][kb.ids.value];
                     List& aliasName = *new List(kb, kb.std.Char);
                     Visitor::visitList(structFullName, [&aliasName](CellI& character, int i, bool& stop) {
@@ -1876,7 +1875,7 @@ Ast::StructBase& Ast::StructBase::members(Slot& slot)
     if (missing("members")) {
         set("members", *new Map(kb, kb.std.Cell, kb.std.ast.Slot));
     }
-    members().add(slot[kb.ids.slotRole], slot);
+    members().add(slot[kb.ids.key], slot);
 
     return *this;
 }
@@ -1886,10 +1885,10 @@ Ast::StructBase& Ast::StructBase::subTypes(Slot& slot)
     if (missing("subTypes")) {
         set("subTypes", *new Map(kb, kb.std.Cell, kb.std.ast.Base));
     }
-    CellI& slotRole = slot[kb.ids.slotRole];
-    CellI& slotType = slot[kb.ids.slotType];
+    CellI& key = slot[kb.ids.key];
+    CellI& type = slot[kb.ids.type];
 
-    subTypes().add(slotRole, slot);
+    subTypes().add(key, slot);
 
     return *this;
 }
@@ -1947,7 +1946,7 @@ CellI& Ast::StructBase::name()
 
 Ast::Base& Ast::StructBase::getSubType(CellI& name)
 {
-    return static_cast<Ast::Base&>(subTypes().getValue(name)[kb.ids.slotType]);
+    return static_cast<Ast::Base&>(subTypes().getValue(name)[kb.ids.type]);
 }
 
 void Ast::StructBase::addBlock(Block& block)
@@ -2007,8 +2006,8 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     // resolve sub types
     if (has("subTypes")) {
         Visitor::visitList(subTypes()[kb.ids.list], [this, &ret, &state, &subTypesStrs](CellI& subTypeCell, int i, bool& stop) {
-            CellI& subTypeId           = subTypeCell[kb.ids.slotRole];
-            CellI& subTypeType         = subTypeCell[kb.ids.slotType];
+            CellI& subTypeId           = subTypeCell[kb.ids.key];
+            CellI& subTypeType         = subTypeCell[kb.ids.type];
             CellI& resolvedSubTypeType = resolveType(subTypeType, state);
             ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
             if (IS_LOG_ENABLED) {
@@ -2058,8 +2057,8 @@ Ast::Struct& Ast::Struct::resolveTypes(CellI& state)
     if (has("members")) {
         CellI& membersList = members()[kb.ids.list];
         Visitor::visitList(membersList, [this, &ret, &state](CellI& memberCell, int i, bool& stop) {
-            CellI& memberId   = memberCell[kb.ids.slotRole];
-            CellI& memberType = memberCell[kb.ids.slotType];
+            CellI& memberId           = memberCell[kb.ids.key];
+            CellI& memberType         = memberCell[kb.ids.type];
             CellI& resolvedMemberType = resolveType(memberType, state);
             ret.members(kb.ast.slot(memberId, resolvedMemberType));
             if (label() == "ListItem" && memberId.label() == "value")
@@ -2087,10 +2086,10 @@ CellI& Ast::Struct::compile(CellI& state)
     if (has("subTypes")) {
         Map& compiledSubTypes = *new Map(kb, kb.std.Cell, kb.std.Struct, "subTypes Map<Cell, Type>(...)");
         Visitor::visitList(subTypes()[kb.ids.list], [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
-            CellI& slotRole        = slot[kb.ids.slotRole];
-            CellI& slotType        = slot[kb.ids.slotType];
-            auto& compiledSlotType = getCompiledTypeFromResolvedType(slotType);
-            compiledSubTypes.add(slotRole, compiledSlotType);
+            CellI& key             = slot[kb.ids.key];
+            CellI& type            = slot[kb.ids.type];
+            auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
+            compiledSubTypes.add(key, compiledSlotType);
         });
         compiledStruct.set("subTypes", compiledSubTypes);
     }
@@ -2109,10 +2108,10 @@ CellI& Ast::Struct::compile(CellI& state)
     if (has("members")) {
         Map& compiledMembers = *new Map(kb, kb.std.Cell, kb.std.Slot, "members Map<Cell, Slot>(...)");
         Visitor::visitList(members()[kb.ids.list], [this, &compiledMembers, &compiledStruct, &state](CellI& slot, int i, bool& stop) {
-            CellI& slotRole          = slot[kb.ids.slotRole];
-            CellI& slotType          = slot[kb.ids.slotType];
-            auto& compiledSlotType   = getCompiledTypeFromResolvedType(slotType);
-            compiledMembers.add(slotRole, kb.std.slot(slotRole, compiledSlotType));
+            CellI& key             = slot[kb.ids.key];
+            CellI& type            = slot[kb.ids.type];
+            auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
+            compiledMembers.add(key, kb.std.slot(key, compiledSlotType));
         });
         compiledStruct.set("slots", compiledMembers);
     }
@@ -2145,18 +2144,18 @@ Ast::StructT& Ast::StructT::templateParams(Slot& slot)
     if (missing("templateParams")) {
         set("templateParams", *new Map(kb, kb.std.Cell, kb.std.Struct));
     }
-    CellI& slotRole = slot[kb.ids.slotRole];
-    CellI& slotType = slot[kb.ids.slotType];
-    if (!(&slotType.struct_() == &kb.std.ast.Cell || &slotType.struct_() == &kb.std.ast.TemplatedType)) {
+    CellI& key  = slot[kb.ids.key];
+    CellI& type = slot[kb.ids.type];
+    if (!(&type.struct_() == &kb.std.ast.Cell || &type.struct_() == &kb.std.ast.TemplatedType)) {
         throw "Invalid template param type!";
     }
     CellI* paramType = nullptr;
-    if (&slotType.struct_() == &kb.std.ast.Cell) {
-        paramType = &slotType[kb.ids.value];
+    if (&type.struct_() == &kb.std.ast.Cell) {
+        paramType = &type[kb.ids.value];
     } else {
         throw "TODO";
     }
-    templateParams().add(slotRole, *paramType);
+    templateParams().add(key, *paramType);
 
     return *this;
 }
@@ -2175,18 +2174,18 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
     });
 
     Visitor::visitList(inputParams, [this, &inputParameters, &ss, &idCell](CellI& slot, int i, bool& stop) {
-        CellI& slotRole = slot[kb.ids.slotRole];
-        CellI& slotType = slot[kb.ids.slotType];
-        inputParameters.add(slotRole, slotType);
-        CellI& compiledSlotType = getCompiledTypeFromResolvedType(slotType);
+        CellI& key  = slot[kb.ids.key];
+        CellI& type = slot[kb.ids.type];
+        inputParameters.add(key, type);
+        CellI& compiledSlotType = getCompiledTypeFromResolvedType(type);
         if (i != 0) {
             ss << ", ";
         }
-        ss << slotRole.label() << "=" << compiledSlotType.label();
-        if (!templateParams().hasKey(slotRole)) {
+        ss << key.label() << "=" << compiledSlotType.label();
+        if (!templateParams().hasKey(key)) {
             throw "Instantiating with unknown template parameter!";
         }
-        idCell.add(slotRole);
+        idCell.add(key);
         idCell.add(compiledSlotType);
     });
     idCell.label(fmt::format("{}<{}>", name().label(), ss.str()));
@@ -2208,10 +2207,10 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
     if (has("subTypes")) {
         Map& instantiatedSubTypes = *new Map(kb, kb.std.Cell, kb.std.ast.Base);
         Visitor::visitList(subTypes()[kb.ids.list], [this, &inputParameters, &instantiatedSubTypes, &ret, &state](CellI& slot, int i, bool& stop) {
-            CellI& slotRole          = slot[kb.ids.slotRole];
-            CellI& slotType          = slot[kb.ids.slotType];
-            CellI& instantiatedParam = instantiateTemplateParamType(slotType, ret, inputParameters, state);
-            instantiatedSubTypes.add(slotRole, kb.ast.slot(slotRole, instantiatedParam));
+            CellI& key               = slot[kb.ids.key];
+            CellI& type              = slot[kb.ids.type];
+            CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters, state);
+            instantiatedSubTypes.add(key, kb.ast.slot(key, instantiatedParam));
         });
         ret.set("subTypes", instantiatedSubTypes);
     }
@@ -2226,10 +2225,10 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
             if (astFunction.has("parameters")) {
                 List& instantiatedParameters = *new List(kb, kb.std.Slot);
                 Visitor::visitList(astFunction[kb.ids.parameters], [this, &inputParameters, &instantiatedParameters, &ret, &state](CellI& slot, int i, bool& stop) {
-                    CellI& slotRole          = slot[kb.ids.slotRole];
-                    CellI& slotType          = slot[kb.ids.slotType];
-                    CellI& instantiatedParam = instantiateTemplateParamType(slotType, ret, inputParameters, state);
-                    instantiatedParameters.add(kb.ast.slot(slotRole, instantiatedParam));
+                    CellI& key               = slot[kb.ids.key];
+                    CellI& type              = slot[kb.ids.type];
+                    CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters, state);
+                    instantiatedParameters.add(kb.ast.slot(key, instantiatedParam));
                 });
                 instantiedFunction.set("parameters", instantiatedParameters);
             }
@@ -2250,10 +2249,10 @@ Ast::Struct& Ast::StructT::instantiateWith(List& inputParams, CellI& state)
     if (has("members")) {
         Map& instantiatedMembers = *new Map(kb, kb.std.Cell, kb.std.Slot);
         Visitor::visitList(members()[kb.ids.list], [this, &inputParameters, &instantiatedMembers, &ret, &state](CellI& slot, int i, bool& stop) {
-            CellI& slotRole = slot[kb.ids.slotRole];
-            CellI& slotType = slot[kb.ids.slotType];
-            CellI& instantiatedParam = instantiateTemplateParamType(slotType, ret, inputParameters, state);
-            instantiatedMembers.add(slotRole, kb.ast.slot(slotRole, instantiatedParam));
+            CellI& key               = slot[kb.ids.key];
+            CellI& type              = slot[kb.ids.type];
+            CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters, state);
+            instantiatedMembers.add(key, kb.ast.slot(key, instantiatedParam));
         });
         ret.set("members", instantiatedMembers);
     }
@@ -2286,10 +2285,10 @@ CellI& Ast::StructT::instantiateTemplateParamType(CellI& param, CellI& selfType,
         auto& parametersList        = param[kb.ids.parameters];
 
         Visitor::visitList(parametersList, [this, &resolvedParameterList, &selfType, &inputParameters, &state](CellI& slot, int, bool&) {
-            CellI& slotRole         = slot[kb.ids.slotRole];
-            CellI& slotType         = slot[kb.ids.slotType];
-            CellI& resolvedSlotType = instantiateTemplateParamType(slotType, selfType, inputParameters, state);
-            resolvedParameterList.add(kb.ast.slot(slotRole, resolvedSlotType));
+            CellI& key              = slot[kb.ids.key];
+            CellI& type             = slot[kb.ids.type];
+            CellI& resolvedSlotType = instantiateTemplateParamType(type, selfType, inputParameters, state);
+            resolvedParameterList.add(kb.ast.slot(key, resolvedSlotType));
         });
 
         return ret;
@@ -2318,7 +2317,7 @@ Ast::Base& Ast::StructT::instantiateAst(CellI& ast, CellI& selfType, Map& inputP
             if (ast.has("parameters")) {
                 auto& newParameters = *new cells::List(kb, kb.std.ast.Slot);
                 Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
-                    newParameters.add(kb.ast.slot(slot[kb.ids.slotRole], instantiate(slot[kb.ids.slotType])));
+                    newParameters.add(kb.ast.slot(slot[kb.ids.key], instantiate(slot[kb.ids.type])));
                 });
                 ret.set("parameters", newParameters);
             }
@@ -2803,8 +2802,8 @@ Ast::Function& Ast::Function::resolveTypes(CellI& state)
 
     if (has("parameters")) {
         Visitor::visitList(parameters(), [this, &state, &ret, &ss](CellI& param, int i, bool& stop) {
-            CellI& paramId           = param[kb.ids.slotRole];
-            CellI& paramType         = param[kb.ids.slotType];
+            CellI& paramId           = param[kb.ids.key];
+            CellI& paramType         = param[kb.ids.type];
             CellI& resolvedParamType = resolveType(paramType, state);
             CellI& compiledParamType = getCompiledTypeFromResolvedType(resolvedParamType);
             if (i > 0) {
@@ -2852,7 +2851,7 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
             if (ast.has("parameters")) {
                 auto& newParameters = *new cells::List(kb, kb.std.ast.Slot);
                 Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
-                    newParameters.add(kb.ast.slot(slot[kb.ids.slotRole], resolveNode(slot[kb.ids.slotType])));
+                    newParameters.add(kb.ast.slot(slot[kb.ids.key], resolveNode(slot[kb.ids.type])));
                 });
                 ret.set("parameters", newParameters);
             }
@@ -2874,7 +2873,7 @@ Ast::Base& Ast::Function::resolveTypesInCode(CellI& resolveState, CellI& ast)
         if (ast.has("parameters")) {
             auto& newParameters = *new cells::List(kb, kb.std.ast.Slot);
             Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
-                newParameters.add(kb.ast.slot(slot[kb.ids.slotRole], resolveNode(slot[kb.ids.slotType])));
+                newParameters.add(kb.ast.slot(slot[kb.ids.key], resolveNode(slot[kb.ids.type])));
             });
             ret.set("parameters", newParameters);
         }
@@ -3033,7 +3032,7 @@ std::string Ast::Function::shortName()
                 if (i > 0) {
                     iss << ", ";
                 }
-                iss << "p_" << slot[kb.ids.slotRole].label() << ": " << getCompiledTypeFromResolvedType(slot[kb.ids.slotType]).label();
+                iss << "p_" << slot[kb.ids.key].label() << ": " << getCompiledTypeFromResolvedType(slot[kb.ids.type]).label();
             });
         }
     }
@@ -3072,11 +3071,11 @@ void Ast::Function::compileParams(cells::Object& function, cells::Map& functionS
                 if (i > 0) {
                     iss << ", ";
                 }
-                auto& slotRole         = slot[kb.ids.slotRole];
-                auto& slotType         = slot[kb.ids.slotType];
-                auto& compiledSlotType = getCompiledTypeFromResolvedType(slotType);
-                iss << "p_" << slotRole.label() << ": " << compiledSlotType.label();
-                slots.add(slotRole, kb.std.slot(slotRole, compiledSlotType));
+                auto& key         = slot[kb.ids.key];
+                auto& type         = slot[kb.ids.type];
+                auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
+                iss << "p_" << key.label() << ": " << compiledSlotType.label();
+                slots.add(key, kb.std.slot(key, compiledSlotType));
             });
         }
         parametersType.set(kb.ids.slots, slots);
@@ -3338,8 +3337,8 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
                 auto& astMembers = static_cast<Map&>(function[kb.ids.ast][kb.ids.structType][kb.ids.members]);
                 if (astMembers.hasKey(astMemberId)) {
                     Slot& slot = static_cast<Slot&>(astMembers.getValue(astMemberId));
-                    auto& slotType = slot[kb.ids.slotType];
-                    checkMethodCall(slotType, astMethodId, state);
+                    auto& type = slot[kb.ids.type];
+                    checkMethodCall(type, astMethodId, state);
                     checked = true;
                 } else {
                     throw "Unknown member name!";
@@ -3354,9 +3353,9 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             auto& astFunctionParameters = function[kb.ids.ast][kb.ids.parameters];
             Slot* astFunctionParameterSlot = nullptr;
             Visitor::visitList(astFunctionParameters, [this, &parameterRole, &astFunctionParameterSlot](CellI& slot, int i, bool& stop) {
-                CellI& slotRole = slot[kb.ids.slotRole];
-                CellI& slotType = slot[kb.ids.slotType];
-                if (&slotRole == &parameterRole) {
+                CellI& key  = slot[kb.ids.key];
+                CellI& type = slot[kb.ids.type];
+                if (&key == &parameterRole) {
                     astFunctionParameterSlot = &static_cast<Slot&>(slot);
                     stop = true;
                     return;
@@ -3364,7 +3363,7 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             });
             if (astFunctionParameterSlot) {
                 Slot& slot             = *astFunctionParameterSlot;
-                auto& astParameterType = slot[kb.ids.slotType];
+                auto& astParameterType = slot[kb.ids.type];
                 checkMethodCall(astParameterType, astMethodId, state);
                 checked = true;
             } else {
@@ -3384,8 +3383,8 @@ CellI& Ast::Function::compileAst(CellI& ast, cells::Object& function, CellI& sta
             List& parameters = *new List(kb, kb.std.Slot);
             Visitor::visitList(ast[kb.ids.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
                 CellI& slot = *new Object(kb, kb.std.Slot);
-                slot.set(kb.ids.slotRole, param[kb.ids.slotRole]);
-                slot.set(kb.ids.slotType, compile(param[kb.ids.slotType]));
+                slot.set(kb.ids.key, param[kb.ids.key]);
+                slot.set(kb.ids.type, compile(param[kb.ids.type]));
                 parameters.add(slot);
             });
             retOp.set(kb.ids.parameters, parameters);
@@ -4699,9 +4698,8 @@ Strings::Strings(brain::Brain& kb) :
         { "scopes", kb.ids.scopes },
         { "self", kb.ids.self },
         { "size", kb.ids.size },
-        { "slotRole", kb.ids.slotRole },
+        { "key", kb.ids.key },
         { "slots", kb.ids.slots },
-        { "slotType", kb.ids.slotType },
         { "stack", kb.ids.stack },
         { "state", kb.ids.state },
         { "stateCondition", kb.ids.stateCondition },
@@ -4727,6 +4725,7 @@ Strings::Strings(brain::Brain& kb) :
         { "templateParams", kb.ids.templateParams },
         { "then", kb.ids.then },
         { "throw", kb.ids.throw_ },
+        { "type", kb.ids.type },
         { "unknownInstances", kb.ids.unknownInstances },
         { "unknownStructs", kb.ids.unknownStructs },
         { "value", kb.ids.value },
@@ -5409,8 +5408,8 @@ void AstStd::createAst()
 
     astScope.add<Struct>("Slot")
         .members(
-            member("slotRole", "Base"),
-            member("slotType", "Base"));
+            member("key", "Base"),
+            member("type", "Base"));
 
     astScope.add<Struct>("StaticCall")
         .members(
@@ -5539,8 +5538,8 @@ AstStd::AstStd(brain::Brain& kb) :
     stdScope.add<Struct>("Void");
     stdScope.add<Struct>("Slot")
         .members(
-            member("slotRole", "Cell"),
-            member("slotType", "Struct"));
+            member("key", "Cell"),
+            member("type", "Struct"));
 
     stdScope.add<Struct>("Enum")
         .members(
@@ -5893,12 +5892,12 @@ AstStd::AstStd(brain::Brain& kb) :
 
     structStruct.addMethod("addSubType")
         .parameters(
-            parameter("slotRole", _(std.Cell)),
-            parameter("slotType", _(std.Struct)))
+            parameter("key", _(std.Cell)),
+            parameter("type", _(std.Struct)))
         .instructions(
             if_(m_("subTypes").missing())
                 .then_(m_("subTypes") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", "Struct"), "constructor")),
-            m_("subTypes")("add")("key", p_("slotRole"))("value", p_("slotType")));
+            m_("subTypes")("add")("key", p_("key"))("value", p_("type")));
 
     structStruct.addMethod("addMembership")
         .parameters(
@@ -5910,15 +5909,15 @@ AstStd::AstStd(brain::Brain& kb) :
 
     structStruct.addMethod("addSlot")
         .parameters(
-            parameter("slotRole", _(std.Cell)),
-            parameter("slotType", _(std.Slot)))
+            parameter("key", _(std.Cell)),
+            parameter("type", _(std.Slot)))
         .instructions(
             if_(m_("slots").missing())
                 .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
             var_("slot") = new_(_(std.Slot)),
-            set(*var_("slot"), "slotRole", p_("slotRole")),
-            set(*var_("slot"), "slotType", p_("slotType")),
-            m_("slots")("add")("key", p_("slotRole"))("value", *var_("slot")));
+            set(*var_("slot"), "key", p_("key")),
+            set(*var_("slot"), "type", p_("type")),
+            m_("slots")("add")("key", p_("key"))("value", *var_("slot")));
 
     structStruct.addMethod("addSlots")
         .parameters(
@@ -5931,7 +5930,7 @@ AstStd::AstStd(brain::Brain& kb) :
                 .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
             do_(block(
                         var_("next") = true_(),
-                        m_("slots")("add")("key", *var_("item") / "value" / "slotRole")("value", *var_("item") / "value"),
+                        m_("slots")("add")("key", *var_("item") / "value" / "key")("value", *var_("item") / "value"),
                         if_(has(*var_("item"), "next"))
                             .then_(var_("item") = *var_("item") / "next")
                             .else_(var_("next") = false_())))
@@ -5939,20 +5938,20 @@ AstStd::AstStd(brain::Brain& kb) :
 
     structStruct.addMethod("hasSlot")
         .parameters(
-            parameter("slotRole", _(std.Cell)))
+            parameter("key", _(std.Cell)))
         .returnType(_(std.Boolean))
         .instructions(
             if_(m_("slots").missing())
                 .then_(return_(false_())),
-            return_(m_("slots")("hasKey")("key", p_("slotRole"))));
+            return_(m_("slots")("hasKey")("key", p_("key"))));
 
     structStruct.addMethod("removeSlot")
         .parameters(
-            parameter("slotRole", _(std.Cell)))
+            parameter("key", _(std.Cell)))
         .instructions(
             if_(m_("slots").missing())
                 .then_(return_()),
-            m_("slots")("remove")("key", p_("slotRole")));
+            m_("slots")("remove")("key", p_("key")));
 #pragma endregion
 #pragma region Index
     auto& indexStruct
@@ -5971,8 +5970,8 @@ AstStd::AstStd(brain::Brain& kb) :
         .instructions(
             if_(missing(p_("indexType"), _("sharedObject")))
                 .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.Slot))),
-                                 set(p_("indexType") / "sharedObject", "slotRole", self()),
-                                 set(p_("indexType") / "sharedObject", "slotType", struct_("Index")))),
+                                 set(p_("indexType") / "sharedObject", "key", self()),
+                                 set(p_("indexType") / "sharedObject", "type", struct_("Index")))),
             set(p_("indexType"), "methods", m_("struct") / "methods"),
             set(self(), "struct", p_("indexType")));
 
@@ -5987,8 +5986,8 @@ AstStd::AstStd(brain::Brain& kb) :
             return;
         }
         Object& slot = *new Object(kb, kb.type.Slot);
-        slot.set("slotRole", key);
-        slot.set("slotType", kb.type.Slot);
+        slot.set("key", key);
+        slot.set("type", kb.type.Slot);
         m_type->addSlot(key, slot);
     }
     */
@@ -6000,9 +5999,9 @@ AstStd::AstStd(brain::Brain& kb) :
             if_(same(p_("key"), _("struct")))
                 .then_(return_()),
             set(self(), p_("key"), p_("value")),
-            if_(and_(has(m_("struct"), "sharedObject"), same(m_("struct") / "sharedObject" / "slotRole", self())))
+            if_(and_(has(m_("struct"), "sharedObject"), same(m_("struct") / "sharedObject" / "key", self())))
                 .then_(return_()),
-            m_("struct")("addSlot")("slotRole", p_("key"))("slotType", _(std.Slot)));
+            m_("struct")("addSlot")("key", p_("key"))("type", _(std.Slot)));
 
     indexStruct.addMethod("empty")
         .returnType(_(std.Boolean))
@@ -6023,10 +6022,10 @@ AstStd::AstStd(brain::Brain& kb) :
         .parameters(
             parameter("key", _(std.Cell)))
         .instructions(
-            if_(not_(m_("struct")("hasSlot")("slotRole", p_("key"))))
+            if_(not_(m_("struct")("hasSlot")("key", p_("key"))))
                 .then_(return_()),
             erase(self(), p_("key")),
-            m_("struct")("removeSlot")("slotRole", p_("key")));
+            m_("struct")("removeSlot")("key", p_("key")));
 
     indexStruct.addMethod("size")
         .returnType(_(std.Number))
@@ -6617,12 +6616,12 @@ AstStd::AstStd(brain::Brain& kb) :
     setStructT.addMethod("first")
         .returnType(tp_("valueType"))
         .instructions(
-            return_(m_("index") / "struct" / "slots" / "list" / "first" / "value" / "slotRole"));
+            return_(m_("index") / "struct" / "slots" / "list" / "first" / "value" / "key"));
 
     setStructT.addMethod("last")
         .returnType(tp_("valueType"))
         .instructions(
-            return_(m_("index") / "struct" / "slots" / "list" / "last" / "value" / "slotRole"));
+            return_(m_("index") / "struct" / "slots" / "list" / "last" / "value" / "key"));
 
     setStructT.addMethod("begin")
         .returnType(tt_("ListItem", "valueType", tp_("valueType")))
@@ -7271,7 +7270,7 @@ AstTest::AstTest(brain::Brain& kb) :
     //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
     // try/catch: almost the same as break/continue/return it can go through function calls. We need an op::Catch node
     // output: we need some kind of output, maybe a console thing first. Maybe just a new hybrid cell is needed
-    // SlotType should hold an std::Type which can be a std::Struct, std::Enum or similar
+    // Type should hold an std::Type which can be a std::Struct, std::Enum or similar
     // Iterators, range-based-for
     // Variable scopes
     //

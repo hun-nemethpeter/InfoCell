@@ -175,7 +175,7 @@ public:
                         if (edge.has("shapes")) {
                             std::stringstream ss;
                             Visitor::visitList(edge["shapes"]["index"]["struct"]["slots"]["list"], [this, &ss](CellI& slot, int, bool&) {
-                                CellI& shape = slot["slotRole"];
+                                CellI& shape = slot["key"];
                                 ss << fmt::format("shape({}) ", shape["id"].label());
                             });
                             TRACE(shapeRelations, "    edge id {} internal and contains: {}", edge["id"].label(), ss.str());

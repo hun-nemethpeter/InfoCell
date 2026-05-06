@@ -82,9 +82,9 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                         if (paramNum++ > 0) {
                             m_ss << ", ";
                         }
-                        auto& paramRole  = parameter[kb.ids.slotRole];
-                        auto& paramValue = parameter[kb.ids.slotType];
-                        m_ss << paramRole.label();
+                        auto& paramKey   = parameter[kb.ids.key];
+                        auto& paramValue = parameter[kb.ids.type];
+                        m_ss << paramKey.label();
                         m_ss << ": ";
                         printImpl(paramValue);
                     });
@@ -156,10 +156,10 @@ void CellValuePrinter::printOpFunction(CellI& cell)
             if (i > 0) {
                 iss << ", ";
             }
-            if (&slot[kb.ids.slotRole] != &kb.ids.self) {
+            if (&slot[kb.ids.key] != &kb.ids.self) {
                 iss << "p_";
             }
-            iss << slot[kb.ids.slotRole].label() << ": " << slot[kb.ids.slotType].label();
+            iss << slot[kb.ids.key].label() << ": " << slot[kb.ids.type].label();
         });
     }
     if (subTypesIndex.has(kb.ids.returnType)) {
@@ -220,8 +220,8 @@ void CellValuePrinter::printOpCall(CellI& cell)
             if (paramNum++ > 0) {
                 m_ss << ", ";
             }
-            auto& paramRole  = parameter[kb.ids.slotRole];
-            auto& paramValue = parameter[kb.ids.slotType];
+            auto& paramRole  = parameter[kb.ids.key];
+            auto& paramValue = parameter[kb.ids.type];
             m_ss << paramRole.label();
             m_ss << ": ";
             printImpl(paramValue);
@@ -616,10 +616,10 @@ void CellValuePrinter::printImpl(CellI& cell)
     auto is          = [this, &cell, &kb](CellI& type) -> bool { return &cell.struct_() == &type || (cell.struct_().has(kb.ids.memberOf) && cell.struct_()[kb.ids.memberOf][kb.ids.index].has(type)); };
 
     if (is(kb.std.Slot)) {
-        CellI& cellType = cell[kb.ids.slotType];
-        m_ss << cell[kb.ids.slotRole].label() << ": ";
+        CellI& cellType = cell[kb.ids.type];
+        m_ss << cell[kb.ids.key].label() << ": ";
         if (cellType.struct_().has(kb.ids.memberOf) && cellType.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ListItem)) {
-            m_ss << "ListItem<" << cellType.struct_()[kb.ids.slots][kb.ids.index][kb.ids.value][kb.ids.value][kb.ids.slotType].label() << ">";
+            m_ss << "ListItem<" << cellType.struct_()[kb.ids.slots][kb.ids.index][kb.ids.value][kb.ids.value][kb.ids.type].label() << ">";
         } else {
             m_ss << cellType.label();
         }
@@ -650,9 +650,9 @@ void CellValuePrinter::printImpl(CellI& cell)
             if (i != 0) {
                 m_ss << ", ";
             }
-            value[kb.ids.slotRole].accept(*this);
+            value[kb.ids.key].accept(*this);
             m_ss << ": {";
-            cell[kb.ids.index][value[kb.ids.slotRole]][kb.ids.value].accept(*this);
+            cell[kb.ids.index][value[kb.ids.key]][kb.ids.value].accept(*this);
             m_ss << "}";
         });
         m_ss << "}";
@@ -677,8 +677,8 @@ void CellValuePrinter::printImpl(CellI& cell)
                 if (i != 0) {
                     m_ss << ", ";
                 }
-                m_ss << slot[kb.ids.slotRole].label() << ": ";
-                printTypeName(slot[kb.ids.slotType]);
+                m_ss << slot[kb.ids.key].label() << ": ";
+                printTypeName(slot[kb.ids.type]);
             });
         }
         m_ss << " }";

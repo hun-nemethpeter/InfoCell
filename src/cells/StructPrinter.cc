@@ -87,7 +87,7 @@ void CellStructPrinter::printImpl(CellI& cell)
     }
     if (&type == &kb.std.Slot) {
         if (cell.label().empty()) {
-            m_ss << cell[kb.ids.slotRole].label() << ": ";
+            m_ss << cell[kb.ids.key].label() << ": ";
         } else {
             m_ss << cell.label() << ": ";
         }
@@ -115,15 +115,15 @@ void CellStructPrinter::printImpl(CellI& cell)
     if (type.has(kb.ids.slots)) {
         CellI& slotList = type[kb.ids.slots][kb.ids.list];
         visitList(slotList, [this, &kb, &cell](CellI& slot, int i, bool&) {
-            CellI& role = slot[kb.ids.slotRole];
+            CellI& role = slot[kb.ids.key];
             if (!cell.has(role)) {
                 return;
             }
             CellValuePrinter valuePrinter;
-            CellI& slotType      = slot[kb.ids.slotType];
+            CellI& type          = slot[kb.ids.type];
             CellI& connectedCell = cell[role];
             connectedCell.accept(valuePrinter);
-            m_ss << "    +-- " << role.label() << " --> " << slotType.label();
+            m_ss << "    +-- " << role.label() << " --> " << type.label();
             if (needId)
                 m_ss << " ID " << &connectedCell;
             // m_ss << " // " << valuePrinter.print();

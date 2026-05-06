@@ -90,9 +90,7 @@ public:
     List scopes;
     List self;
     List size;
-    List slotRole;
     List slots;
-    List slotType;
     List stack;
     List state;
     List stateCondition;
@@ -118,6 +116,7 @@ public:
     List templateParams;
     List then;
     List throw_;
+    List type;
     List unknownInstances;
     List unknownStructs;
     List value;
@@ -1537,7 +1536,7 @@ Set& Brain::set(CellI& value, Args&&... args)
 template <typename... Args>
 void Brain::addSlots(Map& map, CellI& value, Args&&... args)
 {
-    map.add(value["slotRole"], value);
+    map.add(value["key"], value);
     addSlots(map, std::forward<Args>(args)...);
 }
 

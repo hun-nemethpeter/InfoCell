@@ -40,23 +40,23 @@ The fundamental unit of the infocell theory is the information cell (infocell), 
 Because the language has no native syntax, it must be embedded in a host language. The reference implementation uses C++, leveraging its operator overloading capabilities to express and manipulate infocells effectively. The following example illustrates this representation. The comment section contains regular C++ code snippet. The actual infocell representation follows below. The infocell code is also in C++ but it actually creates infocells at runtime.
 ```cpp
 /*
-void Index::remove(CellI& role)
+void Index::remove(CellI& key)
 {
-    if (!m_type->hasSlot(role)) {
+    if (!m_type->hasSlot(key)) {
         return;
     }
-    m_slots.erase(&role);
-    m_type->removeSlot(role);
+    m_slots.erase(&key);
+    m_type->removeSlot(key);
 }
 */
 indexStruct.addMethod("remove")
     .parameters(
         parameter("key", _(std.Cell)))
     .instructions(
-        if_(not_(m_("struct")("hasSlot")("slotRole", p_("key"))))
+        if_(not_(m_("struct")("hasSlot")("key", p_("key"))))
             .then_(return_()),
         erase(self(), p_("key")),
-        m_("struct")("removeSlot")("slotRole", p_("key")));
+        m_("struct")("removeSlot")("key", p_("key")));
 ```
 
 The above C++ code creates infocells. The following diagram illustrate what kind of insfocells are created.
@@ -134,14 +134,14 @@ The following example illustrates a description segment:
         .memberOf(
             _(std.ast.Base))
         .description(
-            equal(m_("cell") / m_("role"), m_("value")))
+            equal(m_("cell") / m_("key"), m_("value")))
         .members(
             member("cell", "Base"),
-            member("role", "Base"),
+            member("key", "Base"),
             member("value", "Base"));
 ```
 
-Here we express the fact that after executing a primitive cell `Set` you can actually get the `value` from `cell.role`.
+Here we express the fact that after executing a primitive cell `Set` you can actually get the `value` from `cell.key`.
 
 This description segment is also the basis for a prompt in the terminology of current AI systemss. For example:
 
@@ -203,18 +203,18 @@ We can create hybrid cells that pretend to be regular data cells but actually a 
 class CellI
 {
 public:
-    virtual bool has(CellI& role)               = 0;
-    virtual void set(CellI& role, CellI& value) = 0;
-    virtual void erase(CellI& role)             = 0;
-    virtual CellI& operator[](CellI& role)      = 0;
+    virtual bool has(CellI& key)               = 0;
+    virtual void set(CellI& key, CellI& value) = 0;
+    virtual void erase(CellI& key)             = 0;
+    virtual CellI& operator[](CellI& key)      = 0;
 ```
-The getter `operator[]` returns a slot value if there is a slot named `role`. For historical reasons, instead of key-value pair, I started using role:value. It uses C++ operator overloading to be able to write expressions like `dataCell[ids.list][ids.first][ids.value]` we can also use the `get()` method for it, but it is longer to write `cell.get(ids.list).get(ids.first).get(ids.value)`. From the infocell world we have to use an active cell which is of type `Get`. That active cell `Get` will call this `operator[]` method.
+The getter `operator[]` returns a slot value if there is a slot named `key`. It uses C++ operator overloading to be able to write expressions like `dataCell[ids.list][ids.first][ids.value]` we can also use the `get()` method for it, but it is longer to write `cell.get(ids.list).get(ids.first).get(ids.value)`. From the infocell world we have to use an active cell which is of type `Get`. That active cell `Get` will call this `operator[]` method.
 
-The `has(CellI& role)` will check that a slot exists for a given role. The active cell type `Has` will call this method.
+The `has(CellI& key)` will check that a slot exists for a given key. The active cell type `Has` will call this method.
 
-The `set(CellI& role, CellI& value)` can change a slot value if we want. The active cell type `Set` will call this method.
+The `set(CellI& key, CellI& value)` can change a slot value if we want. The active cell type `Set` will call this method.
 
-The `void erase(CellI& role)` removes a slot named `role` if that slot exists. The active cell type `Erase` will call this method.
+The `void erase(CellI& key)` removes a slot named `key` if that slot exists. The active cell type `Erase` will call this method.
 
 These 4 operations are the core functions for a data cell.
 
@@ -267,7 +267,7 @@ There is a clear distinction between data cells and active cells (those act like
 
 We can compose these primitive tools through an activation process that resembles a monadic composition model. An active cell always gets the input value from another cell's `value` slot. When an active cell gives back a result it creates or updates a `value` slot inside the cell. For example, an `Add` cell which adds two numbers together has two input slots `lhs` and `rhs` where `lhs` is the abbreviation of "left hand side" and rhs is "right hand side". After activation a `value` slot can be accessed. So in this system we do not have a stack, every instruction has its own result register. After the `value` slot appears the activation goes back to the cell which activated it. So every active cell has a built-in instruction register (also called this register as program counter PC on some CPUs). In practice every active cell has a slot called `previous` which points to the cell where the activation arrived. And there is a slot `state` which represents a state machine state. If the state reaches the last state the cell gives back the activation to the cells referenced in the slot `previous`.
 
-Accessing data members or slot values is possible with the `Get` cell. It expects a `cell` input parameter and currently called `role`. Why not `key`? Well the code was rewritten many times. My thought process was the following. I must name two cells in a slot. Every slot has a unique role so call it `role` and every role has a value call it then `value`. If we have a data cell called `pixel` and it has `x` role in it with a value `1`. We can get the value `1` with a `Get` instruction. `Get(cell: pixel, role: x)` after activation the `Get` instruction creates a new slot, called `value` with a value of `1`.
+Accessing data members or slot values is possible with the `Get` cell. It expects two input parameters `cell` and `key`.  If we have a data cell called `pixel` and it has `x` key in it with a value `1`. We can get the value `1` with a `Get` instruction. `Get(cell: pixel, key: x)` after activation the `Get` instruction creates a new slot, called `value` with a value of `1`.
 
 ### Composing primitive cells
 
@@ -300,15 +300,15 @@ For database lookup the idea is as follows. We create a data structure and we us
 The first cell in this example is called `requestForSet`, it has 3 slots. First slot in there is the describer slot, called `struct` points to the describer cell `ast.Equal` which contains a list of possible slots for the cell. The second and third are the `ids.lhs` and `ids.rhs` slots. The left hand side slot points to the `ast.Get` and the right hand side of the equal node points to the wrapped value of `5`. We look up cells only by content, since there is no dedicated `name` field anywhere. A cell only contains key-value pairs. If want to lookup a cell we have to know those key-value pairs. We want to find a tool which has an effect that match with this request. So we have to register matchers to our database. The matcher is a regex like mechanism but for infocell representation nodes. The idea is similar to the [Clang AST matchers](https://clang.llvm.org/docs/LibASTMatchersReference.html).
 
 
-We can establish a standard way of serializing data cells. For example serializing the content of request cells, it starts with the first slot called `struct` and the slot value is `ast::Equal`. We first "print out" the key, then the corresponding value. Imagine putting these cell references to a list, where the first value is `struct` the second is `ast::Equal`. For simplicity I just separate those references with a simple space now. So we start with `struct ast::Equal` this represents the first slot in `Example prompt`. For `lhs` we have a problem, as we have to describe a sub-cell by content. For this reason a command node is introduced which instructing the lookup algorithm to go inside the value cell and start matching content there. So we continue the serialization with a key node and a command: `lhs op push`. Which tells the lookup algorithm to go to the pointed cell in `lhs` and start matching from there. The `ast::Get` node only contains wrapped constants. For simplicity the wrapper cells named the same as the actual values here, so the serialization of `ast::Get` is `struct ast::Get cell pixel role green`. Here we have to go back to ast.Equal cell to be able to match with the slot `rhs` so we need a command to "go back". For this reason a `op pop` nodes are created. Then we can finish the serialization with the ids.rhs slot as follows: `rhs 5`. The full serialization is the following: `struct ast::Equal lhs op push struct ast::Get cell pixel role green op pop rhs 5`. So we can represent our cell structure in a list. In this case we need 15 cells for it.
+We can establish a standard way of serializing data cells. For example serializing the content of request cells, it starts with the first slot called `struct` and the slot value is `ast::Equal`. We first "print out" the key, then the corresponding value. Imagine putting these cell references to a list, where the first value is `struct` the second is `ast::Equal`. For simplicity I just separate those references with a simple space now. So we start with `struct ast::Equal` this represents the first slot in `Example prompt`. For `lhs` we have a problem, as we have to describe a sub-cell by content. For this reason a command node is introduced which instructing the lookup algorithm to go inside the value cell and start matching content there. So we continue the serialization with a key node and a command: `lhs op push`. Which tells the lookup algorithm to go to the pointed cell in `lhs` and start matching from there. The `ast::Get` node only contains wrapped constants. For simplicity the wrapper cells named the same as the actual values here, so the serialization of `ast::Get` is `struct ast::Get cell pixel key green`. Here we have to go back to ast.Equal cell to be able to match with the slot `rhs` so we need a command to "go back". For this reason a `op pop` nodes are created. Then we can finish the serialization with the ids.rhs slot as follows: `rhs 5`. The full serialization is the following: `struct ast::Equal lhs op push struct ast::Get cell pixel key green op pop rhs 5`. So we can represent our cell structure in a list. In this case we need 15 cells for it.
 
 ![Requirement example](doc/diagrams/RequestExampleSerialized.svg)
 
-Based on this serialization method, we can create ast matchers with the help of variables. The serialized request above contains very specific values. To describe a tool effect, we have to express the fact that whatever the slot value in `lhs` or `rhs` slots it is a match. To make the above structure generic we can just replace those specific values with a generic expression called `op variable`. And that is it! We have a matcher. `struct ast::Equal lhs op push struct ast::Get cell op variable role op variable op pop rhs op variable`. So we replaced the specific value `pixel` with a generic variable `op variable`. But how we can know which variable is the CELL, KEY or VALUE if we named those as `op variable`?
+Based on this serialization method, we can create ast matchers with the help of variables. The serialized request above contains very specific values. To describe a tool effect, we have to express the fact that whatever the slot value in `lhs` or `rhs` slots it is a match. To make the above structure generic we can just replace those specific values with a generic expression called `op variable`. And that is it! We have a matcher. `struct ast::Equal lhs op push struct ast::Get cell op variable key op variable op pop rhs op variable`. So we replaced the specific value `pixel` with a generic variable `op variable`. But how we can know which variable is the CELL, KEY or VALUE if we named those as `op variable`?
 
 ![Matcher creation process](doc/diagrams/SampleMatcher.svg)
 
-We need another structure which describes how we can build a tool from a matched structure. We utilize the same serialized format but in reverse. The first value will be the key but the second is interpreted as a "path from matched root node". Imagine we matched with the original request, where the root node is `Example prompt`. We have to express the fact that the CELL variable is available from the following path `lhs cell`. As the `lhs` slot points to the `ast::Get` cell where there is the `cell` slot. And we need that cell to fill the CELL variable. The KEY is available from path `lhs role`. The VALUE is available from the root cell `Example prompt` from slot `rhs`. This is the builder structure that is represented on the diagram.
+We need another structure which describes how we can build a tool from a matched structure. We utilize the same serialized format but in reverse. The first value will be the key but the second is interpreted as a "path from matched root node". Imagine we matched with the original request, where the root node is `Example prompt`. We have to express the fact that the CELL variable is available from the following path `lhs cell`. As the `lhs` slot points to the `ast::Get` cell where there is the `cell` slot. And we need that cell to fill the CELL variable. The KEY is available from path `lhs key`. The VALUE is available from the root cell `Example prompt` from slot `rhs`. This is the builder structure that is represented on the diagram.
 
 ![Builder creation process](doc/diagrams/SampleBuilder.svg)
 
@@ -322,10 +322,10 @@ Let's take the following request: `get(get(currentTheme, std.Color), green) == 5
         .memberOf(
             _(std.ast.Base))
         .description(
-            return_(m_("cell") / m_("role")))
+            return_(m_("cell") / m_("key")))
         .members(
             member("cell", "Base"),
-            member("role", "Base"));
+            member("key", "Base"));
 ```
 
 How to deal with math functions? How can we express what is `1 + 2`? In the infocell world those are regular tools. We can define a connection between the input parameters and the return value. We can use the `subtract` tool to "measure" the effect. The effect is in the return value, so we can state, if we subtract the rhs input value from the return value we got the lhs input value, in short the effect of `lhs + rhs == return` is `return - rhs == lhs`. And also we have to register the `add` tool as a measurement tool 

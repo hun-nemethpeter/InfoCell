@@ -35,7 +35,7 @@ TEST_F(CellTest, CellTrieTestForSet)
     Object& pixel           = *new Object(kb, kb.std.Color, "pixel");
     CellI& requestForSetGet = *new Object(kb, kb.std.ast.Get);
     requestForSetGet.set(kb.ids.cell, kb.ast.cell(pixel));
-    requestForSetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+    requestForSetGet.set(kb.ids.key, kb.ast.cell(kb.ids.green));
 
     CellI& requestForSet = *new Object(kb, kb.std.ast.Equal, "pixel.get(green) == 5");
     requestForSet.set(kb.ids.lhs, requestForSetGet);
@@ -47,7 +47,7 @@ TEST_F(CellTest, CellTrieTestForSet)
         Visitor::visitList(requestForSetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell pixel role green op pop rhs 5 ");
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell pixel key green op pop rhs 5 ");
     }
 
     CellI& resultToolAst = *cellTrie.findToolByAst(requestForSet);
@@ -55,8 +55,8 @@ TEST_F(CellTest, CellTrieTestForSet)
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &pixel);
-    EXPECT_EQ(&resultToolAst[kb.ids.role].struct_(), &kb.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[kb.ids.role][kb.ids.value], &kb.ids.green);
+    EXPECT_EQ(&resultToolAst[kb.ids.key].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.key][kb.ids.value], &kb.ids.green);
     EXPECT_EQ(&resultToolAst[kb.ids.value].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.value], &kb._5_);
 }
@@ -69,7 +69,7 @@ TEST_F(CellTest, CellTrieTestForGet)
     // test the return get(x, y)
     CellI& requestForGetGet = *new Object(kb, kb.std.ast.Get);
     requestForGetGet.set(kb.ids.cell, kb.ast.cell(pixel));
-    requestForGetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+    requestForGetGet.set(kb.ids.key, kb.ast.cell(kb.ids.green));
 
     CellI& requestForGet = *new Object(kb, kb.std.ast.Return, "return pixel.get(green)");
     requestForGet.set(kb.ids.value, requestForGetGet);
@@ -80,7 +80,7 @@ TEST_F(CellTest, CellTrieTestForGet)
         Visitor::visitList(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "struct ast::Return value op push struct ast::Get cell pixel role green op pop ");
+        EXPECT_EQ(ss.str(), "struct ast::Return value op push struct ast::Get cell pixel key green op pop ");
     }
 
     // the trick here is that we finding tool for "return get(x, y)" but creating tool with just "get(x, y)" without return...
@@ -93,8 +93,8 @@ TEST_F(CellTest, CellTrieTestForGet)
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Get);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &pixel);
-    EXPECT_EQ(&resultToolAst[kb.ids.role].struct_(), &kb.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[kb.ids.role][kb.ids.value], &kb.ids.green);
+    EXPECT_EQ(&resultToolAst[kb.ids.key].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.key][kb.ids.value], &kb.ids.green);
 #endif
 }
 
@@ -110,11 +110,11 @@ TEST_F(CellTest, CellTrieTestForGetInGet)
     // test the return currentTheme.get(std.Color).get(green) == 5
     CellI& requestForSetWithGetGetGet = *new Object(kb, kb.std.ast.Get, "currentTheme.get(std.Color)");
     requestForSetWithGetGetGet.set(kb.ids.cell, kb.ast.cell(currentTheme));
-    requestForSetWithGetGetGet.set(kb.ids.role, kb.ast.cell(kb.std.Color));
+    requestForSetWithGetGetGet.set(kb.ids.key, kb.ast.cell(kb.std.Color));
 
     CellI& requestForSetWithGetGet = *new Object(kb, kb.std.ast.Get, "currentTheme.get(std.Color).get(green)");
     requestForSetWithGetGet.set(kb.ids.cell, requestForSetWithGetGetGet);
-    requestForSetWithGetGet.set(kb.ids.role, kb.ast.cell(kb.ids.green));
+    requestForSetWithGetGet.set(kb.ids.key, kb.ast.cell(kb.ids.green));
 
     CellI& requestForSetWithGet = *new Object(kb, kb.std.ast.Equal, "currentTheme.get(std.Color).get(green) == 5");
     requestForSetWithGet.set(kb.ids.lhs, requestForSetWithGetGet);
@@ -126,7 +126,7 @@ TEST_F(CellTest, CellTrieTestForGetInGet)
         Visitor::visitList(requestForSetWithGetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op push struct ast::Get cell currentTheme role Color op pop role green op pop rhs 5 ");
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op push struct ast::Get cell currentTheme key Color op pop key green op pop rhs 5 ");
     }
 
     CellI& resultToolAst    = *cellTrie.findToolByAst(requestForSetWithGet);
@@ -135,10 +135,10 @@ TEST_F(CellTest, CellTrieTestForGetInGet)
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Get);
     EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.cell].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.cell][kb.ids.value], &currentTheme);
-    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.role].struct_(), &kb.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.role][kb.ids.value], &kb.std.Color);
-    EXPECT_EQ(&resultToolAst[kb.ids.role].struct_(), &kb.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[kb.ids.role][kb.ids.value], &kb.ids.green);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.key].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.key][kb.ids.value], &kb.std.Color);
+    EXPECT_EQ(&resultToolAst[kb.ids.key].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.key][kb.ids.value], &kb.ids.green);
     EXPECT_EQ(&resultToolAst[kb.ids.value].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.value], &kb._5_);
     std::cout << "";
@@ -168,7 +168,7 @@ TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
         Visitor::visitList(serializedRequest, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op push struct ast::Get cell currentTheme role Color op pop role green op pop rhs 5 ");
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op push struct ast::Get cell currentTheme key Color op pop key green op pop rhs 5 ");
     }
 }
 
@@ -207,7 +207,7 @@ TEST_F(CellTest, CellTrieTestForMathAdd)
         Visitor::visitList(serializedRequest, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Add lhs op push struct ast::Get cell x role value op pop rhs 2 op pop rhs 4 ");
+        EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Add lhs op push struct ast::Get cell x key value op pop rhs 2 op pop rhs 4 ");
     }
 
     CellI& resultToolAst = *cellTrie.findToolByAst(request);
@@ -215,8 +215,8 @@ TEST_F(CellTest, CellTrieTestForMathAdd)
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &varX);
-    EXPECT_EQ(&resultToolAst[kb.ids.role].struct_(), &kb.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[kb.ids.role][kb.ids.value], &kb.ids.value);
+    EXPECT_EQ(&resultToolAst[kb.ids.key].struct_(), &kb.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[kb.ids.key][kb.ids.value], &kb.ids.value);
     EXPECT_EQ(&resultToolAst[kb.ids.value].struct_(), &kb.std.ast.Subtract);
     EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.lhs].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.value][kb.ids.lhs][kb.ids.value], &_4_);
@@ -579,8 +579,8 @@ TEST_F(CellTest, BuiltInMap)
     EXPECT_EQ(&map[ids.index][_1_], &map[ids.list][ids.first]);
     EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.size], &_1_);
     EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.list][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
-    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.key], &_1_);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.type], &kb.std.Slot);
 
     EXPECT_TRUE(map[ids.index].struct_().has(ids.slots));
     EXPECT_TRUE(map[ids.index].struct_()[ids.slots].has(ids.index));
@@ -593,9 +593,9 @@ TEST_F(CellTest, BuiltInMap)
     printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()");
     printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots]");
     EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
-    CellI& debug = map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
-    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.key], &_1_);
+    CellI& debug = map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.type];
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.type], &kb.std.Slot);
     printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index]");
     printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_()");
 
@@ -622,9 +622,9 @@ TEST_F(CellTest, MapTemplateTypes)
     EXPECT_EQ(&map[ids.index][_1_], &map[ids.list][ids.first]);
     EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.size], &_1_);
     EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.list][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
-    CellI& debug2 = map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
-    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.key], &_1_);
+    CellI& debug2 = map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.type];
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.type], &kb.std.Slot);
 
     EXPECT_TRUE(map[ids.index].struct_().has(ids.slots));
     EXPECT_TRUE(map[ids.index].struct_()[ids.slots].has(ids.index));
@@ -637,9 +637,9 @@ TEST_F(CellTest, MapTemplateTypes)
     printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()");
     printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots]");
     EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.size], &_1_);
-    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotRole], &_1_);
-    CellI& debug = map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType];
-    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.slotType], &kb.std.Slot);
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.key], &_1_);
+    CellI& debug = map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.type];
+    EXPECT_EQ(&map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index][_1_][ids.value][ids.type], &kb.std.Slot);
     printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index]");
     printAs.value(map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_()");
 }
@@ -730,7 +730,7 @@ TEST_F(CellTest, ListTemplate)
     EXPECT_EQ(&ListOfNumbers[ids.subTypes][ids.index][ids.valueType][ids.value], &kb.std.Number);
     EXPECT_TRUE(ListOfNumbers[ids.subTypes][ids.index].has(ids.itemType));
     CellI& ListItemType = ListOfNumbers[ids.subTypes][ids.index][ids.itemType][ids.value];
-    EXPECT_EQ(&ListItemType[ids.slots][ids.index][ids.value][ids.value][ids.slotType], &kb.std.Number);
+    EXPECT_EQ(&ListItemType[ids.slots][ids.index][ids.value][ids.value][ids.type], &kb.std.Number);
     EXPECT_NE(&ListItemType, &kb.std.ListItem);
     EXPECT_EQ(&ListItemType[ids.memberOf][ids.size], &_1_);
     EXPECT_TRUE(ListItemType[ids.memberOf][ids.index].has(kb.std.ListItem));
@@ -742,13 +742,13 @@ TEST_F(CellTest, ListTemplate)
 
     EXPECT_EQ(&ListOfNumbers[ids.slots][ids.size], &_3_);
     EXPECT_TRUE(ListOfNumbers[ids.slots][ids.index].has(ids.first));
-    EXPECT_EQ(&ListOfNumbers[ids.slots][ids.index][ids.first][ids.value][ids.slotType], &ListItemType);
+    EXPECT_EQ(&ListOfNumbers[ids.slots][ids.index][ids.first][ids.value][ids.type], &ListItemType);
 
     EXPECT_TRUE(ListOfNumbers[ids.slots][ids.index].has(ids.last));
-    EXPECT_EQ(&ListOfNumbers[ids.slots][ids.index][ids.last][ids.value][ids.slotType], &ListItemType);
+    EXPECT_EQ(&ListOfNumbers[ids.slots][ids.index][ids.last][ids.value][ids.type], &ListItemType);
 
     EXPECT_TRUE(ListOfNumbers[ids.slots][ids.index].has(ids.size));
-    EXPECT_EQ(&ListOfNumbers[ids.slots][ids.index][ids.size][ids.value][ids.slotType], &kb.std.Number);
+    EXPECT_EQ(&ListOfNumbers[ids.slots][ids.index][ids.size][ids.value][ids.type], &kb.std.Number);
 
     EXPECT_TRUE(ListOfNumbers[ids.memberOf][ids.index].has(kb.std.List));
     EXPECT_EQ(&ListOfNumbers[ids.memberOf][ids.size], &_2_);
