@@ -1,0 +1,344 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="410">
+
+<style>
+    .arrowText {
+        font: 8px sans-serif;
+     }
+	 .pointCoordinateText {
+        font: 5px sans-serif;
+        fill: #d79b00;
+	 }
+	 .pixelCoordinateText {
+        font: 8px sans-serif;
+        fill: white;
+		stroke: black;
+		stroke-width: 1px;
+		paint-order: stroke;
+	 }
+     .pixelShapeIdText {
+        font: 16px sans-serif;
+        fill: white;
+		stroke: black;
+		stroke-width: 2px;
+		paint-order: stroke;
+     }
+</style>
+<marker
+      id="arrow"
+      viewBox="0 0 10 10"
+      refX="5"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse">
+      <path fill="context-stroke" d="M 0 0 L 10 5 L 0 10 z" />
+</marker>
+<g transform="translate(10 10)
+              scale(1 1)">
+    <!-- point(0, 0) -->
+    <ellipse cx="10" cy="30" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 10 20 L 10 30" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="0" y="0" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="1" y="8" class="pointCoordinateText">(0, 0)</text>
+      <!-- edgeJoint right down -->
+      <text x="30" y="18" fill="#000000" class="arrowText">1</text>
+      <line x1="20" y1="20" x2="50" y2="20" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint down right -->
+      <g transform="translate(20 20) rotate(90)">
+        <text x="15" y="-2" fill="#000000" class="arrowText">1</text>
+        <line x1="33" y1="0" x2="3" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+    <!-- pixel -->
+    <rect x="50" y="70" width="40" height="40" fill="#000000" stroke="black"/>
+    <text x="52" y="78" class="pixelCoordinateText">(0, 0)</text>
+    <text x="66" y="98" class="pixelShapeIdText">1</text>
+
+    <!-- point(1, 0) -->
+    <ellipse cx="130" cy="30" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 130 20 L 130 30" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="120" y="0" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="121" y="8" class="pointCoordinateText">(1, 0)</text>
+      <!-- edgeJoint right down -->
+      <text x="150" y="18" fill="#000000" class="arrowText">1</text>
+      <line x1="140" y1="20" x2="170" y2="20" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint left down -->
+      <text x="100" y="18" fill="#000000" class="arrowText">1</text>
+      <line x1="87" y1="20" x2="117" y2="20" stroke="#000000" marker-end="url(#arrow)"/>
+    <!-- pixel -->
+    <rect x="170" y="70" width="40" height="40" fill="#000000" stroke="black"/>
+    <text x="172" y="78" class="pixelCoordinateText">(1, 0)</text>
+    <text x="186" y="98" class="pixelShapeIdText">1</text>
+
+    <!-- point(2, 0) -->
+    <ellipse cx="250" cy="30" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 250 20 L 250 30" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="240" y="0" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="241" y="8" class="pointCoordinateText">(2, 0)</text>
+      <!-- edgeJoint right down -->
+      <text x="270" y="18" fill="#000000" class="arrowText">1</text>
+      <line x1="260" y1="20" x2="290" y2="20" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint left down -->
+      <text x="220" y="18" fill="#000000" class="arrowText">1</text>
+      <line x1="207" y1="20" x2="237" y2="20" stroke="#000000" marker-end="url(#arrow)"/>
+    <!-- pixel -->
+    <rect x="290" y="70" width="40" height="40" fill="#000000" stroke="black"/>
+    <text x="292" y="78" class="pixelCoordinateText">(2, 0)</text>
+    <text x="306" y="98" class="pixelShapeIdText">1</text>
+
+    <!-- point(3, 0) -->
+    <ellipse cx="370" cy="30" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 370 20 L 370 30" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="360" y="0" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="361" y="8" class="pointCoordinateText">(3, 0)</text>
+      <!-- edgeJoint left down -->
+      <text x="340" y="18" fill="#000000" class="arrowText">1</text>
+      <line x1="327" y1="20" x2="357" y2="20" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint down left -->
+      <g transform="translate(360 20) rotate(90)">
+        <text x="15" y="-2" fill="#000000" class="arrowText">1</text>
+        <line x1="0" y1="0" x2="30" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+
+    <!-- point(0, 1) -->
+    <ellipse cx="10" cy="150" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 10 140 L 10 150" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="0" y="120" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="1" y="128" class="pointCoordinateText">(0, 1)</text>
+      <!-- edgeJoint down right -->
+      <g transform="translate(20 140) rotate(90)">
+        <text x="15" y="-2" fill="#000000" class="arrowText">1</text>
+        <line x1="33" y1="0" x2="3" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint up right -->
+      <g transform="translate(20 90) rotate(90)">
+        <text x="10" y="-2" fill="#000000" class="arrowText">1</text>
+        <line x1="30" y1="0" x2="0" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+    <!-- pixel -->
+    <rect x="50" y="190" width="40" height="40" fill="#000000" stroke="black"/>
+    <text x="52" y="198" class="pixelCoordinateText">(0, 1)</text>
+    <text x="66" y="218" class="pixelShapeIdText">1</text>
+
+    <!-- point(1, 1) -->
+    <ellipse cx="130" cy="150" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 130 140 L 130 150" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="120" y="120" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="121" y="128" class="pointCoordinateText">(1, 1)</text>
+      <!-- edgeJoint right down -->
+      <text x="150" y="138" fill="#FF4136" class="arrowText">1(1)</text>
+      <line x1="140" y1="140" x2="170" y2="140" stroke="#FF4136" marker-end="url(#arrow)"/>
+      <!-- edgeJoint right up -->
+      <text x="150" y="118" fill="#000000" class="arrowText">1(2)</text>
+      <line x1="173" y1="120" x2="143" y2="120" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint down left -->
+      <g transform="translate(120 140) rotate(90)">
+        <text x="15" y="-2" fill="#000000" class="arrowText">1(2)</text>
+        <line x1="0" y1="0" x2="30" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint down right -->
+      <g transform="translate(140 140) rotate(90)">
+        <text x="15" y="-2" fill="#FF4136" class="arrowText">1(1)</text>
+        <line x1="33" y1="0" x2="3" y2="0" stroke="#FF4136" marker-end="url(#arrow)"/>
+      </g>
+    <!-- pixel -->
+    <rect x="170" y="190" width="40" height="40" fill="#FF4136" stroke="black"/>
+    <text x="172" y="198" class="pixelCoordinateText">(1, 1)</text>
+    <text x="186" y="218" class="pixelShapeIdText">2</text>
+
+    <!-- point(2, 1) -->
+    <ellipse cx="250" cy="150" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 250 140 L 250 150" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="240" y="120" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="241" y="128" class="pointCoordinateText">(2, 1)</text>
+      <!-- edgeJoint right down -->
+      <text x="270" y="138" fill="#FF4136" class="arrowText">1(1)</text>
+      <line x1="260" y1="140" x2="290" y2="140" stroke="#FF4136" marker-end="url(#arrow)"/>
+      <!-- edgeJoint right up -->
+      <text x="270" y="118" fill="#000000" class="arrowText">1(2)</text>
+      <line x1="293" y1="120" x2="263" y2="120" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint left down -->
+      <text x="220" y="138" fill="#FF4136" class="arrowText">1(1)</text>
+      <line x1="207" y1="140" x2="237" y2="140" stroke="#FF4136" marker-end="url(#arrow)"/>
+      <!-- edgeJoint left up -->
+      <text x="220" y="118" fill="#000000" class="arrowText">1(2)</text>
+      <line x1="240" y1="120" x2="210" y2="120" stroke="#000000" marker-end="url(#arrow)"/>
+    <!-- pixel -->
+    <rect x="290" y="190" width="40" height="40" fill="#FF4136" stroke="black"/>
+    <text x="292" y="198" class="pixelCoordinateText">(2, 1)</text>
+    <text x="306" y="218" class="pixelShapeIdText">2</text>
+
+    <!-- point(3, 1) -->
+    <ellipse cx="370" cy="150" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 370 140 L 370 150" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="360" y="120" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="361" y="128" class="pointCoordinateText">(3, 1)</text>
+      <!-- edgeJoint left down -->
+      <text x="340" y="138" fill="#FF4136" class="arrowText">1(1)</text>
+      <line x1="327" y1="140" x2="357" y2="140" stroke="#FF4136" marker-end="url(#arrow)"/>
+      <!-- edgeJoint left up -->
+      <text x="340" y="118" fill="#000000" class="arrowText">1(2)</text>
+      <line x1="360" y1="120" x2="330" y2="120" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint down left -->
+      <g transform="translate(360 140) rotate(90)">
+        <text x="15" y="-2" fill="#FF4136" class="arrowText">1</text>
+        <line x1="0" y1="0" x2="30" y2="0" stroke="#FF4136" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint up left -->
+      <g transform="translate(360 90) rotate(90)">
+        <text x="10" y="-2" fill="#000000" class="arrowText">1</text>
+        <line x1="-3" y1="0" x2="27" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+
+    <!-- point(0, 2) -->
+    <ellipse cx="10" cy="270" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 10 260 L 10 270" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="0" y="240" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="1" y="248" class="pointCoordinateText">(0, 2)</text>
+      <!-- edgeJoint down right -->
+      <g transform="translate(20 260) rotate(90)">
+        <text x="15" y="-2" fill="#000000" class="arrowText">1</text>
+        <line x1="33" y1="0" x2="3" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint up right -->
+      <g transform="translate(20 210) rotate(90)">
+        <text x="10" y="-2" fill="#000000" class="arrowText">1</text>
+        <line x1="30" y1="0" x2="0" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+    <!-- pixel -->
+    <rect x="50" y="310" width="40" height="40" fill="#000000" stroke="black"/>
+    <text x="52" y="318" class="pixelCoordinateText">(0, 2)</text>
+    <text x="66" y="338" class="pixelShapeIdText">1</text>
+
+    <!-- point(1, 2) -->
+    <ellipse cx="130" cy="270" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 130 260 L 130 270" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="120" y="240" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="121" y="248" class="pointCoordinateText">(1, 2)</text>
+      <!-- edgeJoint down left -->
+      <g transform="translate(120 260) rotate(90)">
+        <text x="15" y="-2" fill="#000000" class="arrowText">1(2)</text>
+        <line x1="0" y1="0" x2="30" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint down right -->
+      <g transform="translate(140 260) rotate(90)">
+        <text x="15" y="-2" fill="#FF4136" class="arrowText">1(1)</text>
+        <line x1="33" y1="0" x2="3" y2="0" stroke="#FF4136" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint up left -->
+      <g transform="translate(120 210) rotate(90)">
+        <text x="10" y="-2" fill="#000000" class="arrowText">1(2)</text>
+        <line x1="-3" y1="0" x2="27" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint up right -->
+      <g transform="translate(140 210) rotate(90)">
+        <text x="10" y="-2" fill="#FF4136" class="arrowText">1(1)</text>
+        <line x1="30" y1="0" x2="0" y2="0" stroke="#FF4136" marker-end="url(#arrow)"/>
+      </g>
+    <!-- pixel -->
+    <rect x="170" y="310" width="40" height="40" fill="#FF4136" stroke="black"/>
+    <text x="172" y="318" class="pixelCoordinateText">(1, 2)</text>
+    <text x="186" y="338" class="pixelShapeIdText">2</text>
+
+    <!-- point(2, 2) -->
+    <ellipse cx="250" cy="270" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <!-- pixel -->
+    <rect x="290" y="310" width="40" height="40" fill="#FF4136" stroke="black"/>
+    <text x="292" y="318" class="pixelCoordinateText">(2, 2)</text>
+    <text x="306" y="338" class="pixelShapeIdText">2</text>
+
+    <!-- point(3, 2) -->
+    <ellipse cx="370" cy="270" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 370 260 L 370 270" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="360" y="240" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="361" y="248" class="pointCoordinateText">(3, 2)</text>
+      <!-- edgeJoint down left -->
+      <g transform="translate(360 260) rotate(90)">
+        <text x="15" y="-2" fill="#FF4136" class="arrowText">1</text>
+        <line x1="0" y1="0" x2="30" y2="0" stroke="#FF4136" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint up left -->
+      <g transform="translate(360 210) rotate(90)">
+        <text x="10" y="-2" fill="#FF4136" class="arrowText">1</text>
+        <line x1="-3" y1="0" x2="27" y2="0" stroke="#FF4136" marker-end="url(#arrow)"/>
+      </g>
+
+    <!-- point(0, 3) -->
+    <ellipse cx="10" cy="390" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 10 380 L 10 390" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="0" y="360" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="1" y="368" class="pointCoordinateText">(0, 3)</text>
+      <!-- edgeJoint right up -->
+      <text x="30" y="358" fill="#000000" class="arrowText">1</text>
+      <line x1="53" y1="360" x2="23" y2="360" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint up right -->
+      <g transform="translate(20 330) rotate(90)">
+        <text x="10" y="-2" fill="#000000" class="arrowText">1</text>
+        <line x1="30" y1="0" x2="0" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+
+    <!-- point(1, 3) -->
+    <ellipse cx="130" cy="390" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 130 380 L 130 390" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="120" y="360" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="121" y="368" class="pointCoordinateText">(1, 3)</text>
+      <!-- edgeJoint right up -->
+      <text x="150" y="358" fill="#FF4136" class="arrowText">1</text>
+      <line x1="173" y1="360" x2="143" y2="360" stroke="#FF4136" marker-end="url(#arrow)"/>
+      <!-- edgeJoint left up -->
+      <text x="100" y="358" fill="#000000" class="arrowText">1</text>
+      <line x1="120" y1="360" x2="90" y2="360" stroke="#000000" marker-end="url(#arrow)"/>
+      <!-- edgeJoint up left -->
+      <g transform="translate(120 330) rotate(90)">
+        <text x="10" y="-2" fill="#000000" class="arrowText">1(2)</text>
+        <line x1="-3" y1="0" x2="27" y2="0" stroke="#000000" marker-end="url(#arrow)"/>
+      </g>
+      <!-- edgeJoint up right -->
+      <g transform="translate(140 330) rotate(90)">
+        <text x="10" y="-2" fill="#FF4136" class="arrowText">1(1)</text>
+        <line x1="30" y1="0" x2="0" y2="0" stroke="#FF4136" marker-end="url(#arrow)"/>
+      </g>
+
+    <!-- point(2, 3) -->
+    <ellipse cx="250" cy="390" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 250 380 L 250 390" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="240" y="360" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="241" y="368" class="pointCoordinateText">(2, 3)</text>
+      <!-- edgeJoint right up -->
+      <text x="270" y="358" fill="#FF4136" class="arrowText">1</text>
+      <line x1="293" y1="360" x2="263" y2="360" stroke="#FF4136" marker-end="url(#arrow)"/>
+      <!-- edgeJoint left up -->
+      <text x="220" y="358" fill="#FF4136" class="arrowText">1</text>
+      <line x1="240" y1="360" x2="210" y2="360" stroke="#FF4136" marker-end="url(#arrow)"/>
+
+    <!-- point(3, 3) -->
+    <ellipse cx="370" cy="390" rx="3" ry="3" fill="black" stroke="grey"/>
+    <!-- edgeJoint -->
+    <path d="M 370 380 L 370 390" fill="none" stroke="#d79b00" stroke-miterlimit="10" stroke-dasharray="1 1"/>
+    <rect x="360" y="360" width="20" height="20" fill="#ffe6cc" stroke="#d79b00"/>
+    <text x="361" y="368" class="pointCoordinateText">(3, 3)</text>
+      <!-- edgeJoint left up -->
+      <text x="340" y="358" fill="#FF4136" class="arrowText">1</text>
+      <line x1="360" y1="360" x2="330" y2="360" stroke="#FF4136" marker-end="url(#arrow)"/>
+      <!-- edgeJoint up left -->
+      <g transform="translate(360 330) rotate(90)">
+        <text x="10" y="-2" fill="#FF4136" class="arrowText">1</text>
+        <line x1="-3" y1="0" x2="27" y2="0" stroke="#FF4136" marker-end="url(#arrow)"/>
+      </g>
+
+</g>
+</svg>

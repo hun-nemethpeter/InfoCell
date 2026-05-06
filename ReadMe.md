@@ -33,11 +33,11 @@ In short, the infocell as a data structure and executable cell as a concept is q
 
 ## Introduction
 
-The fundamental unit of the infocell theory is the information cell (infocell), which is the only primitive type in the language. As in LISP, code and data share a unified representation. Unlike LISP, however, the core structure here is an object composed of key–value pairs, where both keys and values are object references. This system can be described as an executable domain-specific language (DSL). Because the language has no native syntax, it must be embedded in a host language. The reference implementation uses C++, leveraging its operator overloading capabilities to express and manipulate infocells effectively.
+The fundamental unit of the infocell theory is the information cell (infocell), which is the only primitive type in the language. As in LISP, code and data share a unified representation. Unlike LISP, however, the core structure here is an object composed of key–value pairs, where both keys and values are object references. 
 
 ![Representing an infocell](doc/diagrams/SampleCell.svg)
 
-The following example illustrates this representation. The comment section contains regular C++ code snippet. The actual infocell representation follows below. The infocell code is also in C++ but it actually creates infocells at runtime.
+Because the language has no native syntax, it must be embedded in a host language. The reference implementation uses C++, leveraging its operator overloading capabilities to express and manipulate infocells effectively. The following example illustrates this representation. The comment section contains regular C++ code snippet. The actual infocell representation follows below. The infocell code is also in C++ but it actually creates infocells at runtime.
 ```cpp
 /*
 void Index::remove(CellI& role)
@@ -59,7 +59,13 @@ indexStruct.addMethod("remove")
         m_("struct")("removeSlot")("slotRole", p_("key")));
 ```
 
-The above C++ code creates infocells. We can actually print those infocells and which can be rendered in the following pseudo-syntax. The infocell pseudo syntax is a mix of C++ and Rust. There is no parser for this syntax; currently, it can only be printed. The idea is that we embed the language to an existing one, so we do not need a new parser. This is similar to the DOM API in web development, where HTML nodes are constructed programmatically. In this case we create infocell representation nodes that can be compiled into executable code on the fly.
+The above C++ code creates infocells. The following diagram illustrate what kind of insfocells are created.
+
+![Constructed AST infocells](doc/diagrams/SampleASTs.svg)
+
+We can actually print those infocells and which can be rendered in the following pseudo-syntax. The infocell pseudo syntax is a mix of C++ and Rust. There is no parser for this syntax; currently, it can only be printed. The idea is that we embed the language to an existing one, so we do not need a new parser. This is similar to the DOM API in web development, where HTML nodes are constructed programmatically. In this case we create infocell representation nodes that can be compiled into executable code (active infocells) on the fly.
+
+As you can see, printing out the AST nodes as a programming language result in a much more compact form. Sadly, we don't have a parser yet to actually create infocells with this language. Currently this is just a read-only ad-hoc syntax. It helps debugging the infocells.
 
 ```
 fn Index::remove(self: Index, p_key: Cell)
@@ -71,8 +77,45 @@ fn Index::remove(self: Index, p_key: Cell)
 }
 ```
 
+We can actually compile this language to so-called active infocells. The following diagram showcase what is the output of the compilation process of these AST cells.
 
-The primary advantage of this representation is that the infocell language can be extended easily, as it does not require a dedicated parser - it only requires implementing additional C++ helper methods. We extend the language by adding a second representational layer, described here as a new [grammatical mood](https://en.wikipedia.org/wiki/Grammatical_mood).
+![Compiled AST infocells](doc/diagrams/SampleOPs.svg)
+
+These active infocells are not supposed to be written (or read) by a human. It is just a result of a compilation process. We can handle these primitive active cells (I call these cells as OP cells) as the assembly language of the infocell language. These cells are runnable, in other words these infocells are activatable cells. I used the blue color in the diagram where a cell is active and the grey one where the cell is just a data. The active cells are also datacells so we can introspect them. To run a compiled method we have to create a stack from infocells. We treat the stack as a regular datastructure. The `op::Call` handles the stack manipulation, it is the most complex primitive cell.
+
+The primary advantage of this representation is that the infocell language can be extended easily, as it does not require a dedicated parser - it only requires implementing additional C++ helper methods. The idea come from the clang compiler AST dump feature  ( [Introduction to the Clang AST](https://clang.llvm.org/docs/IntroductionToTheClangAST.html) ).
+
+```
+$ cat test.cc
+int f(int x) {
+  int result = (x / 42);
+  return result;
+}
+
+# Clang by default is a frontend for many tools; -Xclang is used to pass
+# options directly to the C++ frontend.
+$ clang -Xclang -ast-dump -fsyntax-only test.cc
+TranslationUnitDecl 0x5aea0d0 <<invalid sloc>>
+... cutting out internal declarations of clang ...
+`-FunctionDecl 0x5aeab50 <test.cc:1:1, line:4:1> f 'int (int)'
+  |-ParmVarDecl 0x5aeaa90 <line:1:7, col:11> x 'int'
+  `-CompoundStmt 0x5aead88 <col:14, line:4:1>
+    |-DeclStmt 0x5aead10 <line:2:3, col:24>
+    | `-VarDecl 0x5aeac10 <col:3, col:23> result 'int'
+    |   `-ParenExpr 0x5aeacf0 <col:16, col:23> 'int'
+    |     `-BinaryOperator 0x5aeacc8 <col:17, col:21> 'int' '/'
+    |       |-ImplicitCastExpr 0x5aeacb0 <col:17> 'int' <LValueToRValue>
+    |       | `-DeclRefExpr 0x5aeac68 <col:17> 'int' lvalue ParmVar 0x5aeaa90 'x' 'int'
+    |       `-IntegerLiteral 0x5aeac90 <col:21> 'int' 42
+    `-ReturnStmt 0x5aead68 <line:3:3, col:10>
+      `-ImplicitCastExpr 0x5aead50 <col:10> 'int' <LValueToRValue>
+        `-DeclRefExpr 0x5aead28 <col:10> 'int' lvalue Var 0x5aeac10 'result' 'int'
+```
+The clang compiler actually parses the C++ syntax and creates and internal representation of it with regular C++ objects. With infocells we completly skip the parsing step and we are just creating the internal represetation itself.
+
+![Compiled AST infocells](doc/diagrams/InfoCellsCompilationSteps.svg)
+
+We extend the language by adding a second representational layer, described here as a new [grammatical mood](https://en.wikipedia.org/wiki/Grammatical_mood).
 
 One of the cornerstones of this theory is the distinction between instructions and descriptions. Conventional code is treated as instructions, corresponding to the [imperative mood](https://en.wikipedia.org/wiki/Imperative_mood). In addition, we introduce another grammatical mood - which we refer to here as description, drawing on the notion of the [realis mood](https://en.wikipedia.org/wiki/Realis_mood) - which we call description. In natural languages, this mood is used to express statements of fact. In our system, the description section is used to express what changes after a sequence of instructions has executed (that is, what consequences follow), as well as to define the intended meaning or purpose of the data members within an infocell. We can also express why a given statement is true, for example if a data cell has a value in it, the reason is that somebody stored a value there earlier. We can express observations about what changed in time in both directions (what is true before and after).
 
@@ -220,7 +263,7 @@ These are the following by category:
   - `Multiply` - `*`
   - `Divide` - `/`
 
-There is a clear distinction between data cells and active cells (those act like assembly instructions). An active cell can be activated, and it can cause a state change, but a regular data cell does nothing after activation, there isn't any observable state change after it. It is not an error if we activate (in other words execute) a data cell. It is a well-defined behavior, namely the cell does nothing. It acts like an insulator where the active cells are the conductors. The activation is very similar to executing an ASM instruction in a regular processor. Here, the instruction is not executed by a central processing unit; instead, the cell itself acts as a mini-CPU. So, there are no central registers or there is no stack or instruction pointer. EEvery active cell is responsible for tracking who activated it and those cells must give back the activation. These instructions can be composed just like in a regular programming language.
+There is a clear distinction between data cells and active cells (those act like assembly instructions). An active cell can be activated, and it can cause a state change, but a regular data cell does nothing after activation, there isn't any observable state change after it. It is not an error if we activate (in other words execute) a data cell. It is a well-defined behavior, namely the cell does nothing. It acts like an insulator where the active cells are the conductors. The activation is very similar to executing an ASM instruction in a regular processor. Here, the instruction is not executed by a central processing unit; instead, the cell itself acts as a mini-CPU. So, there are no central registers or there is no stack or instruction pointer. Every active cell is responsible for tracking who activated it and those cells must give back the activation. These instructions can be composed just like in a regular programming language.
 
 We can compose these primitive tools through an activation process that resembles a monadic composition model. An active cell always gets the input value from another cell's `value` slot. When an active cell gives back a result it creates or updates a `value` slot inside the cell. For example, an `Add` cell which adds two numbers together has two input slots `lhs` and `rhs` where `lhs` is the abbreviation of "left hand side" and rhs is "right hand side". After activation a `value` slot can be accessed. So in this system we do not have a stack, every instruction has its own result register. After the `value` slot appears the activation goes back to the cell which activated it. So every active cell has a built-in instruction register (also called this register as program counter PC on some CPUs). In practice every active cell has a slot called `previous` which points to the cell where the activation arrived. And there is a slot `state` which represents a state machine state. If the state reaches the last state the cell gives back the activation to the cells referenced in the slot `previous`.
 
@@ -252,18 +295,22 @@ Second, we need a tool synthesizer or tool builder functionality here. We matche
 
 ![Requirement example](doc/diagrams/ResultExample.svg)
 
-For database lookup the idea is as follows. We create a data structure and we use the self reflection capability of the data cells. For the original request we use two main cells: the `ast.Equal` and `ast.Get`. For the monadic parameter wrappers we use extra three data cells, those were not represented on the above diagram for clarity reasons. The purpose of those omitted cells is to provide a `value` slot for the active cells as active cells are only able to get values from a `value` slot. Here is the full picture, but representing those grey `ast.Cell` type cells just add more confusion than clarity so I usually do not represent them.
-
-![Requirement example with wrappers](doc/diagrams/RequestExampleWithWrappers.svg)
+For database lookup the idea is as follows. We create a data structure and we use the self reflection capability of the data cells. For the original request we use two main cells: the `ast.Equal` and `ast.Get`.
 
 The first cell in this example is called `requestForSet`, it has 3 slots. First slot in there is the describer slot, called `struct` points to the describer cell `ast.Equal` which contains a list of possible slots for the cell. The second and third are the `ids.lhs` and `ids.rhs` slots. The left hand side slot points to the `ast.Get` and the right hand side of the equal node points to the wrapped value of `5`. We look up cells only by content, since there is no dedicated `name` field anywhere. A cell only contains key-value pairs. If want to lookup a cell we have to know those key-value pairs. We want to find a tool which has an effect that match with this request. So we have to register matchers to our database. The matcher is a regex like mechanism but for infocell representation nodes. The idea is similar to the [Clang AST matchers](https://clang.llvm.org/docs/LibASTMatchersReference.html).
 
 
-We can establish a standard way of serializing data cells. For example serializing the content of request cells, it starts with the first slot called `struct` and the slot value is `ast.Equal`. We first "print out" the key, then the corresponding value. Imagine putting these cell references to a list, where the first value is `struct` the second is `ast.Equal`. For simplicity I just separate those references with a simple space now. So we start with `struct ast.Equal` this represents the first slot in `requestForSet`. For `ids.lhs` we have a problem, as we have to describe a sub-cell by content. For this reason a command node is introduced which instructing the lookup algorithm to go inside the value cell and start matching content there. So we continue the serialization with a key node and a command: `ids.lhs op push`. Which tells the lookup algorithm to go to the pointed cell in `ids.lhs` and start matching from there. The `ast.Get` node only contains wrapped constants. For simplicity the wrapper cells named the same as the actual values here, so the serialization of `ast.Get` is `struct ast.Get ids.cell pixel ids.role ids.green`. Here we have to go back to ast.Equal cell to be able to match with the slot `ids.rhs` so we need a command to "go back". For this reason a `op pop` nodes are created. Then we can finish the serialization with the ids.rhs slot as follows: `ids.rhs 5`. The full serialization is the following: `struct ast.Equal lhs op push struct ast.Get cell pixel role green op pop rhs 5`. So we can represent our cell structure in a list. In this case we need 15 cells for it.
+We can establish a standard way of serializing data cells. For example serializing the content of request cells, it starts with the first slot called `struct` and the slot value is `ast::Equal`. We first "print out" the key, then the corresponding value. Imagine putting these cell references to a list, where the first value is `struct` the second is `ast::Equal`. For simplicity I just separate those references with a simple space now. So we start with `struct ast::Equal` this represents the first slot in `Example prompt`. For `lhs` we have a problem, as we have to describe a sub-cell by content. For this reason a command node is introduced which instructing the lookup algorithm to go inside the value cell and start matching content there. So we continue the serialization with a key node and a command: `lhs op push`. Which tells the lookup algorithm to go to the pointed cell in `lhs` and start matching from there. The `ast::Get` node only contains wrapped constants. For simplicity the wrapper cells named the same as the actual values here, so the serialization of `ast::Get` is `struct ast::Get cell pixel role green`. Here we have to go back to ast.Equal cell to be able to match with the slot `rhs` so we need a command to "go back". For this reason a `op pop` nodes are created. Then we can finish the serialization with the ids.rhs slot as follows: `rhs 5`. The full serialization is the following: `struct ast::Equal lhs op push struct ast::Get cell pixel role green op pop rhs 5`. So we can represent our cell structure in a list. In this case we need 15 cells for it.
 
-Based on this serialization method, we can create ast matchers with the help of variables. The serialized request above contains very specific values. To describe a tool effect, we have to express the fact that whatever the slot value in `ids.lhs` or `ids.rhs` slots it is a match. To make the above structure generic we can just replace those specific values with a generic expression called `op variable`. And that is it! We have a matcher. `struct ast.Equal lhs op push struct ast.Get cell op variable role op variable op pop rhs op variable`. So we replaced the specific value `pixel` with a generic variable `op variable`. But how we can know which variable is the CELL, KEY or VALUE if we named those as `op variable`?
+![Requirement example](doc/diagrams/RequestExampleSerialized.svg)
 
-We need another structure which describes how we can build a tool from a matched structure. We utilize the same serialized format but in reverse. The first value will be the key but the second is interpreted as a "path from matched root node". Imagine we matched with the original request, where the root node is `requestForSet`. We have to express the fact that the CELL variable is available from the following path `ids.lhs ids.cell`. As the `ids.lhs` slot points to the `ast.Get` cell where there is the `ids.cell` slot. And we need that cell to fill the CELL variable. The KEY is available from path `ids.lhs ids.role`. The VALUE is available from the root cell `requestForSet` from slot `ids.rhs`. This is the builder structure that is represented on the diagram.
+Based on this serialization method, we can create ast matchers with the help of variables. The serialized request above contains very specific values. To describe a tool effect, we have to express the fact that whatever the slot value in `lhs` or `rhs` slots it is a match. To make the above structure generic we can just replace those specific values with a generic expression called `op variable`. And that is it! We have a matcher. `struct ast::Equal lhs op push struct ast::Get cell op variable role op variable op pop rhs op variable`. So we replaced the specific value `pixel` with a generic variable `op variable`. But how we can know which variable is the CELL, KEY or VALUE if we named those as `op variable`?
+
+![Matcher creation process](doc/diagrams/SampleMatcher.svg)
+
+We need another structure which describes how we can build a tool from a matched structure. We utilize the same serialized format but in reverse. The first value will be the key but the second is interpreted as a "path from matched root node". Imagine we matched with the original request, where the root node is `Example prompt`. We have to express the fact that the CELL variable is available from the following path `lhs cell`. As the `lhs` slot points to the `ast::Get` cell where there is the `cell` slot. And we need that cell to fill the CELL variable. The KEY is available from path `lhs role`. The VALUE is available from the root cell `Example prompt` from slot `rhs`. This is the builder structure that is represented on the diagram.
+
+![Builder creation process](doc/diagrams/SampleBuilder.svg)
 
 What about more complex requirements. What if I put extra nodes to the requirement?
 
@@ -307,9 +354,6 @@ How to deal with multi line request? Let's say given an empty list the request i
   1. the length of the list is `3`
 
 What makes this requirement true? To "solve" this we have to insert the element `1` three times to the list. There are some non-implemented approach to this also.
-
-![Pattern matching based tool usage system](doc/diagrams/ToolFinder.svg)
-
 
 # Pattern matching based image recognition
 
