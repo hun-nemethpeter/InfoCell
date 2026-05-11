@@ -7,16 +7,12 @@ namespace cells {
 namespace test {
 
 PrintAs::PrintAs(const std::string& postfix) :
-    m_postfix(postfix),
-    m_svgPrinter(800, 600),
-    m_svgStructPrinter(800, 600)
+    m_postfix(postfix)
 {
 }
 
 PrintAs::~PrintAs()
 {
-    m_svgPrinter.writeFile(fmt::format("svgv-{}.svg", m_postfix));
-    m_svgStructPrinter.writeFile(fmt::format("svgs-{}.svg", m_postfix));
 }
 
 void PrintAs::value(CellI& cell, const std::string& label)
@@ -41,18 +37,6 @@ void PrintAs::cell(CellI& cell, const std::string& label)
     }
 
     std::cout << structPrinter.print() << std::endl;
-}
-
-void PrintAs::svg(CellI& cell, const std::string& caseName)
-{
-    cell.accept(m_svgPrinter);
-    m_svgPrinter.showcaseLastResult(caseName);
-}
-
-void PrintAs::svgStruct(CellI& cell, const std::string& caseName)
-{
-    cell.accept(m_svgStructPrinter);
-    m_svgStructPrinter.showcaseLastResult(caseName);
 }
 
 #if 0

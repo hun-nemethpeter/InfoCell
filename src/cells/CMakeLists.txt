@@ -19,7 +19,6 @@ target_link_libraries(cellslib
     PUBLIC
         utf8cpp
         boost::boost
-        Freetype::Freetype
         gtest::gtest
         fmt::fmt
         spdlog::spdlog
@@ -28,10 +27,6 @@ target_link_libraries(cellslib
 add_library(celltestbase STATIC
     StructPrinter.cc
     StructPrinter.h
-    SVGPrinter.cc
-    SVGPrinter.h
-    SVGStructPrinter.cc
-    SVGStructPrinter.h
     ValuePrinter.cc
     ValuePrinter.h
     CellTestBase.cc
@@ -43,7 +38,6 @@ PUBLIC
     config
     cellslib
     applib
-    fsvguilib
 )
 
 add_executable(celltest

@@ -1,8 +1,6 @@
 ﻿#include <gtest/gtest.h>
 
 #include "Cells.h"
-#include "SVGPrinter.h"
-#include "SVGStructPrinter.h"
 #include "StructPrinter.h"
 #include "ValuePrinter.h"
 
@@ -18,12 +16,8 @@ public:
 
     void value(CellI& cell, const std::string& label = "");
     void cell(CellI& cell, const std::string& label = "");
-    void svg(CellI& cell, const std::string& caseName = "Case");
-    void svgStruct(CellI& cell, const std::string& caseName = "Case");
 
     std::string m_postfix;
-    svg::Printer m_svgPrinter;
-    svg::StructPrinter m_svgStructPrinter;
 };
 
 class CellTest : public ::testing::Test

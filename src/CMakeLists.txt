@@ -1,11 +1,9 @@
 set(HEADER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(app)
-add_subdirectory(arc-agi-2025)
+add_subdirectory(arc-agi-2026)
 add_subdirectory(cells)
 add_subdirectory(config)
-add_subdirectory(fsvgui)
 add_subdirectory(main)
-add_subdirectory(parser)
 add_subdirectory(tests)
 add_subdirectory(util)

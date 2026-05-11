@@ -1,7 +1,7 @@
 #pragma once
 
 namespace infocell {
-namespace arc2025 {
+namespace arc2026 {
 
 enum class Colors
 {
@@ -18,5 +18,5 @@ enum class Colors
     alpha
 };
 
-} // namespace arc2025
+} // namespace arc2026
 } // namespace infocell

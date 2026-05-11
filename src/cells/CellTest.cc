@@ -10,8 +10,6 @@
 #include "Config.h"
 #include "app/App.h"
 #include "Cells.h"
-#include "SVGPrinter.h"
-#include "SVGStructPrinter.h"
 #include "StructPrinter.h"
 #include "ValuePrinter.h"
 #include "util/ArcTask.h"
@@ -769,8 +767,6 @@ TEST_F(CellTest, HybridPicture)
     inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
     hybrid::Picture picture(kb, inputPicture);
 
-    printAs.svg(picture);
-    printAs.svg(picture[ids.pixels]);
     printAs.value(picture[ids.pixels]);
 
     EXPECT_EQ(&picture[ids.struct_], &kb.std.Grid);
@@ -890,24 +886,11 @@ TEST_F(CellTest, CreatingCustomType)
     printAs.cell(colorClass[ids.slots][ids.index][colorRed][ids.value], "colorClass[ids.slots][ids.index][colorRed][ids.value]");
     printAs.cell(colorClass[ids.slots][ids.index], "colorClass[ids.slots][ids.index]");
 
-    printAs.svgStruct(redColor, "redColor");
-    printAs.svgStruct(colorRed, "colorRed");
-    printAs.svgStruct(colorClass, "Color");
-    printAs.svgStruct(colorClass[ids.slots][ids.index], "SlotIndex of Color");
-    printAs.svgStruct(colorClass[ids.slots][ids.list], "SlotList of Color");
-    printAs.svgStruct(colorClass[ids.slots][ids.list][ids.first], "SlotListItem1 of Color");
-    printAs.svgStruct(colorClass[ids.slots][ids.list][ids.first][ids.value], "Slot1 of Color");
-    printAs.svgStruct(colorClass[ids.slots][ids.list][ids.first][ids.next], "SlotListItem2 of Color");
-    printAs.svgStruct(colorClass[ids.slots][ids.list][ids.first][ids.next][ids.value], "Slot2 of Color");
     printAs.value(colorClass[ids.slots][ids.index], "colorClass[ids.slots][ids.index]");
     printAs.value(colorClass[ids.slots][ids.index][ids.struct_], "colorClass[ids.slots][ids.index][ids.type]");
     printAs.value(colorClass[ids.slots][ids.index][ids.struct_][ids.slots], "colorClass[ids.slots][ids.index][ids.type][ids.slots]");
     printAs.value(colorClass[ids.slots][ids.index][ids.struct_][ids.slots][ids.index], "colorClass[ids.slots][ids.index][ids.type][ids.slots][ids.index]");
     printAs.cell(colorClass);
-
-    printAs.svg(redColor);
-    printAs.svg(colorClass[ids.slots][ids.index][colorRed][ids.value]);
-    printAs.svg(colorClass);
 }
 
 TEST_F(CellTest, CreatingNumber)
@@ -918,8 +901,6 @@ TEST_F(CellTest, CreatingNumber)
     printAs.value(number_255);
     printAs.value(number_255[ids.value][ids.first][ids.value]);
 
-    printAs.svgStruct(ids.emptyObject, "emptyObject");
-
     printAs.cell(number_255);
     printAs.cell(number_255[kb.numbers.sign]);
     printAs.cell(number_255[ids.value]);
@@ -927,14 +908,6 @@ TEST_F(CellTest, CreatingNumber)
     printAs.cell(number_255[ids.value][ids.first][ids.value]);
     printAs.cell(number_255[ids.value][ids.last]);
     printAs.cell(number_255[ids.value][ids.size]);
-
-    printAs.svg(number_255);
-    printAs.svg(number_255[kb.numbers.sign]);
-    printAs.svg(number_255[ids.value]);
-    printAs.svg(number_255[ids.value][ids.first]);
-    printAs.svg(number_255[ids.value][ids.first][ids.value]);
-    printAs.svg(number_255[ids.value][ids.last]);
-    printAs.svg(number_255[ids.value][ids.size]);
 }
 
 TEST_F(CellTest, NextgenList)

@@ -1,7 +1,7 @@
 #include "Solver.h"
 
 namespace infocell {
-namespace arc2025 {
+namespace arc2026 {
 
 Solver::Solver()
 {

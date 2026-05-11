@@ -2,7 +2,7 @@
 
 /*
 
-ARC-AGI-2025 colors
+ARC-AGI-2026 colors
 
 ID |  Name   | Hexadecimal RGB  | Decimal RGB
 ---+---------+------------------+--------------

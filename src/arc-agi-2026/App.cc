@@ -2,10 +2,10 @@
 #include <CLI/CLI.hpp>
 
 namespace infocell {
-namespace arc2025 {
+namespace arc2026 {
 
 App::App() :
-    m_cliApp(std::make_unique<CLI::App>("ARC-AGI-2025 Solver"))
+    m_cliApp(std::make_unique<CLI::App>("ARC-AGI-2026 Solver"))
 {
     init();
 }
