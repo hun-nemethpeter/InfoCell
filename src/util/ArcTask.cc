@@ -25,7 +25,7 @@ ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
     m_challenge(kb, m_inputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
     m_solution(kb, m_outputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/output"_json_pointer]))),
     m_taskStruct(kb.getStruct("arc::Task")),
-    m_demonstrationStruct(kb.getStruct("arc::Demonstration")),
+    m_demonstrationStruct(kb.getStruct("arc::Example")),
     m_task(kb, m_taskStruct),
     m_examples(kb, m_demonstrationStruct)
 {
@@ -43,7 +43,7 @@ ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
         m_examples.add(exampleObject);
     }
     m_task.set("examples", m_examples);
-    m_task.set("challenge", m_challenge);
+    m_task.set("tests", m_challenge);
     m_task.set("solution", m_solution);
 }
 

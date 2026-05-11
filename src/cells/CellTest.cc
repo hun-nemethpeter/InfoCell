@@ -349,8 +349,6 @@ TEST_F(CellTest, PrintArcCodes)
 
     printAs.value(ShapeStruct);
     printMethodInType(ShapeStruct, "constructor");
-    printMethodInType(ShapeStruct, "addPixel");
-    printMethodInType(ShapeStruct, "hasPixel");
 
     printAs.value(FrameStruct);
     printMethodInType(FrameStruct, "constructor");
@@ -1449,6 +1447,7 @@ static ftxui::Element renderShape(CellI& shape)
     int shapePixelX         = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
     int shapePixelY         = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
     int shapeColorNum       = static_cast<Number&>(shape["color"]).value();
+
     const ftxui::Color& shapeColor = infocell::App::arcColors[shapeColorNum];
     ftxui::Elements boardLines;
     for (int y = 0; y < height; ++y) {
@@ -1459,8 +1458,8 @@ static ftxui::Element renderShape(CellI& shape)
                 currentColor = &shapeColor;
                 if (currentPixelItem->has("next")) {
                     currentPixelItem = &currentPixelItem->get("next");
-                    shapePixelX  = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
-                    shapePixelY  = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
+                    shapePixelX      = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
+                    shapePixelY      = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
                 } else {
                     currentPixelItem = nullptr;
                 }
@@ -1572,6 +1571,66 @@ static void printTask(const nlohmann::json& jsonTask)
     screen.Print();
 }
 
+static void debugShapePixels(CellI& frame)
+{
+    brain::Brain& kb = frame.kb;
+    static CellI& ShapePixelStruct = kb.getStruct("arc::ShapePixel");
+
+    Object& shapePixels    = static_cast<Object&>(frame["shapePixels"]);
+    CellI* previousUpPixel = nullptr;
+    CellI* upPixel         = nullptr;
+    CellI* leftPixel       = nullptr;
+    CellI* firstShapePixel = nullptr;
+    const int height       = static_cast<Number&>(frame["height"]).value();
+    const int width        = static_cast<Number&>(frame["width"]).value();
+
+    for (int y = 0; y < height; ++y) {
+        Object& colX = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(y) }));
+        for (int x = 0; x < width; ++x) {
+            CellI& shapePixel = colX.method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(x) });
+            if (!firstShapePixel) {
+                firstShapePixel = &shapePixel;
+            }
+            if (leftPixel) {
+                (*leftPixel).set("right", shapePixel);
+                shapePixel.set("left", *leftPixel);
+            }
+            if (upPixel) {
+                (*upPixel).set("down", shapePixel);
+                shapePixel.set("up", *upPixel);
+            }
+
+            CellI& currentShape = shapePixel["shape"];
+            CellI& pixel        = shapePixel["pixel"];
+
+            if (currentShape.missing("pixels")) {
+                currentShape.set("pixels", *new List(kb, ShapePixelStruct));
+            }
+            List& shapePixelList = static_cast<List&>(currentShape["pixels"]);
+            shapePixelList.add(shapePixel["pixel"]);
+
+            // stepping
+            if (pixel.missing("left")) {
+                // first column
+                previousUpPixel = &shapePixel;
+            }
+            if (pixel.has("right")) {
+                leftPixel = &shapePixel;
+                if (upPixel) {
+                    upPixel = &(*upPixel)["right"];
+                }
+            } else {
+                // last column
+                leftPixel = nullptr;
+                if (previousUpPixel) {
+                    upPixel = previousUpPixel;
+                }
+            }
+        }
+    }
+}
+
+
 TEST_F(CellTest, FrameTest)
 {
     auto& FrameStruct     = getStruct("arc::Frame");
@@ -1600,6 +1659,7 @@ TEST_F(CellTest, FrameTest)
     printGrid(grid1);
     Object frame1(kb, FrameStruct, kb.name("constructor"), { "grid", grid1 });
     frame1.method("process");
+    debugShapePixels(frame1);
     printAs.value(frame1["shapes"]["size"], "frame[shapes][size]");
     EXPECT_EQ(&frame1["shapes"]["size"], &_3_);
     printShapeList(frame1["shapes"]);
@@ -1634,6 +1694,7 @@ TEST_F(CellTest, FrameTest)
     printGrid(grid2);
     Object frame2(kb, FrameStruct, kb.name("constructor"), { "grid", grid2 });
     frame2.method("process");
+    debugShapePixels(frame2);
     printAs.value(frame2["shapes"]["size"], "frame[shapes][size]");
     EXPECT_EQ(&frame2["shapes"]["size"], &_5_);
     printShapeList(frame2["shapes"]);
@@ -1662,6 +1723,7 @@ TEST_F(CellTest, FrameTest)
     printGrid(grid3);
     Object frame3(kb, FrameStruct, kb.name("constructor"), { "grid", grid3 });
     frame3.method("process");
+    debugShapePixels(frame3);
     printAs.value(frame3["shapes"]["size"], "frame[shapes][size]");
     EXPECT_EQ(&frame3["shapes"]["size"], &_2_);
     printShapeList(frame3["shapes"]);
@@ -1793,6 +1855,7 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
 
             Object frame(kb, frameStruct, kb.name("constructor"), { "grid", arcTask });
             frame.method("process");
+            debugShapePixels(frame);
             inputShapesPtr = &frame["shapes"];
             printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
             printShapeList(frame["shapes"]);
@@ -1807,6 +1870,7 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
 
             Object frame(kb, frameStruct, kb.name("constructor"), { "grid", arcTask });
             frame.method("process");
+            debugShapePixels(frame);
             outputShapesPtr = &frame["shapes"];
             printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
             printShapeList(frame["shapes"]);
@@ -2077,8 +2141,9 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
 
                 Object frame(kb, frameStruct, kb.name("constructor"), { "grid", *inputGridPtr });
                 frame.method("process");
-//                printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
-//                printShapeList(frame["shapes"]);
+                debugShapePixels(frame);
+                // printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
+                // printShapeList(frame["shapes"]);
             }
             {
                 CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
@@ -2089,8 +2154,9 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
 
                 Object frame(kb, frameStruct, kb.name("constructor"), { "grid", *outputGridPtr });
                 frame.method("process");
-//                printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
-//                printShapeList(frame["shapes"]);
+                debugShapePixels(frame);
+                // printAs.value(frame["shapes"]["size"], "frame[shapes][size]");
+                // printShapeList(frame["shapes"]);
             }
             CellI& inputGrid  = *inputGridPtr;
             CellI& outputGrid = *outputGridPtr;

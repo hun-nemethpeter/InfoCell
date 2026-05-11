@@ -7019,10 +7019,9 @@ AstArc::AstArc(brain::Brain& kb) :
                   member("lastEdgeId", _(std.Number)),
                   member("edges", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge")),
                   member("internalEdges", st_("InternalEdgeLookup")),
+                  member("pixels", tt_("std::List", "valueType", "Pixel")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
-                  member("shapePoints", tt_("std::List", "valueType", "ShapePoint")),
-                  member("hybridPixels", tt_("std::Set", "valueType", _(std.Pixel))),
-                  member("pixels", tt_("std::List", "valueType", "Pixel")));
+                  member("shapePoints", tt_("std::List", "valueType", "ShapePoint")));
 
     /*
     Shape(int id, input::Color color, int width, int height) :
@@ -7040,36 +7039,7 @@ AstArc::AstArc(brain::Brain& kb) :
             m_("width")        = p_("width"),
             m_("height")       = p_("height"),
             m_("lastEdgeId")   = _(_0_),
-            m_("edges")        = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"), "constructor"),
-            m_("hybridPixels") = new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
-            m_("pixels")       = new_(tt_("std::List", "valueType", "Pixel"), "constructor"));
-
-    /*
-    void Shape::addPixel(cells::hybrid::Pixel& pixel)
-    {
-        m_pixels.push_back({ pixel.m_x.value(), pixel.m_y.value() });
-        m_hybridPixels.insert(&pixel);
-    }
-    */
-    shapeStruct.addMethod("addPixel")
-        .parameters(
-            parameter("pixel", struct_("Pixel")))
-        .instructions(
-            m_("pixels")("add")("value", new_("Pixel", "constructor")("x", p_("pixel") / _(coordinates.x))("y", p_("pixel") / _(coordinates.y))),
-            m_("hybridPixels")("add")("value", p_("pixel")));
-
-    /*
-    bool Shape::hasPixel(cells::hybrid::Pixel& pixel) const
-    {
-        return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
-    }
-    */
-    shapeStruct.addMethod("hasPixel")
-        .parameters(
-            parameter("pixel", _(std.Pixel)))
-        .returnType(_(std.Boolean))
-        .instructions(
-            return_(m_("hybridPixels")("contains")("value", p_("pixel"))));
+            m_("edges")        = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"), "constructor"));
 
     shapeStruct.addMethod("toVectorShape")
         .returnType(struct_("VectorShape"))
@@ -7087,14 +7057,13 @@ AstArc::AstArc(brain::Brain& kb) :
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
                   member("grid", _(std.Grid)),
-                  member("edgeNodes", tt_("std::List", "valueType", "ShapeEdgeNode")),
-                  member("shapePixels", st_("tableType")),
                   member("upLeftPoint", "ShapePoint"),
                   member("upRightPoint", "ShapePoint"),
                   member("downLeftPoint", "ShapePoint"),
                   member("downRightPoint", "ShapePoint"),
                   member("shapes", tt_("std::List", "valueType", "Shape")),
                   member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape")),
+                  member("shapePixels", st_("tableType")),
                   member("inputPixels", tt_("std::Set", "valueType", _(std.Pixel))));
 
     // Frame::Frame
@@ -7160,7 +7129,6 @@ AstArc::AstArc(brain::Brain& kb) :
                             var_("shapePixel") = var_("colX")("getValue")("key", *var_("x")),
                             var_("shape")      = *var_("shapePixel") / "shape",
                             var_("pixel")      = *var_("shapePixel") / "pixel",
-                            var_("shape")("addPixel")("pixel", *var_("pixel")),
                             if_(not_(m_("shapeMap")("hasKey")("key", *var_("shape") / "id")))
                                 .then_(block(
                                     m_("shapeMap")("add")("key", *var_("shape") / "id")("value", *var_("shape")),

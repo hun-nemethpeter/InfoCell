@@ -41,7 +41,7 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs);
 class Shape : public CellI
 {
 public:
-    Shape(brain::Brain& kb, Number& id, Number& color, Number& width, Number& height, CellI& PixelStruct);
+    Shape(brain::Brain& kb, Number& id, Number& color, Number& width, Number& height);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -50,16 +50,11 @@ public:
     CellI& operator[](CellI& role) override;
     void accept(Visitor& visitor) override;
 
-    void addPixel(CellI& pixel);
-
-
     Number& m_id;
     Number& m_color;
     Number& m_width;
     Number& m_height;
     CellI* m_lastEdgeId;
-    Set m_hybridPixels;
-    List m_pixels;
     CellI* m_shapePixels   = nullptr;
     CellI* m_shapePoints   = nullptr;
     CellI* m_edges         = nullptr;

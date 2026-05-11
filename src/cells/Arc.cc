@@ -372,15 +372,13 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
     return result;
 }
 
-Shape::Shape(brain::Brain& kb, Number& id, Number& color, Number& width, Number& height, CellI& PixelStruct) :
+Shape::Shape(brain::Brain& kb, Number& id, Number& color, Number& width, Number& height) :
     CellI(kb),
     m_id(id),
     m_color(color),
     m_width(width),
     m_height(height),
-    m_lastEdgeId(&kb.pools.numbers.get(0)),
-    m_hybridPixels(kb, kb.std.Pixel),
-    m_pixels(kb, PixelStruct)
+    m_lastEdgeId(&kb.pools.numbers.get(0))
 {
     static CellI& ShapeEdgeStruct = kb.getStruct("arc::ShapeEdge");
     m_edges                       = new Map(kb, kb.std.Number, ShapeEdgeStruct);
@@ -483,8 +481,6 @@ CellI& Shape::operator[](CellI& role)
 {
     static CellI& ShapeStruct        = kb.getStruct("arc::Shape");
     static CellI& name_lastEdgeId    = kb.name("lastEdgeId");
-    static CellI& name_hybridPixels  = kb.name("hybridPixels");
-    static CellI& name_pixels        = kb.name("pixels");
     static CellI& name_shapePixels   = kb.name("shapePixels");
     static CellI& name_shapePoints   = kb.name("shapePoints");
     static CellI& name_edges         = kb.name("edges");
@@ -508,12 +504,6 @@ CellI& Shape::operator[](CellI& role)
     if (&role == &name_lastEdgeId) {
         return *m_lastEdgeId;
     }
-    if (&role == &name_hybridPixels) {
-        return m_hybridPixels;
-    }
-    if (&role == &name_pixels) {
-        return m_pixels;
-    }
     if (&role == &name_shapePixels && m_shapePixels) {
         return *m_shapePixels;
     }
@@ -533,17 +523,6 @@ CellI& Shape::operator[](CellI& role)
 void Shape::accept(Visitor& visitor)
 {
     //    visitor.visit(*this);
-}
-
-void Shape::addPixel(CellI& pixel)
-{
-    static CellI& PixelStruct = kb.getStruct("arc::Pixel");
-
-    CellI& arcPixel = *new Object(kb, PixelStruct);
-    arcPixel.set("x", pixel["x"]);
-    arcPixel.set("y", pixel["y"]);
-    m_pixels.add(pixel);
-    m_hybridPixels.add(pixel);
 }
 
 Frame::Frame(brain::Brain& kb, cells::hybrid::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct) :
@@ -715,15 +694,13 @@ void Frame::accept(Visitor& visitor)
 
 void Frame::process()
 {
-    static CellI& PixelStruct = kb.getStruct("arc::Pixel");
-
     const int height = m_height.value();
     const int width  = m_width.value();
     int shapeId      = 1;
 
     while (!m_inputPixels.empty()) {
         CellI& firstPixel = m_inputPixels.first();
-        CellI& shape = *new Shape(kb, kb.pools.numbers.get(shapeId), static_cast<Number&>(firstPixel["color"]), m_width, m_height, PixelStruct);
+        CellI& shape = *new Shape(kb, kb.pools.numbers.get(shapeId), static_cast<Number&>(firstPixel["color"]), m_width, m_height);
         shapeId           = shapeId + 1;
         Set checkPixels(kb, kb.std.Pixel);
         checkPixels.add(firstPixel);
@@ -741,7 +718,6 @@ void Frame::process()
             CellI& shapePixel = colX.getValue(kb.pools.numbers.get(x));
             Shape& shape      = static_cast<Shape&>(shapePixel["shape"]);
             CellI& pixel      = shapePixel["pixel"];
-            shape.addPixel(pixel);
             if (!m_shapeMap.hasKey(shape[kb.ids.id])) {
                 m_shapeMap.add(shape[kb.ids.id], shape);
                 m_shapes.add(shape);
