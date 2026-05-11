@@ -771,8 +771,30 @@ public:
                     int upLeftPointX        = static_cast<Number&>(currentPoint["x"]).value();
 
                     if (upLeftPointX > pointX) {
+                        // two new point added
+                        // |  |
+                        // v  v
+                        // ∙──►
+                        // │██│
+                        // └──┘
+                        // ^^^ first pixel in a row
+                        //
+                        //    two new point added
+                        //    |  |
+                        //    v  v
+                        // ┌──∙──►
+                        // │  │██│
+                        // └──┴──┘
                         ss << fmt::format("({},{}) ", upLeftPointX, pointY);
                         shapePoints.add(currentPoint);
+                    } else {
+                        //    just one new point added
+                        //       |
+                        //       v
+                        // ┌──∙──►
+                        // │██│██│
+                        // └──┴──┘
+                        // the up left point was created in the previous iteration so we do nothing here
                     }
                     pointX = upLeftPointX + 1;
                     ss << fmt::format("({},{}) ", pointX, pointY);
@@ -814,6 +836,7 @@ public:
                     }
                 } break;
                 case ScanLineState::Middle: {
+                    // we have at least two rows of pixels
                     CellI& currentPixelItem = *currentPixelItemPtr;
                     CellI& currentPixel     = currentPixelItem[kb.ids.value];
                     CellI& currentPoint     = currentPixel[isUpperLine ? "downLeftPoint" : "upLeftPoint"];
@@ -832,23 +855,48 @@ public:
                     CellI* nextDownListItem = nullptr;
                     if (hasMoreUp && hasMoreDown) {
                         if (upMiddleColumnIndex < downMiddleColumnIndex) {
-                            // step up line iter only
+                            // ┌──┬──┐
+                            // │██│xx│ <- up-line
+                            // ∙──►──┤
+                            // │  │xx│ <- down-line
+                            // └──┴──┘
+                            // step up-line iter only
                             nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
                             nextDownListItem = downMiddleRowListItem;
                         } else if (upMiddleColumnIndex == downMiddleColumnIndex) {
-                            // step up and down line iters
+                            // ┌──┬──┐
+                            // │██│xx│ <- up line
+                            // ∙──►──┤
+                            // │██│xx│ <- down line
+                            // └──┴──┘
+                            // step up- and down-line iters
                             nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
                             nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
                         } else {
-                            // step down line iter only
+                            // ┌──┬──┐
+                            // │  │xx│ <- up-line
+                            // ∙──►──┤
+                            // │██│xx│ <- down-line
+                            // └──┴──┘
+                            // step down-line iter only
                             nextUpListItem   = upMiddleRowListItem;
                             nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
                         }
                     } else if (hasMoreUp && !hasMoreDown) {
+                        // ┌──┬──┐
+                        // │xx│██│ <- up-line
+                        // ∙──►──┤
+                        // │xx│  │ <- down-line, no more pixel in this line
+                        // └──┴──┘
                         // step up line iter only
                         nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
                         nextDownListItem = downMiddleRowListItem;
                     } else if (!hasMoreUp && hasMoreDown) {
+                        // ┌──┐
+                        // │xx│ <- up-line, no more pixel in this line
+                        // ∙──►
+                        // │xx│ <- down-line
+                        // └──┘
                         // step down line iter only
                         nextUpListItem   = upMiddleRowListItem;
                         nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
