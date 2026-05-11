@@ -18,7 +18,6 @@ target_include_directories(cellslib
 target_link_libraries(cellslib
     PUBLIC
         utf8cpp
-        boost::boost
         gtest::gtest
         fmt::fmt
         spdlog::spdlog

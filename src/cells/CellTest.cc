@@ -2,10 +2,12 @@
 
 #include <fmt/core.h>
 #include <fstream>
-#include <gtest/gtest.h>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/screen/screen.hpp>
+#include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <vector>
 
 #include "Config.h"
 #include "app/App.h"
@@ -25,6 +27,66 @@ using infocell::cells::test::CellTest;
 // inline methods
 // type checking
 // remove .label() from CellI
+
+static void splitNamespacedString(std::vector<std::string>& out, const std::string& input)
+{
+    const std::string delim = "::";
+    std::string leftover = input;
+
+    while (true) {
+        int delim_pos = leftover.find(delim);
+        if (delim_pos == std::string::npos) {
+            out.push_back(leftover);
+            break;
+        }
+        std::string next_token = leftover.substr(0, delim_pos);
+        leftover               = leftover.substr(delim_pos + delim.length());
+        out.push_back(next_token);
+    }
+}
+
+TEST_F(CellTest, StringSplit)
+{
+    const std::string inputStr = "std::Cell";
+    std::vector<std::string> sliced;
+    splitNamespacedString(sliced, inputStr);
+    EXPECT_EQ(sliced.size(), 2);
+    EXPECT_EQ(sliced[0], "std");
+    EXPECT_EQ(sliced[1], "Cell");
+}
+
+TEST_F(CellTest, StringSplitWithExtraPostfix)
+{
+    const std::string inputStr = "std::Cell::";
+    std::vector<std::string> sliced;
+    splitNamespacedString(sliced, inputStr);
+    EXPECT_EQ(sliced.size(), 3);
+    EXPECT_EQ(sliced[0], "std");
+    EXPECT_EQ(sliced[1], "Cell");
+    EXPECT_EQ(sliced[2], "");
+}
+
+TEST_F(CellTest, StringSplitWithExtraPrefix)
+{
+    const std::string inputStr = "::std::Cell";
+    std::vector<std::string> sliced;
+    splitNamespacedString(sliced, inputStr);
+    EXPECT_EQ(sliced.size(), 3);
+    EXPECT_EQ(sliced[0], "");
+    EXPECT_EQ(sliced[1], "std");
+    EXPECT_EQ(sliced[2], "Cell");
+}
+
+TEST_F(CellTest, StringSplitWithExtraChar)
+{
+    const std::string inputStr = ":::std::Cell";
+    std::vector<std::string> sliced;
+    splitNamespacedString(sliced, inputStr);
+    EXPECT_EQ(sliced.size(), 3);
+    EXPECT_EQ(sliced[0], "");
+    EXPECT_EQ(sliced[1], ":std");
+    EXPECT_EQ(sliced[2], "Cell");
+}
 
 TEST_F(CellTest, CellTrieTestForSet)
 {

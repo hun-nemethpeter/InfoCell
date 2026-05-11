@@ -3,7 +3,6 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "Log.h"
 
-#include <boost/algorithm/string/regex.hpp>
 #include <sstream>
 
 namespace infocell {
@@ -1554,10 +1553,27 @@ CellI& Ast::Scope::reigisterStructBeforeCompilation(CellI& structAst)
     }
 }
 
+static void splitNamespacedString(std::vector<std::string>& out, const std::string& input)
+{
+    const std::string delim = "::";
+    std::string leftover    = input;
+
+    while (true) {
+        int delim_pos = leftover.find(delim);
+        if (delim_pos == std::string::npos) {
+            out.push_back(leftover);
+            break;
+        }
+        std::string next_token = leftover.substr(0, delim_pos);
+        leftover               = leftover.substr(delim_pos + delim.length());
+        out.push_back(next_token);
+    }
+}
+
 void Ast::Scope::registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct)
 {
     std::vector<std::string> sliced;
-    boost::algorithm::split_regex(sliced, fullName, boost::regex("::"));
+    splitNamespacedString(sliced, fullName);
 
     if (sliced.empty()) {
         throw "Invalid struct ID!";
@@ -4347,7 +4363,7 @@ Ast::GreaterThanOrEqual& Ast::greaterThanOrEqual(Base& lhs, Base& rhs)
 CellI& Ast::processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb)
 {
     std::vector<std::string> sliced;
-    boost::algorithm::split_regex(sliced, inputName, boost::regex("::"));
+    splitNamespacedString(sliced, inputName);
 
     if (sliced.empty()) {
         throw "Invalid template ID!";
