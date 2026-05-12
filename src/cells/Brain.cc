@@ -613,7 +613,7 @@ CellI* CellTrie::findToolByAst(CellI& ast)
     if (!tool) {
         return nullptr;
     }
-    static Object retVal(kb, kb.std.ast.Cell);
+    Object retVal(kb, kb.std.ast.Cell);
     createTool(retVal, kb.ids.value, *toolAst, *tool);
     return &retVal[kb.ids.value];
 }
@@ -647,7 +647,7 @@ CellI* CellTrie::findToolByAstImpl(CellI& ast, CellI*& toolAst)
             if (!(findContext.currentNode && findContext.currentNode->m_isLeaf)) {
                 return nullptr;
             }
-            static CellI& newAst = *new Object(kb, kb.std.ast.Equal);
+            CellI& newAst = *new Object(kb, kb.std.ast.Equal); // TODO FIX memory leak
 
             newAst.set(kb.ids.lhs, *findContext.expressionToolPtr);
             createTool(newAst, kb.ids.rhs, ast, *findContext.currentNode->m_data);
@@ -731,7 +731,7 @@ void CellTrie::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI&
                     throw "Tool description value is not a constant value or List!";
                 }
                 if (&(*valuePtr).struct_() != &kb.std.ast.Cell) {
-                    static CellI& retVal = *new Object(kb, kb.std.ast.Return);
+                    CellI& retVal = *new Object(kb, kb.std.ast.Return); // TODO FIX memory leak
                     retVal.set(kb.ids.value, *valuePtr);
                     subTools.add(kb.ast.slot(*ret, unwrappedKey));
                 }
@@ -743,7 +743,7 @@ void CellTrie::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI&
             slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
         }
         CellI* subpToolItemPtr = &subTools[kb.ids.first];
-        static CellI& retVal   = *new Object(kb, kb.std.ast.Return);
+        CellI& retVal          = *new Object(kb, kb.std.ast.Return); // TODO FIX memory leak
         while (subpToolItemPtr) {
             CellI& slot       = (*subpToolItemPtr)[kb.ids.value];
             CellI& key        = slot[kb.ids.key];
