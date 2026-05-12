@@ -12,9 +12,8 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
-
-find_package(nlohmann_json)
-find_package(CLI11)
+find_package(nlohmann_json REQUIRED)
+find_package(CLI11 REQUIRED)
 find_package(utf8cpp REQUIRED)
 find_package(ftxui REQUIRED)
 find_package(GTest REQUIRED)
