@@ -8,4 +8,4 @@ spdlog/1.17.0
 utfcpp/4.0.9
 
 [generators]
-CMakeDeps
+CMakeConfigDeps
