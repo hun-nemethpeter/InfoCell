@@ -146,7 +146,8 @@ Here we express the fact that after executing a primitive cell `Set` you can act
 This description segment is also the basis for a prompt in the terminology of current AI systemss. For example:
 
 ```cpp
-// It is true that I can get a number from an unknown cell `X` at `value` and after I add number 2 to it I get 4.
+// It is true that I can get a number from an unknown cell `X` at
+// `value` and after I add number 2 to it I get 4.
 // so 2 + x = 4
 Prompt:
 Var& x = var_("x");
@@ -365,7 +366,11 @@ The ARC grid input is a JSON file and as a first step we have to bring it to the
 
 ![Representation of a sample ARC grid with infocells](doc/diagrams/ArcGridSampleWithInfocells.svg)
 
-Image recognition is currently based mostly on edge detection. First we calculate an edge of a same-colored pixel "patch". Then we get the unit vectors of that edge (for a pixel there are only four unit vectors toUp, toRight, toDown, toLeft). This approach basically the serialization of the edge so we can put it in a trie lookup structure the same way as the tool finding works. The external edge vectors point clockwise and the internal edges are counter clockwise.
+Image recognition is currently based mostly on edge detection. First we calculate an edge of a same-colored pixel "patch".
+
+![Same colored pixel patches](doc/diagrams/PixelGroupping.svg)
+
+Then we get the unit vectors of that edge (for a pixel there are only four unit vectors toUp, toRight, toDown, toLeft). This approach basically the serialization of the edge so we can put it in a trie lookup structure the same way as the tool finding works. The external edge vectors point clockwise and the internal edges are counter clockwise.
 
 Edge detection is based on detecting which pixel configuration starts an external or internal edge. We always examine only 4 pixels at a time on a 2x2 area. The external edge is always around a same colored pixel blob. If that pixel blob contains holes, around the holes are the internal edges for that blob. But there will be a corresponding external edge for the blob which fits the hole.
 
