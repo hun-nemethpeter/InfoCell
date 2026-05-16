@@ -507,11 +507,10 @@ public:
 class Visitor
 {
 public:
-    virtual void visit(Object&) = 0;
-
-    virtual void visit(Number&) = 0;
-    virtual void visit(String&) = 0;
-
+    virtual void visit(CellI&)      = 0;
+    virtual void visit(Object&)     = 0;
+    virtual void visit(Number&)     = 0;
+    virtual void visit(String&)     = 0;
     virtual void visit(List::Item&) = 0;
     virtual void visit(List&)       = 0;
     virtual void visit(Struct&)     = 0;

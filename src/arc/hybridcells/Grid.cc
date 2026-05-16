@@ -90,7 +90,7 @@ CellI& Grid::operator[](CellI& key)
 
 void Grid::accept(Visitor& visitor)
 {
-//    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 Pixel& Grid::getPixel(int x, int y)

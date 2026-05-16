@@ -9,6 +9,7 @@ namespace cells {
 class CellStructPrinter : public Visitor
 {
 public:
+    void visit(CellI& cell) override;
     void visit(Object& cell) override;
     void visit(List::Item& cell) override;
     void visit(List& cell) override;

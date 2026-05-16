@@ -154,7 +154,7 @@ CellI& Shape::operator[](CellI& role)
 
 void Shape::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 } // namespace arc

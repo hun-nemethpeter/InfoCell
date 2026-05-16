@@ -96,7 +96,7 @@ CellI& Pixel::operator[](CellI& key)
 
 void Pixel::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 const int Pixel::color() const

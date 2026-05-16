@@ -6,6 +6,11 @@
 namespace infocell {
 namespace cells {
 
+void CellValuePrinter::visit(CellI& cell)
+{
+    printImpl(cell);
+}
+
 void CellValuePrinter::visit(Object& object)
 {
     printImpl(object);

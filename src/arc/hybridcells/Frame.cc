@@ -169,7 +169,7 @@ void Frame::operator()()
 
 void Frame::accept(Visitor& visitor)
 {
-    //    visitor.visit(*this);
+    visitor.visit(*this);
 }
 
 void Frame::process()

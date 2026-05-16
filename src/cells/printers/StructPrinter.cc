@@ -5,6 +5,11 @@
 namespace infocell {
 namespace cells {
 
+void CellStructPrinter::visit(CellI& cell)
+{
+    printImpl(cell);
+}
+
 void CellStructPrinter::visit(Object& cell)
 {
     if (!cell.label().empty()) {
