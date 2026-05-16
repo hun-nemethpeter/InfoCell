@@ -661,7 +661,7 @@ Solver::Grid::Grid(std::vector<std::shared_ptr<Shape>> shapes)
     }
 }
 
-Solver::Solver(Logger& logger, const ArcTask& arcTask) :
+Solver::Solver(Logger& logger, const Task& arcTask) :
     logger(logger), m_arcTask(arcTask)
 {
     solve();
@@ -671,23 +671,23 @@ void Solver::solve()
 {
     loggerPtr = &logger;
     logger.clearLogFile();
-    logger.log(INFO) << "There are " << m_arcTask.m_demonstrations.size() << " demo tasks";
+    logger.log(INFO) << "There are " << m_arcTask.m_examples.size() << " example tasks";
     unsigned int i = 1;
 
     std::vector<Rules> rules;
-    for (const auto& arcDemo : m_arcTask.m_demonstrations) {
+    for (const auto& arcDemo : m_arcTask.m_examples) {
         const cells::arc::Grid& m_input = arcDemo.m_input;
-        const cells::arc::Grid& m_output = arcDemo.m_output;
+        const cells::arc::Grid& m_output = *arcDemo.m_output;
         //        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
         const Grid& input = parse(m_input);
         const Grid& output = parse(m_output);
         rules.push_back(gridDiff(input, output));
     }
-    const Grid& testInput = parse(m_arcTask.m_challenge);
+    const Grid& testInput = parse(m_arcTask.m_tests[0].m_input);
     const Code& code = processRules(rules);
     DrawingBoard result = applyCode(testInput, code);
 
-    const cells::arc::Grid& m_input = m_arcTask.m_challenge;
+    const cells::arc::Grid& m_input = m_arcTask.m_tests[0].m_input;
     logger.log(INFO) << "Mapping input[" << m_input.width() << ", " << m_input.height() << "] to ... ?";
 }
 

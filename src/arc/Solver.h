@@ -448,7 +448,7 @@ class Solver
     };
 
 public:
-    Solver(Logger& logger, const ArcTask& arcTask);
+    Solver(Logger& logger, const Task& arcTask);
 
     void solve();
 
@@ -459,7 +459,7 @@ private:
     DrawingBoard applyCode(const Grid& input, const Code& code);
 
     Logger& logger;
-    const ArcTask& m_arcTask;
+    const Task& m_arcTask;
 };
 
 } // namespace arc

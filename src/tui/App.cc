@@ -315,7 +315,7 @@ void App::run()
 void App::solve()
 {
     cells::brain::Brain kb;
-    arc::ArcTask arcTask(kb, m_arcJsonTask);
+    arc::Task arcTask(kb, m_arcJsonTask);
     arc::Solver solver(solverLogger, arcTask);
 }
 

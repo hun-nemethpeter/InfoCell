@@ -1786,7 +1786,7 @@ TEST_F(CellTest, DISABLED_ArcTaskTest)
     ftxui::Render(screen, document);
     screen.Print();
 
-    infocell::arc::ArcPrizeTask arcTaskLoader(kb, "007bbfb7", jsonTask);
+    infocell::arc::Task arcTaskLoader(kb, "007bbfb7", jsonTask);
     CellI& arcTask = arcTaskLoader.m_cellTask;
 
     Object frame(kb, frameStruct, kb.name("constructor"), { "grid", arcTask["challenge"]});
@@ -1808,7 +1808,7 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
 
         printTask(jsonRiddle[jsonTaskPath]);
 
-        infocell::arc::ArcPrizeTask arcTaskLoader(kb, riddleId, jsonRiddle);
+        infocell::arc::Task arcTaskLoader(kb, riddleId, jsonRiddle);
         CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
         for (const auto& cellPath : cellPaths) {
             arcTaskPtr = &(*arcTaskPtr)[cellPath];
@@ -1870,7 +1870,7 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
         CellI* outputGridPtr = nullptr;
         CellI* outputShapesPtr  = nullptr;
 
-        infocell::arc::ArcPrizeTask arcTaskLoader(kb, riddleId, jsonRiddle);
+        infocell::arc::Task arcTaskLoader(kb, riddleId, jsonRiddle);
         {
             CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
             for (const auto& cellPath : cellInputPath) {
@@ -2009,7 +2009,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
         CellI* outputGridPtr   = nullptr;
         CellI* outputShapesPtr = nullptr;
 
-        infocell::arc::ArcPrizeTask arcTaskLoader(kb, riddleId, jsonRiddle);
+        infocell::arc::Task arcTaskLoader(kb, riddleId, jsonRiddle);
         CellI* arcTaskPtr = nullptr;
         {
             arcTaskPtr = &arcTaskLoader.m_cellTask;
@@ -2157,7 +2157,7 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
             CellI* inputGridPtr  = nullptr;
             CellI* outputGridPtr = nullptr;
 
-            infocell::arc::ArcPrizeTask arcTaskLoader(kb, it.key(), jsonRiddle);
+            infocell::arc::Task arcTaskLoader(kb, it.key(), jsonRiddle);
             {
                 CellI* arcTaskPtr = &arcTaskLoader.m_cellTask;
                 for (const auto& cellPath : cellInputPath) {

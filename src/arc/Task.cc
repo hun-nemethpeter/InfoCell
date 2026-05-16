@@ -12,44 +12,7 @@ using namespace nlohmann;
 namespace infocell {
 namespace arc {
 
-ArcDemonstration::ArcDemonstration(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
-    m_number(number),
-    m_inputGrid(fmt::format("Train input {}", number)),
-    m_outputGrid(fmt::format("Train output {}", number)),
-    m_input(kb, m_inputGrid.loadFromJsonArray(input)),
-    m_output(kb, m_outputGrid.loadFromJsonArray(output))
-{
-}
-
-ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
-    m_inputPicture("Test input"),
-    m_outputPicture("Test solution"),
-    m_challenge(kb, m_inputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/input"_json_pointer]))),
-    m_solution(kb, m_outputPicture.loadFromJsonArray(to_string(jsonArcFile["/test/0/output"_json_pointer]))),
-    m_taskStruct(kb.getStruct("arc::Task")),
-    m_demonstrationStruct(kb.getStruct("arc::Example")),
-    m_task(kb, m_taskStruct),
-    m_examples(kb, m_demonstrationStruct)
-{
-    const nlohmann::json& jsonTrainSet = jsonArcFile.at("train");
-    m_demonstrations.reserve(jsonTrainSet.size());
-    m_exampleObjects.reserve(jsonTrainSet.size());
-    int number = 1;
-    for (const auto& train : jsonTrainSet) {
-        m_demonstrations.emplace_back(kb, number++, to_string(train.at("input")), to_string(train.at("output")));
-        ArcDemonstration& arcDemonstration = m_demonstrations.back();
-        m_exampleObjects.emplace_back(kb, m_demonstrationStruct);
-        cells::Object& exampleObject = m_exampleObjects.back();
-        exampleObject.set("input", arcDemonstration.m_input);
-        exampleObject.set("output", arcDemonstration.m_output);
-        m_examples.add(exampleObject);
-    }
-    m_task.set("examples", m_examples);
-    m_task.set("tests", m_challenge);
-    m_task.set("solution", m_solution);
-}
-
-ArcTaskExample::ArcTaskExample(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
+Task::IOPair::IOPair(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
     m_outputGrid(std::make_unique<native::Grid>(fmt::format("Train output {}", number))),
@@ -58,14 +21,20 @@ ArcTaskExample::ArcTaskExample(cells::brain::Brain& kb, int number, const std::s
 {
 }
 
-ArcTaskExample::ArcTaskExample(cells::brain::Brain& kb, int number, const std::string& input) :
+Task::IOPair::IOPair(cells::brain::Brain& kb, int number, const std::string& input) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
     m_input(kb, m_inputGrid.loadFromJsonArray(input))
 {
 }
 
-ArcPrizeTask::ArcPrizeTask(cells::brain::Brain& kb, const std::string& id, const nlohmann::json& jsonTask) :
+Task::Task(cells::brain::Brain& kb, const nlohmann::json& arcJsonTask) :
+    Task(kb, "", arcJsonTask)
+{
+
+}
+
+Task::Task(cells::brain::Brain& kb, const std::string& id, const nlohmann::json& jsonTask) :
     m_id(id),
     m_cellTaskStruct(kb.getStruct("arc::Task")),
     m_cellExampleStruct(kb.getStruct("arc::Example")),
@@ -79,11 +48,11 @@ ArcPrizeTask::ArcPrizeTask(cells::brain::Brain& kb, const std::string& id, const
     int trainExampleNumber = 1;
     for (const auto& trainExample : jsonTrainSet) {
         m_examples.emplace_back(kb, trainExampleNumber++, to_string(trainExample.at("input")), to_string(trainExample.at("output")));
-        ArcTaskExample& arcDemonstration = m_examples.back();
+        IOPair& ioPair = m_examples.back();
         m_cellExamples.emplace_back(kb, m_cellExampleStruct);
         cells::Object& exampleObject = m_cellExamples.back();
-        exampleObject.set("input", arcDemonstration.m_input);
-        exampleObject.set("output", *arcDemonstration.m_output);
+        exampleObject.set("input", ioPair.m_input);
+        exampleObject.set("output", *ioPair.m_output);
         m_cellExamplesList.add(exampleObject);
     }
     const nlohmann::json& jsonTestSet = jsonTask.at("test");
@@ -92,10 +61,10 @@ ArcPrizeTask::ArcPrizeTask(cells::brain::Brain& kb, const std::string& id, const
     int testExampleNumber = 1;
     for (const auto& testExample : jsonTestSet) {
         m_tests.emplace_back(kb, testExampleNumber++, to_string(testExample.at("input")));
-        ArcTaskExample& arcDemonstration = m_tests.back();
+        IOPair& ioPair = m_tests.back();
         m_cellTests.emplace_back(kb, m_cellExampleStruct);
         cells::Object& exampleObject = m_cellTests.back();
-        exampleObject.set("input", arcDemonstration.m_input);
+        exampleObject.set("input", ioPair.m_input);
         m_cellTestsList.add(exampleObject);
     }
 
