@@ -2,13 +2,12 @@
 
 #include <memory>
 
-namespace CLI
-{
+namespace CLI {
 class App;
 }
 
 namespace infocell {
-namespace arc2026 {
+namespace cli {
 
 class App
 {
@@ -23,5 +22,5 @@ private:
     std::unique_ptr<CLI::App> m_app;
 };
 
-} // namespace arc2026
+} // namespace cli
 } // namespace infocell

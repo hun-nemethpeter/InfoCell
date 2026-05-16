@@ -2,7 +2,7 @@
 #include <CLI/CLI.hpp>
 
 namespace infocell {
-namespace arc2026 {
+namespace cli {
 
 class Pos
 {
@@ -29,7 +29,7 @@ public:
 };
 
 App::App() :
-    m_app(std::make_unique<CLI::App>("ARC-AGI-2026 Solver"))
+    m_app(std::make_unique<CLI::App>("ARC-AGI Solver"))
 {
     init();
 }
@@ -72,12 +72,12 @@ int App::run(int argc, char* argv[])
     auto testEdgeCommand = m_app->add_subcommand("testEdge", "Test edge");
     testEdgeCommand->callback([&]() {
         std::cout << "Test edge!" << std::endl;
-        });
+    });
 
     CLI11_PARSE(*m_app, argc, argv);
 
     return EXIT_SUCCESS;
 }
 
-} // namespace arc2026
+} // namespace cli
 } // namespace infocell
