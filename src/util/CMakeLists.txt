@@ -1,14 +1,8 @@
-add_library(util STATIC
-    ArcTask.cc
-    ArcTask.h
-    Logging.cc
-    Logging.h
-    LogMessage.h
+add_library(util INTERFACE
+    Log.h
 )
-
-target_link_libraries(util
-	PUBLIC
-		nlohmann_json::nlohmann_json
-        applib
-        cellslib
+target_include_directories(config INTERFACE
+    ${CMAKE_CURRENT_BINARY_DIR}
+    fmt::fmt
+    spdlog::spdlog
 )

@@ -1,56 +1,21 @@
-add_library(cellslib STATIC
-    Arc.cc
-    Arc.h
+add_subdirectory(printers)
+add_subdirectory(tests)
+
+add_library(cells-lib STATIC
     Cells.cc
     Cells.h
     Brain.cc
     Brain.h
-    Log.h
 )
-if(MSVC)
-    target_compile_options(cellslib PUBLIC "/Zc:__cplusplus")
-endif()
-target_include_directories(cellslib
+target_include_directories(cells-lib
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/src
 )
-target_link_libraries(cellslib
+target_link_libraries(cells-lib
     PUBLIC
-        utf8cpp
-        gtest::gtest
         fmt::fmt
         spdlog::spdlog
-)
-
-add_library(celltestbase STATIC
-    StructPrinter.cc
-    StructPrinter.h
-    ValuePrinter.cc
-    ValuePrinter.h
-    CellTestBase.cc
-    CellTestBase.h
-)
-
-target_link_libraries(celltestbase
-PUBLIC
-    config
-    cellslib
-    applib
-)
-
-add_executable(celltest
-    CellTest.cc
-)
-target_link_libraries(celltest
-PRIVATE
-    celltestbase
-)
-
-add_executable(edgetest
-    EdgeTest.cc
-)
-target_link_libraries(edgetest
-PRIVATE
-    celltestbase
+        utf8cpp
+        util
 )

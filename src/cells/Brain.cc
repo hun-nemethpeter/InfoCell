@@ -1,7 +1,7 @@
 ﻿#include "Brain.h"
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
-#include "Log.h"
+#include "util/Log.h"
 
 #include <sstream>
 

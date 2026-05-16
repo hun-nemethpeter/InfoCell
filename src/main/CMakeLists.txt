@@ -1,8 +1,8 @@
-add_executable(infocell main.cc)
+add_executable(infocell-tui main.cc)
 
-target_link_libraries(infocell
+target_link_libraries(infocell-tui
 PRIVATE
-    applib
+    tuilib
 )
 
 add_executable(rsvg-convert rsvg-convert.cc)
