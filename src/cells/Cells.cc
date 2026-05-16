@@ -1,8 +1,6 @@
 #include "Cells.h"
 #include "Brain.h"
 
-#include <fmt/core.h>
-#include <sstream>
 #include <utility>
 
 #pragma warning(disable : 4996)

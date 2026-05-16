@@ -26,10 +26,7 @@ public:
     bool hasPixel(int x, int y) const;
 
     int currentIndex(int x, int y) const;
-    Pixel* upPixel(int x, int y);
-    Pixel* downPixel(int x, int y);
-    Pixel* leftPixel(int x, int y);
-    Pixel* rightPixel(int x, int y);
+
     std::vector<Pixel>& pixels();
 
     int width() const;
