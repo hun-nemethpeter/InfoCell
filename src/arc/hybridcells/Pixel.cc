@@ -10,11 +10,11 @@ namespace cells {
 namespace arc {
 
 // ============================================================================
-Pixel::Pixel(brain::Brain& kb, int x, int y, int arcColor, Grid& grid) :
+Pixel::Pixel(brain::Brain& kb, int x, int y, int arcColorId, Grid& grid) :
     CellI(kb),
     m_x(kb.pools.numbers.get(x)),
     m_y(kb.pools.numbers.get(y)),
-    m_arcColor(kb.pools.numbers.get(arcColor)),
+    m_arcColorId(kb.pools.numbers.get(arcColorId)),
     m_grid(grid)
 {
 }
@@ -82,7 +82,7 @@ CellI& Pixel::operator[](CellI& key)
         return m_grid.getPixel(m_x.value() + 1, m_y.value());
     }
     if (&key == &kb.ids.color) {
-        return m_arcColor;
+        return m_arcColorId;
     }
     if (&key == &kb.coordinates.x) {
         return m_x;
@@ -101,7 +101,12 @@ void Pixel::accept(Visitor& visitor)
 
 const int Pixel::color() const
 {
-    return m_arcColor.value();
+    return m_arcColorId.value();
+}
+
+const infocell::arc::ColorId Pixel::colorId() const
+{
+    return (infocell::arc::ColorId)color();
 }
 
 } // namespace arc

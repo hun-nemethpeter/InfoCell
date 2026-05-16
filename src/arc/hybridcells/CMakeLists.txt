@@ -1,6 +1,4 @@
 add_library(arc-hybridcells-lib STATIC
-    DeprecatedCells.cc
-    DeprecatedCells.h
     Frame.cc
     Frame.h
     Grid.cc

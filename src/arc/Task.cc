@@ -14,10 +14,10 @@ namespace arc {
 
 ArcDemonstration::ArcDemonstration(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
     m_number(number),
-    m_inputPicture(fmt::format("Train input {}", number)),
-    m_outputPicture(fmt::format("Train output {}", number)),
-    m_input(kb, m_inputPicture.loadFromJsonArray(input)),
-    m_output(kb, m_outputPicture.loadFromJsonArray(output))
+    m_inputGrid(fmt::format("Train input {}", number)),
+    m_outputGrid(fmt::format("Train output {}", number)),
+    m_input(kb, m_inputGrid.loadFromJsonArray(input)),
+    m_output(kb, m_outputGrid.loadFromJsonArray(output))
 {
 }
 

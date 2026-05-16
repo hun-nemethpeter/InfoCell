@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "arc/hybridcells/DeprecatedCells.h"
 #include "arc/hybridcells/Grid.h"
 #include <nlohmann/json.hpp>
 
@@ -13,10 +12,10 @@ public:
     ArcDemonstration(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output);
 
     const int m_number;
-    native::Grid m_inputPicture;
-    native::Grid m_outputPicture;
-    cells::deprecated::Picture m_input;
-    cells::deprecated::Picture m_output;
+    native::Grid m_inputGrid;
+    native::Grid m_outputGrid;
+    cells::arc::Grid m_input;
+    cells::arc::Grid m_output;
 };
 
 class ArcTask
@@ -28,8 +27,8 @@ public:
     std::vector<cells::Object> m_exampleObjects;
     native::Grid m_inputPicture;
     native::Grid m_outputPicture;
-    cells::deprecated::Picture m_challenge;
-    cells::deprecated::Picture m_solution;
+    cells::arc::Grid m_challenge;
+    cells::arc::Grid m_solution;
     cells::CellI& m_taskStruct;
     cells::CellI& m_demonstrationStruct;
     cells::Object m_task;

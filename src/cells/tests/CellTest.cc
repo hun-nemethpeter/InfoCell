@@ -12,7 +12,6 @@
 #include "Config.h"
 #include "arc/Grid.h"
 #include "arc/Task.h"
-#include "arc/hybridcells/DeprecatedCells.h"
 #include "arc/hybridcells/Grid.h"
 #include "cells/Cells.h"
 #include "cells/printers/StructPrinter.h"
@@ -828,23 +827,23 @@ TEST_F(CellTest, FunctionTypes)
     printAs.value(function.struct_()[ids.subTypes][ids.index][ids.localVars][ids.value], "function[ids.subTypes][ids.localVars][ids.value]");
 }
 
-TEST_F(CellTest, HybridPicture)
+TEST_F(CellTest, HybridGrid)
 {
-    nativearc::Grid inputPicture("input");
-    inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
-    cells::deprecated::Picture picture(kb, inputPicture);
+    nativearc::Grid inputGrid("input");
+    inputGrid.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
+    hybridarc::Grid grid(kb, inputGrid);
 
-    printAs.value(picture[ids.pixels]);
+    printAs.value(grid[ids.pixels]);
 
-    EXPECT_EQ(&picture[ids.struct_], &kb.std.Grid);
-    EXPECT_EQ(&picture[ids.width], &kb.pools.numbers.get(3));
-    EXPECT_EQ(&picture[ids.height], &kb.pools.numbers.get(3));
-    EXPECT_EQ(&picture[ids.pixels][ids.struct_], &kb.ListOf(kb.std.Pixel));
+    EXPECT_EQ(&grid[ids.struct_], &kb.std.Grid);
+    EXPECT_EQ(&grid[ids.width], &kb.pools.numbers.get(3));
+    EXPECT_EQ(&grid[ids.height], &kb.pools.numbers.get(3));
+    EXPECT_EQ(&grid[ids.pixels][ids.struct_], &kb.ListOf(kb.std.Pixel));
 
     auto& ListOfPixels  = getStruct(kb.templateId("std::List", ids.valueType, kb.std.Pixel));
     Object listOfPixels(kb, ListOfPixels, kb.name("constructor"), "listOfPixels");
-    listOfPixels.method(kb.name("add"), { ids.value, picture[ids.pixels][ids.first][ids.value] });
-    listOfPixels.method(kb.name("add"), { ids.value, picture[ids.pixels][ids.first][ids.next][ids.value] });
+    listOfPixels.method(kb.name("add"), { ids.value, grid[ids.pixels][ids.first][ids.value] });
+    listOfPixels.method(kb.name("add"), { ids.value, grid[ids.pixels][ids.first][ids.next][ids.value] });
     printAs.value(listOfPixels);
 }
 

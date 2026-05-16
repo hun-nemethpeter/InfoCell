@@ -2,6 +2,7 @@
 
 #include "cells/Cells.h"
 #include "cells/Brain.h"
+#include "arc/Color.h"
 
 namespace infocell {
 namespace cells {
@@ -12,7 +13,7 @@ class Grid;
 class Pixel : public CellI
 {
 public:
-    Pixel(brain::Brain& kb, int x, int y, int arcColor, Grid& grid);
+    Pixel(brain::Brain& kb, int x, int y, int arcColorId, Grid& grid);
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;
@@ -22,10 +23,11 @@ public:
     void accept(Visitor& visitor) override;
 
     const int color() const;
+    const infocell::arc::ColorId colorId() const;
 
     Number& m_x;
     Number& m_y;
-    Number& m_arcColor;
+    Number& m_arcColorId;
 
 private:
     Grid& m_grid;

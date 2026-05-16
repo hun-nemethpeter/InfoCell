@@ -349,13 +349,13 @@ VectorShapeRelation VectorShape::compare(const VectorShape& other)
     return ret;
 }
 
-void Shape::addPixel(cells::deprecated::Pixel& pixel)
+void Shape::addPixel(cells::arc::Pixel& pixel)
 {
     m_pixels.push_back({ pixel.m_x.value(), pixel.m_y.value() });
     m_hybridPixels.insert(&pixel);
 }
 
-bool Shape::hasPixel(cells::deprecated::Pixel& pixel) const
+bool Shape::hasPixel(cells::arc::Pixel& pixel) const
 {
     return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
 }
@@ -370,7 +370,7 @@ void Shape::sortPixels()
 
 std::string Shape::toString() const
 {
-    char boardColor = '0' + (int)color().id();
+    char boardColor = '0' + (int)colorId();
     std::string board(m_width * m_height, '.');
     for (const Pixel& pixel : m_pixels) {
         board[pixel.y * m_width + pixel.x] = boardColor;
@@ -387,7 +387,7 @@ std::string Shape::toString() const
 
 VectorShape Shape::toVectorShape() const
 {
-    VectorShape ret(color().id());
+    VectorShape ret(colorId());
     ret.fromPixels(pixels());
 
     return ret;
@@ -579,19 +579,19 @@ std::string DrawingBoard::toString() const
     return ret;
 }
 
-Shaper::Shaper(const cells::deprecated::Picture& picture) :
-    m_width(picture.width()),
-    m_height(picture.height()),
-    m_picture(picture),
-    kb(picture.kb)
+Shaper::Shaper(const cells::arc::Grid& grid) :
+    m_width(grid.width()),
+    m_height(grid.height()),
+    m_grid(grid),
+    kb(grid.kb)
 {
     processInputPixels();
 }
 
 void Shaper::processInputPixels()
 {
-    std::vector<cells::deprecated::Pixel>& pixels = const_cast<cells::deprecated::Picture&>(m_picture).pixels();
-    for (cells::deprecated::Pixel& pixel : pixels) {
+    std::vector<cells::arc::Pixel>& pixels = const_cast<cells::arc::Grid&>(m_grid).pixels();
+    for (cells::arc::Pixel& pixel : pixels) {
         m_inputPixels.insert(&pixel);
     }
 }
@@ -607,14 +607,14 @@ void Shaper::process()
 {
     int shapeId = 1;
     while (!m_inputPixels.empty()) {
-        cells::deprecated::Pixel& firstPixel = **m_inputPixels.begin();
-        m_shapes.push_back(std::make_shared<Shape>(shapeId++, firstPixel.color(), m_width, m_height));
+        cells::arc::Pixel& firstPixel = **m_inputPixels.begin();
+        m_shapes.push_back(std::make_shared<Shape>(shapeId++, firstPixel.colorId(), m_width, m_height));
         Shape& shape = *m_shapes.back();
-        std::set<cells::deprecated::Pixel*> checkPixels;
+        std::set<cells::arc::Pixel*> checkPixels;
         checkPixels.insert(&firstPixel);
         while (!checkPixels.empty()) {
             auto checkPixelIt                    = checkPixels.begin();
-            cells::deprecated::Pixel& checkPixel = **checkPixelIt;
+            cells::arc::Pixel& checkPixel = **checkPixelIt;
             processPixel(shape, checkPixels, checkPixel);
             checkPixels.erase(checkPixelIt);
         }
@@ -624,16 +624,16 @@ void Shaper::process()
               [](const std::shared_ptr<Shape>& lhs, const std::shared_ptr<Shape>& rhs) { return *lhs < *rhs; });
 }
 
-void Shaper::processPixel(Shape& shape, std::set<cells::deprecated::Pixel*>& checkPixels, cells::deprecated::Pixel& checkPixel)
+void Shaper::processPixel(Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel)
 {
     shape.addPixel(checkPixel);
     m_inputPixels.erase(&checkPixel);
 
-    if (cells::deprecated::Pixel* pixel = processAdjacentPixel(kb.directions.up, shape, checkPixels, checkPixel)) {
+    if (cells::arc::Pixel* pixel = processAdjacentPixel(kb.directions.up, shape, checkPixels, checkPixel)) {
         processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
         processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
     }
-    if (cells::deprecated::Pixel* pixel = processAdjacentPixel(kb.directions.down, shape, checkPixels, checkPixel)) {
+    if (cells::arc::Pixel* pixel = processAdjacentPixel(kb.directions.down, shape, checkPixels, checkPixel)) {
         processAdjacentPixel(kb.directions.left, shape, checkPixels, *pixel);
         processAdjacentPixel(kb.directions.right, shape, checkPixels, *pixel);
     }
@@ -641,11 +641,11 @@ void Shaper::processPixel(Shape& shape, std::set<cells::deprecated::Pixel*>& che
     processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
 }
 
-cells::deprecated::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::deprecated::Pixel*>& checkPixels, cells::deprecated::Pixel& checkPixel)
+cells::arc::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel)
 {
     if (checkPixel.has(direction)) {
-        cells::deprecated::Pixel& pixel = static_cast<cells::deprecated::Pixel&>(checkPixel[direction]);
-        if (pixel.color() == shape.color() && !shape.hasPixel(pixel)) {
+        cells::arc::Pixel& pixel = static_cast<cells::arc::Pixel&>(checkPixel[direction]);
+        if (pixel.color() == (int)shape.colorId() && !shape.hasPixel(pixel)) {
             checkPixels.insert(&pixel);
         }
         return &pixel;
@@ -676,8 +676,8 @@ void Solver::solve()
 
     std::vector<Rules> rules;
     for (const auto& arcDemo : m_arcTask.m_demonstrations) {
-        const cells::deprecated::Picture& m_input = arcDemo.m_input;
-        const cells::deprecated::Picture& m_output = arcDemo.m_output;
+        const cells::arc::Grid& m_input = arcDemo.m_input;
+        const cells::arc::Grid& m_output = arcDemo.m_output;
         //        logger.log(INFO) << " (" << i << ") mapping[" << m_input.m_width << ", " << m_input.m_height << "] to[" << m_output.m_width << ", " << m_output.m_height << "] ";
         const Grid& input = parse(m_input);
         const Grid& output = parse(m_output);
@@ -687,13 +687,13 @@ void Solver::solve()
     const Code& code = processRules(rules);
     DrawingBoard result = applyCode(testInput, code);
 
-    const cells::deprecated::Picture& m_input = m_arcTask.m_challenge;
+    const cells::arc::Grid& m_input = m_arcTask.m_challenge;
     logger.log(INFO) << "Mapping input[" << m_input.width() << ", " << m_input.height() << "] to ... ?";
 }
 
-Solver::Grid Solver::parse(const cells::deprecated::Picture& picture)
+Solver::Grid Solver::parse(const cells::arc::Grid& grid)
 {
-    Shaper shaper(picture);
+    Shaper shaper(grid);
     shaper.process();
     for (std::shared_ptr<Shape> shape : shaper.shapes()) {
         logger.log(DEBUG) << "Shape:";

@@ -11,6 +11,7 @@
 
 using namespace infocell::arc;
 namespace nativearc = infocell::arc::native;
+namespace hybridarc = infocell::cells::arc;
 
 namespace infocell {
 namespace tui {
@@ -77,8 +78,8 @@ void TestCases::addTestCases()
     cells::brain::Brain kb2;
     add(TestCase("ShapeTest", [this]() {
         nativearc::Grid inputGrid("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
-        cells::deprecated::Picture picture(kb, inputGrid);
-        Shaper shaper(picture);
+        hybridarc::Grid grid(kb, inputGrid);
+        Shaper shaper(grid);
         shaper.process();
 #if 0
         for (std::shared_ptr<Shape> shape : shaper.shapes()) {
@@ -92,8 +93,8 @@ void TestCases::addTestCases()
 
     add(TestCase("ShapeTestDiagonal", [this]() {
         nativearc::Grid inputGrid("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
-        cells::deprecated::Picture picture(kb, inputGrid);
-        Shaper shaper(picture);
+        hybridarc::Grid grid(kb, inputGrid);
+        Shaper shaper(grid);
         shaper.process();
 #if 0
         for (std::shared_ptr<Shape> shape : shaper.shapes()) {
@@ -107,8 +108,8 @@ void TestCases::addTestCases()
 
     add(TestCase("ShapeMergeTest", [this]() {
         nativearc::Grid inputGrid("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
-        cells::deprecated::Picture picture(kb, inputGrid);
-        Shaper shaper(picture);
+        hybridarc::Grid grid(kb, inputGrid);
+        Shaper shaper(grid);
         shaper.process();
 #if 0
         for (std::shared_ptr<Shape> shape : shaper.shapes()) {

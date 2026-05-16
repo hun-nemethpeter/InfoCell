@@ -281,11 +281,11 @@ private:
 class Shape
 {
 public:
-    Shape(int id, arc::Color color, int width, int height) :
-        m_id(id), m_color(color), m_width(width), m_height(height) { }
+    Shape(int id, arc::ColorId colorId, int width, int height) :
+        m_id(id), m_colorId(colorId), m_width(width), m_height(height) { }
 
-    void addPixel(cells::deprecated::Pixel& pixel);
-    bool hasPixel(cells::deprecated::Pixel& pixel) const;
+    void addPixel(cells::arc::Pixel& pixel);
+    bool hasPixel(cells::arc::Pixel& pixel) const;
     void sortPixels();
 
     int id() const
@@ -293,9 +293,9 @@ public:
         return m_id;
     }
 
-    const arc::Color& color() const
+    const arc::ColorId& colorId() const
     {
-        return m_color;
+        return m_colorId;
     }
 
     size_t size() const
@@ -339,10 +339,10 @@ public:
 
 private:
     int m_id = 0;
-    arc::Color m_color;
+    arc::ColorId m_colorId;
     const int m_width;
     const int m_height;
-    std::set<cells::deprecated::Pixel*> m_hybridPixels;
+    std::set<cells::arc::Pixel*> m_hybridPixels;
     std::vector<Pixel> m_pixels;
 };
 
@@ -350,7 +350,7 @@ private:
 class Shaper
 {
 public:
-    Shaper(const cells::deprecated::Picture& picture);
+    Shaper(const cells::arc::Grid& grid);
 
     void process();
 
@@ -361,14 +361,14 @@ public:
 
 protected:
     void processInputPixels();
-    void processPixel(Shape& shape, std::set<cells::deprecated::Pixel*>& checkPixels, cells::deprecated::Pixel& checkPixel);
-    cells::deprecated::Pixel* processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::deprecated::Pixel*>& checkPixels, cells::deprecated::Pixel& checkPixel);
+    void processPixel(Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
+    cells::arc::Pixel* processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
 
     cells::brain::Brain& kb;
     const int m_width;
     const int m_height;
-    const cells::deprecated::Picture& m_picture;
-    std::set<cells::deprecated::Pixel*> m_inputPixels;
+    const cells::arc::Grid& m_grid;
+    std::set<cells::arc::Pixel*> m_inputPixels;
     std::vector<std::shared_ptr<Shape>> m_shapes;
 };
 
@@ -453,7 +453,7 @@ public:
     void solve();
 
 private:
-    Grid parse(const cells::deprecated::Picture& picture);
+    Grid parse(const cells::arc::Grid& grid);
     Rules gridDiff(const Grid& input, const Grid& output);
     Code processRules(const std::vector<Rules>& rules);
     DrawingBoard applyCode(const Grid& input, const Code& code);
