@@ -10,6 +10,7 @@
 
 
 using namespace infocell::arc;
+namespace nativearc = infocell::arc::native;
 
 namespace infocell {
 namespace tui {
@@ -75,7 +76,7 @@ void TestCases::addTestCases()
 {
     cells::brain::Brain kb2;
     add(TestCase("ShapeTest", [this]() {
-        arc::input::Grid inputGrid("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
+        nativearc::Grid inputGrid("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
         cells::deprecated::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();
@@ -90,7 +91,7 @@ void TestCases::addTestCases()
     }));
 
     add(TestCase("ShapeTestDiagonal", [this]() {
-        arc::input::Grid inputGrid("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
+        nativearc::Grid inputGrid("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
         cells::deprecated::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();
@@ -105,7 +106,7 @@ void TestCases::addTestCases()
     }));
 
     add(TestCase("ShapeMergeTest", [this]() {
-        arc::input::Grid inputGrid("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
+        nativearc::Grid inputGrid("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
         cells::deprecated::Picture picture(kb, inputGrid);
         Shaper shaper(picture);
         shaper.process();
@@ -128,7 +129,7 @@ void TestCases::addTestCases()
             { -1, 1 },
             { 1, 0 }
         };
-        VectorShape vectorShape(shapeVectors, arc::ArcColor::orange, { 3, 2 });
+        VectorShape vectorShape(shapeVectors, arc::ColorId::orange, { 3, 2 });
 
         DrawingBoard drawingBoard(18, 23);
         drawingBoard.renderVectorShape(2, 1, vectorShape.stretch(1, 1));
@@ -150,7 +151,7 @@ void TestCases::addTestCases()
             { 1, 0 }
         };
         DrawingBoard drawingBoard(12, 10);
-        VectorShape vectorShape(shapeVectors, ArcColor::orange, { 3, 2 });
+        VectorShape vectorShape(shapeVectors, ColorId::orange, { 3, 2 });
         VectorShape rotatedShape = vectorShape.rotate(RotationDir::Degree_0);
         drawingBoard.renderVectorShape(rotatedShape);
         drawingBoard.renderVectorShape(rotatedShape.mirror(DistanceType::FromFirstPixel, { 3, 0 }, RotationDir::Degree_0));
@@ -162,10 +163,10 @@ void TestCases::addTestCases()
     add(TestCase("LineDrawingAxisTest", []() {
         DrawingBoard drawingBoard(15, 15);
 
-        drawingBoard.renderLine(6, 6, arc::colors(arc::ArcColor::grey), RotationDir::Degree_0);
-        drawingBoard.renderLine(6, 6, arc::colors(arc::ArcColor::grey), RotationDir::Degree_45);
-        drawingBoard.renderLine(6, 6, arc::colors(arc::ArcColor::grey), RotationDir::Degree_90);
-        drawingBoard.renderLine(6, 6, arc::colors(arc::ArcColor::grey), RotationDir::Degree_135);
+        drawingBoard.renderLine(6, 6, arc::colors(arc::ColorId::grey), RotationDir::Degree_0);
+        drawingBoard.renderLine(6, 6, arc::colors(arc::ColorId::grey), RotationDir::Degree_45);
+        drawingBoard.renderLine(6, 6, arc::colors(arc::ColorId::grey), RotationDir::Degree_90);
+        drawingBoard.renderLine(6, 6, arc::colors(arc::ColorId::grey), RotationDir::Degree_135);
 
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
     }));
@@ -173,10 +174,10 @@ void TestCases::addTestCases()
     add(TestCase("LineDrawingPositionTest", []() {
         DrawingBoard drawingBoard(15, 15);
 
-        drawingBoard.renderLine(0, 0, arc::colors(arc::ArcColor::grey), RotationDir::Degree_0);
-        drawingBoard.renderLine(0, 0, arc::colors(arc::ArcColor::grey), RotationDir::Degree_90);
-        drawingBoard.renderLine(14, 0, arc::colors(arc::ArcColor::grey), RotationDir::Degree_0);
-        drawingBoard.renderLine(0, 14, arc::colors(arc::ArcColor::grey), RotationDir::Degree_90);
+        drawingBoard.renderLine(0, 0, arc::colors(arc::ColorId::grey), RotationDir::Degree_0);
+        drawingBoard.renderLine(0, 0, arc::colors(arc::ColorId::grey), RotationDir::Degree_90);
+        drawingBoard.renderLine(14, 0, arc::colors(arc::ColorId::grey), RotationDir::Degree_0);
+        drawingBoard.renderLine(0, 14, arc::colors(arc::ColorId::grey), RotationDir::Degree_90);
 
         loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
     }));
@@ -193,7 +194,7 @@ void TestCases::addTestCases()
             { 5, 4 },
             { 6, 4 },
         };
-        VectorShape vectorShape(arc::ArcColor::orange);
+        VectorShape vectorShape(arc::ColorId::orange);
         vectorShape.fromPixels(pixels);
         BoundingBox boundingBox(pixels);
 
@@ -213,10 +214,10 @@ void TestCases::addTestCases()
             { -1, 1 },
             { 1, 0 }
         };
-        VectorShape vectorShape(shapeVectors, arc::ArcColor::orange, { 2, 1 });
+        VectorShape vectorShape(shapeVectors, arc::ColorId::orange, { 2, 1 });
         VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromFirstPixel, { 3, 3 }, RotationDir::Degree_0);
         DrawingBoard drawingBoard(11, 5);
-        drawingBoard.renderLine(5, 3, arc::colors(arc::ArcColor::grey), RotationDir::Degree_0);
+        drawingBoard.renderLine(5, 3, arc::colors(arc::ColorId::grey), RotationDir::Degree_0);
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
@@ -232,10 +233,10 @@ void TestCases::addTestCases()
             { -1, 1 },
             { 1, 0 }
         };
-        VectorShape vectorShape(shapeVectors, arc::ArcColor::orange, { 2, 1 });
+        VectorShape vectorShape(shapeVectors, arc::ColorId::orange, { 2, 1 });
         VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromFirstPixel, { 3, 4 }, RotationDir::Degree_90);
         DrawingBoard drawingBoard(5, 11);
-        drawingBoard.renderLine(3, 5, arc::colors(arc::ArcColor::grey), RotationDir::Degree_90);
+        drawingBoard.renderLine(3, 5, arc::colors(arc::ColorId::grey), RotationDir::Degree_90);
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
@@ -251,7 +252,7 @@ void TestCases::addTestCases()
             { -1, 1 },
             { 1, 0 }
         };
-        VectorShape vectorShape(shapeVectors, arc::ArcColor::orange, { 1, 2 });
+        VectorShape vectorShape(shapeVectors, arc::ColorId::orange, { 1, 2 });
         BoundingBox boundingBox(vectorShape);
 
         Vector distanceVector(2, 2);
@@ -260,8 +261,8 @@ void TestCases::addTestCases()
 
         VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromBottomRight, distanceVector, RotationDir::Degree_45);
         DrawingBoard drawingBoard(10, 12);
-        drawingBoard.renderLine(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ArcColor::grey), RotationDir::Degree_45);
-        drawingBoard.setColor(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ArcColor::fuschia));
+        drawingBoard.renderLine(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ColorId::grey), RotationDir::Degree_45);
+        drawingBoard.setColor(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ColorId::fuschia));
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
@@ -275,7 +276,7 @@ void TestCases::addTestCases()
             { 0, 1 },
             { 1, 0 }
         };
-        VectorShape vectorShape(shapeVectors, arc::ArcColor::orange, { 2, 2 });
+        VectorShape vectorShape(shapeVectors, arc::ColorId::orange, { 2, 2 });
         loggerPtr->log(DEBUG) << "vectorShape.vectors";
         for (const Vector& vector : vectorShape.vectors()) {
             loggerPtr->log(DEBUG) << " - " << vector;
@@ -294,8 +295,8 @@ void TestCases::addTestCases()
             loggerPtr->log(DEBUG) << " - " << vector;
         }
         DrawingBoard drawingBoard(12, 12);
-        drawingBoard.renderLine(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ArcColor::grey), RotationDir::Degree_45);
-        drawingBoard.setColor(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ArcColor::fuschia));
+        drawingBoard.renderLine(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ColorId::grey), RotationDir::Degree_45);
+        drawingBoard.setColor(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ColorId::fuschia));
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
@@ -311,7 +312,7 @@ void TestCases::addTestCases()
             { -1, 1 },
             { 1, 0 }
         };
-        VectorShape vectorShape(shapeVectors, arc::ArcColor::orange, { 2, 7 });
+        VectorShape vectorShape(shapeVectors, arc::ColorId::orange, { 2, 7 });
         BoundingBox boundingBox(vectorShape);
         Vector distanceVector(2, -2);
         Pixel mirroringPixel = boundingBox.topRightPixel() + distanceVector;
@@ -321,8 +322,8 @@ void TestCases::addTestCases()
         VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromTopRight, distanceVector, RotationDir::Degree_135);
 
         DrawingBoard drawingBoard(12, 12);
-        drawingBoard.renderLine(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ArcColor::grey), RotationDir::Degree_135);
-        drawingBoard.setColor(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ArcColor::fuschia));
+        drawingBoard.renderLine(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ColorId::grey), RotationDir::Degree_135);
+        drawingBoard.setColor(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ColorId::fuschia));
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 

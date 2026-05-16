@@ -6,7 +6,7 @@ namespace infocell {
 namespace arc {
 
 // ============================================================================
-enum class ArcColor
+enum class ColorId
 {
     black,
     blue,
@@ -25,22 +25,22 @@ enum class ArcColor
 class Color
 {
 public:
-    Color(ArcColor arcColor, int red, int green, int blue) :
-        m_arcColor(arcColor), m_red(red), m_green(green), m_blue(blue) { }
+    Color(ColorId id, int red, int green, int blue) :
+        m_id(id), m_red(red), m_green(green), m_blue(blue) { }
 
     bool operator==(const Color& rhs) const
     {
-        return rhs.m_red == m_red && rhs.m_green == m_green && rhs.m_blue == m_blue;
+        return rhs.m_id == m_id;
     }
 
     bool operator<(const Color& rhs) const
     {
-        return std::tie(m_red, m_green, m_blue) < std::tie(rhs.m_red, rhs.m_green, rhs.m_blue);
+        return rhs.m_id < m_id;
     }
 
-    ArcColor arcColor() const
+    ColorId id() const
     {
-        return m_arcColor;
+        return m_id;
     }
 
     uint8_t red() const
@@ -63,7 +63,7 @@ public:
         return m_alpha;
     }
 
-    ArcColor m_arcColor;
+    ColorId m_id;
     uint8_t m_red   = 0;
     uint8_t m_green = 0;
     uint8_t m_blue  = 0;
@@ -71,8 +71,8 @@ public:
 };
 
 Color colors(int arcColor);
-Color colors(ArcColor arcColor);
-std::string getArcColorName(ArcColor arcColor);
+Color colors(ColorId arcColor);
+std::string getArcColorName(ColorId arcColor);
 
 } // namespace arc
 } // namespace infocell

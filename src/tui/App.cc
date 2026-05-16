@@ -60,11 +60,11 @@ Element colorTile(Color p_color)
     return text("") | size(WIDTH, EQUAL, 2) | size(HEIGHT, EQUAL, 1) | bgcolor(p_color);
 }
 
-Element colorTile(arc::ArcColor arcColor)
+Element colorTile(arc::ColorId colorId)
 {
-    if (arcColor == arc::ArcColor::alpha)
+    if (colorId == arc::ColorId::alpha)
         return text(L"╳╳") | size(WIDTH, EQUAL, 2) | size(HEIGHT, EQUAL, 1) | color(Color::GrayDark) | bgcolor(Color::GrayLight); // App::arcColors[(int)arcColor]);
-    return colorTile(App::arcColors[(int)arcColor]);
+    return colorTile(App::arcColors[(int)colorId]);
 }
 
 std::string App::getArcFilePathFromIndex(int index)
@@ -101,7 +101,7 @@ static Element renderJsonBoard(const nlohmann::json& inputRow)
     for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
         Elements arcSetInputLine;
         for (const int colorValue : *inputRowIt) {
-            arcSetInputLine.push_back(colorTile((arc::ArcColor)colorValue));
+            arcSetInputLine.push_back(colorTile((arc::ColorId)colorValue));
         }
         boardLines.push_back(hbox(arcSetInputLine));
     }
@@ -141,7 +141,7 @@ static Element renderBoardFromLog(const std::string& boardStr)
         Elements arcSetInputLine;
         for (int x = 0; x < width; ++x) {
             char boardChar             = board[y * width + x];
-            const arc::ArcColor colorIndex = boardChar == '.' ? arc::ArcColor::alpha : (arc::ArcColor)(boardChar - '0');
+            const arc::ColorId colorIndex = boardChar == '.' ? arc::ColorId::alpha : (arc::ColorId)(boardChar - '0');
             arcSetInputLine.push_back(colorTile(colorIndex));
         }
         boardLines.push_back(hbox(arcSetInputLine));
@@ -182,7 +182,7 @@ void App::renderArcTestInputGrid()
     for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
         Elements arcSetInputLine;
         for (const int colorValue : *inputRowIt) {
-            arcSetInputLine.push_back(colorTile((arc::ArcColor)colorValue));
+            arcSetInputLine.push_back(colorTile((arc::ColorId)colorValue));
         }
         arcSetInputLines.push_back(hbox(arcSetInputLine));
     }

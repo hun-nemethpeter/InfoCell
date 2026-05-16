@@ -21,6 +21,9 @@ using namespace infocell::cells;
 using infocell::cells::test::CellTest;
 using nlohmann::json;
 
+namespace nativearc = infocell::arc::native;
+namespace hybridarc = infocell::cells::arc;
+
 static spdlog::logger* s_logger = nullptr;
 
 class EdgeTester : public CellTest
@@ -35,11 +38,11 @@ public:
 
     EdgeTester() :
         CellTest([]() {
-            infocell::cells::brain::Brain::Logger::createLogger("edge");
-            infocell::cells::brain::Brain::Logger::createLogger("shapeCorners");
-            infocell::cells::brain::Brain::Logger::createLogger("shapeRelations");
-            infocell::cells::brain::Brain::Logger::createLogger("shapeIdGrid");
-            infocell::cells::brain::Brain::Logger::createLogger("grid");
+            brain::Brain::Logger::createLogger("edge");
+            brain::Brain::Logger::createLogger("shapeCorners");
+            brain::Brain::Logger::createLogger("shapeRelations");
+            brain::Brain::Logger::createLogger("shapeIdGrid");
+            brain::Brain::Logger::createLogger("grid");
 
             spdlog::get("cells")->set_level(spdlog::level::trace);
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
@@ -87,7 +90,7 @@ public:
         testEdgesImpl();
     }
 
-    void testEdges(cells::arc::Grid& inputHybridGrid)
+    void testEdges(hybridarc::Grid& inputHybridGrid)
     {
         setInputGrid(inputHybridGrid);
         testEdgesImpl();
@@ -128,8 +131,8 @@ public:
 
     void setInputGrid(const std::string& jsonStr)
     {
-        m_inputGrid       = std::make_unique<infocell::arc::input::Grid>("inputGrid", jsonStr);
-        m_inputHybridGrid = std::make_unique<cells::arc::Grid>(kb, *m_inputGrid);
+        m_inputGrid       = std::make_unique<nativearc::Grid>("inputGrid", jsonStr);
+        m_inputHybridGrid = std::make_unique<hybridarc::Grid>(kb, *m_inputGrid);
     }
 
     static std::string colorTile(int color)
@@ -153,12 +156,12 @@ public:
 
     void printInputHybridGrid()
     {
-        cells::arc::Grid& grid = inputHybridGrid();
+        hybridarc::Grid& grid = inputHybridGrid();
         ftxui::Elements boardLines;
         for (int y = 0; y < grid.height(); ++y) {
             std::stringstream ss;
             for (int x = 0; x < grid.width(); ++x) {
-                cells::arc::Pixel& pixel = grid.getPixel(x, y);
+                hybridarc::Pixel& pixel = grid.getPixel(x, y);
                 ss << colorTile(pixel.color());
             }
             TRACE(grid, ss.str());
@@ -192,7 +195,7 @@ public:
         });
     }
 
-    void setInputGrid(cells::arc::Grid& inputHybridGrid)
+    void setInputGrid(hybridarc::Grid& inputHybridGrid)
     {
         m_inputHybridGridPtr = &inputHybridGrid;
     }
@@ -201,7 +204,7 @@ public:
     {
 #if 1
         auto& TableRowStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, ShapeStruct));
-        m_hybridFrame        = std::make_unique<cells::arc::Frame>(kb, inputHybridGrid(), ShapeStruct, TableRowStruct);
+        m_hybridFrame        = std::make_unique<hybridarc::Frame>(kb, inputHybridGrid(), ShapeStruct, TableRowStruct);
         m_hybridFrame->process();
         return;
 #endif
@@ -249,7 +252,7 @@ public:
         return *m_frame;
     }
 
-    cells::arc::Grid& inputHybridGrid()
+    hybridarc::Grid& inputHybridGrid()
     {
         if (m_inputHybridGridPtr) {
             return *m_inputHybridGridPtr;
@@ -439,7 +442,7 @@ public:
         std::stringstream ss;
         ss << "  ";
         while (currentShapePixelPtr) {
-            cells::arc::Pixel& currentArcPixel = static_cast<cells::arc::Pixel&>((*currentShapePixelPtr)["pixel"]);
+            hybridarc::Pixel& currentArcPixel = static_cast<hybridarc::Pixel&>((*currentShapePixelPtr)["pixel"]);
             const int x                         = currentArcPixel.m_x.value();
             const int y                         = currentArcPixel.m_y.value();
             EXPECT_EQ(x, referenceX);
@@ -448,7 +451,7 @@ public:
             if (x == 0) {
                 EXPECT_FALSE(currentShapePixelPtr->has("left"));
             } else {
-                cells::arc::Pixel& otherArcPixel = static_cast<cells::arc::Pixel&>((*currentShapePixelPtr)["left"]["pixel"]);
+                hybridarc::Pixel& otherArcPixel = static_cast<hybridarc::Pixel&>((*currentShapePixelPtr)["left"]["pixel"]);
                 EXPECT_EQ(x - 1, otherArcPixel.m_x.value());
             }
             if (x == inputHybridGrid().width() - 1) {
@@ -457,19 +460,19 @@ public:
                 ss.str("");
                 ss << "  ";
             } else {
-                cells::arc::Pixel& otherArcPixel = static_cast<cells::arc::Pixel&>((*currentShapePixelPtr)["right"]["pixel"]);
+                hybridarc::Pixel& otherArcPixel = static_cast<hybridarc::Pixel&>((*currentShapePixelPtr)["right"]["pixel"]);
                 EXPECT_EQ(x + 1, otherArcPixel.m_x.value());
             }
             if (y == 0) {
                 EXPECT_FALSE(currentShapePixelPtr->has("up"));
             } else {
-                cells::arc::Pixel& otherArcPixel = static_cast<cells::arc::Pixel&>((*currentShapePixelPtr)["up"]["pixel"]);
+                hybridarc::Pixel& otherArcPixel = static_cast<hybridarc::Pixel&>((*currentShapePixelPtr)["up"]["pixel"]);
                 EXPECT_EQ(y - 1, otherArcPixel.m_y.value());
             }
             if (y == inputHybridGrid().height() - 1) {
                 EXPECT_FALSE(currentShapePixelPtr->has("down"));
             } else {
-                cells::arc::Pixel& otherArcPixel = static_cast<cells::arc::Pixel&>((*currentShapePixelPtr)["down"]["pixel"]);
+                hybridarc::Pixel& otherArcPixel = static_cast<hybridarc::Pixel&>((*currentShapePixelPtr)["down"]["pixel"]);
                 EXPECT_EQ(y + 1, otherArcPixel.m_y.value());
             }
             if (currentShapePixelPtr->has("right")) {
@@ -491,7 +494,7 @@ public:
             for (int x = 0; x < inputHybridGrid().width(); ++x) {
                 CellI& shapePixel         = colX.method(kb.name("getValue"), { kb.ids.key, toCellNumber(x) });
                 CellI& shape              = shapePixel["shape"];
-                cells::arc::Pixel& pixel = static_cast<cells::arc::Pixel&>(shapePixel["pixel"]);
+                hybridarc::Pixel& pixel = static_cast<hybridarc::Pixel&>(shapePixel["pixel"]);
                 EXPECT_EQ(x, pixel.m_x.value());
                 EXPECT_EQ(y, pixel.m_y.value());
             }
@@ -711,7 +714,7 @@ public:
             }
             if (shapePoint.has("downRightPixel")) {
                 svgFile << fmt::format("    <!-- pixel -->\n");
-                cells::arc::Pixel& pixel = static_cast<cells::arc::Pixel&>(shapePoint["downRightPixel"]["pixel"]);
+                hybridarc::Pixel& pixel = static_cast<hybridarc::Pixel&>(shapePoint["downRightPixel"]["pixel"]);
                 svgFile << fmt::format("    <rect x=\"{}\" y=\"{}\" width=\"40\" height=\"40\" fill=\"{}\" stroke=\"black\"/>\n", 50 + pointX * 120, 70 + pointY * 120, arcColors[pixel.color()]);
                 int shapeId = static_cast<Number&>(shapePoint["downRightPixel"]["shape"]["id"]).value();
                 int startX  = 0;
@@ -2211,7 +2214,7 @@ For leftToRight direction edge from point middle
         std::stringstream ss;
         while (currentShapePixelPtr) {
             CellI& currentShapePixel            = *currentShapePixelPtr;
-            cells::arc::Pixel& currentArcPixel = static_cast<cells::arc::Pixel&>(currentShapePixel["pixel"]);
+            hybridarc::Pixel& currentArcPixel = static_cast<hybridarc::Pixel&>(currentShapePixel["pixel"]);
             const int x                         = currentArcPixel.m_x.value();
             const int y                         = currentArcPixel.m_y.value();
 
@@ -2701,11 +2704,11 @@ For leftToRight direction edge from point middle
     CellI& Degree_270;
     CellI& Symmetry_Horizontal;
     CellI& Symmetry_Vertical;
-    std::unique_ptr<infocell::arc::input::Grid> m_inputGrid;
-    std::unique_ptr<cells::arc::Grid> m_inputHybridGrid;
-    cells::arc::Grid* m_inputHybridGridPtr = nullptr;
+    std::unique_ptr<nativearc::Grid> m_inputGrid;
+    std::unique_ptr<hybridarc::Grid> m_inputHybridGrid;
+    hybridarc::Grid* m_inputHybridGridPtr = nullptr;
     std::unique_ptr<Object> m_frame;
-    std::unique_ptr<cells::arc::Frame> m_hybridFrame;
+    std::unique_ptr<hybridarc::Frame> m_hybridFrame;
     std::string m_outputSVGFileName;
 };
 
@@ -3776,19 +3779,19 @@ TEST_F(EdgeTester, EdgeTestWithAllArcTask)
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", humanIndex, "Input"));
-            testEdges(static_cast<cells::arc::Grid&>(example["input"]));
+            testEdges(static_cast<hybridarc::Grid&>(example["input"]));
             INFO(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", humanIndex, "Output"));
-            testEdges(static_cast<cells::arc::Grid&>(example["output"]));
+            testEdges(static_cast<hybridarc::Grid&>(example["output"]));
         });
         TRACE(grid, "   tests:");
         Visitor::visitList(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
             const int humanIndex = i + 1;
             INFO(grid, fmt::format("id: {}, test input: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Test", humanIndex, "Input"));
-            testEdges(static_cast<cells::arc::Grid&>(example["input"]));
+            testEdges(static_cast<hybridarc::Grid&>(example["input"]));
         });
     }
 }

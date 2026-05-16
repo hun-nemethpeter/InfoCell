@@ -198,7 +198,7 @@ VectorShape VectorShape::rotate(RotationDir rotationDir) const
         //            loggerPtr->log(DEBUG) << " rotate vector [" << vector.x << ", " << vector.y << "] => [" << newVector.x << ", " << newVector.y << "]";
     }
 
-    return VectorShape(std::move(rotatedVectors), m_color, m_firstPixel);
+    return VectorShape(std::move(rotatedVectors), m_colorId, m_firstPixel);
 }
 
 VectorShape VectorShape::stretch(int horizontal, int vertical) const
@@ -370,7 +370,7 @@ void Shape::sortPixels()
 
 std::string Shape::toString() const
 {
-    char boardColor = '0' + (int)color().arcColor();
+    char boardColor = '0' + (int)color().id();
     std::string board(m_width * m_height, '.');
     for (const Pixel& pixel : m_pixels) {
         board[pixel.y * m_width + pixel.x] = boardColor;
@@ -387,14 +387,14 @@ std::string Shape::toString() const
 
 VectorShape Shape::toVectorShape() const
 {
-    VectorShape ret(color().arcColor());
+    VectorShape ret(color().id());
     ret.fromPixels(pixels());
 
     return ret;
 }
 
 DrawingBoard::DrawingBoard(int width, int height) :
-    m_width(width), m_height(height), m_defaultBgColor(arc::colors(ArcColor::black)), m_colors(width * height, m_defaultBgColor)
+    m_width(width), m_height(height), m_defaultBgColor(arc::colors(ColorId::black)), m_colors(width * height, m_defaultBgColor)
 {
 }
 
@@ -540,7 +540,7 @@ void DrawingBoard::renderLine(int x, int y, const arc::Color& color, RotationDir
 
 void DrawingBoard::renderVectorShape(int x, int y, const VectorShape& vectorShape)
 {
-    setColor(x, y, arc::colors(ArcColor::red));
+    setColor(x, y, arc::colors(ColorId::red));
     // loggerPtr->log(DEBUG) << " setColor [" << x << ", " << y << "]";
     for (const Vector& vector : vectorShape.vectors()) {
         x += vector.x;
@@ -552,7 +552,7 @@ void DrawingBoard::renderVectorShape(int x, int y, const VectorShape& vectorShap
 
 void DrawingBoard::renderBoundingBox(const BoundingBox& boundingBox)
 {
-    const arc::Color pixelColor = arc::colors(ArcColor::grey);
+    const arc::Color pixelColor = arc::colors(ColorId::grey);
     renderLine(boundingBox.leftX, boundingBox.topY, boundingBox.height(), pixelColor, RotationDir::Degree_0);
     renderLine(boundingBox.rightX, boundingBox.topY, boundingBox.height(), pixelColor, RotationDir::Degree_0);
 
@@ -565,7 +565,7 @@ std::string DrawingBoard::toString() const
     std::string board(m_width * m_height, '.');
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
-            char boardColor        = '0' + (int)m_colors[currentIndex(x, y)].arcColor();
+            char boardColor        = '0' + (int)m_colors[currentIndex(x, y)].id();
             board[y * m_width + x] = boardColor;
         }
     }

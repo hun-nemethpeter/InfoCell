@@ -61,7 +61,7 @@ private:
 class Picture : public CellI
 {
 public:
-    Picture(brain::Brain& kb, infocell::arc::input::Grid& grid);
+    Picture(brain::Brain& kb, infocell::arc::native::Grid& grid);
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;

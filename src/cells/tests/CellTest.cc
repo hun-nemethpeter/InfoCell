@@ -25,6 +25,8 @@ using namespace infocell;
 using namespace infocell::cells;
 
 using infocell::cells::test::CellTest;
+namespace nativearc = infocell::arc::native;
+namespace hybridarc = infocell::cells::arc;
 
 // TODO
 // inline methods
@@ -828,7 +830,7 @@ TEST_F(CellTest, FunctionTypes)
 
 TEST_F(CellTest, HybridPicture)
 {
-    infocell::arc::input::Grid inputPicture("input");
+    nativearc::Grid inputPicture("input");
     inputPicture.loadFromJsonArray("[[0, 7, 0], [7, 7, 7], [0, 7, 0]]");
     cells::deprecated::Picture picture(kb, inputPicture);
 
@@ -1428,11 +1430,11 @@ static ftxui::Element colorTile(const ftxui::Color& p_color)
     return ftxui::text("") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | bgcolor(p_color);
 }
 
-static ftxui::Element colorTile(infocell::arc::ArcColor arcColor)
+static ftxui::Element colorTile(infocell::arc::ColorId colorId)
 {
-    if (arcColor == infocell::arc::ArcColor::alpha)
+    if (colorId == infocell::arc::ColorId::alpha)
         return ftxui::text(L"╳╳") | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 2) | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 1) | ftxui::color(ftxui::Color::GrayDark) | ftxui::bgcolor(ftxui::Color::GrayLight);
-    return colorTile(tui::App::arcColors[(int)arcColor]);
+    return colorTile(tui::App::arcColors[(int)colorId]);
 }
 
 static ftxui::Element renderJsonBoard(const nlohmann::json& inputRow)
@@ -1441,7 +1443,7 @@ static ftxui::Element renderJsonBoard(const nlohmann::json& inputRow)
     for (auto inputRowIt = inputRow.begin(); inputRowIt != inputRow.end(); ++inputRowIt) {
         ftxui::Elements arcSetInputLine;
         for (const int colorValue : *inputRowIt) {
-            arcSetInputLine.push_back(colorTile((infocell::arc::ArcColor)colorValue));
+            arcSetInputLine.push_back(colorTile((infocell::arc::ColorId)colorValue));
         }
         boardLines.push_back(hbox(arcSetInputLine));
     }
@@ -1449,7 +1451,7 @@ static ftxui::Element renderJsonBoard(const nlohmann::json& inputRow)
     return vbox(boardLines);
 }
 
-static ftxui::Element renderJsonBoard(cells::arc::Grid& grid)
+static ftxui::Element renderJsonBoard(hybridarc::Grid& grid)
 {
     ftxui::Elements boardLines;
     for (int y = 0; y < grid.height(); ++y) {
@@ -1465,7 +1467,7 @@ static ftxui::Element renderJsonBoard(cells::arc::Grid& grid)
     return vbox(boardLines);
 }
 
-static void printGrid(cells::arc::Grid& grid)
+static void printGrid(hybridarc::Grid& grid)
 {
     auto document = renderJsonBoard(grid);
     auto screen   = ftxui::Screen::Create(
@@ -1692,8 +1694,8 @@ TEST_F(CellTest, FrameTest)
     // 0 7 7
     // 7 7 7
     // 0 7 7
-    infocell::arc::input::Grid inputGrid1("inputGrid1", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
-    cells::arc::Grid grid1(kb, inputGrid1);
+    nativearc::Grid inputGrid1("inputGrid1", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
+    hybridarc::Grid grid1(kb, inputGrid1);
     printGrid(grid1);
     Object frame1(kb, FrameStruct, kb.name("constructor"), { "grid", grid1 });
     frame1.method("process");
@@ -1727,8 +1729,8 @@ TEST_F(CellTest, FrameTest)
     // 7 0 0
     // 0 7 0
     // 0 0 7
-    infocell::arc::input::Grid inputGrid2("inputGrid2", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
-    cells::arc::Grid grid2(kb, inputGrid2);
+    nativearc::Grid inputGrid2("inputGrid2", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
+    hybridarc::Grid grid2(kb, inputGrid2);
     printGrid(grid2);
     Object frame2(kb, FrameStruct, kb.name("constructor"), { "grid", grid2 });
     frame2.method("process");
@@ -1753,11 +1755,11 @@ TEST_F(CellTest, FrameTest)
     // 7 0 7
     // 7 0 7
     // 7 7 7
-    infocell::arc::input::Grid inputGrid3("inputGrid3", "[" \
+    nativearc::Grid inputGrid3("inputGrid3", "[" \
                                                      "[7, 0, 7]," \
                                                      "[7, 0, 7]," \
                                                      "[7, 7, 7]]");
-    cells::arc::Grid grid3(kb, inputGrid3);
+    hybridarc::Grid grid3(kb, inputGrid3);
     printGrid(grid3);
     Object frame3(kb, FrameStruct, kb.name("constructor"), { "grid", grid3 });
     frame3.method("process");
@@ -1830,7 +1832,7 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
 
 std::string getArcColorName(CellI& hybridColor)
 {
-    infocell::arc::ArcColor colorNum = static_cast<infocell::arc::ArcColor>(static_cast<Number&>(hybridColor).value());
+    infocell::arc::ColorId colorNum = static_cast<infocell::arc::ColorId>(static_cast<Number&>(hybridColor).value());
 
     return infocell::arc::getArcColorName(colorNum);
 }
@@ -1938,12 +1940,12 @@ TEST_F(CellTest, LoadAllArcTask)
         std::cout <<"   examples:" << std::endl;
         Visitor::visitList(task.second.m_cellExamplesList, [](CellI& example, int i, bool&) {
             std::cout <<
-                "    size " << static_cast<cells::arc::Grid&>(example["input"]).width() << "x" << static_cast<cells::arc::Grid&>(example["input"]).height() <<
-                " -> " << static_cast<cells::arc::Grid&>(example["output"]).width() << "x" << static_cast<cells::arc::Grid&>(example["output"]).height() << std::endl;
+                "    size " << static_cast<hybridarc::Grid&>(example["input"]).width() << "x" << static_cast<hybridarc::Grid&>(example["input"]).height() <<
+                " -> " << static_cast<hybridarc::Grid&>(example["output"]).width() << "x" << static_cast<hybridarc::Grid&>(example["output"]).height() << std::endl;
         });
         std::cout << "   tests:" << std::endl;
         Visitor::visitList(task.second.m_cellTestsList, [](CellI& example, int i, bool&) {
-            std::cout << "    size " << static_cast<cells::arc::Grid&>(example["input"]).width() << "x" << static_cast<cells::arc::Grid&>(example["input"]).height() << std::endl;
+            std::cout << "    size " << static_cast<hybridarc::Grid&>(example["input"]).width() << "x" << static_cast<hybridarc::Grid&>(example["input"]).height() << std::endl;
         });
     }
 }
@@ -1955,10 +1957,10 @@ TEST_F(CellTest, LoadThoseArcTaskWhereInputSizeEqOutputSize)
     for (auto& task : taskSet.m_tasks) {
         bool allSameSize = false;
         Visitor::visitList(task.second.m_cellExamplesList, [&allSameSize](CellI& example, int i, bool& stop) {
-            int inputWidth  = static_cast<cells::arc::Grid&>(example["input"]).width();
-            int inputHeight = static_cast<cells::arc::Grid&>(example["input"]).height();
-            int outputWidth = static_cast<cells::arc::Grid&>(example["output"]).width();
-            int outputHeight = static_cast<cells::arc::Grid&>(example["output"]).height();
+            int inputWidth  = static_cast<hybridarc::Grid&>(example["input"]).width();
+            int inputHeight = static_cast<hybridarc::Grid&>(example["input"]).height();
+            int outputWidth = static_cast<hybridarc::Grid&>(example["output"]).width();
+            int outputHeight = static_cast<hybridarc::Grid&>(example["output"]).height();
             if (inputWidth == outputWidth && inputHeight == outputHeight) {
                 allSameSize = true;
             } else {

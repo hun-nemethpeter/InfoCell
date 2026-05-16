@@ -13,8 +13,8 @@ public:
     ArcDemonstration(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output);
 
     const int m_number;
-    input::Grid m_inputPicture;
-    input::Grid m_outputPicture;
+    native::Grid m_inputPicture;
+    native::Grid m_outputPicture;
     cells::deprecated::Picture m_input;
     cells::deprecated::Picture m_output;
 };
@@ -26,8 +26,8 @@ public:
 
     std::vector<ArcDemonstration> m_demonstrations;
     std::vector<cells::Object> m_exampleObjects;
-    input::Grid m_inputPicture;
-    input::Grid m_outputPicture;
+    native::Grid m_inputPicture;
+    native::Grid m_outputPicture;
     cells::deprecated::Picture m_challenge;
     cells::deprecated::Picture m_solution;
     cells::CellI& m_taskStruct;
@@ -43,8 +43,8 @@ public:
     ArcTaskExample(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output);
 
     const int m_number;
-    input::Grid m_inputGrid;
-    std::unique_ptr<input::Grid> m_outputGrid;
+    native::Grid m_inputGrid;
+    std::unique_ptr<native::Grid> m_outputGrid;
     cells::arc::Grid m_input;
     std::unique_ptr<cells::arc::Grid> m_output;
 };

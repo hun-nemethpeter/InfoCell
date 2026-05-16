@@ -6,6 +6,8 @@
 #include <sstream>
 #include <utility>
 
+namespace nativearc = infocell::arc::native;
+
 namespace infocell {
 namespace cells {
 namespace deprecated {
@@ -171,7 +173,7 @@ const infocell::arc::Color& Pixel::color() const
 #pragma endregion
 #pragma region Picture
 // ============================================================================
-Picture::Picture(brain::Brain& kb, infocell::arc::input::Grid& grid) :
+Picture::Picture(brain::Brain& kb, nativearc::Grid& grid) :
     CellI(kb, grid.label()),
     m_width(grid.width()),
     m_height(grid.height()),

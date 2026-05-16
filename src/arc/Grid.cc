@@ -4,7 +4,7 @@
 
 namespace infocell {
 namespace arc {
-namespace input {
+namespace native {
 
 Grid::Grid(const std::string& name) :
     m_name(name)
@@ -72,6 +72,6 @@ const std::vector<Color>& Grid::pixels() const
     return m_pixels;
 }
 
-} // namespace input
+} // namespace native
 } // namespace arc
 } // namespace infocell

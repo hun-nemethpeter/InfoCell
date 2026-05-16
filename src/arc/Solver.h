@@ -226,18 +226,18 @@ public:
 class VectorShape
 {
 public:
-    VectorShape(const arc::ArcColor& color) :
-        m_color(color)
+    VectorShape(const arc::ColorId& colorId) :
+        m_colorId(colorId)
     {
     }
 
-    VectorShape(const std::vector<Vector>& vectors, const arc::ArcColor& color, const Pixel& firstPixel) :
-        m_vectors(vectors), m_color(color), m_firstPixel(firstPixel)
+    VectorShape(const std::vector<Vector>& vectors, const arc::ColorId& colorId, const Pixel& firstPixel) :
+        m_vectors(vectors), m_colorId(colorId), m_firstPixel(firstPixel)
     {
     }
 
-    VectorShape(std::vector<Vector>&& vectors, const arc::ArcColor& color, const Pixel& firstPixel) :
-        m_vectors(std::move(vectors)), m_color(color), m_firstPixel(firstPixel)
+    VectorShape(std::vector<Vector>&& vectors, const arc::ColorId& colorId, const Pixel& firstPixel) :
+        m_vectors(std::move(vectors)), m_colorId(colorId), m_firstPixel(firstPixel)
     {
     }
 
@@ -247,9 +247,9 @@ public:
     VectorShape mirror(DistanceType distanceType, const Vector distance, RotationDir axisDir) const;
     VectorShapeRelation compare(const VectorShape& other);
 
-    const arc::ArcColor& color() const
+    const arc::ColorId& color() const
     {
-        return m_color;
+        return m_colorId;
     }
 
     const std::vector<Vector>& vectors() const
@@ -272,7 +272,7 @@ public:
 private:
     static void stretchPixel(std::vector<Vector>& stretchVectors, int horizontal, int vertical);
 
-    arc::ArcColor m_color;
+    arc::ColorId m_colorId;
     std::vector<Vector> m_vectors;
     Pixel m_firstPixel;
 };

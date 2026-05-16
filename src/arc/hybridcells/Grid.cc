@@ -4,12 +4,14 @@
 
 #include "Grid.h"
 
+namespace nativearc = infocell::arc::native;
+
 namespace infocell {
 namespace cells {
 namespace arc {
 
 // ============================================================================
-Grid::Grid(brain::Brain& kb, infocell::arc::input::Grid& picture) :
+Grid::Grid(brain::Brain& kb, nativearc::Grid& picture) :
     CellI(kb, picture.label()),
     m_width(picture.width()),
     m_height(picture.height()),
@@ -26,7 +28,7 @@ Grid::Grid(brain::Brain& kb, infocell::arc::input::Grid& picture) :
     int y = 0;
 
     for (const infocell::arc::Color& color : picture.pixels()) {
-        int colorId = (int)color.arcColor();
+        int colorId = (int)color.id();
         m_pixels.emplace_back(kb, x, y, colorId, *this);
         List pixelContent(kb, kb.std.Pixel);
         pixelContent.add(kb.pools.numbers.get(x));

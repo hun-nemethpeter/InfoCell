@@ -7,7 +7,7 @@
 
 namespace infocell {
 namespace arc {
-namespace input {
+namespace native {
 
 // ============================================================================
 class Grid
@@ -31,6 +31,6 @@ private:
     std::vector<Color> m_pixels;
 };
 
-} // namespace input
+} // namespace native
 } // namespace arc
 } // namespace infocell

@@ -52,7 +52,7 @@ ArcTask::ArcTask(cells::brain::Brain& kb, const nlohmann::json& jsonArcFile) :
 ArcTaskExample::ArcTaskExample(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
-    m_outputGrid(std::make_unique<input::Grid>(fmt::format("Train output {}", number))),
+    m_outputGrid(std::make_unique<native::Grid>(fmt::format("Train output {}", number))),
     m_input(kb, m_inputGrid.loadFromJsonArray(input)),
     m_output(std::make_unique<cells::arc::Grid>(kb, m_outputGrid->loadFromJsonArray(output)))
 {

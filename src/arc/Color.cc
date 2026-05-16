@@ -22,44 +22,44 @@ ID |  Name   | Hexadecimal RGB  | Decimal RGB
 #endif
 
 static const std::array<Color, 10> colorObjects = {
-    Color(ArcColor::black, 0x00, 0x00, 0x00),
-    Color(ArcColor::blue, 0x00, 0x74, 0xD9),
-    Color(ArcColor::red, 0xFF, 0x41, 0x36),
-    Color(ArcColor::green, 0x2E, 0xCC, 0x40),
-    Color(ArcColor::yellow, 0xFF, 0xDC, 0x00),
-    Color(ArcColor::grey, 0xAA, 0xAA, 0xAA),
-    Color(ArcColor::fuschia, 0xF0, 0x12, 0xBE),
-    Color(ArcColor::orange, 0xFF, 0x85, 0x1B),
-    Color(ArcColor::teal, 0x7F, 0xDB, 0xFF),
-    Color(ArcColor::brown, 0x87, 0x0C, 0x25)
+    Color(ColorId::black, 0x00, 0x00, 0x00),
+    Color(ColorId::blue, 0x00, 0x74, 0xD9),
+    Color(ColorId::red, 0xFF, 0x41, 0x36),
+    Color(ColorId::green, 0x2E, 0xCC, 0x40),
+    Color(ColorId::yellow, 0xFF, 0xDC, 0x00),
+    Color(ColorId::grey, 0xAA, 0xAA, 0xAA),
+    Color(ColorId::fuschia, 0xF0, 0x12, 0xBE),
+    Color(ColorId::orange, 0xFF, 0x85, 0x1B),
+    Color(ColorId::teal, 0x7F, 0xDB, 0xFF),
+    Color(ColorId::brown, 0x87, 0x0C, 0x25)
 };
 
-std::string getArcColorName(ArcColor arcColor)
+std::string getArcColorName(ColorId arcColor)
 {
     static std::array<std::string, 10> arcColorNames = {
-        std::string("black"),
-        std::string("blue"),
-        std::string("red"),
-        std::string("green"),
-        std::string("yellow"),
-        std::string("grey"),
-        std::string("fuschia"),
-        std::string("orange"),
-        std::string("teal"),
-        std::string("brown")
+        "black",
+        "blue",
+        "red",
+        "green",
+        "yellow",
+        "grey",
+        "fuschia",
+        "orange",
+        "teal",
+        "brown"
       };
 
     return arcColorNames[(int)arcColor];
 }
 
-Color colors(int arcColor)
+Color colors(int colorId)
 {
-    return colorObjects[arcColor];
+    return colorObjects[colorId];
 }
 
-Color colors(ArcColor arcColor)
+Color colors(ColorId colorId)
 {
-    return colorObjects[(int)arcColor];
+    return colorObjects[(int)colorId];
 }
 
 } // namespace arc
