@@ -2,15 +2,12 @@
 
 #include <array>
 #include <filesystem>
-#include <iostream>
 #include <fstream>
 
-#include <ftxui/component/captured_mouse.hpp>     // for ftxui
 #include <ftxui/component/component.hpp>          // for Slider
 #include <ftxui/component/screen_interactive.hpp> // for ScreenInteractive
 #include <ftxui/dom/table.hpp>
 
-#include "Scroller.h"
 #include "arc/Solver.h"
 #include "Tester.h"
 #include "Config.h"
@@ -191,8 +188,8 @@ void App::renderArcTestInputGrid()
 
 void App::run()
 {
-    int depth        = 0;
-    auto menu        = Menu(&m_arcFileNames, &m_selectedArcFileIndex);
+    int depth = 0;
+    auto menu = Menu(&m_arcFileNames, &m_selectedArcFileIndex);
 
     float focus_x = 0.0f;
     float focus_y = 0.0f;
@@ -205,7 +202,7 @@ void App::run()
         solve();
         depth = 1;
     });
-    auto buttonTest = Button("Tests", [&] {
+    auto buttonTest  = Button("Tests", [&] {
         focus_y = 0.0f;
         m_solvingLogs.clear();
         doUnitTests();
@@ -213,12 +210,10 @@ void App::run()
     });
     auto buttonQuit  = Button("Quit", [&] { exit(0); });
 
-    auto container = Container::Vertical({
-        buttonSolve,
-        buttonTest,
-        buttonQuit,
-        menu
-    });
+    auto container = Container::Vertical({ buttonSolve,
+                                           buttonTest,
+                                           buttonQuit,
+                                           menu });
 
     FlexboxConfig flexConfig;
     flexConfig.direction       = FlexboxConfig::Direction::Row;
@@ -228,12 +223,11 @@ void App::run()
     flexConfig.align_content   = FlexboxConfig::AlignContent::FlexStart;
 
     FlexboxConfig flexButtonsConfig;
-    flexButtonsConfig.direction = FlexboxConfig::Direction::Row;
-    flexButtonsConfig.wrap      = FlexboxConfig::Wrap::NoWrap;
+    flexButtonsConfig.direction       = FlexboxConfig::Direction::Row;
+    flexButtonsConfig.wrap            = FlexboxConfig::Wrap::NoWrap;
     flexButtonsConfig.justify_content = FlexboxConfig::JustifyContent::SpaceAround;
     flexButtonsConfig.align_items     = FlexboxConfig::AlignItems::Center;
     flexButtonsConfig.align_content   = FlexboxConfig::AlignContent::SpaceEvenly;
-
 
     auto mainScreenRenderer = Renderer(container, [&] {
         if (m_previusSelectedArcFileIndex != m_selectedArcFileIndex) {
@@ -242,19 +236,18 @@ void App::run()
         }
 
         auto ret = flexbox({ vbox(hbox(text("selected = "), text(m_arcFileNames[m_selectedArcFileIndex])),
-                                    separator(),
-                                    menu->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25),
-                                    separator(),
-                                    flexbox({ buttonSolve->Render() | xflex_grow, separator() | yflex_grow, buttonTest->Render() | xflex_grow, separator() | yflex_grow, buttonQuit->Render() | xflex_grow }, flexButtonsConfig)
-                                  ) | border,
+                                  separator(),
+                                  menu->Render() | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 25),
+                                  separator(),
+                                  flexbox({ buttonSolve->Render() | xflex_grow, separator() | yflex_grow, buttonTest->Render() | xflex_grow, separator() | yflex_grow, buttonQuit->Render() | xflex_grow }, flexButtonsConfig))
+                                 | border,
                              m_arcTaskDemonstration | border,
-                             m_arcTestInputGrid | border }, flexConfig);
+                             m_arcTestInputGrid | border },
+                           flexConfig);
         return ret;
     });
 
-    int logIndex = 0;
-    auto solveQuitBtn     = Button("Ok", [&] { depth = 0; });
-
+    int logIndex      = 0;
     auto solveLogMessages = Renderer([&] {
         Elements logItems;
         for (const auto& logMessage : m_solvingLogs) {
@@ -271,21 +264,42 @@ void App::run()
         return vbox(logItems) | focusPositionRelative(focus_x, focus_y) | vscroll_indicator | yframe | flex;
     });
 
-    auto scroller = Scroller(solveLogMessages);
+    float scroll_y = 0.1f;
+    auto solveQuitBtn = Button("Close", [&] { depth = 0; scroll_y = 0.1f; });
+    auto content      = Renderer([&] {
+        Elements logItems;
+        for (const auto& logMessage : m_solvingLogs) {
+            switch (logMessage.type) {
+            case STRING:
+                logItems.push_back(paragraph(logMessage.text));
+                break;
+            case BOARD:
+                logItems.push_back(renderBoardFromLog(logMessage.text));
+                break;
+            }
+        }
 
-    auto solveContainer = Container::Vertical({ slider_y,
-//                                                solveLogMessages,
-                                                scroller,
-                                                solveQuitBtn });
+        return vbox(logItems);
+    });
 
+    auto scrollable_content = Renderer(content, [&, content] {
+        return content->Render() | focusPositionRelative(0.1f, scroll_y) | frame | flex;
+    });
+
+    SliderOption<float> option_y;
+    option_y.value          = &scroll_y;
+    option_y.min            = 0.f;
+    option_y.max            = 1.f;
+    option_y.increment      = 0.1f;
+    option_y.direction      = Direction::Down;
+    auto scrollbar_y        = Slider(option_y);
+    auto solveContainer     = Container::Vertical({ scrollable_content,
+                                                    scrollbar_y,
+                                                    solveQuitBtn });
     auto solverScreenRenderer = Renderer(solveContainer, [&] {
-        return vbox({
-//                   slider_y->Render(),
-//                   solveLogMessages->Render() | flex_grow | size(WIDTH, GREATER_THAN, 120),
-                   scroller->Render() | flex_grow | size(WIDTH, GREATER_THAN, 120),
+        return vbox({ hbox({ scrollable_content->Render(), separator(), scrollbar_y->Render() }) | flex,
                    separator(),
-                   solveQuitBtn->Render()
-               })
+                      solveQuitBtn->Render() | size(HEIGHT, EQUAL, 3) })
             | border;
     });
 
@@ -302,7 +316,7 @@ void App::run()
         if (depth == 1) {
             document = dbox({
                 document,
-                solverScreenRenderer->Render() | clear_under | align_right,
+                solverScreenRenderer->Render() | clear_under | center,
             });
         }
         return document;
