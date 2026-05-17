@@ -401,7 +401,6 @@ public:
             Base(kb, classCell, label)
         {
         }
-        // Equal& operator==(Base& rhs); // C++20 try to be too clever here and do an extra lookup with with (rhs == lhs)
     };
 
     class Get;

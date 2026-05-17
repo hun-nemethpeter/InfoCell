@@ -1157,14 +1157,6 @@ Ast::StaticCall& Ast::StaticCall::operator()(const std::string& nameStr, CellI& 
     return *this;
 }
 
-#if 0 // C++20 doesn't support this use case anymore
-template<typename T>
-Ast::Equal& Ast::BaseT<T>::operator==(Base& rhs)
-{
-    return Equal::New(kb, *this, rhs);
-}
-#endif
-
 Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
     BaseT<Cell>(kb, kb.std.ast.Cell, "ast.cell")
 {
@@ -5131,7 +5123,7 @@ void AstStd::createAst()
         .primitiveTool().returnType("std::Number")
 #endif
         .description(
-            subtract(return_(), m_("rhs")) ==  m_("lhs"),
+            equal(subtract(return_(), m_("rhs")), m_("lhs")),
             equal(subtract(return_(), m_("lhs")), m_("rhs")),
             return_(add(m_("lhs"), m_("rhs"))),
             return_(add(m_("rhs"), m_("lhs"))))
