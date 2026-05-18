@@ -6,6 +6,8 @@ add_library(cells-lib STATIC
     Cells.h
     Brain.cc
     Brain.h
+    NodeBase.cc
+    NodeBase.h
 )
 target_include_directories(cells-lib
     PUBLIC

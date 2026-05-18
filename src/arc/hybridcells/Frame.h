@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Grid.h"
 #include "cells/Brain.h"
 #include "cells/Cells.h"

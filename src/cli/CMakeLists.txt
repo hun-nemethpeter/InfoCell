@@ -14,11 +14,11 @@ PUBLIC
     ${HEADER_ROOT_DIR}
 )
 
-add_executable(arc-agi-solver
+add_executable(infocell-cli
     main.cc
 )
 
-target_link_libraries(arc-agi-solver
+target_link_libraries(infocell-cli
 PRIVATE
     cli-lib
 )

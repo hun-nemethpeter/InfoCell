@@ -121,7 +121,7 @@ void CellStructPrinter::printImpl(CellI& cell)
     m_ss << std::endl;
     if (type.has(kb.ids.slots)) {
         CellI& slotList = type[kb.ids.slots][kb.ids.list];
-        visitList(slotList, [this, &kb, &cell](CellI& slot, int i, bool&) {
+        visitList(slotList, [this, &kb, &cell, &needId](CellI& slot, int i, bool&) {
             CellI& role = slot[kb.ids.key];
             if (!cell.has(role)) {
                 return;

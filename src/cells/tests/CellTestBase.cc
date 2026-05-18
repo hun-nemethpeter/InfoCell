@@ -1,4 +1,7 @@
-﻿#include "CellTestBase.h"
+﻿#include "cells/printers/StructPrinter.h"
+#include "cells/printers/ValuePrinter.h"
+
+#include "CellTestBase.h"
 
 using namespace infocell::cells;
 
@@ -116,7 +119,7 @@ CellTest::CellTest(std::function<void()> loggerLevelInit) :
 }
 #else
 CellTest::CellTest(std::function<void()> loggerLevelInit) :
-    kb(m_kb.get() ? *m_kb : (m_kb = std::make_unique<brain::Brain>(loggerLevelInit), *m_kb)),
+    NodeBase(m_kb.get() ? *m_kb : (m_kb = std::make_unique<brain::Brain>(loggerLevelInit), *m_kb)),
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
@@ -135,26 +138,6 @@ brain::Brain& CellTest::getKb()
 void CellTest::printMethodInType(CellI& type, const std::string& method)
 {
     printAs.value(type[ids.methods][ids.index][kb.name(method)][ids.value]);
-}
-
-CellI& CellTest::getVariable(const std::string& name)
-{
-    return kb.getVariable(name);
-}
-
-CellI& CellTest::getStruct(const std::string& name)
-{
-    return kb.getStruct(name);
-}
-
-CellI& CellTest::getStruct(CellI& id)
-{
-    return kb.getStruct(id);
-}
-
-CellI& CellTest::toCellNumber(int number)
-{
-    return kb.pools.numbers.get(number);
 }
 
 std::unique_ptr<brain::Brain> CellTest::m_kb;

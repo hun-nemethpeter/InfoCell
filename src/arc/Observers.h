@@ -1,3 +1,5 @@
+#pragma once
+
 #include "cells/Cells.h"
 
 namespace infocell {

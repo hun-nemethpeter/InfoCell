@@ -4,6 +4,8 @@ add_subdirectory(tests)
 add_library(arc-lib STATIC
     Color.cc
     Color.h
+    EdgeDetector.cc
+    EdgeDetector.h
     Grid.cc
     Grid.h
     Observers.cc

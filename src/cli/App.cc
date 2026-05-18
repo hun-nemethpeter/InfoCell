@@ -28,6 +28,16 @@ public:
     Shape findShape(const Pos& pos);
 };
 
+class TestEdgeCommand
+{
+public:
+    TestEdgeCommand()
+    {
+        std::cout << "Test edge!" << std::endl;
+    }
+
+};
+
 App::App() :
     m_app(std::make_unique<CLI::App>("ARC-AGI Solver"))
 {
@@ -71,7 +81,7 @@ int App::run(int argc, char* argv[])
 
     auto testEdgeCommand = m_app->add_subcommand("testEdge", "Test edge");
     testEdgeCommand->callback([&]() {
-        std::cout << "Test edge!" << std::endl;
+        TestEdgeCommand testEdgeCommand;
     });
 
     CLI11_PARSE(*m_app, argc, argv);
