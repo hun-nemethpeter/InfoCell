@@ -1,3 +1,5 @@
+#pragma once
+
 #include "${CMAKE_CURRENT_LIST_DIR}/ArcFileNames.h"
 
 #define INFOCELL_ORIGARC_FILEPATH "${INFOCELL_ARC_TRAINING_PATH}"

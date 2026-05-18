@@ -1,3 +1,5 @@
+#pragma once
+
 #define INFOCELL_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME "arc-agi_evaluation_challenges.json"
 #define INFOCELL_ARC_PRIZE_EVALUATION_SOLUTIONS_FILENAME "arc-agi_evaluation_solutions.json"
 #define INFOCELL_ARC_PRIZE_TEST_CHALLENGES_FILENAME "arc-agi_test_challenges.json"

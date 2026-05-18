@@ -1,3 +1,5 @@
+#pragma once
+
 #include "cells/Brain.h"
 #include "cells/Cells.h"
 
