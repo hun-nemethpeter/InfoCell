@@ -9,11 +9,11 @@ namespace arc {
 class Task
 {
 public:
-    class IOPair
+    class GridPair
     {
     public:
-        IOPair(cells::brain::Brain& kb, int number, const std::string& input);
-        IOPair(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output);
+        GridPair(cells::brain::Brain& kb, int number, const std::string& input);
+        GridPair(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output);
 
         const int m_number;
         native::Grid m_inputGrid;
@@ -26,8 +26,8 @@ public:
     Task(cells::brain::Brain& kb, const std::string& id, const nlohmann::json& jsonTask);
 
     std::string m_id;
-    std::vector<IOPair> m_examples;
-    std::vector<IOPair> m_tests;
+    std::vector<GridPair> m_examples;
+    std::vector<GridPair> m_tests;
 
     cells::CellI& m_cellTaskStruct;
     cells::CellI& m_cellExampleStruct;
@@ -43,9 +43,12 @@ public:
 class TaskSet
 {
 public:
+    using Tasks = std::map<std::string, Task>;
     TaskSet(cells::brain::Brain& kb, const std::string& filePath);
+    void addSolutions(const std::string& filePath);
 
-    std::map<std::string, Task> m_tasks;
+    cells::brain::Brain& kb;
+    Tasks m_tasks;
 };
 
 } // namespace arc

@@ -433,9 +433,6 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
                 CellI& memberRole = *memberRolePtr;
                 if (!memberIds.hasKey(memberRole)) {
                     List& path = *new List(kb, kb.std.Cell, fmt::format("path for {}", memberRole.label()));
-                    if (path.label() == "path for cell" && tool.label() == "Get") {
-                        std::cout << "" << std::endl;
-                    }
                     for (auto& stackItem : stack) {
                         if (&stackItem.ast.struct_() == &kb.std.ast.Return) {
                             continue;
@@ -1787,7 +1784,7 @@ void Ast::Scope::processDescriptionsInAsts(CellI& programData, CellI& state)
             Struct& astStruct = static_cast<Struct&>(struct_[kb.ids.value]);
             if (astStruct.has(kb.ids.description) && astStruct[kb.ids.description].has(kb.ids.asts)) {
                 auto& asts = astStruct[kb.ids.description][kb.ids.asts];
-                std::cout << astStruct.label() << " => ";
+//                std::cout << astStruct.label() << " => ";
                 Visitor::visitList(asts, [this, &astStruct, &cellTrie, &compiledStructs](CellI& ast, int i, bool& stop) {
                     auto& compiledAstStruct = compiledStructs.getValue(static_cast<Ast::Struct&>(astStruct).getFullyQualifiedName());
                     cellTrie.add(ast, astStruct, compiledAstStruct);
@@ -1797,15 +1794,15 @@ void Ast::Scope::processDescriptionsInAsts(CellI& programData, CellI& state)
                         Visitor::visitList(astAsList, [&ss](CellI& value, int, bool& stop) {
                             ss << value.label() << " ";
                         });
-                        std::cout << ss.str();
+//                        std::cout << ss.str();
                     }
 
                 });
-                std::cout << std::endl;
+//                std::cout << std::endl;
             }
         });
 
-        std::cout << "";
+//        std::cout << "";
     }
 }
 

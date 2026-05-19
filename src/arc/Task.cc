@@ -12,7 +12,7 @@ using namespace nlohmann;
 namespace infocell {
 namespace arc {
 
-Task::IOPair::IOPair(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
+Task::GridPair::GridPair(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
     m_outputGrid(std::make_unique<native::Grid>(fmt::format("Train output {}", number))),
@@ -21,7 +21,7 @@ Task::IOPair::IOPair(cells::brain::Brain& kb, int number, const std::string& inp
 {
 }
 
-Task::IOPair::IOPair(cells::brain::Brain& kb, int number, const std::string& input) :
+Task::GridPair::GridPair(cells::brain::Brain& kb, int number, const std::string& input) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
     m_input(kb, m_inputGrid.loadFromJsonArray(input))
@@ -48,11 +48,11 @@ Task::Task(cells::brain::Brain& kb, const std::string& id, const nlohmann::json&
     int trainExampleNumber = 1;
     for (const auto& trainExample : jsonTrainSet) {
         m_examples.emplace_back(kb, trainExampleNumber++, to_string(trainExample.at("input")), to_string(trainExample.at("output")));
-        IOPair& ioPair = m_examples.back();
+        GridPair& gridPair = m_examples.back();
         m_cellExamples.emplace_back(kb, m_cellExampleStruct);
         cells::Object& exampleObject = m_cellExamples.back();
-        exampleObject.set("input", ioPair.m_input);
-        exampleObject.set("output", *ioPair.m_output);
+        exampleObject.set("input", gridPair.m_input);
+        exampleObject.set("output", *gridPair.m_output);
         m_cellExamplesList.add(exampleObject);
     }
     const nlohmann::json& jsonTestSet = jsonTask.at("test");
@@ -61,10 +61,10 @@ Task::Task(cells::brain::Brain& kb, const std::string& id, const nlohmann::json&
     int testExampleNumber = 1;
     for (const auto& testExample : jsonTestSet) {
         m_tests.emplace_back(kb, testExampleNumber++, to_string(testExample.at("input")));
-        IOPair& ioPair = m_tests.back();
+        GridPair& gridPair = m_tests.back();
         m_cellTests.emplace_back(kb, m_cellExampleStruct);
         cells::Object& exampleObject = m_cellTests.back();
-        exampleObject.set("input", ioPair.m_input);
+        exampleObject.set("input", gridPair.m_input);
         m_cellTestsList.add(exampleObject);
     }
 
@@ -72,13 +72,38 @@ Task::Task(cells::brain::Brain& kb, const std::string& id, const nlohmann::json&
     m_cellTask.set("tests", m_cellTestsList);
 }
 
-TaskSet::TaskSet(cells::brain::Brain& kb, const std::string& filePath)
+TaskSet::TaskSet(cells::brain::Brain& kb, const std::string& filePath) :
+    kb(kb)
 {
     auto allTasks = json::parse(std::ifstream(filePath));
     for (json::const_iterator it = allTasks.begin(); it != allTasks.end(); ++it) {
         m_tasks.emplace(std::piecewise_construct,
                         std::forward_as_tuple(it.key()),
                         std::forward_as_tuple(kb, it.key(), it.value()));
+    }
+}
+
+void TaskSet::addSolutions(const std::string& filePath)
+{
+    auto solutions = json::parse(std::ifstream(filePath));
+    for (json::const_iterator it = solutions.begin(); it != solutions.end(); ++it) {
+        const std::string& taskId = it.key();
+
+        auto findIter = m_tasks.find(taskId);
+        if (findIter == m_tasks.end()) {
+            throw "No task found for this soltion, maybe wrong file?";
+        }
+
+        Task& task = findIter->second;
+        const nlohmann::json& jsonSolutionArray = it.value();
+
+        int index = 0;
+        for (const auto& testExample : jsonSolutionArray) {
+            Task::GridPair& gridPair = task.m_tests[index];
+            gridPair.m_outputGrid    = std::make_unique<native::Grid>(fmt::format("Test output {}", index));
+            gridPair.m_output        = std::make_unique<cells::arc::Grid>(kb, gridPair.m_outputGrid->loadFromJsonArray(to_string(jsonSolutionArray[index])));
+            ++index;
+        }
     }
 }
 

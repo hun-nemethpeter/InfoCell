@@ -26,7 +26,7 @@ public:
     void sortShapePoints();
     void calculateEdgesForShapes();
     void processEdgeNodes();
- 
+
     cells::CellI& frame();
     cells::arc::Grid& inputHybridGrid();
 

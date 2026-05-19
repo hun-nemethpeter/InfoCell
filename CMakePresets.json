@@ -15,6 +15,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
+        "INFOCELL_ARC1_DATA_PATH": "${sourceParentDir}/ARC-AGI/data/",
+        "INFOCELL_ARC2_DATA_PATH": "${sourceParentDir}/arc-prize-2026-arc-agi-2/",
         "INFOCELL_ARC_TRAINING_PATH": "${sourceParentDir}/ARC-AGI/data/training/",
         "INFOCELL_ARC_PRIZE_PATH": "${sourceParentDir}/arc-prize-2024/"
       },
@@ -34,6 +36,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "gcc",
         "CMAKE_CXX_COMPILER": "g++",
+        "INFOCELL_ARC1_DATA_PATH": "${sourceParentDir}/ARC-AGI/data/",
+        "INFOCELL_ARC2_DATA_PATH": "${sourceParentDir}/arc-prize-2026-arc-agi-2/",
         "INFOCELL_ARC_TRAINING_PATH": "${sourceParentDir}/ARC-AGI/data/training/",
         "INFOCELL_ARC_PRIZE_PATH": "${sourceParentDir}/arc-prize-2024/"
       },

@@ -6,7 +6,9 @@ add_library(cli-lib STATIC
 target_link_libraries(cli-lib
 PUBLIC
     CLI11::CLI11
+    arc-lib
     cells-lib
+    config
 )
 
 target_include_directories(cli-lib
