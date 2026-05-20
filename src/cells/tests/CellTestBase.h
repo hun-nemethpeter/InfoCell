@@ -39,6 +39,23 @@ protected:
     PrintAs printAs;
 };
 
+class TestBase : public ::testing::Test
+{
+public:
+    static void freeKb();
+    static brain::Brain& getKb();
+    static void createKb(std::function<void()> loggerLevelInit = []() { });
+
+protected:
+    TestBase();
+
+    void printMethodInType(CellI& type, const std::string& method);
+
+    static std::unique_ptr<brain::Brain> m_kb;
+    PrintAs printAs;
+};
+
+
 } // namespace test
 } // namespace cells
 } // namespace infocell

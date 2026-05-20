@@ -16,21 +16,21 @@ class EdgeDetector : public cells::NodeBase
 public:
     EdgeDetector(cells::brain::Brain& kb);
 
-    void setInputGrid(const std::string& jsonStr);
-    void setInputGrid(cells::arc::Grid& inputHybridGrid);
-
-    void detect();
-
-    void frameProcess();
-    void sortShapePixelsAndCreateShapePoints();
-    void sortShapePoints();
-    void calculateEdgesForShapes();
-    void processEdgeNodes();
+    void detect(const std::string& jsonStr);
+    void detect(cells::arc::Grid& inputHybridGrid);
 
     cells::CellI& frame();
     cells::arc::Grid& inputHybridGrid();
 
-private:
+protected:
+    void detect();
+
+    virtual void frameProcess();
+    virtual void sortShapePixelsAndCreateShapePoints();
+    virtual void sortShapePoints();
+    virtual void calculateEdgesForShapes();
+    virtual void processEdgeNodes();
+
     cells::CellI* firstShapePixelPtr();
     void addEdgeToShape(cells::CellI& shape, cells::CellI& newEdgeId, cells::CellI& newEdge);
     int getShapeEdgesSize(cells::CellI& shape);

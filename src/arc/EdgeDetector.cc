@@ -46,15 +46,17 @@ EdgeDetector::EdgeDetector(brain::Brain& kb) :
     auto& TableStruct    = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, TableRowStruct));
 }
 
-void EdgeDetector::setInputGrid(const std::string& jsonStr)
+void EdgeDetector::detect(const std::string& jsonStr)
 {
     m_inputGrid       = std::make_unique<nativearc::Grid>("inputGrid", jsonStr);
     m_inputHybridGrid = std::make_unique<hybridarc::Grid>(kb, *m_inputGrid);
+    detect();
 }
 
-void EdgeDetector::setInputGrid(hybridarc::Grid& inputHybridGrid)
+void EdgeDetector::detect(hybridarc::Grid& inputHybridGrid)
 {
     m_inputHybridGridPtr = &inputHybridGrid;
+    detect();
 }
 
 void EdgeDetector::detect()

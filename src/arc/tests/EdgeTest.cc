@@ -19,7 +19,7 @@
 
 using namespace infocell;
 using namespace infocell::cells;
-using infocell::cells::test::CellTest;
+using infocell::cells::test::TestBase;
 using nlohmann::json;
 
 namespace nativearc = infocell::arc::native;
@@ -27,44 +27,13 @@ namespace hybridarc = infocell::cells::arc;
 
 static spdlog::logger* s_logger = nullptr;
 
-class EdgeTester : public CellTest
+namespace infocell {
+class EdgeDetectorTest : public TestBase,
+                         public arc::EdgeDetector
 {
 public:
-    enum class ScanLineState
-    {
-        Up,
-        Middle,
-        Down
-    };
-
-    EdgeTester() :
-        CellTest([]() {
-            brain::Brain::Logger::createLogger("edge");
-            brain::Brain::Logger::createLogger("shapeCorners");
-            brain::Brain::Logger::createLogger("shapeRelations");
-            brain::Brain::Logger::createLogger("shapeIdGrid");
-            brain::Brain::Logger::createLogger("grid");
-
-            spdlog::get("cells")->set_level(spdlog::level::trace);
-            spdlog::get("compileStruct")->set_level(spdlog::level::off);
-            spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
-            spdlog::get("edge")->set_level(spdlog::level::off);
-            spdlog::get("shapeCorners")->set_level(spdlog::level::off);
-            spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
-            spdlog::get("grid")->set_level(spdlog::level::trace);
-            spdlog::get("shapeRelations")->set_level(spdlog::level::off);
-        }),
-        m_edgeDetector(kb),
-        ExternalEdgeEV(m_edgeDetector.ExternalEdgeEV),
-        InternalEdgeEV(m_edgeDetector.InternalEdgeEV),
-        DirectionUpEV(m_edgeDetector.DirectionUpEV),
-        DirectionDownEV(m_edgeDetector.DirectionDownEV),
-        DirectionLeftEV(m_edgeDetector.DirectionLeftEV),
-        DirectionRightEV(m_edgeDetector.DirectionRightEV),
-        Degree_0(m_edgeDetector.Degree_0),
-        Degree_90(m_edgeDetector.Degree_90),
-        Degree_180(m_edgeDetector.Degree_180),
-        Degree_270(m_edgeDetector.Degree_270)
+    EdgeDetectorTest() :
+        arc::EdgeDetector(getKb())
     {
     }
 
@@ -73,29 +42,33 @@ public:
         m_outputSVGFileName = fileName;
     }
 
-    void testEdges(const std::string& jsonStr)
-    {
-        m_edgeDetector.setInputGrid(jsonStr);
-        testEdgesImpl();
-    }
-
-    void testEdges(hybridarc::Grid& inputHybridGrid)
-    {
-        m_edgeDetector.setInputGrid(inputHybridGrid);
-        testEdgesImpl();
-    }
-
-    void testEdgesImpl()
+    void frameProcess() override
     {
         printInputHybridGrid();
-        m_edgeDetector.frameProcess();
-        m_edgeDetector.sortShapePixelsAndCreateShapePoints();
+        EdgeDetector::frameProcess();
+    }
+
+    void sortShapePixelsAndCreateShapePoints() override
+    {
+        EdgeDetector::sortShapePixelsAndCreateShapePoints();
         // printEveryShapePixels();
         printAndTestShapePixels();
-        m_edgeDetector.sortShapePoints();
+    }
+
+    void sortShapePoints() override
+    {
+        EdgeDetector::sortShapePoints();
         // printAllShapePoints();
-        m_edgeDetector.calculateEdgesForShapes();
-        m_edgeDetector.processEdgeNodes();
+    }
+
+    void calculateEdgesForShapes() override
+    {
+        EdgeDetector::calculateEdgesForShapes();
+    }
+
+    void processEdgeNodes() override
+    {
+        EdgeDetector::processEdgeNodes();
         validateEdgePoints();
         // drawSvgFromShapePointEdgeJoints();
         printShapeIdGrid();
@@ -103,12 +76,6 @@ public:
         // printEdges();
         printShapeRelations();
         findPossibleBackgroundWithShapes();
-    }
-
-    void processFrame(const std::string& frameJsonStr)
-    {
-        m_edgeDetector.setInputGrid(frameJsonStr);
-        m_edgeDetector.detect();
     }
 
     static std::string colorTile(int color)
@@ -173,7 +140,7 @@ public:
 
     CellI& getEdgeFromShape(CellI& shape, CellI& edgeId)
     {
-        if (m_edgeDetector.m_hybridFrame) {
+        if (m_hybridFrame) {
             return static_cast<Map&>(shape["edges"]).getValue(edgeId);
         } else {
             Object& map = static_cast<Object&>(shape["edges"]);
@@ -183,7 +150,7 @@ public:
 
     int getShapeEdgesSize(CellI& shape)
     {
-        if (m_edgeDetector.m_hybridFrame) {
+        if (m_hybridFrame) {
             return static_cast<Map&>(shape["edges"]).size();
         } else {
             Object& map = static_cast<Object&>(shape["edges"]);
@@ -590,14 +557,6 @@ public:
         }
     }
 
-    CellI* firstShapePixelPtr()
-    {
-        Object& shapePixels = static_cast<Object&>(frame()["shapePixels"]);
-        Object& colX        = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, _0_ }));
-        CellI& shapePixel   = colX.method(kb.name("getValue"), { kb.ids.key, _0_ });
-        return &shapePixel;
-    }
-
     void printShapeIdGrid()
     {
         DEBUG(shapeIdGrid, "printShapeIdGrid");
@@ -975,144 +934,12 @@ public:
         }
     }
 
-    void findPossibleBackgroundWithShapes()
-    {
-        DEBUG(shapeRelations, "findPossibleBackgroundWithShapes");
-
-        List& shapesList = static_cast<List&>(frame()["shapes"]);
-        int shapesCount  = shapesList.size();
-        if (shapesCount < 2) {
-            TRACE(shapeRelations, "  there isn't enough shape");
-            return;
-        }
-        const int targetContainedShapeCount = shapesCount - 1;
-        CellI* backgroundShapePtr           = nullptr;
-        Visitor::visitList(shapesList, [this, targetContainedShapeCount, &backgroundShapePtr](CellI& shape, int, bool&) {
-            int edgesCount = getShapeEdgesSize(shape);
-            if (edgesCount == 1) {
-                return;
-            }
-            int containedShapeCount = 0;
-            Visitor::visitList(shape["edges"]["list"], [this, &containedShapeCount](CellI& edge, int, bool&) {
-                if (!(&edge["kind"] == &InternalEdgeEV && edge.has("shapes"))) {
-                    return;
-                }
-                containedShapeCount += static_cast<Set&>(edge["shapes"]).size();
-            });
-            if (targetContainedShapeCount == containedShapeCount) {
-                TRACE(shapeRelations, "Perfect match for a backround");
-                backgroundShapePtr = &shape;
-            } else if (containedShapeCount > 1) {
-                // some heuristic about the longest border
-                CellI& externalEdge = shape["edges"]["list"]["first"]["value"];
-                std::map<int, int> longestBorder;
-                Visitor::visitList(externalEdge["edgeNodes"], [this, &longestBorder](CellI& edgeNode, int i, bool& stop) {
-                    int externalShapeId;
-                    if (edgeNode.has("externalShape")) {
-                        externalShapeId = static_cast<Number&>(edgeNode["externalShape"]["id"]).value();
-                    } else {
-                        externalShapeId = 0;
-                    }
-                    longestBorder[externalShapeId]++;
-                });
-                int longestBorderLength = 0;
-                int selectedShapeId     = -1;
-                std::set<int> lengthStat;
-                for (const auto& pair : longestBorder) {
-                    if (pair.second > longestBorderLength) {
-                        selectedShapeId     = pair.first;
-                        longestBorderLength = pair.second;
-                    }
-                    lengthStat.insert(pair.second);
-                }
-                int secondPlace = 0;
-                if (lengthStat.size() >= 2) {
-                    secondPlace = *(++(lengthStat.rbegin()));
-                }
-                TRACE(shapeRelations, "Longest border is with shape id: {}:{} second: {}", selectedShapeId, longestBorderLength, secondPlace);
-            }
-        });
-        if (backgroundShapePtr) {
-            CellI& backgroundShape = *backgroundShapePtr;
-            INFO(shapeRelations, "    shape id {} can be a background as it contains all other shapes!", backgroundShape["id"].label());
-        }
-#if 0
-        Next approach:
-        We need a shape assessment process
-
-            - a shape can be inside an other shape
-                0   1  2
-              ┌──┬──┬──┐
-            0 │❶ │❶ │❶ │
-              ├──∙──∙──┤
-            1 │❶ │❷ │❶ │
-              ├──∙──∙──┤
-            2 │❶ │❶ │❶ │
-              └──┴──┴──┘
-            - a shape can contains an other one
-                0   1  2    3  4
-              ┌──┬──┬──┬──┬──┐
-            0 │❶ │❶ │❷ │❶ │❶ │
-              ├──∙──∙──∙──∙──┤
-            1 │❶ │❷ │❸ │❷ │❶ │
-              ├──∙──∙──∙──∙──┤
-            2 │❶ │❶ │❷ │❶ │❶ │
-              ├──∙──∙──∙──∙──┤
-            3 │❶ │❶ │❶ │❶ │❶ │
-              └──┴──┴──┴──┴──┘
-            - backround can extend if the color is the same
-                0   1  2    3  4
-              ┌──┬──┬──┬──┬──┐
-            0 │❶ │❶ │❶ │❶ │❶ │
-              ├──∙──∙──∙──∙──┤
-            1 │❷ │❶ │❷ │❶ │❶ │
-              ├──∙──∙──∙──∙──┤
-            2 │❶ │❸ │❶ │❶ │❶ │
-              ├──∙──∙──∙──∙──┤
-            3 │❷ │❶ │❷ │❶ │❶ │
-              └──┴──┴──┴──┴──┘
-        An other idea:
-          if a shape contains other ones, lets examine it even more
-          so if this shape touch four external same edge (or missing external edges)
-              then calculate the conatined (between external edges) shapes also
-              - maybe just assume that the external edge is, where it has the most contact when doesn't contain it?
-          also we can shortcut in this case and pretend, that the external shape edge is the full edge
-              we need a frame object wich has the edge of the input grid
-
-       Ok, so looks like there isn't any perfect algorithm to detect a background, but we collect clues about it
-
-       One heuristic algo is, to predict the background real external edges by take into account the most "touched" edges.
-
-       An other clue is that what is fix and what is changing.
-
-#endif
-    }
-
-    cells::CellI& frame()
-    {
-        return m_edgeDetector.frame();
-    }
-
-    cells::arc::Grid& inputHybridGrid()
-    {
-        return m_edgeDetector.inputHybridGrid();
-    }
-
     std::string m_outputSVGFileName;
-    infocell::arc::EdgeDetector m_edgeDetector;
-    cells::CellI& ExternalEdgeEV;
-    cells::CellI& InternalEdgeEV;
-    cells::CellI& DirectionUpEV;
-    cells::CellI& DirectionDownEV;
-    cells::CellI& DirectionLeftEV;
-    cells::CellI& DirectionRightEV;
-    cells::CellI& Degree_0;
-    cells::CellI& Degree_90;
-    cells::CellI& Degree_180;
-    cells::CellI& Degree_270;
 };
 
-TEST_F(EdgeTester, ShapeWithHoleCompareExactMatch)
+}
+
+TEST_F(EdgeDetectorTest, ShapeWithHoleCompareExactMatch)
 {
     const std::string& frame1 = R"([[0,7,7,7],
                                     [7,7,0,7],
@@ -1121,11 +948,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareExactMatch)
     const std::string& frame2 = R"([[0,0,7,7,7],
                                     [0,7,7,0,7],
                                     [0,0,7,7,7]])";
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape2_edge2 = getEdgeFromShape(shape2, _2_);
 
@@ -1135,7 +962,7 @@ TEST_F(EdgeTester, ShapeWithHoleCompareExactMatch)
     EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_0);
 }
 
-TEST_F(EdgeTester, ShapeWithHoleCompareRotate90)
+TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate90)
 {
     const std::string& frame1 = R"([[0,7,7,7],
                                     [7,7,0,7],
@@ -1146,11 +973,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate90)
                                     [7,7,7],
                                     [7,0,7],
                                     [7,7,7]])";
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape2_edge2 = getEdgeFromShape(shape2, _2_);
 
@@ -1160,7 +987,7 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate90)
     EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_90);
 }
 
-TEST_F(EdgeTester, ShapeWithHoleCompareRotate180)
+TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate180)
 {
     const std::string& frame1 = R"([[0,7,0],
                                     [7,7,7],
@@ -1172,11 +999,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate180)
                                     [7,0,7],
                                     [7,7,7],
                                     [0,7,0]])";
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape2_edge2 = getEdgeFromShape(shape2, _2_);
 
@@ -1186,7 +1013,7 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate180)
     EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_180);
 }
 
-TEST_F(EdgeTester, ShapeWithHoleCompareRotate270)
+TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate270)
 {
     const std::string& frame1 = R"([[0,7,0],
                                     [7,7,7],
@@ -1196,11 +1023,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate270)
     const std::string& frame2 = R"([[0,0,7,7,7],
                                     [0,7,7,0,7],
                                     [0,0,7,7,7]])";
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape2_edge2 = getEdgeFromShape(shape2, _2_);
 
@@ -1210,7 +1037,7 @@ TEST_F(EdgeTester, ShapeWithHoleCompareRotate270)
     EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_270);
 }
 
-TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal)
+TEST_F(EdgeDetectorTest, ShapeWithHoleCompare_Mirror_Horizontal)
 {
     const std::string& frame1 = R"([[0,7,7,7,7,7],
                                     [0,0,0,7,0,7],
@@ -1224,11 +1051,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal)
                                     [0,0,0,7,0,7],
                                     [0,7,7,7,7,7]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _1_ });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1253,7 +1080,7 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal)
     EXPECT_FALSE(shapeRelation.m_edgeRelations[1].m_isVerticallyMirrored);
 }
 
-TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Vertical)
+TEST_F(EdgeDetectorTest, ShapeWithHoleCompare_Mirror_Vertical)
 {
     const std::string& frame1 = R"([[0,7,7,7,7,7],
                                     [0,0,0,7,0,7],
@@ -1267,11 +1094,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Vertical)
                                     [0,0,0,0,7,0,7],
                                     [0,0,0,0,7,7,7]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1296,7 +1123,7 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Vertical)
     EXPECT_TRUE(shapeRelation.m_edgeRelations[2].m_isVerticallyMirrored);
 }
 
-TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal_And_Vertical)
+TEST_F(EdgeDetectorTest, ShapeWithHoleCompare_Mirror_Horizontal_And_Vertical)
 {
     const std::string& frame1 = R"([[0,7,7],
                                     [7,7,7],
@@ -1308,11 +1135,11 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal_And_Vertical)
                                     [7,7,7],
                                     [0,7,7]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _1_ });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1328,7 +1155,7 @@ TEST_F(EdgeTester, ShapeWithHoleCompare_Mirror_Horizontal_And_Vertical)
     EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isVerticallyMirrored);
 }
 
-TEST_F(EdgeTester, ShapeCompareExactMatch)
+TEST_F(EdgeDetectorTest, ShapeCompareExactMatch)
 {
     const std::string& frame1 = R"([[0,7,7,7],
                                     [7,7,7,7],
@@ -1337,14 +1164,14 @@ TEST_F(EdgeTester, ShapeCompareExactMatch)
     const std::string& frame2 = R"([[0,0,7,7,7],
                                     [0,7,7,7,7],
                                     [0,0,7,7,7]])";
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1FirstPixel = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _1_ });
     CellI& edge1FirstPixel  = getEdgeFromShape(shape1FirstPixel, _1_);
 
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1359,7 +1186,7 @@ TEST_F(EdgeTester, ShapeCompareExactMatch)
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_0);
 }
 
-TEST_F(EdgeTester, ShapeCompareRotate90)
+TEST_F(EdgeDetectorTest, ShapeCompareRotate90)
 {
     const std::string& frame1 = R"([[0,7,0],
                                     [7,7,7],
@@ -1370,11 +1197,11 @@ TEST_F(EdgeTester, ShapeCompareRotate90)
                                     [0,7,7,7,7],
                                     [0,7,7,7,0]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1386,7 +1213,7 @@ TEST_F(EdgeTester, ShapeCompareRotate90)
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_90);
 }
 
-TEST_F(EdgeTester, ShapeCompareRotate180)
+TEST_F(EdgeDetectorTest, ShapeCompareRotate180)
 {
     const std::string& frame1 = R"([[0,7,7],
                                     [7,7,7],
@@ -1398,11 +1225,11 @@ TEST_F(EdgeTester, ShapeCompareRotate180)
                                     [7,7,7],
                                     [7,7,0]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1414,7 +1241,7 @@ TEST_F(EdgeTester, ShapeCompareRotate180)
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_180);
 }
 
-TEST_F(EdgeTester, ShapeCompareRotate270)
+TEST_F(EdgeDetectorTest, ShapeCompareRotate270)
 {
     const std::string& frame1 = R"([[0,7,0],
                                     [7,7,7],
@@ -1425,11 +1252,11 @@ TEST_F(EdgeTester, ShapeCompareRotate270)
                                     [0,7,7,7,7],
                                     [0,0,7,7,7]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1441,7 +1268,7 @@ TEST_F(EdgeTester, ShapeCompareRotate270)
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_270);
 }
 
-TEST_F(EdgeTester, ShapeCompare_Mirror_Horizontal)
+TEST_F(EdgeDetectorTest, ShapeCompare_Mirror_Horizontal)
 {
     const std::string& frame1 = R"([[0,7,7],
                                     [7,7,7],
@@ -1453,11 +1280,11 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Horizontal)
                                     [7,7,7],
                                     [0,7,7]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1473,7 +1300,7 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Horizontal)
     EXPECT_FALSE(shapeRelation.m_edgeRelations[0].m_isVerticallyMirrored);
 }
 
-TEST_F(EdgeTester, ShapeCompare_Mirror_Vertical)
+TEST_F(EdgeDetectorTest, ShapeCompare_Mirror_Vertical)
 {
     const std::string& frame1 = R"([[7,0,7],
                                     [7,0,7],
@@ -1485,11 +1312,11 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Vertical)
                                     [7,7,7],
                                     [7,7,0]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1505,7 +1332,7 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Vertical)
     EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isVerticallyMirrored);
 }
 
-TEST_F(EdgeTester, ShapeCompare_Mirror_Horizontal_And_Vertical)
+TEST_F(EdgeDetectorTest, ShapeCompare_Mirror_Horizontal_And_Vertical)
 {
     const std::string& frame1 = R"([[0,7,7],
                                     [7,7,7],
@@ -1517,11 +1344,11 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Horizontal_And_Vertical)
                                     [7,7,7],
                                     [0,7,7]])";
 
-    processFrame(frame1);
+    detect(frame1);
     CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
-    processFrame(frame2);
+    detect(frame2);
     CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
@@ -1537,17 +1364,17 @@ TEST_F(EdgeTester, ShapeCompare_Mirror_Horizontal_And_Vertical)
     EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isVerticallyMirrored);
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Input)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train1Input)
 {
-    testEdges(R"([[0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,2,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,1,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,1,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0]])");
 
     expectedShapeIds(R"([
                           [1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -1564,17 +1391,17 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Input)
     expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train1Output)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train1Output)
 {
-    testEdges(R"([[0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,4,0,4,0,0,0,0,0],
-                  [0,0,2,0,0,0,0,0,0],
-                  [0,4,0,4,0,0,0,0,0],
-                  [0,0,0,0,0,0,7,0,0],
-                  [0,0,0,0,0,7,1,7,0],
-                  [0,0,0,0,0,0,7,0,0],
-                  [0,0,0,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,4,0,4,0,0,0,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,4,0,4,0,0,0,0,0],
+               [0,0,0,0,0,0,7,0,0],
+               [0,0,0,0,0,7,1,7,0],
+               [0,0,0,0,0,0,7,0,0],
+               [0,0,0,0,0,0,0,0,0]])");
 #if 0
   The input grid contains
      - Pixel { red, x=2, y=3 }
@@ -1618,17 +1445,17 @@ shape id 7
     expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 }, { 8, 1 }, { 9, 1 }, { 10, 1 }, { 11, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Input)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train2Input)
 {
-    testEdges(R"([[0,0,0,8,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,2,0,0],
-                  [0,0,1,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,1,0,0],
-                  [0,2,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,8,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,2,0,0],
+               [0,0,1,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,1,0,0],
+               [0,2,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0]])");
 
     expectedShapeIds(R"([
                           [1, 1, 1, 2, 1, 1, 1, 1, 1],
@@ -1645,164 +1472,164 @@ TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Input)
     expectedShapeEdgeCounts({ { 1, 5 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train2Output)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train2Output)
 {
-    testEdges(R"([[0,0,0,8,0,0,0,0,0],
-                  [0,0,0,0,0,4,0,4,0],
-                  [0,0,7,0,0,0,2,0,0],
-                  [0,7,1,7,0,4,0,4,0],
-                  [0,0,7,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,7,0,0],
-                  [4,0,4,0,0,7,1,7,0],
-                  [0,2,0,0,0,0,7,0,0],
-                  [4,0,4,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,8,0,0,0,0,0],
+               [0,0,0,0,0,4,0,4,0],
+               [0,0,7,0,0,0,2,0,0],
+               [0,7,1,7,0,4,0,4,0],
+               [0,0,7,0,0,0,0,0,0],
+               [0,0,0,0,0,0,7,0,0],
+               [4,0,4,0,0,7,1,7,0],
+               [0,2,0,0,0,0,7,0,0],
+               [4,0,4,0,0,0,0,0,0]])");
 
     expectedShapesCount(24);
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train3Input)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train3Input)
 {
-    testEdges(R"([[0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,2,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,6,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,1,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,6,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,1,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Train3Output)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train3Output)
 {
-    testEdges(R"([[0,0,0,0,0,0,0,0,0],
-                  [0,4,0,4,0,0,0,0,0],
-                  [0,0,2,0,0,0,0,0,0],
-                  [0,4,0,4,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,6,0,0],
-                  [0,0,0,7,0,0,0,0,0],
-                  [0,0,7,1,7,0,0,0,0],
-                  [0,0,0,7,0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0,0,0,0,0],
+               [0,4,0,4,0,0,0,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,4,0,4,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,6,0,0],
+               [0,0,0,7,0,0,0,0,0],
+               [0,0,7,1,7,0,0,0,0],
+               [0,0,0,7,0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0ca9ddb6_Test1Input)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Test1Input)
 {
-    testEdges(R"([[0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,1,0,0],
-                  [0,0,2,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,8,0,0,0],
-                  [0,0,0,0,0,0,0,0,0],
-                  [0,6,0,0,0,0,0,2,0],
-                  [0,0,0,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,1,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,8,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,6,0,0,0,0,0,2,0],
+               [0,0,0,0,0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_2dd70a9a_Test1Input)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_2dd70a9a_Test1Input)
 {
-    testEdges(R"([[8,8,8,8,0,0,0,0,0,8,8,0,0],
-                  [8,0,0,0,0,8,2,2,0,0,0,0,0],
-                  [0,8,0,0,8,8,0,0,0,0,0,0,0],
-                  [0,0,8,0,0,0,0,0,8,0,0,0,8],
-                  [0,0,8,0,0,0,8,0,0,0,0,0,8],
-                  [0,0,0,8,0,0,0,0,8,0,8,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,8,0,0],
-                  [8,0,8,3,3,0,0,0,0,0,8,0,0],
-                  [0,8,8,0,0,8,0,0,0,0,8,0,0],
-                  [0,0,0,0,0,0,8,8,0,0,0,0,0],
-                  [0,8,8,0,0,0,8,0,0,0,0,0,0],
-                  [0,0,0,8,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,8,0]])");
+    detect(R"([[8,8,8,8,0,0,0,0,0,8,8,0,0],
+               [8,0,0,0,0,8,2,2,0,0,0,0,0],
+               [0,8,0,0,8,8,0,0,0,0,0,0,0],
+               [0,0,8,0,0,0,0,0,8,0,0,0,8],
+               [0,0,8,0,0,0,8,0,0,0,0,0,8],
+               [0,0,0,8,0,0,0,0,8,0,8,0,0],
+               [0,0,0,0,0,0,0,0,0,0,8,0,0],
+               [8,0,8,3,3,0,0,0,0,0,8,0,0],
+               [0,8,8,0,0,8,0,0,0,0,8,0,0],
+               [0,0,0,0,0,0,8,8,0,0,0,0,0],
+               [0,8,8,0,0,0,8,0,0,0,0,0,0],
+               [0,0,0,8,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,8,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_00d62c1b_Train5Input)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_00d62c1b_Train5Input)
 {
-    testEdges(R"([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,3,3,3,3,0,3,3,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,0,3,0,0,0,0,0,0,0,3,0],
-                  [0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
-                  [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
-                  [0,0,3,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,3,3,0,0,0,0,3,0,3,0,0],
-                  [0,0,0,0,0,0,3,3,0,0,3,0,0,3,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,3,0,0,3,3,0,0,3,0,0,3,0,0],
-                  [0,0,0,0,0,0,0,3,3,3,3,0,3,0,0,3,3,3,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3,0,3,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,3,3,3,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,3,3,3,3,0,3,3,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,0,3,0,0,0,0,0,0,0,3,0],
+               [0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
+               [0,0,0,0,3,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,3,0,0,0,0],
+               [0,0,3,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,3,3,0,0,0,0,3,0,3,0,0],
+               [0,0,0,0,0,0,3,3,0,0,3,0,0,3,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,3,0,0,3,3,0,0,3,0,0,3,0,0],
+               [0,0,0,0,0,0,0,3,3,3,3,0,3,0,0,3,3,3,0,0],
+               [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3,0,3,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,3,3,3,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_00d62c1b_Train5Output)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_00d62c1b_Train5Output)
 {
-    testEdges(R"([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,3,3,3,3,4,3,3,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,4,3,0,0,0,0,0,0,0,3,0],
-                  [0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
-                  [0,0,0,0,3,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
-                  [0,0,3,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,3,3,3,0,0,0,0,3,0,3,0,0],
-                  [0,0,0,0,0,0,3,3,4,4,3,0,0,3,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,3,4,4,3,3,0,0,3,0,0,3,0,0],
-                  [0,0,0,0,0,0,0,3,3,3,3,0,3,0,0,3,3,3,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3,4,3,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,3,3,3,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,3,3,3,3,4,3,3,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,4,3,0,0,0,0,0,0,0,3,0],
+               [0,0,0,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
+               [0,0,0,0,3,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,4,4,4,4,4,4,3,0,0,0,0],
+               [0,0,3,0,0,0,0,0,3,3,3,3,3,3,3,3,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,3,3,3,0,0,0,0,3,0,3,0,0],
+               [0,0,0,0,0,0,3,3,4,4,3,0,0,3,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,3,4,4,3,3,0,0,3,0,0,3,0,0],
+               [0,0,0,0,0,0,0,3,3,3,3,0,3,0,0,3,3,3,0,0],
+               [0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,3,4,3,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,3,3,3,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_0b148d64_minified_Train1Input)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0b148d64_minified_Train1Input)
 {
-    testEdges(R"([[8,8,8,8,8,0,8,8,8,8,0],
-                  [8,0,0,8,0,8,0,8,8,8,0],
-                  [8,8,8,0,0,0,8,8,8,8,0],
-                  [8,8,0,8,8,8,8,0,8,8,0],
-                  [8,8,8,8,0,8,8,0,8,8,0],
-                  [0,0,0,8,8,0,8,0,0,8,0],
-                  [8,8,8,8,0,0,8,0,8,0,0],
-                  [8,0,0,8,0,0,8,8,0,8,0],
-                  [8,8,8,8,8,8,0,8,0,0,0],
-                  [0,0,0,0,0,0,0,0,0,0,0]])");
+    detect(R"([[8,8,8,8,8,0,8,8,8,8,0],
+               [8,0,0,8,0,8,0,8,8,8,0],
+               [8,8,8,0,0,0,8,8,8,8,0],
+               [8,8,0,8,8,8,8,0,8,8,0],
+               [8,8,8,8,0,8,8,0,8,8,0],
+               [0,0,0,8,8,0,8,0,0,8,0],
+               [8,8,8,8,0,0,8,0,8,0,0],
+               [8,0,0,8,0,0,8,8,0,8,0],
+               [8,8,8,8,8,8,0,8,0,0,0],
+               [0,0,0,0,0,0,0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestCase7Horizontal)
+TEST_F(EdgeDetectorTest, EdgeTestCase7Horizontal)
 {
-    testEdges(R"([[0,0,0,0,0],
-                  [0,0,1,0,0],
-                  [0,1,8,1,0],
-                  [0,0,1,0,0],
-                  [0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0],
+               [0,0,1,0,0],
+               [0,1,8,1,0],
+               [0,0,1,0,0],
+               [0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestInternalEdges)
+TEST_F(EdgeDetectorTest, EdgeTestInternalEdges)
 {
-    testEdges(R"([[0,0,0,0,0,0,0],
-                  [0,1,1,1,1,1,0],
-                  [0,1,8,8,8,1,0],
-                  [0,1,8,2,8,1,0],
-                  [0,1,8,8,8,1,0],
-                  [0,1,1,1,1,1,0],
-                  [0,0,0,0,0,0,0]])");
+    detect(R"([[0,0,0,0,0,0,0],
+               [0,1,1,1,1,1,0],
+               [0,1,8,8,8,1,0],
+               [0,1,8,2,8,1,0],
+               [0,1,8,8,8,1,0],
+               [0,1,1,1,1,1,0],
+               [0,0,0,0,0,0,0]])");
 }
 
-TEST_F(EdgeTester, EdgeTestMinimal)
+TEST_F(EdgeDetectorTest, EdgeTestMinimal)
 {
-    testEdges(R"([[0, 7, 7],
-                  [7, 7, 7],
-                  [7, 7, 7]])");
+    detect(R"([[0, 7, 7],
+               [7, 7, 7],
+               [7, 7, 7]])");
     CellI& shape        = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(2) });
     CellI& externalEdge = getEdgeFromShape(shape, _1_);
 
@@ -2055,13 +1882,13 @@ TEST_F(EdgeTester, EdgeTestMinimal)
     expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTest)
+TEST_F(EdgeDetectorTest, EdgeTest)
 {
-    testEdges(R"([[0, 0, 0, 0, 0],
-                  [0, 4, 0, 4, 0],
-                  [0, 0, 2, 0, 0],
-                  [0, 4, 0, 4, 0],
-                  [0, 0, 0, 0, 0]])");
+    detect(R"([[0, 0, 0, 0, 0],
+               [0, 4, 0, 4, 0],
+               [0, 0, 2, 0, 0],
+               [0, 4, 0, 4, 0],
+               [0, 0, 0, 0, 0]])");
     CellI& shape        = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, kb.pools.numbers.get(1) });
     CellI& internalEdge = getEdgeFromShape(shape, _2_);
     List& edgeNodes     = static_cast<List&>(internalEdge["edgeNodes"]);
@@ -2075,11 +1902,11 @@ TEST_F(EdgeTester, EdgeTest)
     expectedShapeEdgeCounts({ { 1, 2 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestTwoLeftCorners)
+TEST_F(EdgeDetectorTest, EdgeTestTwoLeftCorners)
 {
-    testEdges(R"([[0, 7, 7, 7],
-                  [7, 7, 7, 7],
-                  [0, 7, 7, 7]])");
+    detect(R"([[0, 7, 7, 7],
+               [7, 7, 7, 7],
+               [0, 7, 7, 7]])");
 
     expectedShapeIds(R"([
                           [1, 2, 2, 2],
@@ -2090,11 +1917,11 @@ TEST_F(EdgeTester, EdgeTestTwoLeftCorners)
     expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestWithFourCorners)
+TEST_F(EdgeDetectorTest, EdgeTestWithFourCorners)
 {
-    testEdges(R"([[0, 7, 7, 0],
-                  [7, 7, 7, 7],
-                  [0, 7, 7, 0]])");
+    detect(R"([[0, 7, 7, 0],
+               [7, 7, 7, 7],
+               [0, 7, 7, 0]])");
 
     expectedShapeIds(R"([
                           [1, 2, 2, 3],
@@ -2105,13 +1932,13 @@ TEST_F(EdgeTester, EdgeTestWithFourCorners)
     expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpLeft)
+TEST_F(EdgeDetectorTest, EdgeTestWithLineDiagonalFromUpLeft)
 {
-    testEdges(R"([[7, 0, 0, 0, 0],
-                  [0, 7, 0, 0, 0],
-                  [0, 0, 7, 0, 0],
-                  [0, 0, 0, 7, 0],
-                  [0, 0, 0, 0, 7]])");
+    detect(R"([[7, 0, 0, 0, 0],
+               [0, 7, 0, 0, 0],
+               [0, 0, 7, 0, 0],
+               [0, 0, 0, 7, 0],
+               [0, 0, 0, 0, 7]])");
 
     expectedShapeIds(R"([
                           [1, 2, 2, 2, 2],
@@ -2124,13 +1951,13 @@ TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpLeft)
     expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpRight)
+TEST_F(EdgeDetectorTest, EdgeTestWithLineDiagonalFromUpRight)
 {
-    testEdges(R"([[0, 0, 0, 0, 7],
-                  [0, 0, 0, 7, 0],
-                  [0, 0, 7, 0, 0],
-                  [0, 7, 0, 0, 0],
-                  [7, 0, 0, 0, 0]])");
+    detect(R"([[0, 0, 0, 0, 7],
+               [0, 0, 0, 7, 0],
+               [0, 0, 7, 0, 0],
+               [0, 7, 0, 0, 0],
+               [7, 0, 0, 0, 0]])");
 
     expectedShapeIds(R"([
                           [1, 1, 1, 1, 2],
@@ -2143,30 +1970,30 @@ TEST_F(EdgeTester, EdgeTestWithLineDiagonalFromUpRight)
     expectedShapeEdgeCounts({ { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 }, { 5, 1 }, { 6, 1 }, { 7, 1 } });
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Input)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_4be741c5_Train3Input)
 {
-    testEdges(R"([[6, 6, 6, 6, 6, 6, 6, 6, 6],
-                  [6, 6, 4, 4, 6, 6, 6, 6, 6],
-                  [6, 4, 4, 4, 6, 4, 6, 4, 4],
-                  [4, 4, 4, 4, 4, 4, 4, 4, 4],
-                  [4, 4, 4, 4, 4, 4, 4, 4, 4],
-                  [4, 4, 4, 4, 4, 4, 4, 4, 4],
-                  [4, 2, 2, 4, 4, 4, 2, 2, 4],
-                  [2, 2, 2, 2, 2, 2, 2, 2, 2],
-                  [2, 3, 2, 2, 2, 2, 2, 3, 3],
-                  [3, 3, 3, 3, 3, 3, 3, 3, 3],
-                  [3, 3, 3, 3, 3, 3, 3, 3, 3]])");
+    detect(R"([[6, 6, 6, 6, 6, 6, 6, 6, 6],
+               [6, 6, 4, 4, 6, 6, 6, 6, 6],
+               [6, 4, 4, 4, 6, 4, 6, 4, 4],
+               [4, 4, 4, 4, 4, 4, 4, 4, 4],
+               [4, 4, 4, 4, 4, 4, 4, 4, 4],
+               [4, 4, 4, 4, 4, 4, 4, 4, 4],
+               [4, 2, 2, 4, 4, 4, 2, 2, 4],
+               [2, 2, 2, 2, 2, 2, 2, 2, 2],
+               [2, 3, 2, 2, 2, 2, 2, 3, 3],
+               [3, 3, 3, 3, 3, 3, 3, 3, 3],
+               [3, 3, 3, 3, 3, 3, 3, 3, 3]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithArc_4be741c5_Train3Output)
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_4be741c5_Train3Output)
 {
-    testEdges(R"([[6],
-                  [4],
-                  [2],
-                  [3]])");
+    detect(R"([[6],
+               [4],
+               [2],
+               [3]])");
 }
 
-TEST_F(EdgeTester, EdgeTestWithAllArcTask)
+TEST_F(EdgeDetectorTest, EdgeTestWithAllArcTask)
 {
     infocell::arc::TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
     // TaskSet taskSet(kb, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME);
@@ -2179,19 +2006,19 @@ TEST_F(EdgeTester, EdgeTestWithAllArcTask)
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", humanIndex, "Input"));
-            testEdges(static_cast<hybridarc::Grid&>(example["input"]));
+            detect(static_cast<hybridarc::Grid&>(example["input"]));
             INFO(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", humanIndex, "Output"));
-            testEdges(static_cast<hybridarc::Grid&>(example["output"]));
+            detect(static_cast<hybridarc::Grid&>(example["output"]));
         });
         TRACE(grid, "   tests:");
         Visitor::visitList(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
             const int humanIndex = i + 1;
             INFO(grid, fmt::format("id: {}, test input: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Test", humanIndex, "Input"));
-            testEdges(static_cast<hybridarc::Grid&>(example["input"]));
+            detect(static_cast<hybridarc::Grid&>(example["input"]));
         });
     }
 }
@@ -2409,10 +2236,26 @@ int main(int argc, char** argv)
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
 #endif
+    TestBase::createKb([]() {
+        brain::Brain::Logger::createLogger("edge");
+        brain::Brain::Logger::createLogger("shapeCorners");
+        brain::Brain::Logger::createLogger("shapeRelations");
+        brain::Brain::Logger::createLogger("shapeIdGrid");
+        brain::Brain::Logger::createLogger("grid");
+
+        spdlog::get("cells")->set_level(spdlog::level::trace);
+        spdlog::get("compileStruct")->set_level(spdlog::level::off);
+        spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
+        spdlog::get("edge")->set_level(spdlog::level::off);
+        spdlog::get("shapeCorners")->set_level(spdlog::level::off);
+        spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
+        spdlog::get("grid")->set_level(spdlog::level::trace);
+        spdlog::get("shapeRelations")->set_level(spdlog::level::off);
+    });
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     DEBUG(cells, "Constructed: {}, destructed: {}, live: {}", CellI::s_constructed, CellI::s_destructed, CellI::s_constructed - CellI::s_destructed);
-    CellTest::freeKb();
+    TestBase::freeKb();
 
     return ret;
 }

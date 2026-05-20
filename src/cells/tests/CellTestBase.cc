@@ -142,6 +142,37 @@ void CellTest::printMethodInType(CellI& type, const std::string& method)
 
 std::unique_ptr<brain::Brain> CellTest::m_kb;
 
+TestBase::TestBase() :
+    printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
+{
+}
+
+void TestBase::freeKb()
+{
+    m_kb.reset();
+}
+
+brain::Brain& TestBase::getKb()
+{
+    if (!m_kb) {
+        createKb();
+    }
+    return *m_kb;
+}
+
+void TestBase::createKb(std::function<void()> loggerLevelInit)
+{
+    m_kb = std::make_unique<brain::Brain>(loggerLevelInit);
+}
+
+void TestBase::printMethodInType(CellI& type, const std::string& method)
+{
+    brain::Brain& kb = getKb();
+    printAs.value(type[kb.ids.methods][kb.ids.index][kb.name(method)][kb.ids.value]);
+}
+
+std::unique_ptr<brain::Brain> TestBase::m_kb;
+
 } // namespace test
 } // namespace cells
 } // namespace infocell

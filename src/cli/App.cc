@@ -29,11 +29,8 @@ public:
     void start()
     {
         std::cout << "Start!" << std::endl;
-        m_inputEdges.setInputGrid(m_inputGrid);
-        m_inputEdges.detect();
-
-        m_outputEdges.setInputGrid(m_outputGrid);
-        m_outputEdges.detect();
+        m_inputEdges.detect(m_inputGrid);
+        m_outputEdges.detect(m_outputGrid);
     }
 
     cells::brain::Brain& kb;
