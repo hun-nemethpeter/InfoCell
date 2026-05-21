@@ -71,7 +71,7 @@ int App::run(int argc, char* argv[])
     };
     std::map<std::string, IoKind> ioKindMap { { "input", IoKind::Input }, { "output", IoKind::Output } };
 
-    // ===== ARC-AGI-2
+    // ===== ARC-AGI-1
     bool agi1Mode = false;
     auto arcAGI1  = m_app->add_subcommand("arc-agi-1", "ARC-AGI-1 related commands")->callback([&]() { agi1Mode = true; });
     std::string arcAGI1DataFolderPathStr;

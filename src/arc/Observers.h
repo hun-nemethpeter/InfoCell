@@ -18,7 +18,7 @@ public:
         return !m_rotatedWith && !m_isHorizontallyMirrored && !m_isVerticallyMirrored;
     }
 
-    cells::CellI* m_rotatedWith          = nullptr;
+    cells::CellI* m_rotatedWith   = nullptr;
     bool m_isHorizontallyMirrored = false;
     bool m_isVerticallyMirrored   = false;
 };
@@ -36,7 +36,6 @@ EdgeRelation compareEdges(cells::CellI& lhs, cells::CellI& rhs);
 
 // compare two Shape
 ShapeRelation compareShapes(cells::CellI& lhs, cells::CellI& rhs);
-
 
 } // namespace arc
 } // namespace infocell
