@@ -401,6 +401,8 @@ public:
             Base(kb, classCell, label)
         {
         }
+        Equal& operator==(Base& rhs) const;
+        Equal& operator!=(Base& rhs) const;
     };
 
     class Get;

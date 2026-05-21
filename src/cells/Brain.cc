@@ -1154,6 +1154,12 @@ Ast::StaticCall& Ast::StaticCall::operator()(const std::string& nameStr, CellI& 
     return *this;
 }
 
+template <typename T>
+Ast::Equal& Ast::BaseT<T>::operator==(Base& rhs) const
+{
+    return Equal::New(kb, const_cast<Ast::BaseT<T>&>(*this), rhs);
+}
+
 Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
     BaseT<Cell>(kb, kb.std.ast.Cell, "ast.cell")
 {
@@ -5120,8 +5126,8 @@ void AstStd::createAst()
         .primitiveTool().returnType("std::Number")
 #endif
         .description(
-            equal(subtract(return_(), m_("rhs")), m_("lhs")),
-            equal(subtract(return_(), m_("lhs")), m_("rhs")),
+            subtract(return_(), m_("rhs")) == m_("lhs"),
+            subtract(return_(), m_("lhs")) == m_("rhs"),
             return_(add(m_("lhs"), m_("rhs"))),
             return_(add(m_("rhs"), m_("lhs"))))
         .members(
@@ -5164,7 +5170,7 @@ void AstStd::createAst()
             _(std.ast.Base))
         .description(
             // TODO check rhs != 0
-            equal(multiply(return_(), m_("rhs")), m_("lhs")),
+            multiply(return_(), m_("rhs")) == m_("lhs"),
             return_(divide(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", "Base"),
@@ -5192,14 +5198,14 @@ void AstStd::createAst()
         .memberOf(
             _(std.ast.Base))
         .description(
-            return_(equal(m_("lhs"), m_("rhs"))))
+            return_(m_("lhs") == m_("rhs")))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
 
     astScope.add<Struct>("Erase")
         .description(
-            equal(has(m_("cell"), m_("key")), false_()))
+            has(m_("cell"), m_("key")) == false_())
         .members(
             member("cell", "Base"),
             member("key", "Base"));
@@ -5320,7 +5326,7 @@ void AstStd::createAst()
 #if 0 // we need a precondition secton for this if block
             if_(notSame(m_("lhs"), _(kb._0_))).then_(
 #endif
-            equal(divide(return_(), m_("lhs")), m_("rhs"))
+            divide(return_(), m_("lhs")) == m_("rhs")
 #if 0 // we need a precondition secton for this if block
             )
 #else
@@ -5413,7 +5419,7 @@ void AstStd::createAst()
         .memberOf(
             _(std.ast.Base))
         .description(
-            equal(m_("cell") / m_("key"), m_("value")))
+            m_("cell") / m_("key") == m_("value"))
         .members(
             member("cell", "Base"),
             member("key", "Base"),
@@ -5467,8 +5473,8 @@ void AstStd::createAst()
         .memberOf(
             _(std.ast.Base))
         .description(
-            equal(add(return_(), m_("rhs")), m_("lhs")),
-            equal(add(m_("rhs"), return_()), m_("lhs")),
+            add(return_(), m_("rhs")) == m_("lhs"),
+            add(m_("rhs"), return_()) == m_("lhs"),
 //            equal(m_("lhs"), add(return_(), m_("rhs"))),
             return_(subtract(m_("lhs"), m_("rhs"))))
         .members(
