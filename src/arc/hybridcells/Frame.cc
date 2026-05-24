@@ -180,7 +180,7 @@ void Frame::process()
 
     while (!m_inputPixels.empty()) {
         CellI& firstPixel = m_inputPixels.first();
-        CellI& shape = *new Shape(kb, kb.pools.numbers.get(shapeId), static_cast<Number&>(firstPixel["color"]), m_width, m_height);
+        CellI& shape = *new Shape(kb, kb.pools.numbers.get(shapeId), firstPixel["color"], m_width, m_height);
         shapeId           = shapeId + 1;
         Set checkPixels(kb, kb.std.Pixel);
         checkPixels.add(firstPixel);
@@ -245,7 +245,7 @@ void Frame::processAdjacentPixel(CellI& direction, CellI& p_shape, Set& checkPix
             }
         }
     }
-    if (static_cast<Number&>(pixel["color"]).value() == static_cast<Number&>(p_shape["color"]).value()) {
+    if (&pixel["color"] == &p_shape["color"]) {
         checkPixels.add(pixel);
     }
 }

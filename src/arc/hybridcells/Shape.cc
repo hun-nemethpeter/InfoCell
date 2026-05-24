@@ -4,7 +4,7 @@ namespace infocell {
 namespace cells {
 namespace arc {
 
-Shape::Shape(brain::Brain& kb, Number& id, Number& color, Number& width, Number& height) :
+Shape::Shape(brain::Brain& kb, Number& id, CellI& color, Number& width, Number& height) :
     CellI(kb),
     m_id(id),
     m_color(color),

@@ -10,7 +10,7 @@ namespace arc {
 class Shape : public CellI
 {
 public:
-    Shape(brain::Brain& kb, Number& id, Number& color, Number& width, Number& height);
+    Shape(brain::Brain& kb, Number& id, CellI& color, Number& width, Number& height);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;
@@ -20,7 +20,7 @@ public:
     void accept(Visitor& visitor) override;
 
     Number& m_id;
-    Number& m_color;
+    CellI& m_color;
     Number& m_width;
     Number& m_height;
     CellI* m_lastEdgeId;

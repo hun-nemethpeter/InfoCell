@@ -2714,6 +2714,11 @@ CellI& Ast::Enum::compile(CellI& state)
                     auto& value         = enumValue[kb.ids.value];
                     auto& resolvedValue = resolveEnumValue(value);
                     auto& valueType     = resolvedValue.struct_();
+
+                    auto& compiledValue = *new Object(kb, compiledStruct, fmt::format("{}::{}", label(), enumValue.label()));
+                    compiledValue.set("tag", valueName);
+                    compiledValue.set(valueName, value[kb.ids.value]);
+                    compiledVariables.add(fullName, compiledValue);
                     compiledMembers.add(valueKey, valueType);
                 } else {
                     auto& compiledValue = *new Object(kb, compiledStruct, fmt::format("{}::{}", label(), enumValue.label()));
@@ -6687,7 +6692,7 @@ AstArc::AstArc(brain::Brain& kb) :
                   member("tests", tt_("std::List", "valueType", "Example")),
                   member("solution", _(std.Grid)));
 
-    arcScope.add<Enum>("ArcColor")
+    arcScope.add<Enum>("Color")
         .values(
             ev_("black", _(_0_)),
             ev_("blue", _(_1_)),
@@ -7191,7 +7196,7 @@ AstArc::AstArc(brain::Brain& kb) :
                                     var_("shape") = get(var_("colX")("getValue")("key", *var_("pixel") / _(coordinates.x)), "shape"),
                                     if_(same(p_("shape"), *var_("shape")))
                                         .then_(return_()))))),
-                    if_(equal(*var_("pixel") / "color", p_("shape") / "color"))
+                    if_(same(*var_("pixel") / "color", p_("shape") / "color"))
                         .then_(p_("checkPixels")("add")("value", *var_("pixel"))))));
 }
 

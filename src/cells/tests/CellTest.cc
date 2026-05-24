@@ -1,6 +1,5 @@
 ﻿#include "CellTestBase.h"
 
-#include <fmt/core.h>
 #include <fstream>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/screen/screen.hpp>
@@ -14,8 +13,6 @@
 #include "arc/Task.h"
 #include "arc/hybridcells/Grid.h"
 #include "cells/Cells.h"
-#include "cells/printers/StructPrinter.h"
-#include "cells/printers/ValuePrinter.h"
 #include "tui/App.h"
 
 namespace fs = std::filesystem;
@@ -1485,7 +1482,9 @@ static ftxui::Element renderShape(CellI& shape)
     CellI* currentPixelItem = &pixelList["first"];
     int shapePixelX         = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
     int shapePixelY         = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
-    int shapeColorNum       = static_cast<Number&>(shape["color"]).value();
+    CellI& shapeColorTag    = shape["color"]["tag"];
+    CellI& shapeColorValue  = shape["color"][shapeColorTag];
+    int shapeColorNum       = static_cast<Number&>(shapeColorValue).value();
 
     const ftxui::Color& shapeColor = tui::App::arcColors[shapeColorNum];
     ftxui::Elements boardLines;
@@ -1514,7 +1513,10 @@ static ftxui::Element renderShape(CellI& shape)
 static void printVectorShape(CellI& shape)
 {
     std::map<int, std::map<int, ftxui::Color>> board;
-    int shapeColorNum   = static_cast<Number&>(shape["color"]).value();
+
+    CellI& shapeColorTag           = shape["color"]["tag"];
+    CellI& shapeColorValue         = shape["color"][shapeColorTag];
+    int shapeColorNum              = static_cast<Number&>(shapeColorValue).value();
     const ftxui::Color& shapeColor = tui::App::arcColors[shapeColorNum];
     int x       = static_cast<Number&>(shape["firstPixel"]["x"]).value();
     int y       = static_cast<Number&>(shape["firstPixel"]["y"]).value();
@@ -1831,7 +1833,9 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrize)
 
 std::string getArcColorName(CellI& hybridColor)
 {
-    infocell::arc::ColorId colorNum = static_cast<infocell::arc::ColorId>(static_cast<Number&>(hybridColor).value());
+    CellI& colorTag                 = hybridColor["tag"];
+    CellI& colorValue               = hybridColor[colorTag];
+    infocell::arc::ColorId colorNum = static_cast<infocell::arc::ColorId>(static_cast<Number&>(colorValue).value());
 
     return infocell::arc::getArcColorName(colorNum);
 }

@@ -320,9 +320,12 @@ public:
                     const int arrowLineLength = 30;
                     const int arrowLength     = 3;
 
-                    CellI& edgeNode  = edgeJoint[edgeJointSlotName];
-                    CellI& direction = edgeNode["direction"];
-                    int color        = static_cast<Number&>(edgeNode["edge"]["shape"]["color"]).value();
+                    CellI& edgeNode       = edgeJoint[edgeJointSlotName];
+                    CellI& direction      = edgeNode["direction"];
+                    CellI& edgeShapeColor = edgeNode["edge"]["shape"]["color"];
+                    CellI& colorTag       = edgeShapeColor["tag"];
+                    CellI& colorValue     = edgeShapeColor[colorTag];
+                    int color             = static_cast<Number&>(colorValue).value();
                     std::string debugText;
 
                     int startX    = -1;

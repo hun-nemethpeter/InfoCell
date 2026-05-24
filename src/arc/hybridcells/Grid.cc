@@ -1,3 +1,5 @@
+#include <array>
+
 #include "arc/Color.h"
 #include "arc/Grid.h"
 #include "cells/Brain.h"
@@ -11,14 +13,37 @@ namespace cells {
 namespace arc {
 
 // ============================================================================
-Grid::Grid(brain::Brain& kb, nativearc::Grid& picture) :
-    CellI(kb, picture.label()),
-    m_width(picture.width()),
-    m_height(picture.height()),
+Grid::Grid(brain::Brain& kb, nativearc::Grid& grid) :
+    CellI(kb, grid.label()),
+    m_width(grid.width()),
+    m_height(grid.height()),
     m_widthCell(kb.pools.numbers.get(m_width)),
     m_heightCell(kb.pools.numbers.get(m_height)),
     m_pixelsMap(kb, kb.std.Cell, kb.std.Pixel, "PixelsMap")
 {
+    static CellI& ArcColorBlack   = kb.getVariable("arc::Color::black");
+    static CellI& ArcColorBlue    = kb.getVariable("arc::Color::blue");
+    static CellI& ArcColorRed     = kb.getVariable("arc::Color::red");
+    static CellI& ArcColorGreen   = kb.getVariable("arc::Color::green");
+    static CellI& ArcColorYellow  = kb.getVariable("arc::Color::yellow");
+    static CellI& ArcColorGrey    = kb.getVariable("arc::Color::grey");
+    static CellI& ArcColorFuschia = kb.getVariable("arc::Color::fuschia");
+    static CellI& ArcColorOrange  = kb.getVariable("arc::Color::orange");
+    static CellI& ArcColorTeal    = kb.getVariable("arc::Color::teal");
+    static CellI& ArcColorBrown   = kb.getVariable("arc::Color::brown");
+    static std::array<CellI*, 10> arcColorEnumValues = {
+        &ArcColorBlack,
+        &ArcColorBlue,
+        &ArcColorRed,
+        &ArcColorGreen,
+        &ArcColorYellow,
+        &ArcColorGrey,
+        &ArcColorFuschia,
+        &ArcColorOrange,
+        &ArcColorTeal,
+        &ArcColorBrown
+    };
+
     const int gridSize = m_height * m_width;
 
     m_pixels.clear();
@@ -27,13 +52,13 @@ Grid::Grid(brain::Brain& kb, nativearc::Grid& picture) :
     int x = 0;
     int y = 0;
 
-    for (const infocell::arc::Color& color : picture.pixels()) {
-        int colorId = (int)color.id();
-        m_pixels.emplace_back(kb, x, y, colorId, *this);
+    for (const infocell::arc::Color& color : grid.pixels()) {
+        CellI& arcColorEnumValue = *arcColorEnumValues[(int)color.id()];
+        m_pixels.emplace_back(kb, x, y, arcColorEnumValue, *this);
         List pixelContent(kb, kb.std.Pixel);
         pixelContent.add(kb.pools.numbers.get(x));
         pixelContent.add(kb.pools.numbers.get(y));
-        m_pixelsMap.add(pixelContent, kb.pools.numbers.get(colorId));
+        m_pixelsMap.add(pixelContent, arcColorEnumValue);
         x = x + 1;
         if (x == m_width) {
             x = 0;
@@ -55,12 +80,12 @@ bool Grid::has(CellI& key)
 
 void Grid::set(CellI& key, CellI& value)
 {
-    throw "Changing a hybrid picture cell is not possible!";
+    throw "Changing a hybrid grid cell is not possible!";
 }
 
 void Grid::erase(CellI& key)
 {
-    throw "Changing a hybrid picture cell is not possible!";
+    throw "Changing a hybrid grid cell is not possible!";
 }
 
 void Grid::operator()()
