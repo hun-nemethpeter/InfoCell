@@ -66,6 +66,12 @@ void EdgeDetector::detect()
     sortShapePoints();
     calculateEdgesForShapes();
     processEdgeNodes();
+    findRotationCornersUpLeft();
+    findRotationCornersUpRight();
+    findRotationCornersDownLeft();
+    findRotationCornersDownRight();
+    findMirroringCornersUpRight();
+    findMirroringCornersDownLeft();
 }
 
 void EdgeDetector::frameProcess()
@@ -1372,12 +1378,6 @@ void EdgeDetector::processEdgeNodes()
             shapePointPtr = nullptr;
         }
     }
-    findRotationCornersUpLeft();
-    findRotationCornersUpRight();
-    findRotationCornersDownLeft();
-    findRotationCornersDownRight();
-    findMirroringCornersUpRight();
-    findMirroringCornersDownLeft();
 }
 
 void EdgeDetector::findRotationCornersUpLeft()
@@ -1762,6 +1762,186 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
 
        An other clue is that what is fix and what is changing.
 
+#endif
+}
+class Offset
+{
+public:
+    bool operator<(const Offset& rhs) const
+    {
+        return std::tie(m_x, m_y) < std::tie(rhs.m_x, rhs.m_y);
+    }
+
+    int m_x;
+    int m_y;
+};
+
+class InternalEdge;
+
+class Shape
+{
+public:
+    Shape(cells::CellI& color) : m_color(&color) { }
+    InternalEdge& addInternalEdge(const Offset& offset);
+
+    std::list<CellI*> m_externalEdgeLine;
+    cells::CellI* m_color; // arc::Color
+    std::map<Offset, InternalEdge> m_internalEdges;
+};
+
+class InternalEdge
+{
+public:
+    // getShape(pos) == shape
+    Shape& addShape(const Offset& offset, cells::CellI& color)
+    {
+        auto it = m_shapesMap.insert({offset, color});
+        return it.first->second;
+    }
+
+    Shape getShape(const Offset& offset);
+
+    std::list<CellI*> m_edgeLine;
+    std::map<Offset, Shape> m_shapesMap;
+};
+
+InternalEdge& Shape::addInternalEdge(const Offset& offset)
+{
+    return m_internalEdges[offset];
+}
+
+class RootFrame
+{
+public:
+    RootFrame(int width, int height) :
+        m_width(width), m_height(height) { }
+
+    Shape& addShape(const Offset& offset, cells::CellI& color)
+    {
+        return m_internalEdge.addShape(offset, color);
+    }
+
+    int m_width;
+    int m_height;
+    InternalEdge m_internalEdge;
+};
+
+void EdgeDetector::createResult()
+{
+    int width = static_cast<Number&>(frame().get(kb.ids.width)).value();
+    int height = static_cast<Number&>(frame().get(kb.ids.height)).value();
+    RootFrame rootFrame(width, height);
+
+    Visitor::visitList(frame()["shapes"], [this, &rootFrame](CellI& currentShape, int, bool&) {
+        TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
+
+        // offset
+        CellI& firstPoint = currentShape["shapePoints"][kb.ids.first][kb.ids.value];
+        int x             = static_cast<Number&>(firstPoint["x"]).value();
+        int y             = static_cast<Number&>(firstPoint["y"]).value();
+        Offset offset(x, y);
+        Shape& shape     = rootFrame.addShape(offset, currentShape["color"]);
+        CellI& edgesList = currentShape["edges"]["list"];
+
+        Visitor::visitList(edgesList, [this, &shape](CellI& currentEdge, int i, bool&) {
+            CellI& edgeKind               = currentEdge["kind"];
+            std::list<CellI*>* outEdgePtr = nullptr;
+            if (&edgeKind == &ExternalEdgeEV) {
+                outEdgePtr = &shape.m_externalEdgeLine;
+            } else {
+                int x = static_cast<Number&>(currentEdge["fromExternalX"]).value();
+                int y = static_cast<Number&>(currentEdge["fromExternalY"]).value();
+                Offset offset(x, y);
+                outEdgePtr = &shape.addInternalEdge(offset).m_edgeLine;
+            }
+            std::list<CellI*>& outEdge = *outEdgePtr;
+
+            Visitor::visitList(currentEdge["edgeNodes"], [this, &outEdge](CellI& node, int i, bool&) {
+                outEdge.push_back(&node["direction"]);
+            });
+        });
+    });
+    auto printDirection = [this](CellI& direction) {
+        if (&direction == &DirectionUpEV) {
+            std::cout << "🡩 ";
+        } else if (&direction == &DirectionDownEV) {
+            std::cout << "🡫 ";
+        } else if (&direction == &DirectionLeftEV) {
+            std::cout << "🡨 ";
+        } else if (&direction == &DirectionRightEV) {
+            std::cout << "🡪 ";
+        }
+    };
+    std::cout << "RootFrame(width: " << rootFrame.m_width << ", height: " << rootFrame.m_height << ")" << std::endl;
+    for (auto& offsetToShape : rootFrame.m_internalEdge.m_shapesMap) {
+        const Offset& offset = offsetToShape.first;
+        Shape& shape         = offsetToShape.second;
+        std::cout << "shape offset: [x:" << offset.m_x << ", y:" << offset.m_y << "], ext.edge : ";
+        for (auto& direction : shape.m_externalEdgeLine) {
+            printDirection(*direction);
+        }
+        for (auto& offsetToInternalEdge : shape.m_internalEdges) {
+            const Offset& offset       = offsetToInternalEdge.first;
+            InternalEdge& internalEdge = offsetToInternalEdge.second;
+            std::cout << ", offset: [x:" << offset.m_x << " , y: " << offset.m_y << "], int.edge : ";
+            for (auto& direction : internalEdge.m_edgeLine) {
+                printDirection(*direction);
+            }
+        }
+        std::cout << std::endl;
+    }
+#if 0
+class Pos
+{
+public:
+    int m_x;
+    int m_y;
+};
+class ExternalEdge;
+class InternalEdge;
+
+
+class Shape
+{
+public:
+    ExternalEdge* m_externalEdge;
+    cells::CellI& m_arcColor; // arc::Color
+    List m_internalEdges;
+};
+class InternalEdge
+{
+public:
+    // getShape(pos) == shape
+    void insertShape(Shape& shape);
+    Shape getShape(const Pos& pos);
+
+    Map<Pos, Shape> m_subShapes;
+};
+
+class RootFrame
+{
+    InternalEdge m_internalEdge;
+};
+
+InternalEdge internalEdge;
+description {
+var pos1 = new Point(1, 2);
+
+pos1.get(x) == 1;
+pos1.get(y) == 2;
+shape1.get(ids.color) == arc::Color::orange;
+shape1.get(ids.shapes) == { up, right, down, left }
+internalEdge.getShape(pos1) == shape1;
+internalEdge.getShape(new_("Vector", "constructor")("x", m_("x"))("y", m_("y"))) == shape1;
+
+// m_parentInternalEdge.getShape(m_pos) == m_shape
+struct SubShape {
+    InternalEdge m_parentInternalEdge;
+    Pos m_pos;
+    Shape m_shape;
+};
+
+}
 #endif
 }
 

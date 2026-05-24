@@ -954,6 +954,7 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareExactMatch)
     detect(frame1);
     CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
+    createResult();
 
     detect(frame2);
     CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(kb.name("getValue"), { kb.ids.key, _2_ });

@@ -23,25 +23,6 @@ public:
     cells::arc::Grid& inputHybridGrid();
 
 protected:
-    void detect();
-
-    virtual void frameProcess();
-    virtual void sortShapePixelsAndCreateShapePoints();
-    virtual void sortShapePoints();
-    virtual void calculateEdgesForShapes();
-    virtual void processEdgeNodes();
-
-    cells::CellI* firstShapePixelPtr();
-    void addEdgeToShape(cells::CellI& shape, cells::CellI& newEdgeId, cells::CellI& newEdge);
-    int getShapeEdgesSize(cells::CellI& shape);
-    void findRotationCornersUpLeft();
-    void findRotationCornersUpRight();
-    void findRotationCornersDownLeft();
-    void findRotationCornersDownRight();
-    void findMirroringCornersUpRight();
-    void findMirroringCornersDownLeft();
-    void findPossibleBackgroundWithShapes();
-
     enum class ScanLineState
     {
         Up,
@@ -49,7 +30,26 @@ protected:
         Down
     };
 
-public:
+    void detect();
+
+    virtual void frameProcess();
+    virtual void sortShapePixelsAndCreateShapePoints();
+    virtual void sortShapePoints();
+    virtual void calculateEdgesForShapes();
+    virtual void processEdgeNodes();
+    virtual void findRotationCornersUpLeft();
+    virtual void findRotationCornersUpRight();
+    virtual void findRotationCornersDownLeft();
+    virtual void findRotationCornersDownRight();
+    virtual void findMirroringCornersUpRight();
+    virtual void findMirroringCornersDownLeft();
+    virtual void findPossibleBackgroundWithShapes();
+    virtual void createResult();
+
+    cells::CellI* firstShapePixelPtr();
+    void addEdgeToShape(cells::CellI& shape, cells::CellI& newEdgeId, cells::CellI& newEdge);
+    int getShapeEdgesSize(cells::CellI& shape);
+
     cells::CellI& FrameStruct;
     cells::CellI& ShapeStruct;
     cells::CellI& ShapePointStruct;
