@@ -70,10 +70,10 @@ public:
     {
         EdgeDetector::processEdgeNodes();
         validateEdgePoints();
-        // drawSvgFromShapePointEdgeJoints();
+        drawSvgFromShapePointEdgeJoints();
         printShapeIdGrid();
         printShapeIdGridAsJson();
-        // printEdges();
+        printEdges();
         printShapeRelations();
         findPossibleBackgroundWithShapes();
     }

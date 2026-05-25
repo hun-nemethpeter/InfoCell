@@ -1769,7 +1769,7 @@ class Offset
 public:
     bool operator<(const Offset& rhs) const
     {
-        return std::tie(m_x, m_y) < std::tie(rhs.m_x, rhs.m_y);
+        return std::tie(m_y, m_x) < std::tie(rhs.m_y, rhs.m_x);
     }
 
     int m_x;
@@ -1781,11 +1781,12 @@ class InternalEdge;
 class Shape
 {
 public:
-    Shape(cells::CellI& color) : m_color(&color) { }
+    Shape(cells::CellI& color, std::list<CellI*>& externalEdgeLine, std::map<Offset, InternalEdge>& internalEdges) :
+        m_color(color), m_externalEdgeLine(externalEdgeLine), m_internalEdges(internalEdges) { }
     InternalEdge& addInternalEdge(const Offset& offset);
 
     std::list<CellI*> m_externalEdgeLine;
-    cells::CellI* m_color; // arc::Color
+    cells::CellI& m_color; // arc::Color
     std::map<Offset, InternalEdge> m_internalEdges;
 };
 
@@ -1793,10 +1794,9 @@ class InternalEdge
 {
 public:
     // getShape(pos) == shape
-    Shape& addShape(const Offset& offset, cells::CellI& color)
+    void addShape(const Offset& offset, Shape& shape)
     {
-        auto it = m_shapesMap.insert({offset, color});
-        return it.first->second;
+        m_shapesMap.insert({offset, shape});
     }
 
     Shape getShape(const Offset& offset);
@@ -1813,16 +1813,16 @@ InternalEdge& Shape::addInternalEdge(const Offset& offset)
 class RootFrame
 {
 public:
-    RootFrame(int width, int height) :
-        m_width(width), m_height(height) { }
+    RootFrame(brain::Brain& kb, int width, int height) :
+        m_width(kb, width), m_height(kb, height) { }
 
-    Shape& addShape(const Offset& offset, cells::CellI& color)
+    void addShape(const Offset& offset, Shape& shape)
     {
-        return m_internalEdge.addShape(offset, color);
+        m_internalEdge.addShape(offset, shape);
     }
 
-    int m_width;
-    int m_height;
+    Number m_width;
+    Number m_height;
     InternalEdge m_internalEdge;
 };
 
@@ -1830,7 +1830,20 @@ void EdgeDetector::createResult()
 {
     int width = static_cast<Number&>(frame().get(kb.ids.width)).value();
     int height = static_cast<Number&>(frame().get(kb.ids.height)).value();
-    RootFrame rootFrame(width, height);
+    RootFrame rootFrame(kb, width, height);
+    std::list<CellI*>& rootFrameEdgeLine = rootFrame.m_internalEdge.m_edgeLine;
+    for (int i = 0; i < width; i++) {
+        rootFrameEdgeLine.push_back(&DirectionRightEV);
+    }
+    for (int i = 0; i < height; i++) {
+        rootFrameEdgeLine.push_back(&DirectionDownEV);
+    }
+    for (int i = 0; i < width; i++) {
+        rootFrameEdgeLine.push_back(&DirectionLeftEV);
+    }
+    for (int i = 0; i < height; i++) {
+        rootFrameEdgeLine.push_back(&DirectionUpEV);
+    }
 
     Visitor::visitList(frame()["shapes"], [this, &rootFrame](CellI& currentShape, int, bool&) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
@@ -1840,19 +1853,20 @@ void EdgeDetector::createResult()
         int x             = static_cast<Number&>(firstPoint["x"]).value();
         int y             = static_cast<Number&>(firstPoint["y"]).value();
         Offset offset(x, y);
-        Shape& shape     = rootFrame.addShape(offset, currentShape["color"]);
         CellI& edgesList = currentShape["edges"]["list"];
+        std::list<CellI*> externalEdgeLine;
+        std::map<Offset, InternalEdge> internalEdges;
 
-        Visitor::visitList(edgesList, [this, &shape](CellI& currentEdge, int i, bool&) {
+        Visitor::visitList(edgesList, [this, &externalEdgeLine, &internalEdges](CellI& currentEdge, int i, bool&) {
             CellI& edgeKind               = currentEdge["kind"];
             std::list<CellI*>* outEdgePtr = nullptr;
             if (&edgeKind == &ExternalEdgeEV) {
-                outEdgePtr = &shape.m_externalEdgeLine;
+                outEdgePtr = &externalEdgeLine;
             } else {
                 int x = static_cast<Number&>(currentEdge["fromExternalX"]).value();
                 int y = static_cast<Number&>(currentEdge["fromExternalY"]).value();
                 Offset offset(x, y);
-                outEdgePtr = &shape.addInternalEdge(offset).m_edgeLine;
+                outEdgePtr = &internalEdges[offset].m_edgeLine;
             }
             std::list<CellI*>& outEdge = *outEdgePtr;
 
@@ -1860,6 +1874,8 @@ void EdgeDetector::createResult()
                 outEdge.push_back(&node["direction"]);
             });
         });
+        Shape shape(currentShape["color"], externalEdgeLine, internalEdges);
+        rootFrame.addShape(offset, shape);
     });
     auto printDirection = [this](CellI& direction) {
         if (&direction == &DirectionUpEV) {
@@ -1872,58 +1888,54 @@ void EdgeDetector::createResult()
             std::cout << "🡪 ";
         }
     };
-    std::cout << "RootFrame(width: " << rootFrame.m_width << ", height: " << rootFrame.m_height << ")" << std::endl;
+    std::cout << "RootFrame rootFrame(width: " << static_cast<Number&>(rootFrame.m_width).value() << ", height: " << static_cast<Number&>(rootFrame.m_height).value() << ");" << std::endl;
+    int i = 0;
     for (auto& offsetToShape : rootFrame.m_internalEdge.m_shapesMap) {
         const Offset& offset = offsetToShape.first;
         Shape& shape         = offsetToShape.second;
-        std::cout << "shape offset: [x:" << offset.m_x << ", y:" << offset.m_y << "], ext.edge : ";
+        std::cout << "rootFrame.addShape({ " << shape.m_color.label() << ", [" << offset.m_x << ", " << offset.m_y << "], { ";
         for (auto& direction : shape.m_externalEdgeLine) {
             printDirection(*direction);
+        }
+        std::cout << "}";
+        if (!shape.m_internalEdges.empty()) {
+            std::cout << ", inEdges: {";
         }
         for (auto& offsetToInternalEdge : shape.m_internalEdges) {
             const Offset& offset       = offsetToInternalEdge.first;
             InternalEdge& internalEdge = offsetToInternalEdge.second;
-            std::cout << ", offset: [x:" << offset.m_x << " , y: " << offset.m_y << "], int.edge : ";
+            std::cout << "[" << offset.m_x << ", " << offset.m_y << "], { ";
             for (auto& direction : internalEdge.m_edgeLine) {
                 printDirection(*direction);
             }
+            std::cout << "}";
         }
-        std::cout << std::endl;
+        if (!shape.m_internalEdges.empty()) {
+            std::cout << "}";
+        }
+        std::cout << "});" << std::endl;
+        i++;
     }
 #if 0
-class Pos
-{
-public:
-    int m_x;
-    int m_y;
-};
-class ExternalEdge;
-class InternalEdge;
+┌──┬──┬──┬──┐
+│  │██│██│██│
+├──┼──┼──┼──┤
+│██│██│  │██│
+├──┼──┼──┼──┤
+│  │██│██│██│
+└──┴──┴──┴──┘
+RootFrame rootFrame(width: 4, height: 3);
+rootFrame.addShape({[0, 0], { Color::black,  🡪 🡫 🡨 🡩 });
+rootFrame.addShape({[1, 0], { Color::orange, 🡪 🡪 🡪 🡫 🡫 🡫 🡨 🡨 🡨 🡩 🡨 🡩 🡪 🡩 }, inEdges: {[1, 1], { 🡪 🡫 🡨 🡩 }});
+rootFrame.addShape({[2, 1], { Color::black,  🡪 🡫 🡨 🡩 });
+rootFrame.addShape({[0, 2], { Color::black,  🡪 🡫 🡨 🡩 });
 
+// rootFrame = new RootFrame(.width = 4, .height = 3)
+// this.getShape([0, 0]) == { Color::black,  🡪 🡫 🡨 🡩 };
+// this.getShape([1, 0]) == { Color::orange, 🡪 🡫 🡨 🡩 }, inEdges: {[1, 1], { 🡪 🡫 🡨 🡩 }};
+// this.getShape([2, 1]) == { Color::black,  🡪 🡫 🡨 🡩 };
+// this.getShape([0, 2]) == { Color::black,  🡪 🡫 🡨 🡩 };
 
-class Shape
-{
-public:
-    ExternalEdge* m_externalEdge;
-    cells::CellI& m_arcColor; // arc::Color
-    List m_internalEdges;
-};
-class InternalEdge
-{
-public:
-    // getShape(pos) == shape
-    void insertShape(Shape& shape);
-    Shape getShape(const Pos& pos);
-
-    Map<Pos, Shape> m_subShapes;
-};
-
-class RootFrame
-{
-    InternalEdge m_internalEdge;
-};
-
-InternalEdge internalEdge;
 description {
 var pos1 = new Point(1, 2);
 
