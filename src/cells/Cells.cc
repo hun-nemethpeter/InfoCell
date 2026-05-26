@@ -2497,6 +2497,63 @@ CellI& TrieMap::getValue(CellI& key)
     return (*currentNode)[kb.ids.data][kb.ids.value][kb.ids.value];
 }
 
+CellI& TrieMap::getValueWithDataKey(CellI& key)
+{
+    CellI* currentNode = &m_rootNode;
+
+    CellI& test = key.struct_();
+    Visitor::visitList(key.struct_()[kb.ids.slots][kb.ids.list], [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+        CellI& keyItem  = key[slot[kb.ids.key]];
+        CellI* children = nullptr;
+        if (currentNode->missing(kb.ids.children)) {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+        if (childrenIndex.has(keyItem)) {
+            children = &childrenIndex.get(keyItem);
+        } else {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        currentNode = children;
+    });
+
+    if (!currentNode || currentNode->missing(kb.ids.data)) {
+        throw "No such key!";
+    }
+
+    return (*currentNode)[kb.ids.data][kb.ids.value][kb.ids.value];
+}
+
+void TrieMap::addWithDataKey(CellI& key, CellI& value)
+{
+    CellI* currentNode = &m_rootNode;
+
+    Visitor::visitList(key.struct_()[kb.ids.slots][kb.ids.list], [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+        CellI& keyItem = key[slot[kb.ids.key]];
+        CellI* child = nullptr;
+        if (currentNode->missing(kb.ids.children)) {
+            currentNode->set(kb.ids.children, *new Index(kb));
+        }
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+        if (childrenIndex.has(keyItem)) {
+            child = &childrenIndex.get(keyItem);
+        } else {
+            child = new Object(kb, kb.std.TrieMapNode);
+            child->set(kb.ids.parent, *currentNode);
+            childrenIndex.insert(keyItem, *child);
+        }
+        currentNode = child;
+    });
+
+    List::Item& item = *m_list.add(kb.std.kvPair(key, value));
+    currentNode->set(kb.ids.data, item);
+    ++m_size;
+}
+
 void TrieMap::add(CellI& key, CellI& value)
 {
     if (isA(key, kb.std.List)) {

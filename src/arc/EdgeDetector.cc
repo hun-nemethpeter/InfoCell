@@ -1764,59 +1764,300 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
 
 #endif
 }
-class Offset
+class Vector : public cells::CellI
 {
 public:
-    bool operator<(const Offset& rhs) const
+    Vector(brain::Brain& kb, Number& x, Number& y) :
+        CellI(kb, "Vector"),
+        m_x(x),
+        m_y(y)
+    { }
+
+    bool has(CellI& key) override
     {
-        return std::tie(m_y, m_x) < std::tie(rhs.m_y, rhs.m_x);
+        if (&key == &kb.ids.struct_) {
+            return true;
+        }
+        if (&key == &kb.coordinates.x) {
+            return true;
+        }
+        if (&key == &kb.coordinates.y) {
+            return true;
+        }
+
+        return false;
     }
 
-    int m_x;
-    int m_y;
+    void set(CellI& key, CellI& value) override
+    {
+        throw "Changing a hybrid offset cell is not possible!";
+    }
+
+    void erase(CellI& key) override
+    {
+        throw "Changing a hybrid offset cell is not possible!";
+    }
+
+    void operator()() override
+    {
+        // Do nothing, this is a data cell
+    }
+
+    CellI& operator[](CellI& key) override
+    {
+        if (&key == &kb.ids.struct_) {
+            static CellI& VectorStruct = kb.getStruct("arc::Vector");
+
+            return VectorStruct;
+        }
+        if (&key == &kb.coordinates.x) {
+            return m_x;
+        }
+        if (&key == &kb.coordinates.y) {
+            return m_y;
+        }
+
+        throw "No such key!";
+    }
+
+    void accept(Visitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    Number& m_x;
+    Number& m_y;
 };
 
-class InternalEdge;
-
-class Shape
+class Shape : public cells::CellI
 {
 public:
-    Shape(cells::CellI& color, std::list<CellI*>& externalEdgeLine, std::map<Offset, InternalEdge>& internalEdges) :
-        m_color(color), m_externalEdgeLine(externalEdgeLine), m_internalEdges(internalEdges) { }
-    InternalEdge& addInternalEdge(const Offset& offset);
+    Shape(brain::Brain& kb, cells::CellI& color, List& externalEdgeLine, cells::TrieMap& internalEdges) :
+        cells::CellI(kb),
+        m_color(color),
+        m_externalEdgeLine(externalEdgeLine),
+        m_internalEdges(internalEdges) { }
 
-    std::list<CellI*> m_externalEdgeLine;
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::erase;
+    using CellI::operator[];
+
+    bool has(CellI& key) override
+    {
+        if (&key == &kb.ids.struct_) {
+            return true;
+        }
+        if (&key == &kb.name("externalEdgeLine")) {
+            return true;
+        }
+        if (&key == &kb.ids.color) {
+            return true;
+        }
+        if (&key == &kb.name("internalEdges")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    void set(CellI& key, CellI& value) override
+    {
+        throw "Changing a hybrid offset cell is not possible!";
+    }
+
+    void erase(CellI& key) override
+    {
+        throw "Changing a hybrid offset cell is not possible!";
+    }
+
+    void operator()() override
+    {
+        // Do nothing, this is a data cell
+    }
+
+    CellI& operator[](CellI& key) override
+    {
+        if (&key == &kb.ids.struct_) {
+            return kb.std.Cell; // TODO
+        }
+        if (&key == &kb.name("externalEdgeLine")) {
+            return m_externalEdgeLine;
+        }
+        if (&key == &kb.ids.color) {
+            return m_color;
+        }
+        if (&key == &kb.name("internalEdges")) {
+            return m_internalEdges;
+        }
+
+        throw "No such key!";
+    }
+
+    void accept(Visitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    List& m_externalEdgeLine;
     cells::CellI& m_color; // arc::Color
-    std::map<Offset, InternalEdge> m_internalEdges;
+    cells::TrieMap& m_internalEdges;
 };
 
-class InternalEdge
+class InternalEdge : public cells::CellI
 {
 public:
-    // getShape(pos) == shape
-    void addShape(const Offset& offset, Shape& shape)
+    InternalEdge(brain::Brain& kb) :
+        cells::CellI(kb),
+        m_edgeLine(kb, kb.std.Cell),
+        m_shapesMap(kb, kb.std.Char, kb.std.Cell)
+    {}
+
+    using CellI::erase;
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::operator[];
+
+    bool has(CellI& key) override
     {
-        m_shapesMap.insert({offset, shape});
+        if (&key == &kb.ids.struct_) {
+            return true;
+        }
+        if (&key == &kb.name("edgeLine")) {
+            return true;
+        }
+        if (&key == &kb.name("shapesMap")) {
+            return true;
+        }
+
+        return false;
     }
 
-    Shape getShape(const Offset& offset);
+    void set(CellI& key, CellI& value) override
+    {
+        throw "Changing a hybrid offset cell is not possible!";
+    }
 
-    std::list<CellI*> m_edgeLine;
-    std::map<Offset, Shape> m_shapesMap;
+    void erase(CellI& key) override
+    {
+        throw "Changing a hybrid offset cell is not possible!";
+    }
+
+    void operator()() override
+    {
+        // Do nothing, this is a data cell
+    }
+
+    CellI& operator[](CellI& key) override
+    {
+        if (&key == &kb.ids.struct_) {
+            return kb.std.Cell; // TODO
+        }
+        if (&key == &kb.name("edgeLine")) {
+            return m_edgeLine;
+        }
+        if (&key == &kb.name("shapesMap")) {
+            return m_shapesMap;
+        }
+
+        throw "No such key!";
+    }
+
+    void accept(Visitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    // getShape(pos) == shape
+    void addShape(Vector& offset, Shape& shape)
+    {
+        m_shapesMap.addWithDataKey(offset, shape);
+    }
+
+    Shape& getShape(const Vector& offset);
+
+    List m_edgeLine;
+    cells::TrieMap m_shapesMap;
 };
 
-InternalEdge& Shape::addInternalEdge(const Offset& offset)
-{
-    return m_internalEdges[offset];
-}
-
-class RootFrame
+class RootFrame : public cells::CellI
 {
 public:
     RootFrame(brain::Brain& kb, int width, int height) :
-        m_width(kb, width), m_height(kb, height) { }
+        cells::CellI(kb),
+        m_width(kb, width),
+        m_height(kb, height),
+        m_internalEdge(kb)
+    { }
 
-    void addShape(const Offset& offset, Shape& shape)
+    using CellI::erase;
+    using CellI::get;
+    using CellI::has;
+    using CellI::missing;
+    using CellI::set;
+    using CellI::operator[];
+
+    bool has(CellI& key) override
+    {
+        if (&key == &kb.ids.struct_) {
+            return true;
+        }
+        if (&key == &kb.ids.width) {
+            return true;
+        }
+        if (&key == &kb.ids.height) {
+            return true;
+        }
+        if (&key == &kb.name("internalEdge")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    void set(CellI& key, CellI& value) override
+    {
+        throw "Changing a hybrid offset cell is not possible!";
+    }
+
+    void erase(CellI& key) override
+    {
+        throw "Changing a hybrid offset cell is not possible!";
+    }
+
+    void operator()() override
+    {
+        // Do nothing, this is a data cell
+    }
+
+    CellI& operator[](CellI& key) override
+    {
+        if (&key == &kb.ids.struct_) {
+            return kb.std.Cell; // TODO
+        }
+        if (&key == &kb.ids.width) {
+            return m_width;
+        }
+        if (&key == &kb.ids.height) {
+            return m_height;
+        }
+        if (&key == &kb.name("internalEdge")) {
+            return m_internalEdge;
+        }
+
+        throw "No such key!";
+    }
+
+    void accept(Visitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
+
+    void addShape(Vector& offset, Shape& shape)
     {
         m_internalEdge.addShape(offset, shape);
     }
@@ -1831,50 +2072,54 @@ void EdgeDetector::createResult()
     int width = static_cast<Number&>(frame().get(kb.ids.width)).value();
     int height = static_cast<Number&>(frame().get(kb.ids.height)).value();
     RootFrame rootFrame(kb, width, height);
-    std::list<CellI*>& rootFrameEdgeLine = rootFrame.m_internalEdge.m_edgeLine;
+    List& rootFrameEdgeLine = rootFrame.m_internalEdge.m_edgeLine;
     for (int i = 0; i < width; i++) {
-        rootFrameEdgeLine.push_back(&DirectionRightEV);
+        rootFrameEdgeLine.add(DirectionRightEV);
     }
     for (int i = 0; i < height; i++) {
-        rootFrameEdgeLine.push_back(&DirectionDownEV);
+        rootFrameEdgeLine.add(DirectionDownEV);
     }
     for (int i = 0; i < width; i++) {
-        rootFrameEdgeLine.push_back(&DirectionLeftEV);
+        rootFrameEdgeLine.add(DirectionLeftEV);
     }
     for (int i = 0; i < height; i++) {
-        rootFrameEdgeLine.push_back(&DirectionUpEV);
+        rootFrameEdgeLine.add(DirectionUpEV);
     }
 
     Visitor::visitList(frame()["shapes"], [this, &rootFrame](CellI& currentShape, int, bool&) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
+        static CellI& ArcDirections = kb.getStruct("arc::Directions");
 
         // offset
-        CellI& firstPoint = currentShape["shapePoints"][kb.ids.first][kb.ids.value];
-        int x             = static_cast<Number&>(firstPoint["x"]).value();
-        int y             = static_cast<Number&>(firstPoint["y"]).value();
-        Offset offset(x, y);
-        CellI& edgesList = currentShape["edges"]["list"];
-        std::list<CellI*> externalEdgeLine;
-        std::map<Offset, InternalEdge> internalEdges;
+        CellI& firstPoint             = currentShape["shapePoints"][kb.ids.first][kb.ids.value];
+        Number& x                     = static_cast<Number&>(firstPoint["x"]);
+        Number& y                     = static_cast<Number&>(firstPoint["y"]);
+        Vector& offset                = *new Vector(kb, x, y);
+        CellI& edgesList              = currentShape["edges"]["list"];
+        List& externalEdgeLine        = *new List(kb, ArcDirections);
+        cells::TrieMap& internalEdges = *new TrieMap(kb, kb.std.Cell, kb.std.Cell);
 
         Visitor::visitList(edgesList, [this, &externalEdgeLine, &internalEdges](CellI& currentEdge, int i, bool&) {
-            CellI& edgeKind               = currentEdge["kind"];
-            std::list<CellI*>* outEdgePtr = nullptr;
+            CellI& edgeKind  = currentEdge["kind"];
+            List* outEdgePtr = nullptr;
             if (&edgeKind == &ExternalEdgeEV) {
                 outEdgePtr = &externalEdgeLine;
             } else {
-                int x = static_cast<Number&>(currentEdge["fromExternalX"]).value();
-                int y = static_cast<Number&>(currentEdge["fromExternalY"]).value();
-                Offset offset(x, y);
-                outEdgePtr = &internalEdges[offset].m_edgeLine;
+                Number& x                  = static_cast<Number&>(currentEdge["fromExternalX"]);
+                Number& y                  = static_cast<Number&>(currentEdge["fromExternalY"]);
+                Vector& offset             = *new Vector(kb, x, y);
+                InternalEdge& internalEdge = *new InternalEdge(kb);
+                List& internalEdgeLine     = internalEdge.m_edgeLine;
+                internalEdges.addWithDataKey(offset, internalEdge);
+                outEdgePtr = &internalEdgeLine;
             }
-            std::list<CellI*>& outEdge = *outEdgePtr;
+            List& outEdge = *outEdgePtr;
 
             Visitor::visitList(currentEdge["edgeNodes"], [this, &outEdge](CellI& node, int i, bool&) {
-                outEdge.push_back(&node["direction"]);
+                outEdge.add(node["direction"]);
             });
         });
-        Shape shape(currentShape["color"], externalEdgeLine, internalEdges);
+        Shape& shape = *new Shape(kb, currentShape["color"], externalEdgeLine, internalEdges);
         rootFrame.addShape(offset, shape);
     });
     auto printDirection = [this](CellI& direction) {
@@ -1889,33 +2134,32 @@ void EdgeDetector::createResult()
         }
     };
     std::cout << "RootFrame rootFrame(width: " << static_cast<Number&>(rootFrame.m_width).value() << ", height: " << static_cast<Number&>(rootFrame.m_height).value() << ");" << std::endl;
-    int i = 0;
-    for (auto& offsetToShape : rootFrame.m_internalEdge.m_shapesMap) {
-        const Offset& offset = offsetToShape.first;
-        Shape& shape         = offsetToShape.second;
-        std::cout << "rootFrame.addShape({ " << shape.m_color.label() << ", [" << offset.m_x << ", " << offset.m_y << "], { ";
-        for (auto& direction : shape.m_externalEdgeLine) {
-            printDirection(*direction);
-        }
+    CellI& shapesMap = rootFrame["internalEdge"]["shapesMap"];
+    Visitor::visitList(shapesMap[ids.list], [this, &printDirection, &shapesMap](CellI& kvPair, int, bool&) {
+        Vector& offset = static_cast<Vector&>(kvPair[kb.ids.key]);
+        Shape& shape   = static_cast<Shape&>(kvPair[kb.ids.value]);
+        std::cout << "rootFrame.addShape({ " << shape.m_color.label() << ", [" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
+        Visitor::visitList(shape["externalEdgeLine"], [this, &printDirection](CellI& direction, int, bool&) {
+            printDirection(direction);
+        });
         std::cout << "}";
         if (!shape.m_internalEdges.empty()) {
             std::cout << ", inEdges: {";
         }
-        for (auto& offsetToInternalEdge : shape.m_internalEdges) {
-            const Offset& offset       = offsetToInternalEdge.first;
-            InternalEdge& internalEdge = offsetToInternalEdge.second;
-            std::cout << "[" << offset.m_x << ", " << offset.m_y << "], { ";
-            for (auto& direction : internalEdge.m_edgeLine) {
-                printDirection(*direction);
-            }
+        Visitor::visitList(shape["internalEdges"][ids.list], [this, &printDirection, &shape](CellI& kvPair, int, bool&) {
+            Vector& offset             = static_cast<Vector&>(kvPair[kb.ids.key]);
+            InternalEdge& internalEdge = static_cast<InternalEdge&>(kvPair[kb.ids.value]);
+            std::cout << "[" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
+            Visitor::visitList(internalEdge["edgeLine"], [this, &printDirection](CellI& direction, int, bool&) {
+                printDirection(direction);
+            });
             std::cout << "}";
-        }
+        });
         if (!shape.m_internalEdges.empty()) {
             std::cout << "}";
         }
         std::cout << "});" << std::endl;
-        i++;
-    }
+    });
 #if 0
 ┌──┬──┬──┬──┐
 │  │██│██│██│

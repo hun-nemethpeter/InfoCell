@@ -370,6 +370,9 @@ public:
     bool hasKey(CellI& key);
     CellI& getValue(CellI& key);
 
+    CellI& getValueWithDataKey(CellI& key);
+    void addWithDataKey(CellI& key, CellI& value);
+
     void add(CellI& key, CellI& value);
     template <typename... Args>
     void add(CellI& key, CellI& value, Args&&... args)
