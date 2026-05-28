@@ -6971,7 +6971,6 @@ AstArc::AstArc(brain::Brain& kb) :
         = arcScope.add<Struct>("ShapeEdgeNode")
               .members(
                   member("edge", "ShapeEdge"),
-                  //                  member("section", "ShapeEdgeSection"),
                   member("from", "ShapePoint"),
                   member("direction", "Directions"),
                   member("externalShape", "Shape"),
