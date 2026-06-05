@@ -2049,12 +2049,36 @@ void EdgeDetector::createResult()
             std::cout << "🡪 ";
         }
     };
+    brain::CellTrie cellTrie(kb);
     std::cout << "RootFrame rootFrame(width: " << static_cast<Number&>(rootFrame.m_width).value() << ", height: " << static_cast<Number&>(rootFrame.m_height).value() << ");" << std::endl;
+    class RootFrameMaker : public brain::AstHelper
+    {
+    public:
+        Base* ast = nullptr;
+        RootFrameMaker(brain::Brain& kb, Number& width, Number& height) :
+            AstHelper(kb)
+        {
+            ast = &(var_("rootFrame") = new_("RootFrame", "new")("width", _(width))("height", _(height)));
+        }
+    } rootFrameMaker(kb, rootFrame.m_width, rootFrame.m_height);
+    CellI& astNewRootFrame = *rootFrameMaker.ast;
     CellI& shapesMap = rootFrame["shapesMap"];
     Visitor::visitList(shapesMap[ids.list], [this, &printDirection, &shapesMap](CellI& kvPair, int, bool&) {
         Vector& offset = static_cast<Vector&>(kvPair[kb.ids.key]);
         Shape& shape   = static_cast<Shape&>(kvPair[kb.ids.value]);
         std::cout << "rootFrame.addShape({ " << shape.m_color.label() << ", [" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
+
+        class GetShapeAst : public brain::AstHelper
+        {
+        public:
+            Base* ast = nullptr;
+            GetShapeAst(brain::Brain& kb, CellI& offset, CellI& shape) :
+                AstHelper(kb)
+            {
+                Base& var = equal(var_("rootFrame")("getShape")("offset", _(offset)), _(shape));
+            }
+        } getShapeAst(kb, offset, shape);
+
         Visitor::visitList(shape["externalEdgeLine"], [this, &printDirection](CellI& direction, int, bool&) {
             printDirection(direction);
         });
