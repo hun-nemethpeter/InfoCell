@@ -2049,7 +2049,7 @@ void EdgeDetector::createResult()
             std::cout << "🡪 ";
         }
     };
-    brain::ToolFinder toolFinder(kb);
+    ToolFinder toolFinder(kb);
     std::cout << "RootFrame rootFrame(width: " << static_cast<Number&>(rootFrame.m_width).value() << ", height: " << static_cast<Number&>(rootFrame.m_height).value() << ");" << std::endl;
     class RootFrameMaker : public brain::AstHelper
     {

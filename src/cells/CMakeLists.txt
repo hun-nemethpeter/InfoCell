@@ -8,6 +8,8 @@ add_library(cells-lib STATIC
     Brain.h
     NodeBase.cc
     NodeBase.h
+    ToolFinder.cc
+    ToolFinder.h
 )
 target_include_directories(cells-lib
     PUBLIC

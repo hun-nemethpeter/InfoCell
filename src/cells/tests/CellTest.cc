@@ -91,7 +91,7 @@ TEST_F(CellTest, StringSplitWithExtraChar)
 
 TEST_F(CellTest, CellTrieTestForSet)
 {
-    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
+    ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
     // test the pixel.set(green, 5)
     Object& pixel           = *new Object(kb, kb.std.Color, "pixel");
     CellI& requestForSetGet = *new Object(kb, kb.std.ast.Get);
@@ -124,7 +124,7 @@ TEST_F(CellTest, CellTrieTestForSet)
 
 TEST_F(CellTest, CellTrieTestForGet)
 {
-    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
+    ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
     Object& pixel                 = *new Object(kb, kb.std.Color, "pixel");
 
     // test the return get(x, y)
@@ -161,7 +161,7 @@ TEST_F(CellTest, CellTrieTestForGet)
 
 TEST_F(CellTest, CellTrieTestForGetInGet)
 {
-    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
+    ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
 
     // currentTheme is a test structure to be able to test a nested get. So instead of pixel.get(green) we can replace the "green" node with "currentTheme / std.Color" so we can write
     // currentTheme.get(std.Color).get(green) == 5
@@ -207,7 +207,7 @@ TEST_F(CellTest, CellTrieTestForGetInGet)
 
 TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
 {
-    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
+    ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
 
     class RequestHelper : public brain::AstHelper
     {
@@ -235,7 +235,7 @@ TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
 
 TEST_F(CellTest, CellTrieTestForMathAdd)
 {
-    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
+    ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
 
     class RequestHelper : public brain::AstHelper
     {
