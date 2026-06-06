@@ -118,7 +118,23 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
 {
     auto& effects = tool[kb.ids.description][kb.ids.asts];
     if (IS_LOG_ENABLED) {
-        TRACE(toolFinder, "tool {} =>", tool.label());
+        std::stringstream ss;
+
+        ss << "" << tool.label() << "(";
+
+        CellI& toolInputSlots = compiledToolType[kb.ids.slots][kb.ids.list];
+        Visitor::visitList(toolInputSlots, [this, &ss, &tool](CellI& slot, int i, bool& stop) {
+            if (i > 0) {
+                ss << ", ";
+            }
+            ss << slot[kb.ids.key].label() << ": " << slot[kb.ids.type].label();
+        });
+        ss << ")";
+        if (tool.has(kb.ids.returnType)) {
+            ss << ": " << tool[kb.ids.returnType][kb.ids.value].label();
+        }
+        TRACE(toolFinder, "{} =>", ss.str());
+
     }
     Visitor::visitList(effects, [this, &tool, &compiledToolType](CellI& effect, int i, bool& stop) {
         add(effect, tool, compiledToolType);
@@ -164,18 +180,18 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
                 }
             } else if (&value.struct_() == &kb.std.ast.Member || &value.struct_() == &kb.std.ast.Return) {
                 addValue(currentNode, kb.ids.op);
-                CellI* memberRolePtr = nullptr;
+                CellI* memberKeyPtr = nullptr;
                 if (&value.struct_() == &kb.std.ast.Member) {
                     addValue(currentNode, kb.ids.variable);
-                    memberRolePtr = &value[kb.ids.key];
+                    memberKeyPtr = &value[kb.ids.key];
                 } else {
                     addValue(currentNode, kb.ids.return_);
                     // TODO kb.ids.return_ can not be a member name
-                    memberRolePtr = &kb.ids.return_;
+                    memberKeyPtr = &kb.ids.return_;
                 }
-                CellI& memberRole = *memberRolePtr;
-                if (!memberIds.hasKey(memberRole)) {
-                    List& path = *new List(kb, kb.std.Cell, fmt::format("path for {}", memberRole.label()));
+                CellI& memberKey = *memberKeyPtr;
+                if (!memberIds.hasKey(memberKey)) {
+                    List& path = *new List(kb, kb.std.Cell, fmt::format("path for {}", memberKey.label()));
                     for (auto& stackItem : stack) {
                         if (&stackItem.ast.struct_() == &kb.std.ast.Return) {
                             continue;
@@ -184,7 +200,7 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
                         path.add(key);
                     }
                     path.add(slotItem[kb.ids.value][kb.ids.key]);
-                    memberIds.add(memberRole, path);
+                    memberIds.add(memberKey, path);
                 }
             } else if ((&key != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
                 addValue(currentNode, kb.ids.op);

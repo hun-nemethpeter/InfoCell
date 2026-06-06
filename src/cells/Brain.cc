@@ -4629,24 +4629,27 @@ void AstStd::createAst()
     astScope.add<Struct>("Add")
         .memberOf(
             _(std.ast.Base))
-        .primitiveTool().returnType(_(std.Number))
+        .primitiveTool()
+        .returnType(_(std.Number))
         .description(
             subtract(return_(), m_("rhs")) == m_("lhs"),
             subtract(return_(), m_("lhs")) == m_("rhs"),
             return_(add(m_("lhs"), m_("rhs"))),
             return_(add(m_("rhs"), m_("lhs"))))
         .members(
-            member("lhs", "std::Number"),
-            member("rhs", "std::Number"));
+            member("lhs", _(std.Number)),
+            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("And")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             return_(and_(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Boolean)),
+            member("rhs", _(std.Boolean)));
 
     astScope.add<Struct>("Block")
         .members(
@@ -4673,17 +4676,19 @@ void AstStd::createAst()
     astScope.add<Struct>("Divide")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Number))
         .description(
             // TODO check rhs != 0
             multiply(return_(), m_("rhs")) == m_("lhs"),
             return_(divide(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Number)),
+            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("Do")
         .members(
-            member("condition", "Base"),
+            member("condition", _(std.Boolean)),
             member("statement", "Base"));
 
     astScope.add<Struct>("Enum")
@@ -4702,6 +4707,8 @@ void AstStd::createAst()
     astScope.add<Struct>("Equal")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             return_(m_("lhs") == m_("rhs")))
         .members(
@@ -4744,6 +4751,8 @@ void AstStd::createAst()
     astScope.add<Struct>("Get")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.ast.Base))
         .description(
             return_(m_("cell") / m_("key")))
         .members(
@@ -4753,26 +4762,32 @@ void AstStd::createAst()
     astScope.add<Struct>("GreaterThan")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             lessThan(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
             return_(greaterThan(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Number)),
+            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("GreaterThanOrEqual")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             lessThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
             return_(greaterThanOrEqual(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Number)),
+            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("Has")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             return_(has(m_("cell"), m_("key"))))
         .members(
@@ -4794,22 +4809,26 @@ void AstStd::createAst()
     astScope.add<Struct>("LessThan")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             greaterThan(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
             return_(lessThan(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Number)),
+            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("LessThanOrEqual")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             greaterThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
             return_(lessThanOrEqual(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Number)),
+            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("Member")
         .members(
@@ -4818,6 +4837,8 @@ void AstStd::createAst()
     astScope.add<Struct>("Missing")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             return_(missing(m_("cell"), m_("key"))))
         .members(
@@ -4827,6 +4848,8 @@ void AstStd::createAst()
     astScope.add<Struct>("Multiply")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Number))
         .description(
 #if 0 // we need a precondition secton for this if block
             if_(notSame(m_("lhs"), _(kb._0_))).then_(
@@ -4839,8 +4862,8 @@ void AstStd::createAst()
 #endif
             return_(multiply(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Number)),
+            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("New")
         .members(
@@ -4849,12 +4872,16 @@ void AstStd::createAst()
             member("parameters", ListOf(std.ast.Slot)));
 
     astScope.add<Struct>("Not")
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .members(
             member("input", "Base"));
 
     astScope.add<Struct>("NotEqual")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             return_(notEqual(m_("lhs"), m_("rhs"))))
         .members(
@@ -4864,6 +4891,8 @@ void AstStd::createAst()
     astScope.add<Struct>("NotSame")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             return_(notSame(m_("lhs"), m_("rhs"))))
         .members(
@@ -4873,11 +4902,13 @@ void AstStd::createAst()
     astScope.add<Struct>("Or")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             return_(or_(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Boolean)),
+            member("rhs", _(std.Boolean)));
 
     astScope.add<Struct>("Parameter")
         .members(
@@ -4897,6 +4928,8 @@ void AstStd::createAst()
     astScope.add<Struct>("Same")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Boolean))
         .description(
             return_(same(m_("lhs"), m_("rhs"))))
         .members(
@@ -4923,6 +4956,7 @@ void AstStd::createAst()
     astScope.add<Struct>("Set")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
         .description(
             m_("cell") / m_("key") == m_("value"))
         .members(
@@ -4979,14 +5013,16 @@ void AstStd::createAst()
     astScope.add<Struct>("Subtract")
         .memberOf(
             _(std.ast.Base))
+        .primitiveTool()
+        .returnType(_(std.Number))
         .description(
             add(return_(), m_("rhs")) == m_("lhs"),
             add(m_("rhs"), return_()) == m_("lhs"),
 //            equal(m_("lhs"), add(return_(), m_("rhs"))),
             return_(subtract(m_("lhs"), m_("rhs"))))
         .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
+            member("lhs", _(std.Number)),
+            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("TemplatedType")
         .members(
@@ -5039,7 +5075,7 @@ void AstStd::createAst()
 
     astScope.add<Struct>("While")
         .members(
-            member("condition", "Base"),
+            member("condition", _(std.Boolean)),
             member("statement", "Base"));
 }
 
