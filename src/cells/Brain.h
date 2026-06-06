@@ -305,11 +305,11 @@ template <class T, class EnumValue, class TypedEnumValue>
 concept EnumValueConcept = std::is_same<T, EnumValue>::value || std::is_same<T, TypedEnumValue>::value;
 #endif
 
-class CellTrie
+class ToolFinder
 {
-    struct FindToolStackNode
+    struct StackNode
     {
-        CellI& astCell;
+        CellI& effectAst;
         CellI& slotItem;
     };
 
@@ -322,40 +322,50 @@ class CellTrie
         bool m_isLeaf = false;
     };
 
-    enum ToolKind
+    enum class SlotKind
     {
+        StructSlot,
+        NormalSlot
+    };
+
+    enum class ToolKind
+    {
+        // no return value e.g.: set(cell, key, value)
         Statement,
+        // has a return value, needs unification, e.g.: add(lhs, rhs) -> return
         Expression
     };
 
     struct FindContext
     {
-        Node* currentNode;
+        Node* trieNode;
         CellI* slotList;
         CellI* slotItemPtr;
-        bool first;
-        CellI* astCellPtr;
-        std::stack<FindToolStackNode> stack;
+        SlotKind slotKind;
+        CellI* effectAstPtr;
+        std::stack<StackNode> stack;
         ToolKind toolKind;
         CellI* expressionToolPtr;
     };
 
 public:
-    CellTrie(brain::Brain& kb);
+    ToolFinder(brain::Brain& kb);
+
     bool empty();
-    CellI& serializeAst(CellI& ast);
-    void add(CellI& ast, CellI& tool, CellI& compiledToolType);
-    CellI* findToolByAst(CellI& ast);
+    CellI& serializeEffectAst(CellI& ast);
+    void add(CellI& tool, CellI& compiledToolType);
+    void add(CellI& effect, CellI& tool, CellI& compiledToolType);
+    CellI* findToolByEffectAst(CellI& ast);
     void print();
 
 private:
-    CellI* findToolByAstImpl(CellI& ast, CellI*& toolAst);
+    CellI* findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& outputEffectAst);
     void createTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& toolDesc);
     void addValue(Node*& node, CellI& value);
     bool checkValue(FindContext& findContext, CellI& key, CellI& value);
-    void handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, std::stack<FindToolStackNode>& stack);
+    void handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::stack<StackNode>& stack);
     void printCb(Node* node);
-    CellI* processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds, CellI& compiledToolType);
+    CellI* processToolAst(CellI& toolAst, Map& memberIds, CellI& compiledToolType);
 
     brain::Brain& kb;
     std::unique_ptr<Node> m_root;
@@ -573,7 +583,7 @@ public:
             return getItemMember<TAst>().items();
         }
 
-        CellTrie* m_cellTrie = nullptr;
+        ToolFinder* m_toolFinder = nullptr;
 
     protected:
         void registerEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances);
@@ -611,6 +621,9 @@ public:
         void addMethod(Function& method);
 
     public:
+        StructBase& primitiveTool();
+        StructBase& returnType(CellI& type);
+
         template <typename... Args>
         StructBase& description(Args&&... args);
 

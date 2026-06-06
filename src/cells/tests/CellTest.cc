@@ -91,7 +91,7 @@ TEST_F(CellTest, StringSplitWithExtraChar)
 
 TEST_F(CellTest, CellTrieTestForSet)
 {
-    brain::CellTrie& cellTrie = *kb.globalScope.m_cellTrie;
+    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
     // test the pixel.set(green, 5)
     Object& pixel           = *new Object(kb, kb.std.Color, "pixel");
     CellI& requestForSetGet = *new Object(kb, kb.std.ast.Get);
@@ -102,7 +102,7 @@ TEST_F(CellTest, CellTrieTestForSet)
     requestForSet.set(kb.ids.lhs, requestForSetGet);
     requestForSet.set(kb.ids.rhs, kb.ast.cell(kb._5_));
 
-    CellI& requestForSetAstList = cellTrie.serializeAst(requestForSet);
+    CellI& requestForSetAstList = toolFinder.serializeEffectAst(requestForSet);
     {
         std::stringstream ss;
         Visitor::visitList(requestForSetAstList, [&ss](CellI& value, int, bool& stop) {
@@ -111,7 +111,7 @@ TEST_F(CellTest, CellTrieTestForSet)
         EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell pixel key green op pop rhs 5 ");
     }
 
-    CellI& resultToolAst = *cellTrie.findToolByAst(requestForSet);
+    CellI& resultToolAst = *toolFinder.findToolByEffectAst(requestForSet);
 
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
@@ -124,8 +124,8 @@ TEST_F(CellTest, CellTrieTestForSet)
 
 TEST_F(CellTest, CellTrieTestForGet)
 {
-    brain::CellTrie& cellTrie = *kb.globalScope.m_cellTrie;
-    Object& pixel             = *new Object(kb, kb.std.Color, "pixel");
+    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
+    Object& pixel                 = *new Object(kb, kb.std.Color, "pixel");
 
     // test the return get(x, y)
     CellI& requestForGetGet = *new Object(kb, kb.std.ast.Get);
@@ -135,7 +135,7 @@ TEST_F(CellTest, CellTrieTestForGet)
     CellI& requestForGet = *new Object(kb, kb.std.ast.Return, "return pixel.get(green)");
     requestForGet.set(kb.ids.value, requestForGetGet);
 
-    CellI& requestForGetAstList = cellTrie.serializeAst(requestForGet);
+    CellI& requestForGetAstList = toolFinder.serializeEffectAst(requestForGet);
     {
         std::stringstream ss;
         Visitor::visitList(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
@@ -149,7 +149,7 @@ TEST_F(CellTest, CellTrieTestForGet)
 
     // passing requestForGet here which is "return get(x, y)"
 #if 0 // TODO
-    CellI& resultToolAst    = *cellTrie.findToolByAst(requestForGet);
+    CellI& resultToolAst    = *toolFinder.findToolByAst(requestForGet);
 
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Get);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
@@ -161,7 +161,7 @@ TEST_F(CellTest, CellTrieTestForGet)
 
 TEST_F(CellTest, CellTrieTestForGetInGet)
 {
-    brain::CellTrie& cellTrie = *kb.globalScope.m_cellTrie;
+    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
 
     // currentTheme is a test structure to be able to test a nested get. So instead of pixel.get(green) we can replace the "green" node with "currentTheme / std.Color" so we can write
     // currentTheme.get(std.Color).get(green) == 5
@@ -181,7 +181,7 @@ TEST_F(CellTest, CellTrieTestForGetInGet)
     requestForSetWithGet.set(kb.ids.lhs, requestForSetWithGetGet);
     requestForSetWithGet.set(kb.ids.rhs, kb.ast.cell(kb._5_));
 
-    CellI& requestForSetWithGetAstList = cellTrie.serializeAst(requestForSetWithGet);
+    CellI& requestForSetWithGetAstList = toolFinder.serializeEffectAst(requestForSetWithGet);
     {
         std::stringstream ss;
         Visitor::visitList(requestForSetWithGetAstList, [&ss](CellI& value, int, bool& stop) {
@@ -190,7 +190,7 @@ TEST_F(CellTest, CellTrieTestForGetInGet)
         EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Get cell op push struct ast::Get cell currentTheme key Color op pop key green op pop rhs 5 ");
     }
 
-    CellI& resultToolAst    = *cellTrie.findToolByAst(requestForSetWithGet);
+    CellI& resultToolAst = *toolFinder.findToolByEffectAst(requestForSetWithGet);
 
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Get);
@@ -207,7 +207,7 @@ TEST_F(CellTest, CellTrieTestForGetInGet)
 
 TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
 {
-    brain::CellTrie& cellTrie = *kb.globalScope.m_cellTrie;
+    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
 
     class RequestHelper : public brain::AstHelper
     {
@@ -223,7 +223,7 @@ TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
         }
     } requestHelper(kb);
     CellI& request = *requestHelper.value;
-    CellI& serializedRequest = cellTrie.serializeAst(request);
+    CellI& serializedRequest = toolFinder.serializeEffectAst(request);
     {
         std::stringstream ss;
         Visitor::visitList(serializedRequest, [&ss](CellI& value, int, bool& stop) {
@@ -235,7 +235,7 @@ TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
 
 TEST_F(CellTest, CellTrieTestForMathAdd)
 {
-    brain::CellTrie& cellTrie = *kb.globalScope.m_cellTrie;
+    brain::ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
 
     class RequestHelper : public brain::AstHelper
     {
@@ -262,7 +262,7 @@ TEST_F(CellTest, CellTrieTestForMathAdd)
     CellI& request = *requestHelper.request;
     CellI& varX = *requestHelper.varX;
 
-    CellI& serializedRequest = cellTrie.serializeAst(request);
+    CellI& serializedRequest = toolFinder.serializeEffectAst(request);
     {
         std::stringstream ss;
         Visitor::visitList(serializedRequest, [&ss](CellI& value, int, bool& stop) {
@@ -271,7 +271,7 @@ TEST_F(CellTest, CellTrieTestForMathAdd)
         EXPECT_EQ(ss.str(), "struct ast::Equal lhs op push struct ast::Add lhs op push struct ast::Get cell x key value op pop rhs 2 op pop rhs 4 ");
     }
 
-    CellI& resultToolAst = *cellTrie.findToolByAst(request);
+    CellI& resultToolAst = *toolFinder.findToolByEffectAst(request);
 
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);

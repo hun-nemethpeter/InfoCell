@@ -286,30 +286,30 @@ cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
     return ret;
 }
 // ============================================================================
-CellTrie::Node::~Node()
+ToolFinder::Node::~Node()
 {
     for (auto& pair : m_children) {
         delete pair.second;
     }
 }
 
-CellTrie::CellTrie(brain::Brain& kb) :
+ToolFinder::ToolFinder(brain::Brain& kb) :
     kb(kb)
 {
     m_root = std::make_unique<Node>();
 }
 
-bool CellTrie::empty()
+bool ToolFinder::empty()
 {
     return m_root->m_children.empty();
 }
 
-CellI& CellTrie::serializeAst(CellI& ast)
+CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
 {
-    CellI& slotList    = ast.struct_()[kb.ids.slots][kb.ids.list];
+    CellI& slotList    = effectAst.struct_()[kb.ids.slots][kb.ids.list];
     CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
     List& ret          = *new List(kb, kb.std.Cell);
-    ret.label(ast.label());
+    ret.label(effectAst.label());
     struct Context
     {
         CellI& ast;
@@ -317,7 +317,7 @@ CellI& CellTrie::serializeAst(CellI& ast)
     };
     std::stack<Context> stack;
     bool first        = true;
-    CellI* currentPtr = &ast;
+    CellI* currentPtr = &effectAst;
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[kb.ids.value];
@@ -374,7 +374,8 @@ CellI& CellTrie::serializeAst(CellI& ast)
 
     return ret;
 }
-void CellTrie::addValue(Node*& node, CellI& value)
+
+void ToolFinder::addValue(Node*& node, CellI& value)
 {
     Node*& roleNode = node->m_children[&value];
     if (roleNode == nullptr) {
@@ -383,7 +384,18 @@ void CellTrie::addValue(Node*& node, CellI& value)
     node = roleNode;
 }
 
-void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
+void ToolFinder::add(CellI& tool, CellI& compiledToolType)
+{
+    auto& effects = tool[kb.ids.description][kb.ids.asts];
+    if (IS_LOG_ENABLED) {
+        TRACE(toolFinder, "tool {} =>", tool.label());
+    }
+    Visitor::visitList(effects, [this, &tool, &compiledToolType](CellI& effect, int i, bool& stop) {
+        add(effect, tool, compiledToolType);
+    });
+}
+
+void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
 {
     struct Context
     {
@@ -393,10 +405,10 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
     std::deque<Context> stack;
 
     Node* currentNode  = m_root.get();
-    CellI& slotList    = ast.struct_()[kb.ids.slots][kb.ids.list];
+    CellI& slotList    = effect.struct_()[kb.ids.slots][kb.ids.list];
     CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
     bool first         = true;
-    CellI* currentPtr  = &ast;
+    CellI* currentPtr  = &effect;
     Map memberIds(kb, kb.std.Cell, kb.std.Cell);
 
     while (slotItemPtr) {
@@ -465,12 +477,20 @@ void CellTrie::add(CellI& ast, CellI& tool, CellI& compiledToolType)
         }
     }
 
-    // At the end of the word, mark this node as the leaf node
     currentNode->m_isLeaf = 1;
-    currentNode->m_data   = processToolAst(ast, tool, memberIds, compiledToolType);
+    currentNode->m_data   = processToolAst(tool, memberIds, compiledToolType);
+
+    if (IS_LOG_ENABLED) {
+        CellI& astAsList = serializeEffectAst(effect);
+        std::stringstream ss;
+        Visitor::visitList(astAsList, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        TRACE(toolFinder, "  {}", ss.str());
+    }
 }
 
-CellI* CellTrie::processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds, CellI& compiledToolType)
+CellI* ToolFinder::processToolAst(CellI& toolAst, Map& memberIds, CellI& compiledToolType)
 {
     CellI& membersList = toolAst[kb.ids.members][kb.ids.list];
     CellI* slotItemPtr = membersList.has(kb.ids.first) ? &membersList[kb.ids.first] : nullptr;
@@ -497,7 +517,7 @@ CellI* CellTrie::processToolAst(CellI& effectAst, CellI& toolAst, Map& memberIds
     return &builder;
 }
 
-void CellTrie::handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, std::stack<FindToolStackNode>& stack)
+void ToolFinder::handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::stack<StackNode>& stack)
 {
     slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
     while (!slotItemPtr) {
@@ -516,20 +536,20 @@ void CellTrie::handleStep(CellI*& astCellPtr, CellI*& slotItemPtr, Node*& node, 
         }
         node = popFindIt->second;
 
-        slotItemPtr = &stack.top().slotItem;
-        astCellPtr  = &stack.top().astCell;
+        slotItemPtr  = &stack.top().slotItem;
+        effectAstPtr = &stack.top().effectAst;
         stack.pop();
         slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
     }
 }
 
-bool CellTrie::checkValue(FindContext& findContext, CellI& key, CellI& value)
+bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
 {
-    Node*& node                          = findContext.currentNode;
-    CellI*& slotItemPtr                  = findContext.slotItemPtr;
-    bool& first                          = findContext.first;
-    CellI*& astCellPtr                   = findContext.astCellPtr;
-    std::stack<FindToolStackNode>& stack = findContext.stack;
+    Node*& node                  = findContext.trieNode;
+    CellI*& slotItemPtr          = findContext.slotItemPtr;
+    SlotKind& slotKind           = findContext.slotKind;
+    CellI*& effectAstPtr         = findContext.effectAstPtr;
+    std::stack<StackNode>& stack = findContext.stack;
 
     auto roleFindIt = node->m_children.find(&key);
     if (roleFindIt == node->m_children.end()) {
@@ -552,7 +572,7 @@ bool CellTrie::checkValue(FindContext& findContext, CellI& key, CellI& value)
             for (auto& [opKey, nextNode] : opNode->m_children) {
                 if (opKey == &kb.ids.variable) {
                     node = nextNode;
-                    handleStep(astCellPtr, slotItemPtr, node, stack);
+                    handleStep(effectAstPtr, slotItemPtr, node, stack);
                     return true;
                 }
                 if (opKey == &kb.ids.return_) {
@@ -561,30 +581,30 @@ bool CellTrie::checkValue(FindContext& findContext, CellI& key, CellI& value)
                         throw "Not implemented! Handling more then one op return is missing";
                     }
                     node = nextNode;
-                    handleStep(astCellPtr, slotItemPtr, node, stack);
-                    findContext.toolKind = ToolKind::Expression;
-                    findContext.expressionToolPtr = &(*astCellPtr)[key];
+                    handleStep(effectAstPtr, slotItemPtr, node, stack);
+                    findContext.toolKind          = ToolKind::Expression;
+                    findContext.expressionToolPtr = &(*effectAstPtr)[key];
                     return true;
                 }
                 if (opKey == &kb.ids.push) {
-                    stack.push({ .astCell = *astCellPtr, .slotItem = *slotItemPtr });
-                    astCellPtr  = &(*astCellPtr)[key];
-                    slotItemPtr = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
-                    node        = nextNode;
-                    first       = true;
+                    stack.push({ .effectAst = *effectAstPtr, .slotItem = *slotItemPtr });
+                    effectAstPtr = &(*effectAstPtr)[key];
+                    slotItemPtr  = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
+                    node         = nextNode;
+                    slotKind     = SlotKind::StructSlot;
                     return true;
                 }
                 if (opKey == &kb.ids.pop) {
                     if (stack.empty()) {
                         return false;
                     }
-                    slotItemPtr = &stack.top().slotItem;
-                    astCellPtr  = &stack.top().astCell;
+                    slotItemPtr  = &stack.top().slotItem;
+                    effectAstPtr = &stack.top().effectAst;
                     stack.pop();
                     slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
                     node        = nextNode;
                     if (!slotItemPtr) {
-                        handleStep(astCellPtr, slotItemPtr, node, stack);
+                        handleStep(effectAstPtr, slotItemPtr, node, stack);
                     }
                     return true;
                 }
@@ -594,19 +614,19 @@ bool CellTrie::checkValue(FindContext& findContext, CellI& key, CellI& value)
         node = findIt->second;
     }
     // the first slot is the kb.ids.struct_ but it is not in the slot list
-    if (first) {
-        first = false;
+    if (slotKind == SlotKind::StructSlot) {
+        slotKind = SlotKind::NormalSlot;
         return true;
     }
-    handleStep(astCellPtr, slotItemPtr, node, stack);
+    handleStep(effectAstPtr, slotItemPtr, node, stack);
 
     return true;
 }
 
-CellI* CellTrie::findToolByAst(CellI& ast)
+CellI* ToolFinder::findToolByEffectAst(CellI& effectAst)
 {
     CellI* toolAst = nullptr;
-    CellI* tool    = findToolByAstImpl(ast, toolAst);
+    CellI* tool    = findToolByEffectAstImpl(effectAst, toolAst);
     if (!tool) {
         return nullptr;
     }
@@ -615,58 +635,59 @@ CellI* CellTrie::findToolByAst(CellI& ast)
     return &retVal[kb.ids.value];
 }
 
-CellI* CellTrie::findToolByAstImpl(CellI& ast, CellI*& toolAst)
+CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& outputEffectAst)
 {
-    CellI& slotList = ast.struct_()[kb.ids.slots][kb.ids.list];
+    CellI& slotList         = inputEffectAst.struct_()[kb.ids.slots][kb.ids.list];
     FindContext findContext = {
-        .currentNode = m_root.get(),
-        .slotList    = &slotList,
-        .slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr,
-        .first       = true,
-        .astCellPtr  = &ast,
+        .trieNode     = m_root.get(),
+        .slotList     = &slotList,
+        .slotItemPtr  = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr,
+        .slotKind     = SlotKind::StructSlot,
+        .effectAstPtr = &inputEffectAst,
     };
-    toolAst = &ast;
 
     do {
         findContext.toolKind = ToolKind::Statement;
         while (findContext.slotItemPtr)
         {
             CellI& key = (*findContext.slotItemPtr)[kb.ids.value][kb.ids.key];
-            if (findContext.first && !checkValue(findContext, kb.ids.struct_, (*findContext.astCellPtr).struct_())) {
+            if (findContext.slotKind == SlotKind::StructSlot && !checkValue(findContext, kb.ids.struct_, (*findContext.effectAstPtr).struct_())) {
                 return nullptr;
             }
 
-            if ((*findContext.astCellPtr).has(key) && !checkValue(findContext, key, (*findContext.astCellPtr)[key])) {
+            if ((*findContext.effectAstPtr).has(key) && !checkValue(findContext, key, (*findContext.effectAstPtr)[key])) {
                 return nullptr;
             }
         }
         if (findContext.toolKind == ToolKind::Expression) {
-            if (!(findContext.currentNode && findContext.currentNode->m_isLeaf)) {
+            if (!(findContext.trieNode && findContext.trieNode->m_isLeaf)) {
                 return nullptr;
             }
-            CellI& newAst = *new Object(kb, kb.std.ast.Equal); // TODO FIX memory leak
+            CellI& newEffectAst = *new Object(kb, kb.std.ast.Equal); // TODO FIX memory leak
 
-            newAst.set(kb.ids.lhs, *findContext.expressionToolPtr);
-            createTool(newAst, kb.ids.rhs, ast, *findContext.currentNode->m_data);
+            newEffectAst.set(kb.ids.lhs, *findContext.expressionToolPtr);
+            createTool(newEffectAst, kb.ids.rhs, inputEffectAst, *findContext.trieNode->m_data);
 
-            CellI& newSlotList      = newAst.struct_()[kb.ids.slots][kb.ids.list];
+            CellI& newSlotList = newEffectAst.struct_()[kb.ids.slots][kb.ids.list];
 
-            findContext.currentNode = m_root.get();
-            findContext.slotList    = &newSlotList;
-            findContext.slotItemPtr = newSlotList.has(kb.ids.first) ? &newSlotList[kb.ids.first] : nullptr;
-            findContext.first       = true;
-            findContext.astCellPtr  = &newAst;
-            toolAst                 = &newAst;
+            findContext.trieNode     = m_root.get();
+            findContext.slotList     = &newSlotList;
+            findContext.slotItemPtr  = newSlotList.has(kb.ids.first) ? &newSlotList[kb.ids.first] : nullptr;
+            findContext.slotKind     = SlotKind::StructSlot;
+            findContext.effectAstPtr = &newEffectAst;
         }
     } while (findContext.toolKind == ToolKind::Expression);
 
-    if (findContext.currentNode && findContext.currentNode->m_isLeaf)
-        return findContext.currentNode->m_data;
+    if (findContext.trieNode && findContext.trieNode->m_isLeaf) {
+        outputEffectAst = findContext.effectAstPtr;
+        CellI* result   = findContext.trieNode->m_data;
+        return result;
+    }
 
     return nullptr;
 }
 
-void CellTrie::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI& inputToolDesc)
+void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI& inputToolDesc)
 {
     auto& ListOfCellStruct = kb.getStruct(kb.templateId("std::List", kb.ids.valueType, kb.std.Cell));
 
@@ -749,7 +770,7 @@ void CellTrie::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI&
 
             retVal.set(kb.ids.value, subToolAst);
             CellI* toolAst     = nullptr;
-            CellI* subToolDesc = findToolByAstImpl(retVal, toolAst);
+            CellI* subToolDesc = findToolByEffectAstImpl(retVal, toolAst);
 
             if (!subToolDesc) {
                 throw "Sub tool not found!";
@@ -771,14 +792,14 @@ void CellTrie::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI&
     }
 }
 
-void CellTrie::print()
+void ToolFinder::print()
 {
     if (empty())
         return;
     printCb(m_root.get());
 }
 
-void CellTrie::printCb(Node* node)
+void ToolFinder::printCb(Node* node)
 {
     printf("%s -> ", node->m_data->label().c_str());
 
@@ -1782,33 +1803,17 @@ void Ast::Scope::compileTheResolvedAsts(CellI& programData, CellI& state)
 void Ast::Scope::processDescriptionsInAsts(CellI& programData, CellI& state)
 {
     auto& compiledStructs = static_cast<TrieMap&>(programData[kb.ids.structs]);
-    m_cellTrie            = new CellTrie(kb);
-    CellTrie& cellTrie = *m_cellTrie;
+    m_toolFinder           = new ToolFinder(kb);
+    ToolFinder& toolFinder = *m_toolFinder;
     auto& astScope = getItem<Scope>("std").getItem<Scope>("ast");
     if (astScope.has("structs")) {
-        Visitor::visitList(astScope.items<Struct>()[kb.ids.list], [this, &cellTrie, &compiledStructs](CellI& struct_, int i, bool& stop) {
-            Struct& astStruct = static_cast<Struct&>(struct_[kb.ids.value]);
-            if (astStruct.has(kb.ids.description) && astStruct[kb.ids.description].has(kb.ids.asts)) {
-                auto& asts = astStruct[kb.ids.description][kb.ids.asts];
-//                std::cout << astStruct.label() << " => ";
-                Visitor::visitList(asts, [this, &astStruct, &cellTrie, &compiledStructs](CellI& ast, int i, bool& stop) {
-                    auto& compiledAstStruct = compiledStructs.getValue(static_cast<Ast::Struct&>(astStruct).getFullyQualifiedName());
-                    cellTrie.add(ast, astStruct, compiledAstStruct);
-                    {
-                        CellI& astAsList = cellTrie.serializeAst(ast);
-                        std::stringstream ss;
-                        Visitor::visitList(astAsList, [&ss](CellI& value, int, bool& stop) {
-                            ss << value.label() << " ";
-                        });
-//                        std::cout << ss.str();
-                    }
-
-                });
-//                std::cout << std::endl;
+        Visitor::visitList(astScope.items<Struct>()[kb.ids.list], [this, &toolFinder, &compiledStructs](CellI& struct_, int i, bool& stop) {
+            Struct& tool = static_cast<Struct&>(struct_[kb.ids.value]);
+            if (tool.has(kb.ids.description) && tool[kb.ids.description].has(kb.ids.asts)) {
+                auto& compiledAstStruct = compiledStructs.getValue(static_cast<Ast::Struct&>(tool).getFullyQualifiedName());
+                toolFinder.add(tool, compiledAstStruct);
             }
         });
-
-//        std::cout << "";
     }
 }
 
@@ -1887,6 +1892,25 @@ void Ast::StructBase::addMethod(Function& method)
     }
     method.set("structType", *this);
     methods().add(name, method);
+}
+
+Ast::StructBase& Ast::StructBase::primitiveTool()
+{
+    if (missing("primitiveTool")) {
+        set("primitiveTool", kb.boolean.true_);
+    }
+
+    return *this;
+}
+
+Ast::StructBase& Ast::StructBase::returnType(CellI& type)
+{
+    if (missing("primitiveTool")) {
+        throw "Setting return type on a node which is not a primitive tool!";
+    }
+    set("returnType", type);
+
+    return *this;
 }
 
 Ast::StructBase& Ast::StructBase::members(Slot& slot)
@@ -5127,9 +5151,7 @@ void AstStd::createAst()
     astScope.add<Struct>("Add")
         .memberOf(
             _(std.ast.Base))
-#if 0
-        .primitiveTool().returnType("std::Number")
-#endif
+        .primitiveTool().returnType(_(std.Number))
         .description(
             subtract(return_(), m_("rhs")) == m_("lhs"),
             subtract(return_(), m_("lhs")) == m_("rhs"),
@@ -5450,6 +5472,8 @@ void AstStd::createAst()
             member("instanceOf", "Base"),
             member("templateParams", "std::List"),
             member("scope", "Scope"),
+            member("primitiveTool", _(std.Boolean)),
+            member("returnType", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("members", MapOf(std.Cell, std.ast.Slot)),
             member("subTypes", ListOf(std.ast.Slot)),
@@ -7567,6 +7591,7 @@ Brain::Logger::Logger(std::function<void()> loggerLevelInit)
     registerLogger("compileStruct");
     registerLogger("symbolResolver");
     registerLogger("compiledSymbols");
+    registerLogger("toolFinder");
     loggerLevelInit();
 }
 

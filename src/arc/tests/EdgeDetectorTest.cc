@@ -2250,6 +2250,7 @@ int main(int argc, char** argv)
         spdlog::get("cells")->set_level(spdlog::level::trace);
         spdlog::get("compileStruct")->set_level(spdlog::level::off);
         spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
+        spdlog::get("toolFinder")->set_level(spdlog::level::trace);
         spdlog::get("edge")->set_level(spdlog::level::off);
         spdlog::get("shapeCorners")->set_level(spdlog::level::off);
         spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
