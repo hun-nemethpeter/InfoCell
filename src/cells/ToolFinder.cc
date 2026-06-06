@@ -106,11 +106,11 @@ CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
 // ============================================================================
 void ToolFinder::addValue(Node*& node, CellI& value)
 {
-    Node*& roleNode = node->m_children[&value];
-    if (roleNode == nullptr) {
-        roleNode = new Node();
+    Node*& childNode = node->m_children[&value];
+    if (childNode == nullptr) {
+        childNode = new Node();
     }
-    node = roleNode;
+    node = childNode;
 }
 
 // ============================================================================
@@ -301,12 +301,12 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
     CellI*& effectAstPtr         = findContext.effectAstPtr;
     std::stack<StackNode>& stack = findContext.stack;
 
-    auto roleFindIt = node->m_children.find(&key);
-    if (roleFindIt == node->m_children.end()) {
+    auto keyFindIt = node->m_children.find(&key);
+    if (keyFindIt == node->m_children.end()) {
         node = nullptr;
         return false;
     } else {
-        node = roleFindIt->second;
+        node = keyFindIt->second;
     }
 
     auto findIt = node->m_children.find(&value);
