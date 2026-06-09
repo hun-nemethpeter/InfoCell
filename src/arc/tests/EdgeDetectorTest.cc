@@ -2241,11 +2241,11 @@ int main(int argc, char** argv)
     SetConsoleOutputCP(CP_UTF8);
 #endif
     TestBase::createKb([]() {
-        brain::Brain::Logger::createLogger("edge");
-        brain::Brain::Logger::createLogger("shapeCorners");
-        brain::Brain::Logger::createLogger("shapeRelations");
-        brain::Brain::Logger::createLogger("shapeIdGrid");
-        brain::Brain::Logger::createLogger("grid");
+        Brain::Logger::createLogger("edge");
+        Brain::Logger::createLogger("shapeCorners");
+        Brain::Logger::createLogger("shapeRelations");
+        Brain::Logger::createLogger("shapeIdGrid");
+        Brain::Logger::createLogger("grid");
 
         spdlog::get("cells")->set_level(spdlog::level::trace);
         spdlog::get("compileStruct")->set_level(spdlog::level::off);

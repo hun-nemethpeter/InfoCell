@@ -13,7 +13,7 @@ class Grid;
 class Pixel : public CellI
 {
 public:
-    Pixel(brain::Brain& kb, int x, int y, CellI& arcColor, Grid& grid);
+    Pixel(Brain& kb, int x, int y, CellI& arcColor, Grid& grid);
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;

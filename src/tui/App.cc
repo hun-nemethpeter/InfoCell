@@ -328,7 +328,7 @@ void App::run()
 
 void App::solve()
 {
-    cells::brain::Brain kb;
+    cells::Brain kb;
     arc::Task arcTask(kb, m_arcJsonTask);
     arc::Solver solver(solverLogger, arcTask);
 }

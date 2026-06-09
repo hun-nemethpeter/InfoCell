@@ -364,7 +364,7 @@ protected:
     void processPixel(Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
     cells::arc::Pixel* processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
 
-    cells::brain::Brain& kb;
+    cells::Brain& kb;
     const int m_width;
     const int m_height;
     const cells::arc::Grid& m_grid;

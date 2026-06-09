@@ -6,9 +6,7 @@
 
 namespace infocell {
 namespace cells {
-namespace brain {
 class Brain;
-} // namespace brain
 
 class ToolFinder
 {
@@ -78,7 +76,7 @@ public:
     };
 
 public:
-    ToolFinder(brain::Brain& kb);
+    ToolFinder(Brain& kb);
 
     bool empty();
     CellI& serializeEffectAst(CellI& ast);
@@ -99,7 +97,7 @@ private:
     CellI& createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint);
 
 
-    brain::Brain& kb;
+    Brain& kb;
     std::unique_ptr<Node> m_root;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;
 };

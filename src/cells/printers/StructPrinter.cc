@@ -83,7 +83,7 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
 void CellStructPrinter::printImpl(CellI& cell)
 {
     const bool needId = false;
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     auto is           = [this, &cell, &kb](CellI& type) -> bool { return &cell.struct_() == &type || (cell.struct_().has(kb.ids.memberOf) && cell.struct_()[kb.ids.memberOf][kb.ids.index].has(type)); };
 
     CellI& type   = cell.struct_();

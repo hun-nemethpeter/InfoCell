@@ -6,6 +6,8 @@ add_library(cells-lib STATIC
     Cells.h
     Brain.cc
     Brain.h
+    Compiler.cc
+    Compiler.h
     NodeBase.cc
     NodeBase.h
     ToolFinder.cc

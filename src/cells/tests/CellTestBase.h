@@ -28,14 +28,14 @@ class CellTest :
 {
 public:
     static void freeKb();
-    static brain::Brain& getKb();
+    static Brain& getKb();
 
 protected:
     CellTest(std::function<void()> loggerLevelInit = []() {});
 
     void printMethodInType(CellI& type, const std::string& method);
 
-    static std::unique_ptr<brain::Brain> m_kb;
+    static std::unique_ptr<Brain> m_kb;
     PrintAs printAs;
 };
 
@@ -43,7 +43,7 @@ class TestBase : public ::testing::Test
 {
 public:
     static void freeKb();
-    static brain::Brain& getKb();
+    static Brain& getKb();
     static void createKb(std::function<void()> loggerLevelInit = []() { });
 
 protected:
@@ -51,7 +51,7 @@ protected:
 
     void printMethodInType(CellI& type, const std::string& method);
 
-    static std::unique_ptr<brain::Brain> m_kb;
+    static std::unique_ptr<Brain> m_kb;
     PrintAs printAs;
 };
 

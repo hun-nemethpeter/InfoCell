@@ -12,7 +12,7 @@ using namespace nlohmann;
 namespace infocell {
 namespace arc {
 
-Task::GridPair::GridPair(cells::brain::Brain& kb, int number, const std::string& input, const std::string& output) :
+Task::GridPair::GridPair(cells::Brain& kb, int number, const std::string& input, const std::string& output) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
     m_outputGrid(std::make_unique<native::Grid>(fmt::format("Train output {}", number))),
@@ -21,20 +21,20 @@ Task::GridPair::GridPair(cells::brain::Brain& kb, int number, const std::string&
 {
 }
 
-Task::GridPair::GridPair(cells::brain::Brain& kb, int number, const std::string& input) :
+Task::GridPair::GridPair(cells::Brain& kb, int number, const std::string& input) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
     m_input(kb, m_inputGrid.loadFromJsonArray(input))
 {
 }
 
-Task::Task(cells::brain::Brain& kb, const nlohmann::json& arcJsonTask) :
+Task::Task(cells::Brain& kb, const nlohmann::json& arcJsonTask) :
     Task(kb, "", arcJsonTask)
 {
 
 }
 
-Task::Task(cells::brain::Brain& kb, const std::string& id, const nlohmann::json& jsonTask) :
+Task::Task(cells::Brain& kb, const std::string& id, const nlohmann::json& jsonTask) :
     m_id(id),
     m_cellTaskStruct(kb.getStruct("arc::Task")),
     m_cellExampleStruct(kb.getStruct("arc::Example")),
@@ -72,7 +72,7 @@ Task::Task(cells::brain::Brain& kb, const std::string& id, const nlohmann::json&
     m_cellTask.set("tests", m_cellTestsList);
 }
 
-TaskSet::TaskSet(cells::brain::Brain& kb, const std::string& filePath) :
+TaskSet::TaskSet(cells::Brain& kb, const std::string& filePath) :
     kb(kb)
 {
     auto allTasks = json::parse(std::ifstream(filePath));

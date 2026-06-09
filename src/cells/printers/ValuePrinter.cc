@@ -53,7 +53,7 @@ void CellValuePrinter::visit(Set& cell)
 
 void CellValuePrinter::printOpBlock(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     CellI& ast       = cell[kb.ids.ast];
     if (&ast.struct_() == &kb.std.ast.Call || &ast.struct_() == &kb.std.ast.StaticCall) {
         if (&ast[kb.ids.cell].struct_() == &kb.std.ast.Get && cell.label() != "New { call constructor; }") {
@@ -142,7 +142,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
 
 void CellValuePrinter::printOpActivate(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "activate (";
     printImpl(cell[kb.ids.cell]);
     m_ss << ")";
@@ -150,7 +150,7 @@ void CellValuePrinter::printOpActivate(CellI& cell)
 
 void CellValuePrinter::printOpFunction(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     std::stringstream iss;
     std::stringstream oss;
     CellI& subTypesIndex = cell.struct_()[kb.ids.subTypes][kb.ids.index];
@@ -194,7 +194,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
 
 void CellValuePrinter::printOpCall(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     CellI& ast       = cell[kb.ids.ast];
 
     if (&ast[kb.ids.cell].struct_() == &kb.std.ast.Get && cell.label() != "New { call constructor; }") {
@@ -237,7 +237,7 @@ void CellValuePrinter::printOpCall(CellI& cell)
 
 void CellValuePrinter::printOpDelete(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "delete (";
     printImpl(cell[kb.ids.input]);
     m_ss << ")";
@@ -245,7 +245,7 @@ void CellValuePrinter::printOpDelete(CellI& cell)
 
 void CellValuePrinter::printOpSet(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     if ((&cell[kb.ids.ast][kb.ids.cell].struct_() == &kb.std.ast.Self) && (&cell[kb.ids.ast][kb.ids.key].struct_() == &kb.std.ast.Cell)) {
         m_ss << "m_";
     } else {
@@ -259,7 +259,7 @@ void CellValuePrinter::printOpSet(CellI& cell)
 
 void CellValuePrinter::printOpErase(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.cell]);
     m_ss << ".erase(";
     printImpl(cell[kb.ids.key]);
@@ -268,7 +268,7 @@ void CellValuePrinter::printOpErase(CellI& cell)
 
 void CellValuePrinter::printOpIf(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
 
     auto isBlock = [this, &kb, &cell](CellI& ast) -> bool {
         if (&ast.struct_() == &kb.std.op.Block) {
@@ -313,7 +313,7 @@ void CellValuePrinter::printOpIf(CellI& cell)
 
 void CellValuePrinter::printOpDo(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "do ";
     printImpl(cell[kb.ids.statement]);
     m_ss << " (";
@@ -323,7 +323,7 @@ void CellValuePrinter::printOpDo(CellI& cell)
 
 void CellValuePrinter::printOpWhile(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "while (";
     printImpl(cell[kb.ids.condition]);
     m_ss << ") ";
@@ -332,7 +332,7 @@ void CellValuePrinter::printOpWhile(CellI& cell)
 
 void CellValuePrinter::printOpConstVar(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     if (cell.has(kb.ids.ast)) {
         CellI& ast = cell[kb.ids.ast];
         if (&ast.struct_() == &kb.std.ast.Cell) {
@@ -353,20 +353,20 @@ void CellValuePrinter::printOpConstVar(CellI& cell)
 
 void CellValuePrinter::printOpVar(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     cell.label().empty() ? (m_ss << "<empty>") : (m_ss << cell.label());
 }
 
 void CellValuePrinter::printOpNew(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "new ";
     printImpl(cell[kb.ids.objectType]);
 }
 
 void CellValuePrinter::printOpSame(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " is ";
     printImpl(cell[kb.ids.rhs]);
@@ -374,7 +374,7 @@ void CellValuePrinter::printOpSame(CellI& cell)
 
 void CellValuePrinter::printOpNotSame(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " is not ";
     printImpl(cell[kb.ids.rhs]);
@@ -382,7 +382,7 @@ void CellValuePrinter::printOpNotSame(CellI& cell)
 
 void CellValuePrinter::printOpEqual(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " == ";
     printImpl(cell[kb.ids.rhs]);
@@ -390,7 +390,7 @@ void CellValuePrinter::printOpEqual(CellI& cell)
 
 void CellValuePrinter::printOpNotEqual(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " != ";
     printImpl(cell[kb.ids.rhs]);
@@ -398,7 +398,7 @@ void CellValuePrinter::printOpNotEqual(CellI& cell)
 
 void CellValuePrinter::printOpHas(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.cell]);
     m_ss << " has ";
     printImpl(cell[kb.ids.key]);
@@ -406,7 +406,7 @@ void CellValuePrinter::printOpHas(CellI& cell)
 
 void CellValuePrinter::printOpMissing(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.cell]);
     m_ss << " missing ";
     printImpl(cell[kb.ids.key]);
@@ -414,7 +414,7 @@ void CellValuePrinter::printOpMissing(CellI& cell)
 
 void CellValuePrinter::printOpGet(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     if (&cell[kb.ids.ast].struct_() == &kb.std.ast.Member) {
         m_ss << "m_" << cell[kb.ids.ast][kb.ids.key].label();
         return;
@@ -438,7 +438,7 @@ void CellValuePrinter::printOpGet(CellI& cell)
 
 void CellValuePrinter::printOpAnd(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " and ";
     printImpl(cell[kb.ids.rhs]);
@@ -446,7 +446,7 @@ void CellValuePrinter::printOpAnd(CellI& cell)
 
 void CellValuePrinter::printOpOr(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " or ";
     printImpl(cell[kb.ids.rhs]);
@@ -454,7 +454,7 @@ void CellValuePrinter::printOpOr(CellI& cell)
 
 void CellValuePrinter::printOpNot(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "not(";
     printImpl(cell[kb.ids.input]);
     m_ss << ")";
@@ -462,7 +462,7 @@ void CellValuePrinter::printOpNot(CellI& cell)
 
 void CellValuePrinter::printOpAdd(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " + ";
     printImpl(cell[kb.ids.rhs]);
@@ -470,7 +470,7 @@ void CellValuePrinter::printOpAdd(CellI& cell)
 
 void CellValuePrinter::printOpSubtract(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " - ";
     printImpl(cell[kb.ids.rhs]);
@@ -478,7 +478,7 @@ void CellValuePrinter::printOpSubtract(CellI& cell)
 
 void CellValuePrinter::printOpMultiply(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " * ";
     printImpl(cell[kb.ids.rhs]);
@@ -486,7 +486,7 @@ void CellValuePrinter::printOpMultiply(CellI& cell)
 
 void CellValuePrinter::printOpDivide(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " / ";
     printImpl(cell[kb.ids.rhs]);
@@ -494,7 +494,7 @@ void CellValuePrinter::printOpDivide(CellI& cell)
 
 void CellValuePrinter::printOpLessThan(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " < ";
     printImpl(cell[kb.ids.rhs]);
@@ -502,7 +502,7 @@ void CellValuePrinter::printOpLessThan(CellI& cell)
 
 void CellValuePrinter::printOpLessThanOrEqual(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " <= ";
     printImpl(cell[kb.ids.rhs]);
@@ -510,7 +510,7 @@ void CellValuePrinter::printOpLessThanOrEqual(CellI& cell)
 
 void CellValuePrinter::printOpGreaterThan(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " > ";
     printImpl(cell[kb.ids.rhs]);
@@ -518,7 +518,7 @@ void CellValuePrinter::printOpGreaterThan(CellI& cell)
 
 void CellValuePrinter::printOpGreaterThanOrEqual(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " >= ";
     printImpl(cell[kb.ids.rhs]);
@@ -526,13 +526,13 @@ void CellValuePrinter::printOpGreaterThanOrEqual(CellI& cell)
 
 void CellValuePrinter::printAstCell(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << cell[kb.ids.value].label();
 }
 
 void CellValuePrinter::printAstGet(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     if (&cell.struct_() == &kb.std.ast.Member) {
         m_ss << "m_" << cell[kb.ids.ast][kb.ids.key].label();
         return;
@@ -556,25 +556,25 @@ void CellValuePrinter::printAstGet(CellI& cell)
 
 void CellValuePrinter::printAstParameter(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "p_" << cell[kb.ids.key].label();
 }
 
 void CellValuePrinter::printAstVar(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "var_" << cell[kb.ids.name].label();
 }
 
 void CellValuePrinter::printAstMember(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "m_" << cell[kb.ids.key].label();
 }
 
 void CellValuePrinter::printAstSubtract(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     printImpl(cell[kb.ids.lhs]);
     m_ss << " - ";
     printImpl(cell[kb.ids.rhs]);
@@ -582,7 +582,7 @@ void CellValuePrinter::printAstSubtract(CellI& cell)
 
 void CellValuePrinter::printOpReturn(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     m_ss << "return";
     if (cell.has(kb.ids.result)) {
         m_ss << " ";
@@ -592,7 +592,7 @@ void CellValuePrinter::printOpReturn(CellI& cell)
 
 void CellValuePrinter::printTypeName(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     auto isA          = [this, &cell, &kb](CellI& type) -> bool { return &cell == &type || (cell.has(kb.ids.memberOf) && cell[kb.ids.memberOf][kb.ids.index].has(type)); };
     if (isA(kb.std.Map)) {
         m_ss << fmt::format("Map<{}, {}>", cell[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label(), cell[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label());
@@ -617,7 +617,7 @@ void CellValuePrinter::printTypeName(CellI& cell)
 
 void CellValuePrinter::printImpl(CellI& cell)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
     auto is          = [this, &cell, &kb](CellI& type) -> bool { return &cell.struct_() == &type || (cell.struct_().has(kb.ids.memberOf) && cell.struct_()[kb.ids.memberOf][kb.ids.index].has(type)); };
 
     if (is(kb.std.Slot)) {

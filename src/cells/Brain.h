@@ -1,5 +1,7 @@
 #pragma once
 #include <fmt/core.h>
+#include <functional>
+
 #include "Cells.h"
 #include "ToolFinder.h"
 
@@ -9,14 +11,14 @@ class logger;
 
 namespace infocell {
 namespace cells {
-namespace brain {
 
+class Brain;
 class ID
 {
-    brain::Brain& kb;
+    Brain& kb;
 
 public:
-    ID(brain::Brain& kb);
+    ID(Brain& kb);
 
     List argument;
     List ast;
@@ -130,10 +132,10 @@ namespace type {
 class Op
 {
 public:
-    Op(brain::Brain& kb);
+    Op(Brain& kb);
 
 protected:
-    brain::Brain& kb;
+    Brain& kb;
 
 public:
     Object Activate;
@@ -174,10 +176,10 @@ public:
 class Ast
 {
 public:
-    Ast(brain::Brain& kb);
+    Ast(Brain& kb);
 
 protected:
-    brain::Brain& kb;
+    Brain& kb;
 
 public:
     Object Add;
@@ -245,14 +247,14 @@ public:
 class Std
 {
 public:
-    Std(brain::Brain& kb);
+    Std(Brain& kb);
 
     cells::CellI& slot(const std::string& key, cells::CellI& type);
     cells::CellI& slot(cells::CellI& key, cells::CellI& type);
     cells::CellI& kvPair(cells::CellI& key, cells::CellI& value);
 
 protected:
-    brain::Brain& kb;
+    Brain& kb;
 
 public:
     Object Cell;
@@ -314,7 +316,7 @@ public:
     {
         Base(const Base&) = delete;
     public:
-        Base(brain::Brain& kb, CellI& classCell, const std::string& label = "");
+        Base(Brain& kb, CellI& classCell, const std::string& label = "");
 
         Base& resolveType(CellI& typeAst, CellI& resolveState);
         CellI& getCompiledTypeFromResolvedType(CellI& ast);
@@ -340,7 +342,7 @@ public:
                   public NewT<T>
     {
     public:
-        BaseT(brain::Brain& kb, CellI& classCell, const std::string& label) :
+        BaseT(Brain& kb, CellI& classCell, const std::string& label) :
             Base(kb, classCell, label)
         {
         }
@@ -352,58 +354,58 @@ public:
     class Cell : public BaseT<Cell>
     {
     public:
-        Cell(brain::Brain& kb, CellI& value);
+        Cell(Brain& kb, CellI& value);
         Get& operator/(Base& key);
         Get& operator/(const std::string& key);
     };
     class StructName : public BaseT<StructName>
     {
     public:
-        StructName(brain::Brain& kb, CellI& name);
+        StructName(Brain& kb, CellI& name);
     };
     class Call;
     class Self : public BaseT<Self>
     {
     public:
-        Self(brain::Brain& kb);
+        Self(Brain& kb);
         Call& operator()(const std::string& method);
     };
     class SelfFn : public BaseT<SelfFn>
     {
     public:
-        SelfFn(brain::Brain& kb);
+        SelfFn(Brain& kb);
     };
     class Continue : public BaseT<Continue>
     {
     public:
-        Continue(brain::Brain& kb);
+        Continue(Brain& kb);
     };
     class Break : public BaseT<Break>
     {
     public:
-        Break(brain::Brain& kb);
+        Break(Brain& kb);
     };
     class Try : public BaseT<Try>
     {
     public:
-        Try(brain::Brain& kb, Base& tryBranch, Base& catchBranch);
+        Try(Brain& kb, Base& tryBranch, Base& catchBranch);
     };
     class Throw : public BaseT<Throw>
     {
     public:
-        Throw(brain::Brain& kb);
-        Throw(brain::Brain& kb, Base& value);
+        Throw(Brain& kb);
+        Throw(Brain& kb, Base& value);
     };
     class Return : public BaseT<Return>
     {
     public:
-        Return(brain::Brain& kb);
-        Return(brain::Brain& kb, CellI& value);
+        Return(Brain& kb);
+        Return(Brain& kb, CellI& value);
     };
     class Parameter : public BaseT<Parameter>
     {
     public:
-        Parameter(brain::Brain& kb, CellI& key);
+        Parameter(Brain& kb, CellI& key);
         Get& operator/(Base& key);
         Get& operator/(const std::string& key);
         Call& operator()(const std::string& method);
@@ -411,17 +413,17 @@ public:
     class ResolvedType : public BaseT<ResolvedType>
     {
     public:
-        ResolvedType(brain::Brain& kb, CellI& astType, CellI& compiledType);
+        ResolvedType(Brain& kb, CellI& astType, CellI& compiledType);
     };
     class Slot : public BaseT<Slot>
     {
     public:
-        Slot(brain::Brain& kb, CellI& key, CellI& value);
+        Slot(Brain& kb, CellI& key, CellI& value);
     };
     class Call : public BaseT<Call>
     {
     public:
-        Call(brain::Brain& kb, CellI& cell, CellI& method);
+        Call(Brain& kb, CellI& cell, CellI& method);
 
         Call& operator()(const std::string& nameStr, CellI& value);
     };
@@ -429,7 +431,7 @@ public:
     class StaticCall : public BaseT<StaticCall>
     {
     public:
-        StaticCall(brain::Brain& kb, CellI& cell, CellI& method);
+        StaticCall(Brain& kb, CellI& cell, CellI& method);
 
         StaticCall& operator()(const std::string& nameStr, CellI& value);
     };
@@ -437,7 +439,7 @@ public:
     class Block : public BaseT<Block>
     {
     public:
-        Block(brain::Brain& kb, List& list);
+        Block(Brain& kb, List& list);
     };
 
     class Var;
@@ -453,7 +455,7 @@ public:
     class Items
     {
     public:
-        Items(brain::Brain& kb, const std::string& mapName, Base& parent);
+        Items(Brain& kb, const std::string& mapName, Base& parent);
 
         bool has(CellI& id);
         TAst& get(const std::string& nameStr);
@@ -462,7 +464,7 @@ public:
         void add(TAst& obj);
         MapType& items();
 
-        brain::Brain& kb;
+        Brain& kb;
         const std::string m_mapName;
         Base& m_parent;
     };
@@ -470,7 +472,7 @@ public:
     class Scope : public BaseT<Scope>
     {
     public:
-        Scope(brain::Brain& kb, const std::string& nameStr);
+        Scope(Brain& kb, const std::string& nameStr);
 
         Base& resolveTypeName(CellI& name);
         StructT& resolveFullTemplateId(CellI& scopeList, CellI& name);
@@ -548,7 +550,7 @@ public:
     class StructBase : public Base
     {
     public:
-        StructBase(brain::Brain& kb, CellI& astType, CellI& name, const std::string& nameStr);
+        StructBase(Brain& kb, CellI& astType, CellI& name, const std::string& nameStr);
 
         Function& addMethod(const std::string& nameStr);
         void addMethod(Function& method);
@@ -605,8 +607,8 @@ public:
                    public NewT<Struct>
     {
     public:
-        Struct(brain::Brain& kb, const std::string& nameStr);
-        Struct(brain::Brain& kb, CellI& id);
+        Struct(Brain& kb, const std::string& nameStr);
+        Struct(Brain& kb, CellI& id);
 
         CellI& getFullyQualifiedName();
         Struct& resolveTypes(CellI& resolveState);
@@ -618,8 +620,8 @@ public:
     {
     public:
         using StructBase::kb;
-        StructT(brain::Brain& kb, const std::string& nameStr);
-        StructT(brain::Brain& kb, CellI& id);
+        StructT(Brain& kb, const std::string& nameStr);
+        StructT(Brain& kb, CellI& id);
 
         StructT& templateParams(Slot& param);
 
@@ -645,8 +647,8 @@ public:
     {
     public:
         using StructBase::kb;
-        Trait(brain::Brain& kb, const std::string& nameStr);
-        Trait(brain::Brain& kb, CellI& id);
+        Trait(Brain& kb, const std::string& nameStr);
+        Trait(Brain& kb, CellI& id);
 
         Trait& templateParams(Slot& param);
 
@@ -674,8 +676,8 @@ public:
     {
     public:
         using StructBase::kb;
-        TraitImpl(brain::Brain& kb, const std::string& nameStr);
-        TraitImpl(brain::Brain& kb, CellI& id);
+        TraitImpl(Brain& kb, const std::string& nameStr);
+        TraitImpl(Brain& kb, CellI& id);
 
         TraitImpl& templateParams(Slot& param);
 
@@ -705,8 +707,8 @@ public:
     class EnumValue : public BaseT<EnumValue>
     {
     public:
-        EnumValue(brain::Brain& kb, const std::string& nameStr);
-        EnumValue(brain::Brain& kb, const std::string& nameStr, CellI& value);
+        EnumValue(Brain& kb, const std::string& nameStr);
+        EnumValue(Brain& kb, const std::string& nameStr, CellI& value);
 
         CellI& getFullyQualifiedName();
     };
@@ -714,9 +716,9 @@ public:
     class TypedEnumValue : public BaseT<TypedEnumValue>
     {
     public:
-        TypedEnumValue(brain::Brain& kb, CellI& name, CellI& type);
-        TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& type);
-        TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& type, CellI& value);
+        TypedEnumValue(Brain& kb, CellI& name, CellI& type);
+        TypedEnumValue(Brain& kb, const std::string& nameStr, CellI& type);
+        TypedEnumValue(Brain& kb, const std::string& nameStr, CellI& type, CellI& value);
 
         CellI& getFullyQualifiedName();
     };
@@ -724,8 +726,8 @@ public:
     class Enum : public BaseT<Enum>
     {
     public:
-        Enum(brain::Brain& kb, CellI& name);
-        Enum(brain::Brain& kb, const std::string& nameStr);
+        Enum(Brain& kb, CellI& name);
+        Enum(Brain& kb, const std::string& nameStr);
 
         CellI& getFullyQualifiedName();
         Enum& resolveTypes(CellI& resolveState);
@@ -752,8 +754,8 @@ public:
     class Function : public BaseT<Function>
     {
     public:
-        Function(brain::Brain& kb, CellI& name);
-        Function(brain::Brain& kb, const std::string& nameStr);
+        Function(Brain& kb, CellI& name);
+        Function(Brain& kb, const std::string& nameStr);
 
         Function& parameters(Slot& param);
 
@@ -793,8 +795,8 @@ public:
     class FunctionT : public BaseT<FunctionT>
     {
     public:
-        FunctionT(brain::Brain& kb, CellI& name, const std::string& label);
-        FunctionT(brain::Brain& kb, const std::string& name);
+        FunctionT(Brain& kb, CellI& name, const std::string& label);
+        FunctionT(Brain& kb, const std::string& name);
 
         void templateParams(Slot& param);
 
@@ -830,24 +832,24 @@ public:
     class Delete : public BaseT<Delete>
     {
     public:
-        Delete(brain::Brain& kb, Base& cell);
+        Delete(Brain& kb, Base& cell);
     };
     class Set : public BaseT<Set>
     {
     public:
-        Set(brain::Brain& kb, Base& cell, Base& key, Base& value);
+        Set(Brain& kb, Base& cell, Base& key, Base& value);
     };
     class Erase : public BaseT<Erase>
     {
     public:
-        Erase(brain::Brain& kb, Base& cell, Base& key);
+        Erase(Brain& kb, Base& cell, Base& key);
     };
     class If : public BaseT<If>
     {
     public:
-        If(brain::Brain& kb, Base& condition);
-        If(brain::Brain& kb, Base& condition, Base& thenBranch);
-        If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch);
+        If(Brain& kb, Base& condition);
+        If(Brain& kb, Base& condition, Base& thenBranch);
+        If(Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch);
 
         If& then_(Base& thenBranch);
         If& else_(Base& elseBranch);
@@ -855,7 +857,7 @@ public:
     class Match : public BaseT<Match>
     {
     public:
-        Match(brain::Brain& kb, Base& enum_);
+        Match(Brain& kb, Base& enum_);
 
         Match& case_(CellI& memberName, Base& op);
         Match& case_(const std::string& memberStr, Base& op);
@@ -864,27 +866,27 @@ public:
     class Do : public BaseT<Do>
     {
     public:
-        Do(brain::Brain& kb, Base& statement);
+        Do(Brain& kb, Base& statement);
         Do& while_(Base& condition);
     };
     class While : public BaseT<While>
     {
     public:
-        While(brain::Brain& kb, Base& condition);
+        While(Brain& kb, Base& condition);
         While& do_(Base& statement);
     };
     class For : public BaseT<For>
     {
     public:
-        For(brain::Brain& kb, const std::string& varName);
+        For(Brain& kb, const std::string& varName);
         For& in(Base& container);
         For& operator()(Base& statement);
     };
     class Var : public BaseT<Var>
     {
     public:
-        Var(brain::Brain& kb, const std::string& nameStr);
-        Var(brain::Brain& kb, CellI& name);
+        Var(Brain& kb, const std::string& nameStr);
+        Var(Brain& kb, CellI& name);
 
         CellI& getFullyQualifiedName();
         Set& operator=(Base& value);
@@ -897,7 +899,7 @@ public:
     {
     public:
         Member(const Member&) = delete;
-        Member(brain::Brain& kb, CellI& key);
+        Member(Brain& kb, CellI& key);
         Set& operator=(Base& value);
         Get& operator/(Base& key);
         Get& operator/(const std::string& key);
@@ -909,13 +911,13 @@ public:
     {
     public:
         SubType(const SubType&) = delete;
-        SubType(brain::Brain& kb, CellI& name);
+        SubType(Brain& kb, CellI& name);
     };
     class TemplatedType : public BaseT<TemplatedType>
     {
     public:
         TemplatedType(const TemplatedType&) = delete;
-        TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList);
+        TemplatedType(Brain& kb, CellI& id, CellI& typeList);
 
         void addParam(const std::string& key, CellI& type);
         void addParam(const std::string& key, const std::string& type);
@@ -937,56 +939,56 @@ public:
     {
     public:
         TemplateParam(const TemplateParam&) = delete;
-        TemplateParam(brain::Brain& kb, CellI& key);
+        TemplateParam(Brain& kb, CellI& key);
     };
     class AssociatedType : public BaseT<AssociatedType>
     {
     public:
         AssociatedType(const AssociatedType&) = delete;
-        AssociatedType(brain::Brain& kb, CellI& key);
+        AssociatedType(Brain& kb, CellI& key);
     };
     class New : public BaseT<New>
     {
     public:
-        New(brain::Brain& kb, Base& objectType);
-        New(brain::Brain& kb, Base& objectType, Base& constructor);
+        New(Brain& kb, Base& objectType);
+        New(Brain& kb, Base& objectType, Base& constructor);
 
         New& operator()(const std::string& nameStr, CellI& value);
     };
     class Same : public BaseT<Same>
     {
     public:
-        Same(brain::Brain& kb, Base& lhs, Base& rhs);
+        Same(Brain& kb, Base& lhs, Base& rhs);
     };
     class NotSame : public BaseT<NotSame>
     {
     public:
-        NotSame(brain::Brain& kb, Base& lhs, Base& rhs);
+        NotSame(Brain& kb, Base& lhs, Base& rhs);
     };
     class Equal : public BaseT<Equal>
     {
     public:
-        Equal(brain::Brain& kb, Base& lhs, Base& rhs);
+        Equal(Brain& kb, Base& lhs, Base& rhs);
     };
     class NotEqual : public BaseT<NotEqual>
     {
     public:
-        NotEqual(brain::Brain& kb, Base& lhs, Base& rhs);
+        NotEqual(Brain& kb, Base& lhs, Base& rhs);
     };
     class Has : public BaseT<Has>
     {
     public:
-        Has(brain::Brain& kb, Base& cell, Base& key);
+        Has(Brain& kb, Base& cell, Base& key);
     };
     class Missing : public BaseT<Missing>
     {
     public:
-        Missing(brain::Brain& kb, Base& cell, Base& key);
+        Missing(Brain& kb, Base& cell, Base& key);
     };
     class Get : public BaseT<Get>
     {
     public:
-        Get(brain::Brain& kb, Base& cell, Base& key);
+        Get(Brain& kb, Base& cell, Base& key);
         Get& operator/(Base& key);
         Get& operator/(const std::string& key);
         Call& operator()(const std::string& method);
@@ -994,60 +996,60 @@ public:
     class And : public BaseT<And>
     {
     public:
-        And(brain::Brain& kb, Base& lhs, Base& rhs);
+        And(Brain& kb, Base& lhs, Base& rhs);
     };
     class Or : public BaseT<Or>
     {
     public:
-        Or(brain::Brain& kb, Base& lhs, Base& rhs);
+        Or(Brain& kb, Base& lhs, Base& rhs);
     };
     class Not : public BaseT<Not>
     {
     public:
-        Not(brain::Brain& kb, Base& input);
+        Not(Brain& kb, Base& input);
     };
     class Add : public BaseT<Add>
     {
     public:
-        Add(brain::Brain& kb, Base& lhs, Base& rhs);
+        Add(Brain& kb, Base& lhs, Base& rhs);
     };
     class Subtract : public BaseT<Subtract>
     {
     public:
-        Subtract(brain::Brain& kb, Base& lhs, Base& rhs);
+        Subtract(Brain& kb, Base& lhs, Base& rhs);
     };
     class Multiply : public BaseT<Multiply>
     {
     public:
-        Multiply(brain::Brain& kb, Base& lhs, Base& rhs);
+        Multiply(Brain& kb, Base& lhs, Base& rhs);
     };
     class Divide : public BaseT<Divide>
     {
     public:
-        Divide(brain::Brain& kb, Base& lhs, Base& rhs);
+        Divide(Brain& kb, Base& lhs, Base& rhs);
     };
     class LessThan : public BaseT<LessThan>
     {
     public:
-        LessThan(brain::Brain& kb, Base& lhs, Base& rhs);
+        LessThan(Brain& kb, Base& lhs, Base& rhs);
     };
     class LessThanOrEqual : public BaseT<LessThanOrEqual>
     {
     public:
-        LessThanOrEqual(brain::Brain& kb, Base& lhs, Base& rhs);
+        LessThanOrEqual(Brain& kb, Base& lhs, Base& rhs);
     };
     class GreaterThan : public BaseT<GreaterThan>
     {
     public:
-        GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs);
+        GreaterThan(Brain& kb, Base& lhs, Base& rhs);
     };
     class GreaterThanOrEqual : public BaseT<GreaterThanOrEqual>
     {
     public:
-        GreaterThanOrEqual(brain::Brain& kb, Base& lhs, Base& rhs);
+        GreaterThanOrEqual(Brain& kb, Base& lhs, Base& rhs);
     };
 
-    Ast(brain::Brain& kb);
+    Ast(Brain& kb);
 
     Cell& cell(CellI& value);
     StructName& structName(CellI& id);
@@ -1125,13 +1127,13 @@ public:
 
 protected:
     CellI& processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb);
-    brain::Brain& kb;
+    Brain& kb;
 };
 
 class Directions
 {
 public:
-    Directions(brain::Brain& kb);
+    Directions(Brain& kb);
     List up;
     List down;
     List left;
@@ -1141,7 +1143,7 @@ public:
 class Coordinates
 {
 public:
-    Coordinates(brain::Brain& kb);
+    Coordinates(Brain& kb);
     List x;
     List y;
 };
@@ -1149,7 +1151,7 @@ public:
 class Boolean
 {
 public:
-    Boolean(brain::Brain& kb);
+    Boolean(Brain& kb);
     Object true_;
     Object false_;
 };
@@ -1157,7 +1159,7 @@ public:
 class Numbers
 {
 public:
-    Numbers(brain::Brain& kb);
+    Numbers(Brain& kb);
     Map sign;
     Object positive;
     Object negative;
@@ -1167,7 +1169,7 @@ public:
 class AstHelper : public Ast
 {
 public:
-    AstHelper(brain::Brain& kb);
+    AstHelper(Brain& kb);
 
 protected:
     CellI& name(const std::string& str);
@@ -1258,64 +1260,60 @@ Map& AstHelper::map(CellI& key, CellI& value, Args&&... args)
     return ret;
 }
 
-namespace pools {
-
-class Chars
-{
-public:
-    Chars(brain::Brain& kb);
-    Object& get(char32_t utf32Char);
-
-protected:
-    void registerUnicodeBlock(char32_t from, char32_t to);
-    std::map<char32_t, Object> m_characters;
-    brain::Brain& kb;
-};
-
-class Digits
-{
-public:
-    Digits(brain::Brain& kb);
-    Object& operator[](int digit);
-
-protected:
-    std::vector<Object> m_digits;
-};
-
-class Numbers
-{
-public:
-    Numbers(brain::Brain& kb);
-    Number& get(int number);
-
-protected:
-    std::map<int, Number> m_numbers;
-    brain::Brain& m_kb;
-};
-
-class Strings
-{
-public:
-    Strings(brain::Brain& kb);
-    String& get(const std::string& str);
-    List& getCharList(const std::string& str);
-
-protected:
-    std::map<std::string, String> m_strings;
-    brain::Brain& kb;
-};
-
-} // namespace pools
-
 class Pools
 {
 public:
-    Pools(brain::Brain& kb);
+    class Chars
+    {
+    public:
+        Chars(Brain& kb);
+        Object& get(char32_t utf32Char);
 
-    pools::Chars chars;
-    pools::Digits digits;
-    pools::Numbers numbers;
-    pools::Strings strings;
+    protected:
+        void registerUnicodeBlock(char32_t from, char32_t to);
+        std::map<char32_t, Object> m_characters;
+        Brain& kb;
+    };
+
+    class Digits
+    {
+    public:
+        Digits(Brain& kb);
+        Object& operator[](int digit);
+
+    protected:
+        std::vector<Object> m_digits;
+    };
+
+    class Numbers
+    {
+    public:
+        Numbers(Brain& kb);
+        Number& get(int number);
+
+    protected:
+        std::map<int, Number> m_numbers;
+        Brain& m_kb;
+    };
+
+    class Strings
+    {
+    public:
+        Strings(Brain& kb);
+        String& get(const std::string& str);
+        List& getCharList(const std::string& str);
+
+    protected:
+        std::map<std::string, String> m_strings;
+        Brain& kb;
+    };
+
+    Pools(Brain& kb);
+
+    Chars chars;
+    Digits digits;
+    Numbers numbers;
+    Strings strings;
 };
 
 #ifdef __cpp_concepts
@@ -1542,7 +1540,7 @@ void Ast::Function::instructions(Args&&... args)
 #pragma endregion
 
 template <class MapType, class TAst>
-Ast::Items<MapType, TAst>::Items(brain::Brain& kb, const std::string& mapName, Base& parent) :
+Ast::Items<MapType, TAst>::Items(Brain& kb, const std::string& mapName, Base& parent) :
     kb(kb),
     m_mapName(mapName),
     m_parent(parent)
@@ -1615,6 +1613,5 @@ MapType& Ast::Items<MapType, TAst>::items()
 }
 
 
-} // namespace brain
 } // namespace cells
 } // namespace infocell

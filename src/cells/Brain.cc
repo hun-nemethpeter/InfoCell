@@ -7,9 +7,8 @@
 
 namespace infocell {
 namespace cells {
-namespace brain {
 
-ID::ID(brain::Brain& kb) :
+ID::ID(Brain& kb) :
     kb(kb),
     argument(kb, kb.std.Char, "argument"),
     ast(kb, kb.std.Char, "ast"),
@@ -121,7 +120,7 @@ ID::ID(brain::Brain& kb) :
 
 namespace type {
 
-Op::Op(brain::Brain& kb) :
+Op::Op(Brain& kb) :
     kb(kb),
     Activate(kb, kb.std.Struct, "op::Activate"),
     Add(kb, kb.std.Struct, "op::Add"),
@@ -159,7 +158,7 @@ Op::Op(brain::Brain& kb) :
 {
 }
 
-Ast::Ast(brain::Brain& kb) :
+Ast::Ast(Brain& kb) :
     kb(kb),
     Add(kb, kb.std.Struct, "ast::Add"),
     And(kb, kb.std.Struct, "ast::And"),
@@ -224,7 +223,7 @@ Ast::Ast(brain::Brain& kb) :
 
 } // namespace type
 
-Std::Std(brain::Brain& kb) :
+Std::Std(Brain& kb) :
     kb(kb),
     Cell(kb, kb.std.Struct, "Cell"),
     Slot(kb, kb.std.Struct, "Slot"),
@@ -287,7 +286,7 @@ cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
 }
 
 // ============================================================================
-Ast::Base::Base(brain::Brain& kb, CellI& classCell, const std::string& label) :
+Ast::Base::Base(Brain& kb, CellI& classCell, const std::string& label) :
     Object(kb, classCell, label)
 {
 }
@@ -580,13 +579,13 @@ Ast::ResolvedType& Ast::Base::resolvedType(CellI& astType, CellI& compiledType)
     return ResolvedType::New(kb, astType, compiledType);
 }
 
-Ast::Parameter::Parameter(brain::Brain& kb, CellI& key) :
+Ast::Parameter::Parameter(Brain& kb, CellI& key) :
     BaseT<Parameter>(kb, kb.std.ast.Parameter, key.label())
 {
     set("key", key);
 }
 
-Ast::ResolvedType::ResolvedType(brain::Brain& kb, CellI& astType, CellI& compiledType) :
+Ast::ResolvedType::ResolvedType(Brain& kb, CellI& astType, CellI& compiledType) :
     BaseT<ResolvedType>(kb, kb.std.ast.ResolvedType, astType.label())
 {
     set(kb.ids.ast, astType);
@@ -608,14 +607,14 @@ Ast::Call& Ast::Parameter::operator()(const std::string& method)
     return kb.ast.call(*this, method);
 }
 
-Ast::Slot::Slot(brain::Brain& kb, CellI& key, CellI& type) :
+Ast::Slot::Slot(Brain& kb, CellI& key, CellI& type) :
     BaseT<Slot>(kb, kb.std.ast.Slot, "ast.slot")
 {
     set(kb.ids.key, key);
     set(kb.ids.type, type);
 }
 
-Ast::Call::Call(brain::Brain& kb, CellI& cell, CellI& method) :
+Ast::Call::Call(Brain& kb, CellI& cell, CellI& method) :
     BaseT<Call>(kb, kb.std.ast.Call, "ast.call")
 {
     set(kb.ids.cell, cell);
@@ -634,7 +633,7 @@ Ast::Call& Ast::Call::operator()(const std::string& nameStr, CellI& value)
     return *this;
 }
 
-Ast::StaticCall::StaticCall(brain::Brain& kb, CellI& cell, CellI& method) :
+Ast::StaticCall::StaticCall(Brain& kb, CellI& cell, CellI& method) :
     BaseT<StaticCall>(kb, kb.std.ast.StaticCall, "ast.staticCall")
 {
     set(kb.ids.cell, cell);
@@ -659,7 +658,7 @@ Ast::Equal& Ast::BaseT<T>::operator==(Base& rhs) const
     return Equal::New(kb, const_cast<Ast::BaseT<T>&>(*this), rhs);
 }
 
-Ast::Cell::Cell(brain::Brain& kb, CellI& value) :
+Ast::Cell::Cell(Brain& kb, CellI& value) :
     BaseT<Cell>(kb, kb.std.ast.Cell, "ast.cell")
 {
     set(kb.ids.value, value);
@@ -674,13 +673,13 @@ Ast::Get& Ast::Cell::operator/(const std::string& key)
 {
     return Get::New(kb, *this, kb._(key));
 }
-Ast::StructName::StructName(brain::Brain& kb, CellI& name) :
+Ast::StructName::StructName(Brain& kb, CellI& name) :
     BaseT<StructName>(kb, kb.std.ast.StructName, "ast.structName")
 {
     set(kb.ids.name, name);
 }
 
-Ast::Self::Self(brain::Brain& kb) :
+Ast::Self::Self(Brain& kb) :
     BaseT<Self>(kb, kb.std.ast.Self, "ast.self")
 {
 }
@@ -690,51 +689,51 @@ Ast::Call& Ast::Self::operator()(const std::string& method)
     return kb.ast.call(*this, method);
 }
 
-Ast::SelfFn::SelfFn(brain::Brain& kb) :
+Ast::SelfFn::SelfFn(Brain& kb) :
     BaseT<SelfFn>(kb, kb.std.ast.SelfFn, "ast.selfFn")
 {
 }
 
-Ast::Continue::Continue(brain::Brain& kb) :
+Ast::Continue::Continue(Brain& kb) :
     BaseT<Continue>(kb, kb.std.ast.Continue, "ast.continue")
 {
 }
 
-Ast::Break::Break(brain::Brain& kb) :
+Ast::Break::Break(Brain& kb) :
     BaseT<Break>(kb, kb.std.ast.Break, "ast.break")
 {
 }
 
-Ast::Try::Try(brain::Brain& kb, Base& tryBranch, Base& catchBranch) :
+Ast::Try::Try(Brain& kb, Base& tryBranch, Base& catchBranch) :
     BaseT<Try>(kb, kb.std.ast.Try, "ast.try")
 {
     set("tryBranch", tryBranch);
     set("catchBranch", catchBranch);
 }
 
-Ast::Throw::Throw(brain::Brain& kb) :
+Ast::Throw::Throw(Brain& kb) :
     BaseT<Throw>(kb, kb.std.ast.Throw, "ast.throw")
 {
 }
 
-Ast::Throw::Throw(brain::Brain& kb, Base& value) :
+Ast::Throw::Throw(Brain& kb, Base& value) :
     BaseT<Throw>(kb, kb.std.ast.Throw, "ast.throw")
 {
     set(kb.ids.value, value);
 }
 
-Ast::Return::Return(brain::Brain& kb) :
+Ast::Return::Return(Brain& kb) :
     BaseT<Return>(kb, kb.std.ast.Return, "ast.return")
 {
 }
 
-Ast::Return::Return(brain::Brain& kb, CellI& value) :
+Ast::Return::Return(Brain& kb, CellI& value) :
     BaseT<Return>(kb, kb.std.ast.Return, "ast.return")
 {
     set(kb.ids.value, value);
 }
 
-Ast::Block::Block(brain::Brain& kb, List& list) :
+Ast::Block::Block(Brain& kb, List& list) :
     BaseT<Block>(kb, kb.std.ast.Block, "ast.block")
 {
     set(kb.ids.asts, list);
@@ -794,7 +793,7 @@ Ast::Items<TrieMap, Ast::Enum>& Ast::Scope::getItemMember()
     return enumsImpl;
 }
 
-Ast::Scope::Scope(brain::Brain& kb, const std::string& nameStr) :
+Ast::Scope::Scope(Brain& kb, const std::string& nameStr) :
     BaseT<Scope>(kb, kb.std.ast.Scope, nameStr),
     scopesImpl(kb, "scopes", *this),
     functionsImpl(kb, "functions", *this),
@@ -1342,7 +1341,7 @@ Ast::Scope& Ast::Scope::resolveTypes(CellI& state)
     return resolvedScope;
 }
 
-Ast::StructBase::StructBase(brain::Brain& kb, CellI& astType, CellI& name, const std::string& nameStr) :
+Ast::StructBase::StructBase(Brain& kb, CellI& astType, CellI& name, const std::string& nameStr) :
     Base(kb, astType, nameStr),
     methodsImpl(kb, "methods", *this)
 
@@ -1475,12 +1474,12 @@ void Ast::StructBase::addBlock(Block& block)
     set(kb.ids.description, block);
 }
 
-Ast::Struct::Struct(brain::Brain& kb, const std::string& nameStr) :
+Ast::Struct::Struct(Brain& kb, const std::string& nameStr) :
     StructBase(kb, kb.std.ast.Struct, kb.name(nameStr), nameStr)
 {
 }
 
-Ast::Struct::Struct(brain::Brain& kb, CellI& name) :
+Ast::Struct::Struct(Brain& kb, CellI& name) :
     StructBase(kb, kb.std.ast.Struct, name, name.label())
 {
 }
@@ -1650,12 +1649,12 @@ CellI& Ast::Struct::compile(CellI& state)
     return compiledStruct;
 }
 
-Ast::StructT::StructT(brain::Brain& kb, CellI& name) :
+Ast::StructT::StructT(Brain& kb, CellI& name) :
     StructBase(kb, kb.std.ast.StructT, name, name.label())
 {
 }
 
-Ast::StructT::StructT(brain::Brain& kb, const std::string& nameStr) :
+Ast::StructT::StructT(Brain& kb, const std::string& nameStr) :
     StructBase(kb, kb.std.ast.StructT, kb.name(nameStr), nameStr)
 {
 }
@@ -1972,12 +1971,12 @@ Map& Ast::StructT::templateParams()
     }
 }
 
-Ast::Trait::Trait(brain::Brain& kb, CellI& name) :
+Ast::Trait::Trait(Brain& kb, CellI& name) :
     StructBase(kb, kb.std.ast.Trait, name, name.label())
 {
 }
 
-Ast::Trait::Trait(brain::Brain& kb, const std::string& nameStr) :
+Ast::Trait::Trait(Brain& kb, const std::string& nameStr) :
     StructBase(kb, kb.std.ast.Trait, kb.name(nameStr), nameStr)
 {
 }
@@ -1997,12 +1996,12 @@ Ast::Trait& Ast::Trait::associatedTypes(Slot& slot)
 }
 
 
-Ast::TraitImpl::TraitImpl(brain::Brain& kb, CellI& name) :
+Ast::TraitImpl::TraitImpl(Brain& kb, CellI& name) :
     StructBase(kb, kb.std.ast.TraitImpl, name, name.label())
 {
 }
 
-Ast::TraitImpl::TraitImpl(brain::Brain& kb, const std::string& nameStr) :
+Ast::TraitImpl::TraitImpl(Brain& kb, const std::string& nameStr) :
     StructBase(kb, kb.std.ast.TraitImpl, kb.name(nameStr), nameStr)
 {
 }
@@ -2028,14 +2027,14 @@ Ast::TraitImpl& Ast::TraitImpl::associatedTypes(Slot& slot)
     return *this;
 }
 
-Ast::EnumValue::EnumValue(brain::Brain& kb, const std::string& name) :
+Ast::EnumValue::EnumValue(Brain& kb, const std::string& name) :
     BaseT<EnumValue>(kb, kb.std.ast.EnumValue, name)
 {
     set("name", kb.name(name));
     label(name);
 }
 
-Ast::EnumValue::EnumValue(brain::Brain& kb, const std::string& name, CellI& value) :
+Ast::EnumValue::EnumValue(Brain& kb, const std::string& name, CellI& value) :
     BaseT<EnumValue>(kb, kb.std.ast.EnumValue, name)
 {
     set("name", kb.name(name));
@@ -2049,7 +2048,7 @@ CellI& Ast::EnumValue::getFullyQualifiedName()
     return getFullyQualifiedNameImpl();
 }
 
-Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& enumType) :
+Ast::TypedEnumValue::TypedEnumValue(Brain& kb, const std::string& nameStr, CellI& enumType) :
     BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, nameStr)
 {
     set("name", kb.name(nameStr));
@@ -2057,7 +2056,7 @@ Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr
     label(nameStr);
 }
 
-Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, CellI& name, CellI& enumType) :
+Ast::TypedEnumValue::TypedEnumValue(Brain& kb, CellI& name, CellI& enumType) :
     BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, name.label())
 {
     set("name", name);
@@ -2065,7 +2064,7 @@ Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, CellI& name, CellI& enumTy
     label(name.label());
 }
 
-Ast::TypedEnumValue::TypedEnumValue(brain::Brain& kb, const std::string& nameStr, CellI& enumType, CellI& value) :
+Ast::TypedEnumValue::TypedEnumValue(Brain& kb, const std::string& nameStr, CellI& enumType, CellI& value) :
     BaseT<TypedEnumValue>(kb, kb.std.ast.TypedEnumValue, nameStr)
 {
     set("name", kb.name(nameStr));
@@ -2079,14 +2078,14 @@ CellI& Ast::TypedEnumValue::getFullyQualifiedName()
     return getFullyQualifiedNameImpl();
 }
 
-Ast::Enum::Enum(brain::Brain& kb, CellI& name) :
+Ast::Enum::Enum(Brain& kb, CellI& name) :
     BaseT<Enum>(kb, kb.std.ast.Enum, name.label())
 {
     set("name", name);
     label(name.label());
 }
 
-Ast::Enum::Enum(brain::Brain& kb, const std::string& nameStr) :
+Ast::Enum::Enum(Brain& kb, const std::string& nameStr) :
     BaseT<Enum>(kb, kb.std.ast.Enum, nameStr)
 {
     set("name", kb.name(nameStr));
@@ -2271,14 +2270,14 @@ TrieMap& Ast::Enum::values()
     }
 }
 
-Ast::Function::Function(brain::Brain& kb, CellI& name) :
+Ast::Function::Function(Brain& kb, CellI& name) :
     BaseT<Function>(kb, kb.std.ast.Function, name.label())
 {
     set("name", name);
     label(name.label());
 }
 
-Ast::Function::Function(brain::Brain& kb, const std::string& nameStr) :
+Ast::Function::Function(Brain& kb, const std::string& nameStr) :
     BaseT<Function>(kb, kb.std.ast.Function, nameStr)
 {
     set("name", kb.name(nameStr));
@@ -3084,14 +3083,14 @@ Ast::Base& Ast::Function::instructions()
     }
 }
 
-Ast::FunctionT::FunctionT(brain::Brain& kb, CellI& name, const std::string& nameStr) :
+Ast::FunctionT::FunctionT(Brain& kb, CellI& name, const std::string& nameStr) :
     BaseT<FunctionT>(kb, kb.std.ast.FunctionT, nameStr)
 {
     set(kb.ids.name, name);
     label(nameStr);
 }
 
-Ast::FunctionT::FunctionT(brain::Brain& kb, const std::string& nameStr) :
+Ast::FunctionT::FunctionT(Brain& kb, const std::string& nameStr) :
     BaseT<FunctionT>(kb, kb.std.ast.FunctionT, nameStr)
 {
     set(kb.ids.name, kb.name(nameStr));
@@ -3143,13 +3142,13 @@ Ast::Base& Ast::FunctionT::instructions()
     }
 }
 
-Ast::Delete::Delete(brain::Brain& kb, Base& cell) :
+Ast::Delete::Delete(Brain& kb, Base& cell) :
     BaseT<Delete>(kb, kb.std.ast.Delete, "ast.delete")
 {
     set(kb.ids.cell, cell);
 }
 
-Ast::Set::Set(brain::Brain& kb, Base& cell, Base& key, Base& value) :
+Ast::Set::Set(Brain& kb, Base& cell, Base& key, Base& value) :
     BaseT<Set>(kb, kb.std.ast.Set, "ast.set")
 {
     set(kb.ids.cell, cell);
@@ -3157,27 +3156,27 @@ Ast::Set::Set(brain::Brain& kb, Base& cell, Base& key, Base& value) :
     set(kb.ids.value, value);
 }
 
-Ast::Erase::Erase(brain::Brain& kb, Base& cell, Base& key) :
+Ast::Erase::Erase(Brain& kb, Base& cell, Base& key) :
     BaseT<Erase>(kb, kb.std.ast.Erase, "ast.erase")
 {
     set(kb.ids.cell, cell);
     set(kb.ids.key, key);
 }
 
-Ast::If::If(brain::Brain& kb, Base& condition) :
+Ast::If::If(Brain& kb, Base& condition) :
     BaseT<If>(kb, kb.std.ast.If, "ast.if")
 {
     set(kb.ids.condition, condition);
 }
 
-Ast::If::If(brain::Brain& kb, Base& condition, Base& thenBranch) :
+Ast::If::If(Brain& kb, Base& condition, Base& thenBranch) :
     BaseT<If>(kb, kb.std.ast.If, "ast.if")
 {
     set(kb.ids.condition, condition);
     set(kb.ids.then, thenBranch);
 }
 
-Ast::If::If(brain::Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch) :
+Ast::If::If(Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch) :
     BaseT<If>(kb, kb.std.ast.If, "ast.ifElse")
 {
     set(kb.ids.condition, condition);
@@ -3197,7 +3196,7 @@ Ast::If& Ast::If::else_(Base& elseBranch)
     return *this;
 }
 
-Ast::Match::Match(brain::Brain& kb, Base& enum_) :
+Ast::Match::Match(Brain& kb, Base& enum_) :
     BaseT<Match>(kb, kb.std.ast.Match, "ast.match")
 {
     set("enum", enum_);
@@ -3219,7 +3218,7 @@ Ast::Match& Ast::Match::case_(const std::string& memberStr, Base& op)
     return case_(kb.name(memberStr), op);
 }
 
-Ast::Do::Do(brain::Brain& kb, Base& statement) :
+Ast::Do::Do(Brain& kb, Base& statement) :
     BaseT<Do>(kb, kb.std.ast.Do, "ast.do")
 {
     set(kb.ids.statement, statement);
@@ -3231,7 +3230,7 @@ Ast::Do& Ast::Do::while_(Base& condition)
     return *this;
 }
 
-Ast::While::While(brain::Brain& kb, Base& condition) :
+Ast::While::While(Brain& kb, Base& condition) :
     BaseT<While>(kb, kb.std.ast.While, "ast.while")
 {
     set(kb.ids.condition, condition);
@@ -3243,7 +3242,7 @@ Ast::While& Ast::While::do_(Base& statement)
     return *this;
 }
 
-Ast::For::For(brain::Brain& kb, const std::string& varName) :
+Ast::For::For(Brain& kb, const std::string& varName) :
     BaseT<For>(kb, kb.std.ast.For, "ast.For")
 {
     set(kb.ids.variable, kb.name(varName));
@@ -3261,13 +3260,13 @@ Ast::For& Ast::For::operator()(Base& statement)
     return *this;
 }
 
-Ast::Var::Var(brain::Brain& kb, const std::string& nameStr) :
+Ast::Var::Var(Brain& kb, const std::string& nameStr) :
     BaseT<Var>(kb, kb.std.ast.Var, nameStr)
 {
     set(kb.ids.name, kb.name(nameStr));
 }
 
-Ast::Var::Var(brain::Brain& kb, CellI& name) :
+Ast::Var::Var(Brain& kb, CellI& name) :
     BaseT<Var>(kb, kb.std.ast.Var, name.label())
 {
     set(kb.ids.name, name);
@@ -3293,7 +3292,7 @@ Ast::Call& Ast::Var::operator()(const std::string& method)
     return kb.ast.call(*(*this), method);
 }
 
-Ast::Member::Member(brain::Brain& kb, CellI& key) :
+Ast::Member::Member(Brain& kb, CellI& key) :
     BaseT<Member>(kb, kb.std.ast.Member, "ast.member")
 {
     set(kb.ids.key, key);
@@ -3330,13 +3329,13 @@ Ast::Call& Ast::Member::operator()(const std::string& method)
     return kb.ast.call(*this, method);
 }
 
-Ast::SubType::SubType(brain::Brain& kb, CellI& name) :
+Ast::SubType::SubType(Brain& kb, CellI& name) :
     BaseT<SubType>(kb, kb.std.ast.SubTypeName, "ast.subTypeName")
 {
     set(kb.ids.name, name);
 }
 
-Ast::TemplatedType::TemplatedType(brain::Brain& kb, CellI& id, CellI& typeList) :
+Ast::TemplatedType::TemplatedType(Brain& kb, CellI& id, CellI& typeList) :
     BaseT<TemplatedType>(kb, kb.std.ast.TemplatedType, "ast.templatedType")
 {
     set(kb.ids.id, id);
@@ -3354,25 +3353,25 @@ void Ast::TemplatedType::addParam(const std::string& key, const std::string& typ
     addParam(key, kb.ast.structName(type));
 }
 
-Ast::TemplateParam::TemplateParam(brain::Brain& kb, CellI& key) :
+Ast::TemplateParam::TemplateParam(Brain& kb, CellI& key) :
     BaseT<TemplateParam>(kb, kb.std.ast.TemplateParam, "ast.templateParam")
 {
     set(kb.ids.key, key);
 }
 
-Ast::AssociatedType::AssociatedType(brain::Brain& kb, CellI& key) :
+Ast::AssociatedType::AssociatedType(Brain& kb, CellI& key) :
     BaseT<AssociatedType>(kb, kb.std.ast.TemplateParam, "ast.associatedType")
 {
     set(kb.ids.key, key);
 }
 
-Ast::New::New(brain::Brain& kb, Base& objectType) :
+Ast::New::New(Brain& kb, Base& objectType) :
     BaseT<New>(kb, kb.std.ast.New, "ast.new")
 {
     set(kb.ids.objectType, objectType);
 }
 
-Ast::New::New(brain::Brain& kb, Base& objectType, Base& constructor) :
+Ast::New::New(Brain& kb, Base& objectType, Base& constructor) :
     BaseT<New>(kb, kb.std.ast.New, "ast.new()")
 {
     set(kb.ids.objectType, objectType);
@@ -3392,49 +3391,49 @@ Ast::New& Ast::New::operator()(const std::string& nameStr, CellI& value)
     return *this;
 }
 
-Ast::Same::Same(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::Same::Same(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Same>(kb, kb.std.ast.Same, "ast.same")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::NotSame::NotSame(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::NotSame::NotSame(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<NotSame>(kb, kb.std.ast.NotSame, "ast.notSame")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Equal::Equal(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::Equal::Equal(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Equal>(kb, kb.std.ast.Equal, "ast.equal")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::NotEqual::NotEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::NotEqual::NotEqual(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<NotEqual>(kb, kb.std.ast.NotEqual, "ast.notEqual")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Has::Has(brain::Brain& kb, Base& cell, Base& key) :
+Ast::Has::Has(Brain& kb, Base& cell, Base& key) :
     BaseT<Has>(kb, kb.std.ast.Has, "ast.has")
 {
     set(kb.ids.cell, cell);
     set(kb.ids.key, key);
 }
 
-Ast::Missing::Missing(brain::Brain& kb, Base& cell, Base& key) :
+Ast::Missing::Missing(Brain& kb, Base& cell, Base& key) :
     BaseT<Missing>(kb, kb.std.ast.Missing, "ast.missing")
 {
     set(kb.ids.cell, cell);
     set(kb.ids.key, key);
 }
 
-Ast::Get::Get(brain::Brain& kb, Base& cell, Base& key) :
+Ast::Get::Get(Brain& kb, Base& cell, Base& key) :
     BaseT<Get>(kb, kb.std.ast.Get, "ast.get")
 {
     set(kb.ids.cell, cell);
@@ -3455,83 +3454,83 @@ Ast::Call& Ast::Get::operator()(const std::string& method)
     return kb.ast.call(*this, method);
 }
 
-Ast::And::And(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::And::And(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<And>(kb, kb.std.ast.And, "ast.and")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Or::Or(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::Or::Or(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Or>(kb, kb.std.ast.Or, "ast.or")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Not::Not(brain::Brain& kb, Base& input) :
+Ast::Not::Not(Brain& kb, Base& input) :
     BaseT<Not>(kb, kb.std.ast.Not, "ast.not")
 {
     set(kb.ids.input, input);
 }
 
-Ast::Add::Add(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::Add::Add(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Add>(kb, kb.std.ast.Add, "ast.add")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Subtract::Subtract(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::Subtract::Subtract(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Subtract>(kb, kb.std.ast.Subtract, "ast.subtract")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Multiply::Multiply(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::Multiply::Multiply(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Multiply>(kb, kb.std.ast.Multiply, "ast.multiply")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Divide::Divide(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::Divide::Divide(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<Divide>(kb, kb.std.ast.Divide, "ast.divide")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::LessThan::LessThan(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::LessThan::LessThan(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<LessThan>(kb, kb.std.ast.LessThan, "ast.lessThan")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::LessThanOrEqual::LessThanOrEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::LessThanOrEqual::LessThanOrEqual(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<LessThanOrEqual>(kb, kb.std.ast.LessThanOrEqual, "ast.lessThanOrEqual")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::GreaterThan::GreaterThan(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::GreaterThan::GreaterThan(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<GreaterThan>(kb, kb.std.ast.GreaterThan, "ast.greaterThan")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::GreaterThanOrEqual::GreaterThanOrEqual(brain::Brain& kb, Base& lhs, Base& rhs) :
+Ast::GreaterThanOrEqual::GreaterThanOrEqual(Brain& kb, Base& lhs, Base& rhs) :
     BaseT<GreaterThanOrEqual>(kb, kb.std.ast.GreaterThanOrEqual, "ast.greaterThanOrEqual")
 {
     set(kb.ids.lhs, lhs);
     set(kb.ids.rhs, rhs);
 }
 
-Ast::Ast(brain::Brain& kb) :
+Ast::Ast(Brain& kb) :
     kb(kb)
 {
 }
@@ -3892,7 +3891,7 @@ CellI& Ast::processNamespacedName(const std::string& inputName, std::function<Ce
     return obj;
 }
 
-AstHelper::AstHelper(brain::Brain& kb) :
+AstHelper::AstHelper(Brain& kb) :
     Ast(kb),
     globalScope(kb.globalScope),
     ids(kb.ids),
@@ -4037,7 +4036,7 @@ CellI& AstHelper::MapOf(CellI& keyType, CellI& valueType)
     return kb.MapOf(keyType, valueType);
 }
 
-Directions::Directions(brain::Brain& kb) :
+Directions::Directions(Brain& kb) :
     up(kb, kb.std.Char, "up"),
     down(kb, kb.std.Char, "down"),
     left(kb, kb.std.Char, "left"),
@@ -4045,19 +4044,19 @@ Directions::Directions(brain::Brain& kb) :
 {
 }
 
-Coordinates::Coordinates(brain::Brain& kb) :
+Coordinates::Coordinates(Brain& kb) :
     x(kb, kb.std.Char, "x"),
     y(kb, kb.std.Char, "y")
 {
 }
 
-Boolean::Boolean(brain::Brain& kb) :
+Boolean::Boolean(Brain& kb) :
     true_(kb, kb.std.Boolean, "true"),
     false_(kb, kb.std.Boolean, "false")
 {
 }
 
-Numbers::Numbers(brain::Brain& kb) :
+Numbers::Numbers(Brain& kb) :
     sign(kb, kb.std.Cell, kb.std.Cell, "sign"),
     positive(kb, kb.std.Cell, "positive"),
     negative(kb, kb.std.Cell, "negative")
@@ -4067,10 +4066,8 @@ Numbers::Numbers(brain::Brain& kb) :
     sign.add(negative, negative);
 }
 
-namespace pools {
-
 // ============================================================================
-Chars::Chars(brain::Brain& kb) :
+Pools::Chars::Chars(Brain& kb) :
     kb(kb)
 {
     // These are enough for me currently
@@ -4079,7 +4076,7 @@ Chars::Chars(brain::Brain& kb) :
     registerUnicodeBlock(0x100, 0x17f); // Latin Extended-A
 }
 
-Object& Chars::get(char32_t utf32Char)
+Object& Pools::Chars::get(char32_t utf32Char)
 {
     auto unicodeCellIt = m_characters.find(utf32Char);
     if (unicodeCellIt != m_characters.end()) {
@@ -4089,7 +4086,7 @@ Object& Chars::get(char32_t utf32Char)
     }
 }
 
-void Chars::registerUnicodeBlock(char32_t from, char32_t to)
+void Pools::Chars::registerUnicodeBlock(char32_t from, char32_t to)
 {
     for (char32_t unicodeValue = from; unicodeValue <= to; ++unicodeValue) {
         std::string characterName;
@@ -4109,7 +4106,7 @@ void Chars::registerUnicodeBlock(char32_t from, char32_t to)
 }
 
 // ============================================================================
-Digits::Digits(brain::Brain& kb)
+Pools::Digits::Digits(Brain& kb)
 {
     m_digits.reserve(10);
     for (int i = 0; i < 10; ++i) {
@@ -4118,18 +4115,18 @@ Digits::Digits(brain::Brain& kb)
     }
 }
 
-Object& Digits::operator[](int digit)
+Object& Pools::Digits::operator[](int digit)
 {
     return m_digits[digit];
 }
 
 // ============================================================================
-Numbers::Numbers(brain::Brain& kb) :
+Pools::Numbers::Numbers(Brain& kb) :
     m_kb(kb)
 {
 }
 
-Number& Numbers::get(int number)
+Number& Pools::Numbers::get(int number)
 {
     auto numberIt = m_numbers.find(number);
     if (numberIt != m_numbers.end()) {
@@ -4154,7 +4151,7 @@ struct StringInit
 };
 
 // ============================================================================
-Strings::Strings(brain::Brain& kb) :
+Pools::Strings::Strings(Brain& kb) :
     kb(kb)
 {
     StringInit reservedStrings[] = {
@@ -4275,7 +4272,7 @@ Strings::Strings(brain::Brain& kb) :
     }
 }
 
-String& Strings::get(const std::string& str)
+String& Pools::Strings::get(const std::string& str)
 {
     auto numberIt = m_strings.find(str);
     if (numberIt != m_strings.end()) {
@@ -4290,7 +4287,7 @@ String& Strings::get(const std::string& str)
     }
 }
 
-List& Strings::getCharList(const std::string& str)
+List& Pools::Strings::getCharList(const std::string& str)
 {
     auto& string = get(str);
     auto& ret = static_cast<List&>(string[string.kb.ids.value]);
@@ -4298,9 +4295,7 @@ List& Strings::getCharList(const std::string& str)
     return ret;
 }
 
-} // namespace pools
-
-Pools::Pools(brain::Brain& kb) :
+Pools::Pools(Brain& kb) :
     chars(kb),
     digits(kb),
     numbers(kb),
@@ -5083,7 +5078,7 @@ void AstStd::createAst()
             member("statement", "Base"));
 }
 
-AstStd::AstStd(brain::Brain& kb) :
+AstStd::AstStd(Brain& kb) :
     AstHelper(kb),
     stdScope(kb.globalScope.add<Scope>("std"))
 {
@@ -6219,10 +6214,10 @@ AstStd::AstStd(brain::Brain& kb) :
 class AstArc : public AstHelper
 {
 public:
-    AstArc(brain::Brain& kb);
+    AstArc(Brain& kb);
 };
 
-AstArc::AstArc(brain::Brain& kb) :
+AstArc::AstArc(Brain& kb) :
     AstHelper(kb)
 {
     auto& arcScope = globalScope.add<Scope>("arc");
@@ -6751,10 +6746,10 @@ AstArc::AstArc(brain::Brain& kb) :
 class AstTest : public AstHelper
 {
 public:
-    AstTest(brain::Brain& kb);
+    AstTest(Brain& kb);
 };
 
-AstTest::AstTest(brain::Brain& kb) :
+AstTest::AstTest(Brain& kb) :
     AstHelper(kb)
 {
     auto& testScope = globalScope.add<Scope>("test");
@@ -7110,7 +7105,6 @@ Brain::InitPhase Brain::initPhase()
 
 Brain::Logger::Logger(std::function<void()> loggerLevelInit)
 {
-
     registerLogger("cells");
     registerLogger("compileStruct");
     registerLogger("symbolResolver");
@@ -7150,6 +7144,5 @@ std::shared_ptr<spdlog::logger> Brain::Logger::createLogger(const std::string& n
     return logger;
 }
 
-} // namespace brain
 } // namespace cells
 } // namespace infocell

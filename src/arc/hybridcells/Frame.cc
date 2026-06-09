@@ -5,7 +5,7 @@ namespace infocell {
 namespace cells {
 namespace arc {
 
-Frame::Frame(brain::Brain& kb, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct) :
+Frame::Frame(Brain& kb, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct) :
     CellI(kb),
     m_width(grid.widthCell()),
     m_height(grid.heightCell()),

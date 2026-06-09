@@ -10,7 +10,7 @@ namespace arc {
 class Shape : public CellI
 {
 public:
-    Shape(brain::Brain& kb, Number& id, CellI& color, Number& width, Number& height);
+    Shape(Brain& kb, Number& id, CellI& color, Number& width, Number& height);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;

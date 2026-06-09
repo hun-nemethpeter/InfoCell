@@ -68,14 +68,14 @@ public:
     }
 
 private:
-    cells::brain::Brain kb;
+    cells::Brain kb;
     void addTestCases();
     std::vector<TestCase> m_testCases;
 };
 
 void TestCases::addTestCases()
 {
-    cells::brain::Brain kb2;
+    cells::Brain kb2;
     add(TestCase("ShapeTest", [this]() {
         nativearc::Grid inputGrid("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
         hybridarc::Grid grid(kb, inputGrid);

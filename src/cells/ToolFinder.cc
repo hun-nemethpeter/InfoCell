@@ -19,7 +19,7 @@ ToolFinder::Node::~Node()
 }
 
 // ============================================================================
-ToolFinder::ToolFinder(brain::Brain& kb) :
+ToolFinder::ToolFinder(Brain& kb) :
     kb(kb)
 {
     m_root = std::make_unique<Node>();
@@ -494,7 +494,7 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
 {
     auto& ListOfCellStruct = kb.getStruct(kb.templateId("std::List", kb.ids.valueType, kb.std.Cell));
 
-    brain::Brain& kb        = this->kb;
+    Brain& kb        = this->kb;
     List& toCreate          = *new List(kb, kb.std.Cell);
     Index& toCreateItemRoot = *new Index(kb);
     toCreateItemRoot.set(kb.ids.ast, inputAst);
@@ -615,7 +615,7 @@ void ToolFinder::printCb(Node* node)
 
 static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot)
 {
-    brain::Brain& kb = tool.kb;
+    Brain& kb = tool.kb;
     CellI& slotList  = tool.struct_()[kb.ids.slots][kb.ids.list];
     Visitor::visitList(slotList, [&kb, &tool, &filledSlot](CellI& slot, int i, bool& stop) {
         CellI& slotType = slot[kb.ids.type];
@@ -628,7 +628,7 @@ static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot)
 
 CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint)
 {
-    brain::Brain& kb  = blueprint.m_tool->kb;
+    Brain& kb  = blueprint.m_tool->kb;
     CellI& tool = *new Object(kb, *blueprint.m_compiledToolType);
     tool.set(*blueprint.m_slotId, kb.ast.cell(from));
 

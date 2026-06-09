@@ -16,7 +16,7 @@ namespace cli {
 class CompareEdgesCommand
 {
 public:
-    CompareEdgesCommand(cells::brain::Brain& kb, cells::arc::Grid& inputGrid, cells::arc::Grid& outputGrid) :
+    CompareEdgesCommand(cells::Brain& kb, cells::arc::Grid& inputGrid, cells::arc::Grid& outputGrid) :
         kb(kb),
         m_inputGrid(inputGrid),
         m_outputGrid(outputGrid),
@@ -33,7 +33,7 @@ public:
         m_outputEdges.detect(m_outputGrid);
     }
 
-    cells::brain::Brain& kb;
+    cells::Brain& kb;
     cells::arc::Grid& m_inputGrid;
     cells::arc::Grid& m_outputGrid;
     arc::EdgeDetector m_inputEdges;
@@ -143,12 +143,12 @@ int App::run(int argc, char* argv[])
     outputGrid->add_option("-ik,--io-kind", outputIoKind, "Input or output grid inside the pair (input or output)")->transform(CLI::CheckedTransformer(ioKindMap, CLI::ignore_case));
 
     compareEdgeCommand->callback([&]() {
-        cells::brain::Brain kb([]() {
-            brain::Brain::Logger::createLogger("edge");
-            brain::Brain::Logger::createLogger("shapeCorners");
-            brain::Brain::Logger::createLogger("shapeRelations");
-            brain::Brain::Logger::createLogger("shapeIdGrid");
-            brain::Brain::Logger::createLogger("grid");
+        cells::Brain kb([]() {
+            Brain::Logger::createLogger("edge");
+            Brain::Logger::createLogger("shapeCorners");
+            Brain::Logger::createLogger("shapeRelations");
+            Brain::Logger::createLogger("shapeIdGrid");
+            Brain::Logger::createLogger("grid");
 
             spdlog::get("cells")->set_level(spdlog::level::off);
             spdlog::get("compileStruct")->set_level(spdlog::level::off);

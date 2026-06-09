@@ -11,7 +11,7 @@ namespace arc {
 class Frame : public CellI
 {
 public:
-    Frame(brain::Brain& kb, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct);
+    Frame(Brain& kb, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct);
 
     void process();
 

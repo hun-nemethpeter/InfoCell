@@ -18,7 +18,7 @@ namespace hybridarc = infocell::cells::arc;
 namespace infocell {
 namespace arc {
 
-EdgeDetector::EdgeDetector(brain::Brain& kb) :
+EdgeDetector::EdgeDetector(Brain& kb) :
     NodeBase(kb),
     FrameStruct(getStruct("arc::Frame")),
     ShapeStruct(getStruct("arc::Shape")),
@@ -1767,7 +1767,7 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
 class Vector : public cells::CellI
 {
 public:
-    Vector(brain::Brain& kb, Number& x, Number& y) :
+    Vector(Brain& kb, Number& x, Number& y) :
         CellI(kb, "Vector"),
         m_x(x),
         m_y(y)
@@ -1832,7 +1832,7 @@ public:
 class Shape : public cells::CellI
 {
 public:
-    Shape(brain::Brain& kb, cells::CellI& color, List& externalEdgeLine, cells::TrieMap& internalEdges) :
+    Shape(Brain& kb, cells::CellI& color, List& externalEdgeLine, cells::TrieMap& internalEdges) :
         cells::CellI(kb),
         m_color(color),
         m_externalEdgeLine(externalEdgeLine),
@@ -1915,7 +1915,7 @@ public:
 class RootFrame : public cells::CellI
 {
 public:
-    RootFrame(brain::Brain& kb, int width, int height) :
+    RootFrame(Brain& kb, int width, int height) :
         cells::CellI(kb),
         m_width(kb, width),
         m_height(kb, height),
@@ -2050,11 +2050,11 @@ void EdgeDetector::createResult()
         }
     };
     std::cout << "RootFrame rootFrame(width: " << static_cast<Number&>(rootFrame.m_width).value() << ", height: " << static_cast<Number&>(rootFrame.m_height).value() << ");" << std::endl;
-    class RootFrameMaker : public brain::AstHelper
+    class RootFrameMaker : public AstHelper
     {
     public:
         Base* ast = nullptr;
-        RootFrameMaker(brain::Brain& kb, Number& width, Number& height) :
+        RootFrameMaker(Brain& kb, Number& width, Number& height) :
             AstHelper(kb)
         {
             ast = &(var_("rootFrame") = new_("RootFrame", "new")("width", _(width))("height", _(height)));
@@ -2067,11 +2067,11 @@ void EdgeDetector::createResult()
         Shape& shape   = static_cast<Shape&>(kvPair[kb.ids.value]);
         std::cout << "rootFrame.addShape({ " << shape.m_color.label() << ", [" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
 
-        class GetShapeAst : public brain::AstHelper
+        class GetShapeAst : public AstHelper
         {
         public:
             Base* ast = nullptr;
-            GetShapeAst(brain::Brain& kb, CellI& offset, CellI& shape) :
+            GetShapeAst(Brain& kb, CellI& offset, CellI& shape) :
                 AstHelper(kb)
             {
                 Base& var = equal(var_("rootFrame")("getShape")("offset", _(offset)), _(shape));

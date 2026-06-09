@@ -3,7 +3,7 @@
 namespace infocell {
 namespace cells {
 
-NodeBase::NodeBase(brain::Brain& kb) :
+NodeBase::NodeBase(Brain& kb) :
     kb(kb)
 {
 }

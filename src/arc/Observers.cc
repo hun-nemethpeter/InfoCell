@@ -10,7 +10,7 @@ namespace arc {
 
 cells::CellI* isSymmetric(cells::CellI& edge)
 {
-    brain::Brain& kb = edge.kb;
+    Brain& kb = edge.kb;
 
     // TODO
 
@@ -19,7 +19,7 @@ cells::CellI* isSymmetric(cells::CellI& edge)
 
 static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
 {
-    brain::Brain& kb = lhs.kb;
+    Brain& kb = lhs.kb;
 
     static CellI& Rotate_degree_0   = kb.getVariable("arc::RotationDir::Degree_0");
     static CellI& Rotate_degree_90  = kb.getVariable("arc::RotationDir::Degree_90");
@@ -187,7 +187,7 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
 
 EdgeRelation compareEdges(CellI& lhs, CellI& rhs)
 {
-    brain::Brain& kb = lhs.kb;
+    Brain& kb = lhs.kb;
 
     static CellI& Rotate_degree_0   = kb.getVariable("arc::RotationDir::Degree_0");
     static CellI& Rotate_degree_90  = kb.getVariable("arc::RotationDir::Degree_90");
@@ -219,7 +219,7 @@ EdgeRelation compareEdges(CellI& lhs, CellI& rhs)
 
 ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
 {
-    brain::Brain& kb = lhs.kb;
+    Brain& kb = lhs.kb;
 
     static CellI& Rotate_degree_0   = kb.getVariable("arc::RotationDir::Degree_0");
     static CellI& Rotate_degree_90  = kb.getVariable("arc::RotationDir::Degree_90");

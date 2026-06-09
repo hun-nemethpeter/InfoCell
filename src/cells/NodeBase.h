@@ -9,15 +9,15 @@ namespace cells {
 class NodeBase
 {
 protected:
-    NodeBase(brain::Brain& kb);
+    NodeBase(Brain& kb);
 
     CellI& getVariable(const std::string& name);
     CellI& getStruct(const std::string& name);
     CellI& getStruct(CellI& id);
     CellI& toCellNumber(int number);
 
-    brain::Brain& kb;
-    brain::ID& ids = kb.ids;
+    Brain& kb;
+    ID& ids = kb.ids;
     CellI& _0_     = kb._0_;
     CellI& _1_     = kb._1_;
     CellI& _2_     = kb._2_;

@@ -14,7 +14,7 @@ namespace arc {
 class EdgeDetector : public cells::NodeBase
 {
 public:
-    EdgeDetector(cells::brain::Brain& kb);
+    EdgeDetector(cells::Brain& kb);
 
     void detect(const std::string& jsonStr);
     void detect(cells::arc::Grid& inputHybridGrid);

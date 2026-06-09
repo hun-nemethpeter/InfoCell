@@ -9,19 +9,19 @@
 
 namespace infocell {
 namespace cells {
-using InitPhase = brain::Brain::InitPhase;
+using InitPhase = Brain::InitPhase;
 #pragma region CellI
 // ============================================================================
 int CellI::s_constructed = 0;
 int CellI::s_destructed  = 0;
 
-CellI::CellI(brain::Brain& kb) :
+CellI::CellI(Brain& kb) :
     kb(kb)
 {
     s_constructed += 1;
 }
 
-CellI::CellI(brain::Brain& kb, const std::string& label) :
+CellI::CellI(Brain& kb, const std::string& label) :
     kb(kb), m_label(label)
 {
     s_constructed += 1;
@@ -148,14 +148,14 @@ Param::Param(const std::string& key, CellI& value) :
 
 int Object::s_indent = 0;
 // ============================================================================
-Object::Object(brain::Brain& kb, CellI& type, const std::string& label) :
+Object::Object(Brain& kb, CellI& type, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
     m_slots[&kb.ids.struct_] = &type;
 }
 
-Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, const std::string& label) :
+Object::Object(Brain& kb, CellI& type, CellI& constructor, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
@@ -163,7 +163,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, const std::str
     getMethod(constructor)();
 }
 
-Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, const std::string& label) :
+Object::Object(Brain& kb, CellI& type, CellI& constructor, Param param1, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
@@ -174,7 +174,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     method();
 }
 
-Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, const std::string& label) :
+Object::Object(Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
@@ -186,7 +186,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
     method();
 }
 
-Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, const std::string& label) :
+Object::Object(Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
@@ -201,7 +201,7 @@ Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, 
 
 bool Object::s_debugFunctionCalls = false;
 
-Object::Object(brain::Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, Param param4, const std::string& label) :
+Object::Object(Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, Param param4, const std::string& label) :
     CellI(kb, label),
     m_type(type)
 {
@@ -285,7 +285,7 @@ void Object::resetIndent()
 // core data handling
 static void evalOpGet(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -314,7 +314,7 @@ static void evalOpGet(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpSet(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -349,7 +349,7 @@ static void evalOpSet(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpHas(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -378,7 +378,7 @@ static void evalOpHas(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpMissing(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -407,7 +407,7 @@ static void evalOpMissing(CellI& self, CellI*& currentCell, CellI*& previousCell
 
 static void evalOpErase(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -436,7 +436,7 @@ static void evalOpErase(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpNew(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -465,7 +465,7 @@ static void evalOpNew(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpDelete(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -491,7 +491,7 @@ static void evalOpDelete(CellI& self, CellI*& currentCell, CellI*& previousCell)
 // code running
 static void evalOpActivate(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -538,7 +538,7 @@ static void evalOpActivate(CellI& self, CellI*& currentCell, CellI*& previousCel
 
 static void saveOpState(List& opStates, CellI& op)
 {
-    brain::Brain& kb = op.kb;
+    Brain& kb = op.kb;
 
     if (&op == &kb.ids.emptyObject) {
         return;
@@ -629,7 +629,7 @@ static void saveOpState(List& opStates, CellI& op)
 
 static void loadOpState(CellI& opState)
 {
-    brain::Brain& kb = opState.kb;
+    Brain& kb = opState.kb;
     CellI& op        = opState[kb.ids.op];
     CellI& type      = op.struct_();
     CellI& state     = opState[kb.ids.state];
@@ -662,7 +662,7 @@ static void loadOpState(CellI& opState)
 
 static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -801,7 +801,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -866,7 +866,7 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
 
 static void evalOpIf(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -914,7 +914,7 @@ static void evalOpIf(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -959,7 +959,7 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1004,7 +1004,7 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpBlock(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1025,7 +1025,7 @@ static void evalOpBlock(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpReturn(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1050,7 +1050,7 @@ static void evalOpReturn(CellI& self, CellI*& currentCell, CellI*& previousCell)
 // compare
 static void evalOpSame(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1079,7 +1079,7 @@ static void evalOpSame(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpNotSame(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1108,7 +1108,7 @@ static void evalOpNotSame(CellI& self, CellI*& currentCell, CellI*& previousCell
 
 static void evalOpEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1137,7 +1137,7 @@ static void evalOpEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpNotEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1166,7 +1166,7 @@ static void evalOpNotEqual(CellI& self, CellI*& currentCell, CellI*& previousCel
 
 static void evalOpLessThan(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1195,7 +1195,7 @@ static void evalOpLessThan(CellI& self, CellI*& currentCell, CellI*& previousCel
 
 static void evalOpLessThanOrEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1224,7 +1224,7 @@ static void evalOpLessThanOrEqual(CellI& self, CellI*& currentCell, CellI*& prev
 
 static void evalOpGreaterThan(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1253,7 +1253,7 @@ static void evalOpGreaterThan(CellI& self, CellI*& currentCell, CellI*& previous
 
 static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1282,7 +1282,7 @@ static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI*& p
 // logic
 static void evalOpAnd(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1320,7 +1320,7 @@ static void evalOpAnd(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpOr(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1349,7 +1349,7 @@ static void evalOpOr(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpNot(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1373,7 +1373,7 @@ static void evalOpNot(CellI& self, CellI*& currentCell, CellI*& previousCell)
 // math
 static void evalOpAdd(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1402,7 +1402,7 @@ static void evalOpAdd(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
 static void evalOpSubtract(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1431,7 +1431,7 @@ static void evalOpSubtract(CellI& self, CellI*& currentCell, CellI*& previousCel
 
 static void evalOpMultiply(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1460,7 +1460,7 @@ static void evalOpMultiply(CellI& self, CellI*& currentCell, CellI*& previousCel
 
 static void evalOpDivide(CellI& self, CellI*& currentCell, CellI*& previousCell)
 {
-    brain::Brain& kb = self.kb;
+    Brain& kb = self.kb;
     if (self.missing(kb.ids.state)) {
         self.set(kb.ids.state, kb.ids.stateParamInit);
     }
@@ -1824,7 +1824,7 @@ void Object::setFnParam(CellI& fn, Param param)
 #pragma endregion
 #pragma region List::Item
 // ============================================================================
-List::Item::Item(brain::Brain& kb, List& list, CellI& value) :
+List::Item::Item(Brain& kb, List& list, CellI& value) :
     CellI(kb),
     m_list(list),
     m_value(value)
@@ -1901,7 +1901,7 @@ void List::Item::accept(Visitor& visitor)
 #pragma endregion
 #pragma region List
 // ============================================================================
-List::List(brain::Brain& kb, CellI& valueType, const std::string& label) :
+List::List(Brain& kb, CellI& valueType, const std::string& label) :
     CellI(kb, label),
     m_valueType(valueType)
 {
@@ -2042,13 +2042,13 @@ void List::clear()
 #pragma endregion
 #pragma region Struct
 // ============================================================================
-Struct::Struct(brain::Brain& kb, const std::string& label) :
+Struct::Struct(Brain& kb, const std::string& label) :
     CellI(kb, label),
     m_slots(*new Map(kb, kb.std.Cell, kb.std.Slot))
 {
 }
 
-Struct::Struct(brain::Brain& kb, WithRecursiveType recursiveType, const std::string& label) :
+Struct::Struct(Brain& kb, WithRecursiveType recursiveType, const std::string& label) :
     CellI(kb, label),
     m_slots(*new Map(kb, kb.std.Cell, kb.std.Slot, *this))
 {
@@ -2150,13 +2150,13 @@ void Struct::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Index
 // ============================================================================
-Index::Index(brain::Brain& kb, const std::string& label) :
+Index::Index(Brain& kb, const std::string& label) :
     CellI(kb, label),
     m_type(new Struct(kb, Struct::WithRecursiveType::Yes))
 {
 }
 
-Index::Index(brain::Brain& kb, Struct& indexType, const std::string& label) :
+Index::Index(Brain& kb, Struct& indexType, const std::string& label) :
     CellI(kb, label),
     m_type(&indexType),
     m_recursiveType(true)
@@ -2242,7 +2242,7 @@ void Index::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Map
 // ============================================================================
-Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
+Map::Map(Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
     CellI(kb, label),
     m_list(kb, valueType),
     m_index(kb),
@@ -2251,7 +2251,7 @@ Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& 
 {
 }
 
-Map::Map(brain::Brain& kb, CellI& keyType, CellI& valueType, Struct& indexType, const std::string& label) :
+Map::Map(Brain& kb, CellI& keyType, CellI& valueType, Struct& indexType, const std::string& label) :
     CellI(kb, label),
     m_list(kb, valueType),
     m_index(kb, indexType),
@@ -2368,7 +2368,7 @@ void Map::accept(Visitor& visitor)
 #pragma endregion
 #pragma region TrieMap
 // ============================================================================
-TrieMap::TrieMap(brain::Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
+TrieMap::TrieMap(Brain& kb, CellI& keyType, CellI& valueType, const std::string& label) :
     CellI(kb, label),
     m_list(kb, valueType),
     m_rootNode(kb, kb.std.TrieMapNode, "TrieNode_Root"),
@@ -2661,7 +2661,7 @@ void TrieMap::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Set
 // ============================================================================
-Set::Set(brain::Brain& kb, CellI& valueType, const std::string& label) :
+Set::Set(Brain& kb, CellI& valueType, const std::string& label) :
     CellI(kb, label),
     m_valueType(valueType),
     m_index(kb)
@@ -2761,7 +2761,7 @@ void Set::accept(Visitor& visitor)
 #pragma endregion
 #pragma region Number
 // ============================================================================
-Number::Number(brain::Brain& kb, int value) :
+Number::Number(Brain& kb, int value) :
     CellI(kb),
     m_value(value)
 {
@@ -2854,13 +2854,13 @@ void Number::calculateDigits()
 #pragma endregion
 #pragma region String
 // ============================================================================
-String::String(brain::Brain& kb, const std::string& str) :
+String::String(Brain& kb, const std::string& str) :
     CellI(kb),
     m_value(str)
 {
 }
 
-String::String(brain::Brain& kb, List& list, const std::string& str) :
+String::String(Brain& kb, List& list, const std::string& str) :
     CellI(kb),
     m_value(str),
     m_charactersListPtr(&list)
@@ -2936,7 +2936,7 @@ void String::calculateCharacters()
 namespace hybrid {
 
 // ============================================================================
-ActivationPointer::ActivationPointer(brain::Brain& kb) :
+ActivationPointer::ActivationPointer(Brain& kb) :
     CellI(kb), m_time(kb)
 {
 }
@@ -2993,7 +2993,7 @@ void ActivationPointer::accept(Visitor& visitor)
 #if 0
 void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
 {
-    brain::Brain& kb = list.kb;
+    Brain& kb = list.kb;
     int i            = 0;
 
     if (list.missing(kb.ids.first)) {
@@ -3050,7 +3050,7 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
         }
 
     private:
-        brain::Brain& kb;
+        Brain& kb;
         CellI& m_list;
         CellI* m_nodePtr;
     };
@@ -3081,7 +3081,7 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
 
 void Visitor::visitListInReverse(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
 {
-    brain::Brain& kb = list.kb;
+    Brain& kb = list.kb;
     int i            = 0;
 
     if (list.missing(kb.ids.last)) {
@@ -3104,7 +3104,7 @@ void Visitor::visitListInReverse(CellI& list, std::function<void(CellI& value, i
 
 bool tryVisitWith(CellI& cell, Visitor& visitor)
 {
-    brain::Brain& kb = cell.kb;
+    Brain& kb = cell.kb;
 
     if (&cell.struct_() == &kb.std.Number) {
         visitor.visit(static_cast<Number&>(cell));

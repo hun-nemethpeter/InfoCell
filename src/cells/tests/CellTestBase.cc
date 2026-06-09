@@ -46,10 +46,10 @@ void PrintAs::cell(CellI& cell, const std::string& label)
 class AstTest : public brain::AstHelper
 {
 public:
-    AstTest(brain::Brain& kb);
+    AstTest(Brain& kb);
 };
 
-AstTest::AstTest(brain::Brain& kb) :
+AstTest::AstTest(Brain& kb) :
     AstHelper(kb)
 {
     auto& testScope = globalScope.add<Scope>("test");
@@ -113,13 +113,13 @@ AstTest::AstTest(brain::Brain& kb) :
 }
 
 CellTest::CellTest(std::function<void()> loggerLevelInit) :
-    kb(m_kb.get() ? *m_kb : (m_kb = std::make_unique<brain::Brain>(loggerLevelInit), AstTest(*m_kb), *m_kb)),
+    kb(m_kb.get() ? *m_kb : (m_kb = std::make_unique<Brain>(loggerLevelInit), AstTest(*m_kb), *m_kb)),
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
 #else
 CellTest::CellTest(std::function<void()> loggerLevelInit) :
-    NodeBase(m_kb.get() ? *m_kb : (m_kb = std::make_unique<brain::Brain>(loggerLevelInit), *m_kb)),
+    NodeBase(m_kb.get() ? *m_kb : (m_kb = std::make_unique<Brain>(loggerLevelInit), *m_kb)),
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
@@ -130,7 +130,7 @@ void CellTest::freeKb()
     m_kb.reset();
 }
 
-brain::Brain& CellTest::getKb()
+Brain& CellTest::getKb()
 {
     return *m_kb;
 }
@@ -140,7 +140,7 @@ void CellTest::printMethodInType(CellI& type, const std::string& method)
     printAs.value(type[ids.methods][ids.index][kb.name(method)][ids.value]);
 }
 
-std::unique_ptr<brain::Brain> CellTest::m_kb;
+std::unique_ptr<Brain> CellTest::m_kb;
 
 TestBase::TestBase() :
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
@@ -152,7 +152,7 @@ void TestBase::freeKb()
     m_kb.reset();
 }
 
-brain::Brain& TestBase::getKb()
+Brain& TestBase::getKb()
 {
     if (!m_kb) {
         createKb();
@@ -162,16 +162,16 @@ brain::Brain& TestBase::getKb()
 
 void TestBase::createKb(std::function<void()> loggerLevelInit)
 {
-    m_kb = std::make_unique<brain::Brain>(loggerLevelInit);
+    m_kb = std::make_unique<Brain>(loggerLevelInit);
 }
 
 void TestBase::printMethodInType(CellI& type, const std::string& method)
 {
-    brain::Brain& kb = getKb();
+    Brain& kb = getKb();
     printAs.value(type[kb.ids.methods][kb.ids.index][kb.name(method)][kb.ids.value]);
 }
 
-std::unique_ptr<brain::Brain> TestBase::m_kb;
+std::unique_ptr<Brain> TestBase::m_kb;
 
 } // namespace test
 } // namespace cells

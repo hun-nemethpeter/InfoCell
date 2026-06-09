@@ -10,7 +10,7 @@ namespace cells {
 namespace arc {
 
 // ============================================================================
-Pixel::Pixel(brain::Brain& kb, int x, int y, CellI& arcColor, Grid& grid) :
+Pixel::Pixel(Brain& kb, int x, int y, CellI& arcColor, Grid& grid) :
     CellI(kb),
     m_x(kb.pools.numbers.get(x)),
     m_y(kb.pools.numbers.get(y)),

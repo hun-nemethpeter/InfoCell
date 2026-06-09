@@ -12,7 +12,7 @@ namespace arc {
 class Grid : public CellI
 {
 public:
-    Grid(brain::Brain& kb, infocell::arc::native::Grid& grid);
+    Grid(Brain& kb, infocell::arc::native::Grid& grid);
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;

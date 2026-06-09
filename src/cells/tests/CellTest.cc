@@ -209,11 +209,11 @@ TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
 {
     ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
 
-    class RequestHelper : public brain::AstHelper
+    class RequestHelper : public AstHelper
     {
     public:
         Base* value = nullptr;
-        RequestHelper(brain::Brain& kb) :
+        RequestHelper(Brain& kb) :
             AstHelper(kb)
         {
             // currentTheme.get(std.Color).get(green) == 5
@@ -237,12 +237,12 @@ TEST_F(CellTest, CellTrieTestForMathAdd)
 {
     ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
 
-    class RequestHelper : public brain::AstHelper
+    class RequestHelper : public AstHelper
     {
     public:
         Base* varX = nullptr;
         Base* request = nullptr;
-        RequestHelper(brain::Brain& kb) :
+        RequestHelper(Brain& kb) :
             AstHelper(kb)
         {
             Var& x = var_("x");
@@ -1615,7 +1615,7 @@ static void printTask(const nlohmann::json& jsonTask)
 
 static void debugShapePixels(CellI& frame)
 {
-    brain::Brain& kb = frame.kb;
+    Brain& kb = frame.kb;
     static CellI& ShapePixelStruct = kb.getStruct("arc::ShapePixel");
 
     Object& shapePixels    = static_cast<Object&>(frame["shapePixels"]);

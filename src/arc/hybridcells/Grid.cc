@@ -13,7 +13,7 @@ namespace cells {
 namespace arc {
 
 // ============================================================================
-Grid::Grid(brain::Brain& kb, nativearc::Grid& grid) :
+Grid::Grid(Brain& kb, nativearc::Grid& grid) :
     CellI(kb, grid.label()),
     m_width(grid.width()),
     m_height(grid.height()),
