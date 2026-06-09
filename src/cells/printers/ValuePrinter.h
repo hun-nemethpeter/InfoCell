@@ -1,7 +1,7 @@
 #pragma once
 #include <sstream>
 
-#include "cells/Brain.h"
+#include "cells/World.h"
 
 namespace infocell {
 namespace cells {

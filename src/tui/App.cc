@@ -328,8 +328,8 @@ void App::run()
 
 void App::solve()
 {
-    cells::Brain kb;
-    arc::Task arcTask(kb, m_arcJsonTask);
+    cells::World w;
+    arc::Task arcTask(w, m_arcJsonTask);
     arc::Solver solver(solverLogger, arcTask);
 }
 

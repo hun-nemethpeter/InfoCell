@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Grid.h"
-#include "cells/Brain.h"
-#include "cells/Cells.h"
+#include "cells/World.h"
 
 namespace infocell {
 namespace cells {
@@ -11,7 +10,7 @@ namespace arc {
 class Frame : public CellI
 {
 public:
-    Frame(Brain& kb, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct);
+    Frame(World& w, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct);
 
     void process();
 

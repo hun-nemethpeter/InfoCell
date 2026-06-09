@@ -3,8 +3,8 @@
 #include "arc/hybridcells/Frame.h"
 #include "arc/hybridcells/Grid.h"
 #include "arc/Grid.h"
-#include "cells/Brain.h"
 #include "cells/NodeBase.h"
+#include "cells/World.h"
 
 #include <memory>
 
@@ -14,7 +14,7 @@ namespace arc {
 class EdgeDetector : public cells::NodeBase
 {
 public:
-    EdgeDetector(cells::Brain& kb);
+    EdgeDetector(cells::World& w);
 
     void detect(const std::string& jsonStr);
     void detect(cells::arc::Grid& inputHybridGrid);

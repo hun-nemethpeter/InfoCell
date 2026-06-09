@@ -5,18 +5,18 @@ namespace infocell {
 namespace cells {
 namespace arc {
 
-Frame::Frame(Brain& kb, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct) :
-    CellI(kb),
+Frame::Frame(World& w, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableRowStruct) :
+    CellI(w),
     m_width(grid.widthCell()),
     m_height(grid.heightCell()),
     m_grid(grid),
-    m_shapePixels(kb, kb.std.Number, TableRowStruct),
-    m_shapes(kb, ShapeStruct),
-    m_shapeMap(kb, kb.std.Number, ShapeStruct),
-    m_inputPixels(kb, kb.std.Pixel)
+    m_shapePixels(w, w.std.Number, TableRowStruct),
+    m_shapes(w, ShapeStruct),
+    m_shapeMap(w, w.std.Number, ShapeStruct),
+    m_inputPixels(w, w.std.Pixel)
 {
-    static CellI& ShapeEdgeNodeStruct = kb.getStruct("arc::ShapeEdgeNode");
-    m_frameEdgeNodes                  = new List(kb, ShapeEdgeNodeStruct);
+    static CellI& ShapeEdgeNodeStruct = w.getStruct("arc::ShapeEdgeNode");
+    m_frameEdgeNodes                  = new List(w, ShapeEdgeNodeStruct);
     processInputPixels();
 }
 
@@ -30,23 +30,23 @@ void Frame::processInputPixels()
 
 bool Frame::has(CellI& role)
 {
-    static CellI& name_grid        = kb.name("grid");
-    static CellI& name_shapePixels = kb.name("shapePixels");
-    static CellI& name_shapes      = kb.name("shapes");
-    static CellI& name_shapeMap    = kb.name("shapeMap");
-    static CellI& name_inputPixels = kb.name("inputPixels");
-    static CellI& name_upLeftPoint    = kb.name("upLeftPoint");
-    static CellI& name_upRightPoint   = kb.name("upRightPoint");
-    static CellI& name_downLeftPoint  = kb.name("downLeftPoint");
-    static CellI& name_downRightPoint = kb.name("downRightPoint");
+    static CellI& name_grid        = w.name("grid");
+    static CellI& name_shapePixels = w.name("shapePixels");
+    static CellI& name_shapes      = w.name("shapes");
+    static CellI& name_shapeMap    = w.name("shapeMap");
+    static CellI& name_inputPixels = w.name("inputPixels");
+    static CellI& name_upLeftPoint    = w.name("upLeftPoint");
+    static CellI& name_upRightPoint   = w.name("upRightPoint");
+    static CellI& name_downLeftPoint  = w.name("downLeftPoint");
+    static CellI& name_downRightPoint = w.name("downRightPoint");
 
-    if (&role == &kb.ids.struct_) {
+    if (&role == &w.ids.struct_) {
         return true;
     }
-    if (&role == &kb.ids.width) {
+    if (&role == &w.ids.width) {
         return true;
     }
-    if (&role == &kb.ids.height) {
+    if (&role == &w.ids.height) {
         return true;
     }
     if (&role == &name_grid) {
@@ -82,27 +82,27 @@ bool Frame::has(CellI& role)
 
 CellI& Frame::operator[](CellI& role)
 {
-    static CellI& FrameStruct         = kb.getStruct("arc::Frame");
-    static CellI& name_grid           = kb.name("grid");
-    static CellI& name_shapePixels    = kb.name("shapePixels");
-    static CellI& name_shapes         = kb.name("shapes");
-    static CellI& name_shapeMap       = kb.name("shapeMap");
-    static CellI& name_inputPixels    = kb.name("inputPixels");
-    static CellI& name_upLeftPoint    = kb.name("upLeftPoint");
-    static CellI& name_upRightPoint   = kb.name("upRightPoint");
-    static CellI& name_downLeftPoint  = kb.name("downLeftPoint");
-    static CellI& name_downRightPoint = kb.name("downRightPoint");
+    static CellI& FrameStruct         = w.getStruct("arc::Frame");
+    static CellI& name_grid           = w.name("grid");
+    static CellI& name_shapePixels    = w.name("shapePixels");
+    static CellI& name_shapes         = w.name("shapes");
+    static CellI& name_shapeMap       = w.name("shapeMap");
+    static CellI& name_inputPixels    = w.name("inputPixels");
+    static CellI& name_upLeftPoint    = w.name("upLeftPoint");
+    static CellI& name_upRightPoint   = w.name("upRightPoint");
+    static CellI& name_downLeftPoint  = w.name("downLeftPoint");
+    static CellI& name_downRightPoint = w.name("downRightPoint");
 
     if (missing(role)) {
         throw "No such role!";
     }
-    if (&role == &kb.ids.struct_) {
+    if (&role == &w.ids.struct_) {
         return FrameStruct;
     }
-    if (&role == &kb.ids.width) {
+    if (&role == &w.ids.width) {
         return m_width;
     }
-    if (&role == &kb.ids.height) {
+    if (&role == &w.ids.height) {
         return m_height;
     }
     if (&role == &name_grid) {
@@ -138,10 +138,10 @@ CellI& Frame::operator[](CellI& role)
 
 void Frame::set(CellI& role, CellI& value)
 {
-    static CellI& name_upLeftPoint    = kb.name("upLeftPoint");
-    static CellI& name_upRightPoint   = kb.name("upRightPoint");
-    static CellI& name_downLeftPoint  = kb.name("downLeftPoint");
-    static CellI& name_downRightPoint = kb.name("downRightPoint");
+    static CellI& name_upLeftPoint    = w.name("upLeftPoint");
+    static CellI& name_upRightPoint   = w.name("upRightPoint");
+    static CellI& name_downLeftPoint  = w.name("downLeftPoint");
+    static CellI& name_downRightPoint = w.name("downRightPoint");
 
     if (&role == &name_upLeftPoint) {
         m_upLeftPoint = &value;
@@ -180,9 +180,9 @@ void Frame::process()
 
     while (!m_inputPixels.empty()) {
         CellI& firstPixel = m_inputPixels.first();
-        CellI& shape = *new Shape(kb, kb.pools.numbers.get(shapeId), firstPixel["color"], m_width, m_height);
+        CellI& shape = *new Shape(w, w.pools.numbers.get(shapeId), firstPixel["color"], m_width, m_height);
         shapeId           = shapeId + 1;
-        Set checkPixels(kb, kb.std.Pixel);
+        Set checkPixels(w, w.std.Pixel);
         checkPixels.add(firstPixel);
         while (!checkPixels.empty()) {
             CellI& checkPixel = checkPixels.first();
@@ -192,14 +192,14 @@ void Frame::process()
     }
     int y = 0;
     while (y < height) {
-        Map& colX = static_cast<Map&>(m_shapePixels.getValue(kb.pools.numbers.get(y)));
+        Map& colX = static_cast<Map&>(m_shapePixels.getValue(w.pools.numbers.get(y)));
         int x     = 0;
         while (x < width) {
-            CellI& shapePixel = colX.getValue(kb.pools.numbers.get(x));
+            CellI& shapePixel = colX.getValue(w.pools.numbers.get(x));
             Shape& shape      = static_cast<Shape&>(shapePixel["shape"]);
             CellI& pixel      = shapePixel["pixel"];
-            if (!m_shapeMap.hasKey(shape[kb.ids.id])) {
-                m_shapeMap.add(shape[kb.ids.id], shape);
+            if (!m_shapeMap.hasKey(shape[w.ids.id])) {
+                m_shapeMap.add(shape[w.ids.id], shape);
                 m_shapes.add(shape);
             }
             x = x + 1;
@@ -210,24 +210,24 @@ void Frame::process()
 
 void Frame::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
 {
-    static CellI& ShapeStruct      = kb.getStruct("arc::Shape");
-    static CellI& ShapePixelStruct = kb.getStruct("arc::ShapePixel");
-    static CellI& TableRowStruct   = kb.getStruct(kb.templateId("std::Map", kb.ids.keyType, kb.std.Number, kb.ids.valueType, ShapeStruct));
+    static CellI& ShapeStruct      = w.getStruct("arc::Shape");
+    static CellI& ShapePixelStruct = w.getStruct("arc::ShapePixel");
+    static CellI& TableRowStruct   = w.getStruct(w.templateId("std::Map", w.ids.keyType, w.std.Number, w.ids.valueType, ShapeStruct));
 
     if (!m_shapePixels.hasKey(checkPixel["y"])) {
-        m_shapePixels.add(checkPixel["y"], *new Map(kb, kb.std.Number, TableRowStruct));
+        m_shapePixels.add(checkPixel["y"], *new Map(w, w.std.Number, TableRowStruct));
     }
     Map& colX = static_cast<Map&>(m_shapePixels.getValue(checkPixel["y"]));
-    CellI& shapePixel = *new Object(kb, ShapePixelStruct);
+    CellI& shapePixel = *new Object(w, ShapePixelStruct);
     shapePixel.set("shape", shape);
     shapePixel.set("pixel", checkPixel);
     colX.add(checkPixel["x"], shapePixel);
     m_inputPixels.remove(checkPixel);
 
-    processAdjacentPixel(kb.directions.up, shape, checkPixels, checkPixel);
-    processAdjacentPixel(kb.directions.down, shape, checkPixels, checkPixel);
-    processAdjacentPixel(kb.directions.left, shape, checkPixels, checkPixel);
-    processAdjacentPixel(kb.directions.right, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.directions.up, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.directions.down, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.directions.left, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.directions.right, shape, checkPixels, checkPixel);
 }
 
 void Frame::processAdjacentPixel(CellI& direction, CellI& p_shape, Set& checkPixels, CellI& checkPixel)

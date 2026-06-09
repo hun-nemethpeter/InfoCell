@@ -10,15 +10,15 @@
 
 namespace infocell {
 namespace cells {
-class Brain;
+class World;
 
 // ============================================================================
 class Visitor;
 class CellI
 {
 public:
-    CellI(Brain& kb);
-    CellI(Brain& kb, const std::string& label);
+    CellI(World& w);
+    CellI(World& w, const std::string& label);
     CellI(const CellI& rhs);
     virtual ~CellI();
 
@@ -53,7 +53,7 @@ public:
     bool operator==(CellI& rhs);
     bool operator!=(CellI& rhs);
 
-    Brain& kb;    // knowledge base
+    World& w;            // world model
     std::string m_label; // for comments
 
     static int s_constructed;
@@ -75,12 +75,12 @@ struct Param
 class Object : public CellI
 {
 public:
-    Object(Brain& kb, CellI& type, const std::string& label = "");
-    Object(Brain& kb, CellI& type, CellI& constructor, const std::string& label = "");
-    Object(Brain& kb, CellI& type, CellI& constructor, Param param1, const std::string& label = "");
-    Object(Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, const std::string& label = "");
-    Object(Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, const std::string& label = "");
-    Object(Brain& kb, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, Param param4, const std::string& label = "");
+    Object(World& w, CellI& type, const std::string& label = "");
+    Object(World& w, CellI& type, CellI& constructor, const std::string& label = "");
+    Object(World& w, CellI& type, CellI& constructor, Param param1, const std::string& label = "");
+    Object(World& w, CellI& type, CellI& constructor, Param param1, Param param2, const std::string& label = "");
+    Object(World& w, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, const std::string& label = "");
+    Object(World& w, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, Param param4, const std::string& label = "");
     ~Object();
 
     using CellI::has;
@@ -157,7 +157,7 @@ public:
     class Item : public CellI
     {
     public:
-        Item(Brain& kb, List& list, CellI& value);
+        Item(World& w, List& list, CellI& value);
 
         using CellI::get;
         using CellI::has;
@@ -180,7 +180,7 @@ public:
         CellI* m_selfType = nullptr;
     };
 
-    List(Brain& kb, CellI& valueType, const std::string& label = "");
+    List(World& w, CellI& valueType, const std::string& label = "");
 
     using CellI::get;
     using CellI::has;
@@ -190,8 +190,8 @@ public:
     using CellI::operator[];
 
     template <typename T>
-    List(Brain& kb, std::vector<T>& values, const std::string& label = "") :
-        List(kb, util::ref(values.front()).struct_(), label)
+    List(World& w, std::vector<T>& values, const std::string& label = "") :
+        List(w, util::ref(values.front()).struct_(), label)
     {
         for (auto& valueT : values) {
             add(util::ref(valueT));
@@ -199,8 +199,8 @@ public:
     }
 
     template <typename Key, typename Value>
-    List(Brain& kb, std::map<Key, Value>& values) :
-        List(kb, util::ref((*values.begin())).second.type())
+    List(World& w, std::map<Key, Value>& values) :
+        List(w, util::ref((*values.begin())).second.type())
     {
         for (auto& valuePairs : values) {
             add(util::ref(valuePairs.second));
@@ -243,8 +243,8 @@ public:
     {
         Yes
     };
-    Struct(Brain& kb, const std::string& label = "");
-    Struct(Brain& kb, WithRecursiveType m_recursiveType, const std::string& label = "");
+    Struct(World& w, const std::string& label = "");
+    Struct(World& w, WithRecursiveType m_recursiveType, const std::string& label = "");
 
     using CellI::get;
     using CellI::has;
@@ -276,8 +276,8 @@ public:
 class Index : public CellI
 {
 public:
-    Index(Brain& kb, const std::string& label = "");
-    Index(Brain& kb, Struct& indexType, const std::string& label = "");
+    Index(World& w, const std::string& label = "");
+    Index(World& w, Struct& indexType, const std::string& label = "");
 
     using CellI::get;
     using CellI::has;
@@ -306,8 +306,8 @@ public:
 class Map : public CellI
 {
 public:
-    Map(Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
-    Map(Brain& kb, CellI& keyType, CellI& valueType, Struct& indexType, const std::string& label = "");
+    Map(World& w, CellI& keyType, CellI& valueType, const std::string& label = "");
+    Map(World& w, CellI& keyType, CellI& valueType, Struct& indexType, const std::string& label = "");
 
     using CellI::get;
     using CellI::has;
@@ -350,7 +350,7 @@ private:
 class TrieMap : public CellI
 {
 public:
-    TrieMap(Brain& kb, CellI& keyType, CellI& valueType, const std::string& label = "");
+    TrieMap(World& w, CellI& keyType, CellI& valueType, const std::string& label = "");
 
     using CellI::get;
     using CellI::has;
@@ -397,7 +397,7 @@ private:
 class Set : public CellI
 {
 public:
-    Set(Brain& kb, CellI& valueType, const std::string& label = "");
+    Set(World& w, CellI& valueType, const std::string& label = "");
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;
@@ -431,7 +431,7 @@ protected:
 class Number : public CellI
 {
 public:
-    explicit Number(Brain& kb, int value = 0);
+    explicit Number(World& w, int value = 0);
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;
@@ -456,8 +456,8 @@ protected:
 class String : public CellI
 {
 public:
-    explicit String(Brain& kb, const std::string& str = "");
-    String(Brain& kb, List& list, const std::string& str);
+    explicit String(World& w, const std::string& str = "");
+    String(World& w, List& list, const std::string& str);
 
     using CellI::get;
     using CellI::has;
@@ -489,7 +489,7 @@ namespace hybrid {
 class ActivationPointer : public CellI
 {
 public:
-    ActivationPointer(Brain& kb);
+    ActivationPointer(World& w);
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;

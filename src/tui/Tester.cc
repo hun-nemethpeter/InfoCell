@@ -2,7 +2,7 @@
 
 #include "arc/Color.h"
 #include "arc/Solver.h"
-#include "cells/Brain.h"
+#include "cells/World.h"
 #include "util/Log.h"
 
 #include <array>
@@ -35,7 +35,7 @@ class TestCases
 {
 public:
     TestCases() :
-        kb([]() {
+        w([]() {
             spdlog::get("cells")->set_level(spdlog::level::trace);
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
             spdlog::get("symbolResolver")->set_level(spdlog::level::off);
@@ -68,17 +68,16 @@ public:
     }
 
 private:
-    cells::Brain kb;
+    cells::World w;
     void addTestCases();
     std::vector<TestCase> m_testCases;
 };
 
 void TestCases::addTestCases()
 {
-    cells::Brain kb2;
     add(TestCase("ShapeTest", [this]() {
         nativearc::Grid inputGrid("test", "[[0, 7, 7], [7, 7, 7], [0, 7, 7]]");
-        hybridarc::Grid grid(kb, inputGrid);
+        hybridarc::Grid grid(w, inputGrid);
         Shaper shaper(grid);
         shaper.process();
 #if 0
@@ -93,7 +92,7 @@ void TestCases::addTestCases()
 
     add(TestCase("ShapeTestDiagonal", [this]() {
         nativearc::Grid inputGrid("test", "[[7, 0, 0], [0, 7, 0], [0, 0, 7]]");
-        hybridarc::Grid grid(kb, inputGrid);
+        hybridarc::Grid grid(w, inputGrid);
         Shaper shaper(grid);
         shaper.process();
 #if 0
@@ -108,7 +107,7 @@ void TestCases::addTestCases()
 
     add(TestCase("ShapeMergeTest", [this]() {
         nativearc::Grid inputGrid("test", "[[7, 0, 7], [7, 0, 7], [7, 7, 7]]");
-        hybridarc::Grid grid(kb, inputGrid);
+        hybridarc::Grid grid(w, inputGrid);
         Shaper shaper(grid);
         shaper.process();
 #if 0

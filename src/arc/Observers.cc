@@ -1,5 +1,4 @@
-﻿#include "cells/Brain.h"
-#include "cells/Cells.h"
+﻿#include "cells/World.h"
 
 #include "Observers.h"
 
@@ -10,7 +9,7 @@ namespace arc {
 
 cells::CellI* isSymmetric(cells::CellI& edge)
 {
-    Brain& kb = edge.kb;
+    World& w = edge.w;
 
     // TODO
 
@@ -19,18 +18,18 @@ cells::CellI* isSymmetric(cells::CellI& edge)
 
 static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
 {
-    Brain& kb = lhs.kb;
+    World& w = lhs.w;
 
-    static CellI& Rotate_degree_0   = kb.getVariable("arc::RotationDir::Degree_0");
-    static CellI& Rotate_degree_90  = kb.getVariable("arc::RotationDir::Degree_90");
-    static CellI& Rotate_degree_180 = kb.getVariable("arc::RotationDir::Degree_180");
-    static CellI& Rotate_degree_270 = kb.getVariable("arc::RotationDir::Degree_270");
-    static CellI& Mirror_horizontal = kb.getVariable("arc::LineSymmetry::horizontal");
-    static CellI& Mirror_vertical   = kb.getVariable("arc::LineSymmetry::vertical");
-    static CellI& DirectionUpEV     = kb.getVariable("arc::Directions::up");
-    static CellI& DirectionDownEV   = kb.getVariable("arc::Directions::down");
-    static CellI& DirectionLeftEV   = kb.getVariable("arc::Directions::left");
-    static CellI& DirectionRightEV  = kb.getVariable("arc::Directions::right");
+    static CellI& Rotate_degree_0   = w.getVariable("arc::RotationDir::Degree_0");
+    static CellI& Rotate_degree_90  = w.getVariable("arc::RotationDir::Degree_90");
+    static CellI& Rotate_degree_180 = w.getVariable("arc::RotationDir::Degree_180");
+    static CellI& Rotate_degree_270 = w.getVariable("arc::RotationDir::Degree_270");
+    static CellI& Mirror_horizontal = w.getVariable("arc::LineSymmetry::horizontal");
+    static CellI& Mirror_vertical   = w.getVariable("arc::LineSymmetry::vertical");
+    static CellI& DirectionUpEV     = w.getVariable("arc::Directions::up");
+    static CellI& DirectionDownEV   = w.getVariable("arc::Directions::down");
+    static CellI& DirectionLeftEV   = w.getVariable("arc::Directions::left");
+    static CellI& DirectionRightEV  = w.getVariable("arc::Directions::right");
     EdgeRelation result;
 
     List& lhsEdgeNodes = static_cast<List&>(lhs["edgeNodes"]);
@@ -119,7 +118,7 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
         } else if (&transformation == &Rotate_degree_270) {
             firstCorner = "downLeftNode";
         }
-        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[kb.ids.first][kb.ids.value];
+        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[w.ids.first][w.ids.value];
         CellI* rhsEdgeNodePtr   = &rhs["rotationCorners"][firstCorner];
         CellI* firstNodePtr     = lhsEdgeNodePtr;
         bool found              = true;
@@ -133,8 +132,8 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
                 found = false;
                 break;
             }
-            lhsEdgeNodePtr = &lhsEdgeNode[kb.ids.next];
-            rhsEdgeNodePtr = &rhsEdgeNode[kb.ids.next];
+            lhsEdgeNodePtr = &lhsEdgeNode[w.ids.next];
+            rhsEdgeNodePtr = &rhsEdgeNode[w.ids.next];
         } while (lhsEdgeNodePtr != firstNodePtr);
 
         if (found) {
@@ -153,7 +152,7 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
         } else if (&transformation == &Mirror_vertical) {
             firstCorner = "upRightNode";
         }
-        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[kb.ids.first][kb.ids.value];
+        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[w.ids.first][w.ids.value];
         CellI* rhsEdgeNodePtr   = &rhs["mirroringCorners"][firstCorner];
         CellI* firstNodePtr     = lhsEdgeNodePtr;
         bool found              = true;
@@ -167,8 +166,8 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
                 found = false;
                 break;
             }
-            lhsEdgeNodePtr = &lhsEdgeNode[kb.ids.next];
-            rhsEdgeNodePtr = &rhsEdgeNode[kb.ids.previous];
+            lhsEdgeNodePtr = &lhsEdgeNode[w.ids.next];
+            rhsEdgeNodePtr = &rhsEdgeNode[w.ids.previous];
         } while (lhsEdgeNodePtr != firstNodePtr);
 
         if (found) {
@@ -187,14 +186,14 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
 
 EdgeRelation compareEdges(CellI& lhs, CellI& rhs)
 {
-    Brain& kb = lhs.kb;
+    World& w = lhs.w;
 
-    static CellI& Rotate_degree_0   = kb.getVariable("arc::RotationDir::Degree_0");
-    static CellI& Rotate_degree_90  = kb.getVariable("arc::RotationDir::Degree_90");
-    static CellI& Rotate_degree_180 = kb.getVariable("arc::RotationDir::Degree_180");
-    static CellI& Rotate_degree_270 = kb.getVariable("arc::RotationDir::Degree_270");
-    static CellI& Mirror_horizontal = kb.getVariable("arc::LineSymmetry::horizontal");
-    static CellI& Mirror_vertical   = kb.getVariable("arc::LineSymmetry::vertical");
+    static CellI& Rotate_degree_0   = w.getVariable("arc::RotationDir::Degree_0");
+    static CellI& Rotate_degree_90  = w.getVariable("arc::RotationDir::Degree_90");
+    static CellI& Rotate_degree_180 = w.getVariable("arc::RotationDir::Degree_180");
+    static CellI& Rotate_degree_270 = w.getVariable("arc::RotationDir::Degree_270");
+    static CellI& Mirror_horizontal = w.getVariable("arc::LineSymmetry::horizontal");
+    static CellI& Mirror_vertical   = w.getVariable("arc::LineSymmetry::vertical");
 
     EdgeRelation result;
 
@@ -219,14 +218,14 @@ EdgeRelation compareEdges(CellI& lhs, CellI& rhs)
 
 ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
 {
-    Brain& kb = lhs.kb;
+    World& w = lhs.w;
 
-    static CellI& Rotate_degree_0   = kb.getVariable("arc::RotationDir::Degree_0");
-    static CellI& Rotate_degree_90  = kb.getVariable("arc::RotationDir::Degree_90");
-    static CellI& Rotate_degree_180 = kb.getVariable("arc::RotationDir::Degree_180");
-    static CellI& Rotate_degree_270 = kb.getVariable("arc::RotationDir::Degree_270");
-    static CellI& Mirror_horizontal = kb.getVariable("arc::LineSymmetry::horizontal");
-    static CellI& Mirror_vertical   = kb.getVariable("arc::LineSymmetry::vertical");
+    static CellI& Rotate_degree_0   = w.getVariable("arc::RotationDir::Degree_0");
+    static CellI& Rotate_degree_90  = w.getVariable("arc::RotationDir::Degree_90");
+    static CellI& Rotate_degree_180 = w.getVariable("arc::RotationDir::Degree_180");
+    static CellI& Rotate_degree_270 = w.getVariable("arc::RotationDir::Degree_270");
+    static CellI& Mirror_horizontal = w.getVariable("arc::LineSymmetry::horizontal");
+    static CellI& Mirror_vertical   = w.getVariable("arc::LineSymmetry::vertical");
 
     ShapeRelation result;
     List& lhsEdges = static_cast<List&>(lhs["edges"]["list"]);
@@ -236,7 +235,7 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
         return result;
     }
 
-    auto getEdge = [&kb](CellI& transformation, CellI& lhsEdge, CellI& firstLhsEdge, CellI& rhsShape) -> CellI* {
+    auto getEdge = [&w](CellI& transformation, CellI& lhsEdge, CellI& firstLhsEdge, CellI& rhsShape) -> CellI* {
         CellI* fromExternalX = nullptr;
         CellI* fromExternalY = nullptr;
 
@@ -257,8 +256,8 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
                 int rotatedVectorX = -vectorY;
                 int rotatedVectorY = vectorX;
 
-                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
-                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+                fromExternalX = &w.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &w.pools.numbers.get(rotatedVectorY);
             } else if (&transformation == &Rotate_degree_180) {
                 int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downRightNode"]["from"]["x"]).value();
                 int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downRightNode"]["from"]["y"]).value();
@@ -272,8 +271,8 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
                 int rotatedVectorX = -vectorX;
                 int rotatedVectorY = -vectorY;
 
-                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
-                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+                fromExternalX = &w.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &w.pools.numbers.get(rotatedVectorY);
             } else if (&transformation == &Rotate_degree_270) {
                 int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["upRightNode"]["from"]["x"]).value();
                 int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["upRightNode"]["from"]["y"]).value();
@@ -287,8 +286,8 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
                 int rotatedVectorX = vectorY;
                 int rotatedVectorY = -vectorX;
 
-                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
-                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+                fromExternalX = &w.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &w.pools.numbers.get(rotatedVectorY);
             } else if (&transformation == &Mirror_horizontal) {
                 int firstEdgeCornerX = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
                 int firstEdgeCornerY = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["y"]).value();
@@ -302,8 +301,8 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
                 int rotatedVectorX = vectorX;
                 int rotatedVectorY = -vectorY;
 
-                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
-                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+                fromExternalX = &w.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &w.pools.numbers.get(rotatedVectorY);
             } else if (&transformation == &Mirror_vertical) {
                 int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["mirroringCorners"]["upRightNode"]["from"]["x"]).value();
                 int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["mirroringCorners"]["upRightNode"]["from"]["y"]).value();
@@ -317,8 +316,8 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
                 int rotatedVectorX = -vectorX;
                 int rotatedVectorY = vectorY;
 
-                fromExternalX = &kb.pools.numbers.get(rotatedVectorX);
-                fromExternalY = &kb.pools.numbers.get(rotatedVectorY);
+                fromExternalX = &w.pools.numbers.get(rotatedVectorX);
+                fromExternalY = &w.pools.numbers.get(rotatedVectorY);
             } else {
                 throw "error";
             }
@@ -356,7 +355,7 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
             transformationPtr = &Mirror_vertical;
         }
         CellI& transformation = *transformationPtr;
-        Visitor::visitList(lhsEdges, [&kb, &rhs, &getEdge, &result, &outerLhsEdge, &transformation](CellI& lhsEdge, int i, bool& stop) {
+        Visitor::visitList(lhsEdges, [&w, &rhs, &getEdge, &result, &outerLhsEdge, &transformation](CellI& lhsEdge, int i, bool& stop) {
             if (&lhsEdge == &outerLhsEdge) {
                 return;
             }

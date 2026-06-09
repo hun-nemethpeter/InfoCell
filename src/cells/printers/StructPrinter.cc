@@ -1,6 +1,6 @@
 #include "StructPrinter.h"
 #include "ValuePrinter.h"
-#include "cells/Brain.h"
+#include "cells/World.h"
 
 namespace infocell {
 namespace cells {
@@ -83,29 +83,29 @@ void CellStructPrinter::visit(hybrid::Picture& cell)
 void CellStructPrinter::printImpl(CellI& cell)
 {
     const bool needId = false;
-    Brain& kb = cell.kb;
-    auto is           = [this, &cell, &kb](CellI& type) -> bool { return &cell.struct_() == &type || (cell.struct_().has(kb.ids.memberOf) && cell.struct_()[kb.ids.memberOf][kb.ids.index].has(type)); };
+    World& w = cell.w;
+    auto is           = [this, &cell, &w](CellI& type) -> bool { return &cell.struct_() == &type || (cell.struct_().has(w.ids.memberOf) && cell.struct_()[w.ids.memberOf][w.ids.index].has(type)); };
 
     CellI& type   = cell.struct_();
-    if (&type == &kb.std.Struct) {
+    if (&type == &w.std.Struct) {
         if (!cell.label().empty()) {
             m_ss << cell.label() << ": ";
         }
     }
-    if (&type == &kb.std.Slot) {
+    if (&type == &w.std.Slot) {
         if (cell.label().empty()) {
-            m_ss << cell[kb.ids.key].label() << ": ";
+            m_ss << cell[w.ids.key].label() << ": ";
         } else {
             m_ss << cell.label() << ": ";
         }
     }
 
-    if (is(kb.std.List)) {
-        m_ss << "List<" << cell.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
-    } else if (is(kb.std.ListItem)) {
-        m_ss << "ListItem<" << cell.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
-    } else if (is(kb.std.Map)) {
-        m_ss << "Map<" << cell.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.keyType][kb.ids.value].label() << ", " << cell.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.valueType][kb.ids.value].label() << ">";
+    if (is(w.std.List)) {
+        m_ss << "List<" << cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+    } else if (is(w.std.ListItem)) {
+        m_ss << "ListItem<" << cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+    } else if (is(w.std.Map)) {
+        m_ss << "Map<" << cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.keyType][w.ids.value].label() << ", " << cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
     } else {
         m_ss << "(" << type.label() << ")";
     }
@@ -119,15 +119,15 @@ void CellStructPrinter::printImpl(CellI& cell)
         m_ss << " ID" << &type;
     //     m_ss << " // " << typePrinter.print();
     m_ss << std::endl;
-    if (type.has(kb.ids.slots)) {
-        CellI& slotList = type[kb.ids.slots][kb.ids.list];
-        visitList(slotList, [this, &kb, &cell, &needId](CellI& slot, int i, bool&) {
-            CellI& role = slot[kb.ids.key];
+    if (type.has(w.ids.slots)) {
+        CellI& slotList = type[w.ids.slots][w.ids.list];
+        visitList(slotList, [this, &w, &cell, &needId](CellI& slot, int i, bool&) {
+            CellI& role = slot[w.ids.key];
             if (!cell.has(role)) {
                 return;
             }
             CellValuePrinter valuePrinter;
-            CellI& type          = slot[kb.ids.type];
+            CellI& type          = slot[w.ids.type];
             CellI& connectedCell = cell[role];
             connectedCell.accept(valuePrinter);
             m_ss << "    +-- " << role.label() << " --> " << type.label();

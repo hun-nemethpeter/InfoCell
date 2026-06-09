@@ -3,8 +3,8 @@
 namespace infocell {
 namespace cells {
 
-AstArc::AstArc(Brain& kb) :
-    AstHelper(kb)
+AstArc::AstArc(World& w) :
+    AstHelper(w)
 {
     auto& arcScope = globalScope.add<Scope>("arc");
 

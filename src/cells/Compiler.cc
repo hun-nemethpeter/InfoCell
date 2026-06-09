@@ -8,9 +8,9 @@
 namespace infocell {
 namespace cells {
 
-Compiler::Compiler(Brain& kb) :
-    kb(kb),
-    m_earlyStructs(kb, kb.std.Cell, kb.std.Cell, "earlyStructs")
+Compiler::Compiler(World& w) :
+    w(w),
+    m_earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs")
 {
 }
 
@@ -27,26 +27,26 @@ Resolve template related references in normal functions or structs:
 */
 CellI& Compiler::compile(Ast::Scope& scope)
 {
-    auto& program     = *new Object(kb, kb.std.Program, "Program");
-    auto& programData = *new Object(kb, kb.std.ProgramData, "ProgramData");
-    program.set(kb.ids.data, programData);
+    auto& program     = *new Object(w, w.std.Program, "Program");
+    auto& programData = *new Object(w, w.std.ProgramData, "ProgramData");
+    program.set(w.ids.data, programData);
 
-    auto& compileState      = *new Object(kb, kb.std.CompileState, "CompileState");
-    auto& compiledFunctions = *new TrieMap(kb, kb.std.Cell, kb.std.op.Function, "Functions");
-    auto& compiledStructs   = *new TrieMap(kb, kb.std.Cell, kb.std.Struct, "Types");
+    auto& compileState      = *new Object(w, w.std.CompileState, "CompileState");
+    auto& compiledFunctions = *new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions");
+    auto& compiledStructs   = *new TrieMap(w, w.std.Cell, w.std.Struct, "Types");
 
-    auto& functions           = *new List(kb, kb.std.op.Function, "Functions");
-    auto& structs             = *new TrieMap(kb, kb.std.Cell, kb.std.Struct, "structs");
-    auto& unknownStructs      = *new TrieMap(kb, kb.std.Cell, kb.std.Struct, "unknownStructs");
-    auto& instances           = *new TrieMap(kb, kb.std.Cell, kb.std.Struct, "instances");
-    auto& unknownInstances    = *new TrieMap(kb, kb.std.Cell, kb.std.Struct, "unknownInstances");
-    auto& instanceAsts        = *new TrieMap(kb, kb.std.Cell, kb.std.Struct, "instanceAsts");
-    auto& unknownInstanceAsts = *new TrieMap(kb, kb.std.Cell, kb.std.Struct, "unknownInstanceAsts");
-    auto& compiledVariables   = *new TrieMap(kb, kb.std.Cell, kb.std.op.Var, "Variables");
+    auto& functions           = *new List(w, w.std.op.Function, "Functions");
+    auto& structs             = *new TrieMap(w, w.std.Cell, w.std.Struct, "structs");
+    auto& unknownStructs      = *new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs");
+    auto& instances           = *new TrieMap(w, w.std.Cell, w.std.Struct, "instances");
+    auto& unknownInstances    = *new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances");
+    auto& instanceAsts        = *new TrieMap(w, w.std.Cell, w.std.Struct, "instanceAsts");
+    auto& unknownInstanceAsts = *new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstanceAsts");
+    auto& compiledVariables   = *new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables");
 
-    programData.set(kb.ids.functions, compiledFunctions);
-    programData.set(kb.ids.structs, compiledStructs);
-    programData.set(kb.ids.variables, compiledVariables);
+    programData.set(w.ids.functions, compiledFunctions);
+    programData.set(w.ids.structs, compiledStructs);
+    programData.set(w.ids.variables, compiledVariables);
 
     compileState.set("functions", functions);
     compileState.set("structs", structs);
@@ -66,8 +66,8 @@ CellI& Compiler::compile(Ast::Scope& scope)
 
     // Sanity check we still referencing an unknown struct
     // Print all unknown references before bail out
-    Visitor::visitList(unknownStructs[kb.ids.list], [this](CellI& unknownStruct, int i, bool& stop) {
-        WARN(compileStruct, "unknown struct: {}", unknownStruct[kb.ids.value][kb.ids.value].label());
+    Visitor::visitList(unknownStructs[w.ids.list], [this](CellI& unknownStruct, int i, bool& stop) {
+        WARN(compileStruct, "unknown struct: {}", unknownStruct[w.ids.value][w.ids.value].label());
     });
 
     // Step 2. process the shadow AST tree and instantiate templates
@@ -92,31 +92,31 @@ CellI& Compiler::compile(Ast::Scope& scope)
 CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
 {
     CellI* structIdPtr = nullptr;
-    if (&structAst.struct_() == &kb.std.ast.TemplatedType) {
-        List& idCell = *new List(kb, kb.std.Cell);
+    if (&structAst.struct_() == &w.std.ast.TemplatedType) {
+        List& idCell = *new List(w, w.std.Cell);
         structIdPtr  = &idCell;
         std::stringstream ss;
-        Visitor::visitList(structAst[kb.ids.scopes], [this, &idCell, &ss](CellI& scope, int i, bool&) {
+        Visitor::visitList(structAst[w.ids.scopes], [this, &idCell, &ss](CellI& scope, int i, bool&) {
             Visitor::visitList(scope, [this, &idCell, &ss](CellI& character, int, bool&) {
                 idCell.add(character);
                 ss << character.label();
             });
-            idCell.add(kb.pools.chars.get(':'));
-            idCell.add(kb.pools.chars.get(':'));
+            idCell.add(w.pools.chars.get(':'));
+            idCell.add(w.pools.chars.get(':'));
             ss << "::";
         });
-        Visitor::visitList(structAst[kb.ids.id], [this, &idCell, &ss](CellI& character, int, bool&) {
+        Visitor::visitList(structAst[w.ids.id], [this, &idCell, &ss](CellI& character, int, bool&) {
             idCell.add(character);
             ss << character.label();
         });
 
         ss << "<";
-        Visitor::visitList(structAst[kb.ids.parameters], [this, &idCell, &ss](CellI& slot, int i, bool&) {
+        Visitor::visitList(structAst[w.ids.parameters], [this, &idCell, &ss](CellI& slot, int i, bool&) {
             if (i != 0) {
                 ss << ", ";
             }
-            CellI& key              = slot[kb.ids.key];
-            CellI& type             = slot[kb.ids.type];
+            CellI& key              = slot[w.ids.key];
+            CellI& type             = slot[w.ids.type];
             CellI& compiledSlotType = reigisterStructBeforeCompilation(type);
 
             idCell.add(key);
@@ -125,10 +125,10 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
         });
         ss << ">";
         idCell.label(ss.str());
-    } else if (&structAst.struct_() == &kb.std.ast.StructName) {
-        structIdPtr = &structAst[kb.ids.name];
-    } else if (&structAst.struct_() == &kb.std.ast.Cell) {
-        return structAst[kb.ids.value];
+    } else if (&structAst.struct_() == &w.std.ast.StructName) {
+        structIdPtr = &structAst[w.ids.name];
+    } else if (&structAst.struct_() == &w.std.ast.Cell) {
+        return structAst[w.ids.value];
     } else {
         throw "Unsupported type!";
     }
@@ -136,10 +136,10 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
     if (m_earlyStructs.hasKey(structId)) {
         return m_earlyStructs.getValue(structId);
     } else {
-        auto& unresolvedStruct = *new Object(kb, kb.std.Struct, fmt::format("{}", structId.label()));
-        unresolvedStruct.set("incomplete", kb.boolean.true_);
+        auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", structId.label()));
+        unresolvedStruct.set("incomplete", w.boolean.true_);
 
-        m_earlyStructs.add(structId, kb.std.slot(structAst, unresolvedStruct));
+        m_earlyStructs.add(structId, w.std.slot(structAst, unresolvedStruct));
         return unresolvedStruct;
     }
 }
@@ -153,9 +153,9 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
         throw "Invalid struct ID!";
     }
     std::stringstream ss;
-    List& idCell             = *new List(kb, kb.std.Cell);
+    List& idCell             = *new List(w, w.std.Cell);
     const auto& structName   = sliced.back();
-    Ast::Scope* currentScope = &kb.globalScope;
+    Ast::Scope* currentScope = &w.globalScope;
     if (sliced.size() > 1) {
         for (int i = 0; i < sliced.size() - 1; ++i) {
             const auto& scopeName = sliced[i];
@@ -164,18 +164,18 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
                 idCell.add(character);
                 ss << character.label();
             });
-            idCell.add(kb.pools.chars.get(':'));
-            idCell.add(kb.pools.chars.get(':'));
+            idCell.add(w.pools.chars.get(':'));
+            idCell.add(w.pools.chars.get(':'));
             ss << "::";
         }
     }
     Ast::Struct& structAst = currentScope->getItem<Ast::Struct>(structName);
-    Visitor::visitList(structAst[kb.ids.name], [this, &idCell, &ss](CellI& character, int, bool&) {
+    Visitor::visitList(structAst[w.ids.name], [this, &idCell, &ss](CellI& character, int, bool&) {
         idCell.add(character);
         ss << character.label();
     });
     idCell.label(ss.str());
-    m_earlyStructs.add(idCell, kb.std.slot(kb.struct_(fullName), compiledStruct));
+    m_earlyStructs.add(idCell, w.std.slot(w.struct_(fullName), compiledStruct));
 }
 
 ToolFinder* Compiler::getToolFinder()
@@ -185,20 +185,20 @@ ToolFinder* Compiler::getToolFinder()
 
 void Compiler::registerEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances)
 {
-    Visitor::visitList(m_earlyStructs[kb.ids.list], [this, &unknownStructs, &unknownInstances](CellI& earlyStructKV, int i, bool& stop) {
-        auto& structId       = earlyStructKV[kb.ids.key];
-        auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.key];
-        auto& compiledStruct = earlyStructKV[kb.ids.value][kb.ids.type];
+    Visitor::visitList(m_earlyStructs[w.ids.list], [this, &unknownStructs, &unknownInstances](CellI& earlyStructKV, int i, bool& stop) {
+        auto& structId       = earlyStructKV[w.ids.key];
+        auto& structRefAst   = earlyStructKV[w.ids.value][w.ids.key];
+        auto& compiledStruct = earlyStructKV[w.ids.value][w.ids.type];
 
-        TRACE(compileStruct, "early struct: {}", earlyStructKV[kb.ids.key].label());
+        TRACE(compileStruct, "early struct: {}", earlyStructKV[w.ids.key].label());
 
-        auto& structReference = *new Object(kb, kb.std.StructReference);
-        structReference.set(kb.ids.value, compiledStruct);
-        structReference.set(kb.ids.id, structId);
+        auto& structReference = *new Object(w, w.std.StructReference);
+        structReference.set(w.ids.value, compiledStruct);
+        structReference.set(w.ids.id, structId);
 
-        if (&structRefAst.struct_() == &kb.std.ast.TemplatedType) {
+        if (&structRefAst.struct_() == &w.std.ast.TemplatedType) {
             unknownInstances.add(structId, structReference);
-        } else if (&structRefAst.struct_() == &kb.std.ast.StructName) {
+        } else if (&structRefAst.struct_() == &w.std.ast.StructName) {
             unknownStructs.add(structId, structReference);
         }
     });
@@ -212,22 +212,22 @@ void Compiler::resolveEarlyStructsInScope(Ast::Scope& scope, TrieMap& unknownStr
     auto& stdScope         = scope.getItem<Ast::Scope>("std");
     auto& resolvedStdScope = resolvedScope.getItem<Ast::Scope>("std");
 
-    Visitor::visitList(m_earlyStructs[kb.ids.list], [this, &unknownStructs, &unknownInstances, &stdScope, &resolvedStdScope](CellI& earlyStructKV, int i, bool& stop) {
-        auto& structId       = earlyStructKV[kb.ids.key];
-        auto& structRefAst   = earlyStructKV[kb.ids.value][kb.ids.key];
-        auto& compiledStruct = earlyStructKV[kb.ids.value][kb.ids.type];
+    Visitor::visitList(m_earlyStructs[w.ids.list], [this, &unknownStructs, &unknownInstances, &stdScope, &resolvedStdScope](CellI& earlyStructKV, int i, bool& stop) {
+        auto& structId       = earlyStructKV[w.ids.key];
+        auto& structRefAst   = earlyStructKV[w.ids.value][w.ids.key];
+        auto& compiledStruct = earlyStructKV[w.ids.value][w.ids.type];
 
-        TRACE(compileStruct, "resolve early struct: {}", earlyStructKV[kb.ids.key].label());
+        TRACE(compileStruct, "resolve early struct: {}", earlyStructKV[w.ids.key].label());
 
-        if (&structRefAst.struct_() == &kb.std.ast.TemplatedType) {
+        if (&structRefAst.struct_() == &w.std.ast.TemplatedType) {
             if (unknownInstances.hasKey(structId)) {
                 CellI& structReference = unknownInstances.getValue(structId);
                 structReference.set("scope", stdScope);
                 structReference.set("resolvedScope", stdScope);
                 structReference.set("templateId", structRefAst["id"]);
-                structReference.set(kb.ids.templateParams, structRefAst[kb.ids.parameters]);
+                structReference.set(w.ids.templateParams, structRefAst[w.ids.parameters]);
             }
-        } else if (&structRefAst.struct_() == &kb.std.ast.StructName) {
+        } else if (&structRefAst.struct_() == &w.std.ast.StructName) {
             if (unknownStructs.hasKey(structId)) {
                 CellI& structReference = unknownStructs.getValue(structId);
             }
@@ -237,42 +237,42 @@ void Compiler::resolveEarlyStructsInScope(Ast::Scope& scope, TrieMap& unknownStr
 
 Ast::Scope& Compiler::resolveTypesInScope(Ast::Scope& scope, CellI& state)
 {
-    auto& resolvedScope = *new Ast::Scope(kb, scope.label());
-    scope.set(kb.ids.resolvedScope, resolvedScope);
+    auto& resolvedScope = *new Ast::Scope(w, scope.label());
+    scope.set(w.ids.resolvedScope, resolvedScope);
     state.set("scope", scope);
     state.set("resolvedScope", resolvedScope);
 
     if (scope.has("functions")) {
         state.erase("currentStruct");
-        Visitor::visitList(scope.items<Ast::Function>()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstFunctionCell, int i, bool& stop) {
-            Ast::Function& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell[kb.ids.value]);
+        Visitor::visitList(scope.items<Ast::Function>()[w.ids.list], [this, &state, &resolvedScope](CellI& origAstFunctionCell, int i, bool& stop) {
+            Ast::Function& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell[w.ids.value]);
             Ast::Function& resolvedAstFunction = resolveTypesInFunction(origAstFunction, state);
             resolvedScope.add<Ast::Function>(resolvedAstFunction);
         });
     }
     if (scope.has("structs")) {
-        Visitor::visitList(scope.items<Ast::Struct>()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstStructCell, int i, bool& stop) {
-            Ast::Struct& origAstStruct     = static_cast<Ast::Struct&>(origAstStructCell[kb.ids.value]);
+        Visitor::visitList(scope.items<Ast::Struct>()[w.ids.list], [this, &state, &resolvedScope](CellI& origAstStructCell, int i, bool& stop) {
+            Ast::Struct& origAstStruct     = static_cast<Ast::Struct&>(origAstStructCell[w.ids.value]);
             Ast::Struct& resolvedAstStruct = resolveTypesInStruct(origAstStruct, state);
             resolvedScope.add<Ast::Struct>(resolvedAstStruct);
         });
     }
     if (scope.has("enums")) {
-        Visitor::visitList(scope.items<Ast::Enum>()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstEnumCell, int i, bool& stop) {
-            Ast::Enum& origAstEnum     = static_cast<Ast::Enum&>(origAstEnumCell[kb.ids.value]);
+        Visitor::visitList(scope.items<Ast::Enum>()[w.ids.list], [this, &state, &resolvedScope](CellI& origAstEnumCell, int i, bool& stop) {
+            Ast::Enum& origAstEnum     = static_cast<Ast::Enum&>(origAstEnumCell[w.ids.value]);
             Ast::Enum& resolvedAstEnum = resolveTypesInEnum(origAstEnum, state);
             resolvedScope.add<Ast::Enum>(resolvedAstEnum);
         });
     }
     if (scope.has("variables")) {
-        Visitor::visitList(scope.items<Ast::Var>()[kb.ids.list], [this, &state, &resolvedScope](CellI& origAstVarCell, int i, bool& stop) {
-            Ast::Var& origAstVar = static_cast<Ast::Var&>(origAstVarCell[kb.ids.value]);
+        Visitor::visitList(scope.items<Ast::Var>()[w.ids.list], [this, &state, &resolvedScope](CellI& origAstVarCell, int i, bool& stop) {
+            Ast::Var& origAstVar = static_cast<Ast::Var&>(origAstVarCell[w.ids.value]);
             resolvedScope.add<Ast::Var>(origAstVar);
         });
     }
     if (scope.has("scopes")) {
-        Visitor::visitList(scope.items<Ast::Scope>()[kb.ids.list], [this, &scope, &state, &resolvedScope](CellI& origAstScopeCell, int i, bool& stop) {
-            Ast::Scope& origAstScope     = static_cast<Ast::Scope&>(origAstScopeCell[kb.ids.value]);
+        Visitor::visitList(scope.items<Ast::Scope>()[w.ids.list], [this, &scope, &state, &resolvedScope](CellI& origAstScopeCell, int i, bool& stop) {
+            Ast::Scope& origAstScope     = static_cast<Ast::Scope&>(origAstScopeCell[w.ids.value]);
             Ast::Scope& resolvedAstScope = resolveTypesInScope(origAstScope, state);
             resolvedScope.add<Ast::Scope>(resolvedAstScope);
             state.set("scope", scope);
@@ -284,7 +284,7 @@ Ast::Scope& Compiler::resolveTypesInScope(Ast::Scope& scope, CellI& state)
 
 Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function, CellI& state)
 {
-    Ast::Function& ret = *new Ast::Function(kb, function.get("name"));
+    Ast::Function& ret = *new Ast::Function(w, function.get("name"));
     state.set("currentFn", ret);
     std::stringstream ss;
 
@@ -303,15 +303,15 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function, CellI& 
 
     if (function.has("parameters")) {
         Visitor::visitList(function.parameters(), [this, &state, &ret, &ss](CellI& param, int i, bool& stop) {
-            CellI& paramId           = param[kb.ids.key];
-            CellI& paramType         = param[kb.ids.type];
+            CellI& paramId           = param[w.ids.key];
+            CellI& paramType         = param[w.ids.type];
             CellI& resolvedParamType = resolveType(paramType, state);
             CellI& compiledParamType = getCompiledTypeFromResolvedType(resolvedParamType);
             if (i > 0) {
                 ss << ", ";
             }
             ss << fmt::format("{}: {}", paramId.label(), compiledParamType.label());
-            ret.parameters(kb.ast.slot(paramId, resolvedParamType));
+            ret.parameters(w.ast.slot(paramId, resolvedParamType));
         });
     }
     ss << ")";
@@ -335,10 +335,10 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& resolveState, CellI& ast)
 {
     auto resolveNode = [this, &resolveState](CellI& ast) -> Ast::Base& { return resolveTypesInFunctionCode(resolveState, ast); };
 
-    if (&ast.struct_() == &kb.std.ast.New) {
-        CellI& objectType                = ast[kb.ids.objectType];
+    if (&ast.struct_() == &w.std.ast.New) {
+        CellI& objectType                = ast[w.ids.objectType];
         Ast::Base* resolvedObjectTypePtr = nullptr;
-        if (&objectType.struct_() == &kb.std.ast.Member) {
+        if (&objectType.struct_() == &w.std.ast.Member) {
             resolvedObjectTypePtr = &static_cast<Ast::Base&>(objectType);
         } else {
             resolvedObjectTypePtr = &resolveType(objectType, resolveState);
@@ -346,141 +346,141 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& resolveState, CellI& ast)
         Ast::Base& resolvedObjectType = *resolvedObjectTypePtr;
 
         if (ast.has("constructor")) {
-            auto& constructor = ast[kb.ids.constructor];
-            Ast::Base& ret    = kb.ast.new_(resolvedObjectType, static_cast<Ast::Base&>(ast[kb.ids.constructor]));
+            auto& constructor = ast[w.ids.constructor];
+            Ast::Base& ret    = w.ast.new_(resolvedObjectType, static_cast<Ast::Base&>(ast[w.ids.constructor]));
 
             if (ast.has("parameters")) {
-                auto& newParameters = *new cells::List(kb, kb.std.ast.Slot);
-                Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
-                    newParameters.add(kb.ast.slot(slot[kb.ids.key], resolveNode(slot[kb.ids.type])));
+                auto& newParameters = *new cells::List(w, w.std.ast.Slot);
+                Visitor::visitList(ast[w.ids.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
+                    newParameters.add(w.ast.slot(slot[w.ids.key], resolveNode(slot[w.ids.type])));
                 });
                 ret.set("parameters", newParameters);
             }
             return ret;
         } else {
-            return kb.ast.new_(resolvedObjectType);
+            return w.ast.new_(resolvedObjectType);
         }
     }
 
-    if (&ast.struct_() == &kb.std.ast.Call || &ast.struct_() == &kb.std.ast.StaticCall) {
+    if (&ast.struct_() == &w.std.ast.Call || &ast.struct_() == &w.std.ast.StaticCall) {
 
         Ast::Base* retPtr = nullptr;
-        if (&ast.struct_() == &kb.std.ast.Call) {
-            retPtr = &kb.ast.call(resolveNode(ast[kb.ids.cell]), ast[kb.ids.method]);
+        if (&ast.struct_() == &w.std.ast.Call) {
+            retPtr = &w.ast.call(resolveNode(ast[w.ids.cell]), ast[w.ids.method]);
         } else {
-            retPtr = &kb.ast.scall(resolveType(ast[kb.ids.cell], resolveState), ast[kb.ids.method]);
+            retPtr = &w.ast.scall(resolveType(ast[w.ids.cell], resolveState), ast[w.ids.method]);
         }
         Ast::Base& ret = *retPtr;
         if (ast.has("parameters")) {
-            auto& newParameters = *new cells::List(kb, kb.std.ast.Slot);
-            Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
-                newParameters.add(kb.ast.slot(slot[kb.ids.key], resolveNode(slot[kb.ids.type])));
+            auto& newParameters = *new cells::List(w, w.std.ast.Slot);
+            Visitor::visitList(ast[w.ids.parameters], [this, &newParameters, &resolveNode, &resolveState](CellI& slot, int, bool&) {
+                newParameters.add(w.ast.slot(slot[w.ids.key], resolveNode(slot[w.ids.type])));
             });
             ret.set("parameters", newParameters);
         }
         return ret;
-    } else if (&ast.struct_() == &kb.std.ast.StructName) {
+    } else if (&ast.struct_() == &w.std.ast.StructName) {
         return resolveType(ast, resolveState);
     }
 
     // do nothing just traverse and copy the AST nodes
-    if (&ast.struct_() == &kb.std.ast.Block) {
-        auto& instantiedAsts = *new cells::List(kb, kb.std.ast.Base);
-        Visitor::visitList(ast[kb.ids.asts], [this, &instantiedAsts, &resolveNode](CellI& ast, int, bool&) {
+    if (&ast.struct_() == &w.std.ast.Block) {
+        auto& instantiedAsts = *new cells::List(w, w.std.ast.Base);
+        Visitor::visitList(ast[w.ids.asts], [this, &instantiedAsts, &resolveNode](CellI& ast, int, bool&) {
             instantiedAsts.add(resolveNode(ast));
         });
-        return *new Ast::Block(kb, instantiedAsts);
-    } else if (&ast.struct_() == &kb.std.ast.Cell) {
-        return kb.ast.cell(ast[kb.ids.value]);
-    } else if (&ast.struct_() == &kb.std.ast.SelfFn) {
-        return kb.ast.selfFn();
-    } else if (&ast.struct_() == &kb.std.ast.Self) {
-        return kb.ast.self();
-    } else if (&ast.struct_() == &kb.std.ast.Continue) {
-        return kb.ast.continue_();
-    } else if (&ast.struct_() == &kb.std.ast.Break) {
-        return kb.ast.break_();
-    } else if (&ast.struct_() == &kb.std.ast.Try) {
-        return kb.ast.try_(resolveNode(ast["tryBranch"]), resolveNode(ast["catchBranch"]));
-    } else if (&ast.struct_() == &kb.std.ast.Throw) {
-        if (ast.has(kb.ids.value)) {
-            return kb.ast.throw_(resolveNode(ast[kb.ids.value]));
+        return *new Ast::Block(w, instantiedAsts);
+    } else if (&ast.struct_() == &w.std.ast.Cell) {
+        return w.ast.cell(ast[w.ids.value]);
+    } else if (&ast.struct_() == &w.std.ast.SelfFn) {
+        return w.ast.selfFn();
+    } else if (&ast.struct_() == &w.std.ast.Self) {
+        return w.ast.self();
+    } else if (&ast.struct_() == &w.std.ast.Continue) {
+        return w.ast.continue_();
+    } else if (&ast.struct_() == &w.std.ast.Break) {
+        return w.ast.break_();
+    } else if (&ast.struct_() == &w.std.ast.Try) {
+        return w.ast.try_(resolveNode(ast["tryBranch"]), resolveNode(ast["catchBranch"]));
+    } else if (&ast.struct_() == &w.std.ast.Throw) {
+        if (ast.has(w.ids.value)) {
+            return w.ast.throw_(resolveNode(ast[w.ids.value]));
         } else {
-            return kb.ast.throw_();
+            return w.ast.throw_();
         }
-    } else if (&ast.struct_() == &kb.std.ast.Parameter) {
-        return kb.ast.parameter(ast[kb.ids.key]);
-    } else if (&ast.struct_() == &kb.std.ast.Var) {
-        return kb.ast.var(ast[kb.ids.name]);
-    } else if (&ast.struct_() == &kb.std.ast.Delete) {
-        return kb.ast.delete_(resolveNode(ast[kb.ids.cell]));
-    } else if (&ast.struct_() == &kb.std.ast.Set) {
-        return kb.ast.set(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]), resolveNode(ast[kb.ids.value]));
-    } else if (&ast.struct_() == &kb.std.ast.Erase) {
-        return kb.ast.erase(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]));
-    } else if (&ast.struct_() == &kb.std.ast.If) {
+    } else if (&ast.struct_() == &w.std.ast.Parameter) {
+        return w.ast.parameter(ast[w.ids.key]);
+    } else if (&ast.struct_() == &w.std.ast.Var) {
+        return w.ast.var(ast[w.ids.name]);
+    } else if (&ast.struct_() == &w.std.ast.Delete) {
+        return w.ast.delete_(resolveNode(ast[w.ids.cell]));
+    } else if (&ast.struct_() == &w.std.ast.Set) {
+        return w.ast.set(resolveNode(ast[w.ids.cell]), resolveNode(ast[w.ids.key]), resolveNode(ast[w.ids.value]));
+    } else if (&ast.struct_() == &w.std.ast.Erase) {
+        return w.ast.erase(resolveNode(ast[w.ids.cell]), resolveNode(ast[w.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.If) {
         if (ast.has("else_")) {
-            return kb.ast.if_(resolveNode(ast[kb.ids.condition]))
-                .then_(resolveNode(ast[kb.ids.then]))
-                .else_(resolveNode(ast[kb.ids.else_]));
+            return w.ast.if_(resolveNode(ast[w.ids.condition]))
+                .then_(resolveNode(ast[w.ids.then]))
+                .else_(resolveNode(ast[w.ids.else_]));
         } else {
-            return kb.ast.if_(resolveNode(ast[kb.ids.condition])).then_(resolveNode(ast[kb.ids.then]));
+            return w.ast.if_(resolveNode(ast[w.ids.condition])).then_(resolveNode(ast[w.ids.then]));
         }
-    } else if (&ast.struct_() == &kb.std.ast.Match) {
-        auto& ret = kb.ast.match_(static_cast<Ast::Base&>(ast["enum"]));
-        Visitor::visitList(ast["cases"][kb.ids.list], [this, &resolveNode, &ret](CellI& kvpair, int, bool&) {
-            auto& key = kvpair[kb.ids.key];
-            auto& op  = resolveNode(kvpair[kb.ids.value]);
+    } else if (&ast.struct_() == &w.std.ast.Match) {
+        auto& ret = w.ast.match_(static_cast<Ast::Base&>(ast["enum"]));
+        Visitor::visitList(ast["cases"][w.ids.list], [this, &resolveNode, &ret](CellI& kvpair, int, bool&) {
+            auto& key = kvpair[w.ids.key];
+            auto& op  = resolveNode(kvpair[w.ids.value]);
             ret.case_(key, op);
         });
         return ret;
-    } else if (&ast.struct_() == &kb.std.ast.Do) {
-        return kb.ast.do_(resolveNode(ast[kb.ids.statement])).while_(resolveNode(ast[kb.ids.condition]));
-    } else if (&ast.struct_() == &kb.std.ast.While) {
-        return kb.ast.while_(resolveNode(ast[kb.ids.condition])).do_(resolveNode(ast[kb.ids.statement]));
-    } else if (&ast.struct_() == &kb.std.ast.And) {
-        return kb.ast.and_(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Or) {
-        return kb.ast.or_(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Not) {
-        return kb.ast.not_(resolveNode(ast[kb.ids.input]));
-    } else if (&ast.struct_() == &kb.std.ast.Add) {
-        return kb.ast.add(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Subtract) {
-        return kb.ast.subtract(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Multiply) {
-        return kb.ast.multiply(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Divide) {
-        return kb.ast.divide(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.LessThan) {
-        return kb.ast.lessThan(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.LessThanOrEqual) {
-        return kb.ast.lessThanOrEqual(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.GreaterThan) {
-        return kb.ast.greaterThan(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.GreaterThanOrEqual) {
-        return kb.ast.greaterThanOrEqual(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Same) {
-        return kb.ast.same(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.NotSame) {
-        return kb.ast.notSame(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Equal) {
-        return kb.ast.equal(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.NotEqual) {
-        return kb.ast.notEqual(resolveNode(ast[kb.ids.lhs]), resolveNode(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Has) {
-        return kb.ast.has(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]));
-    } else if (&ast.struct_() == &kb.std.ast.Missing) {
-        return kb.ast.missing(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]));
-    } else if (&ast.struct_() == &kb.std.ast.Get) {
-        return kb.ast.get(resolveNode(ast[kb.ids.cell]), resolveNode(ast[kb.ids.key]));
-    } else if (&ast.struct_() == &kb.std.ast.Member) {
-        return kb.ast.member(ast[kb.ids.key]);
-    } else if (&ast.struct_() == &kb.std.ast.Return) {
+    } else if (&ast.struct_() == &w.std.ast.Do) {
+        return w.ast.do_(resolveNode(ast[w.ids.statement])).while_(resolveNode(ast[w.ids.condition]));
+    } else if (&ast.struct_() == &w.std.ast.While) {
+        return w.ast.while_(resolveNode(ast[w.ids.condition])).do_(resolveNode(ast[w.ids.statement]));
+    } else if (&ast.struct_() == &w.std.ast.And) {
+        return w.ast.and_(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Or) {
+        return w.ast.or_(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Not) {
+        return w.ast.not_(resolveNode(ast[w.ids.input]));
+    } else if (&ast.struct_() == &w.std.ast.Add) {
+        return w.ast.add(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Subtract) {
+        return w.ast.subtract(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Multiply) {
+        return w.ast.multiply(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Divide) {
+        return w.ast.divide(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.LessThan) {
+        return w.ast.lessThan(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.LessThanOrEqual) {
+        return w.ast.lessThanOrEqual(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.GreaterThan) {
+        return w.ast.greaterThan(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.GreaterThanOrEqual) {
+        return w.ast.greaterThanOrEqual(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Same) {
+        return w.ast.same(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.NotSame) {
+        return w.ast.notSame(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Equal) {
+        return w.ast.equal(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.NotEqual) {
+        return w.ast.notEqual(resolveNode(ast[w.ids.lhs]), resolveNode(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Has) {
+        return w.ast.has(resolveNode(ast[w.ids.cell]), resolveNode(ast[w.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Missing) {
+        return w.ast.missing(resolveNode(ast[w.ids.cell]), resolveNode(ast[w.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Get) {
+        return w.ast.get(resolveNode(ast[w.ids.cell]), resolveNode(ast[w.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Member) {
+        return w.ast.member(ast[w.ids.key]);
+    } else if (&ast.struct_() == &w.std.ast.Return) {
         if (ast.has("value")) {
-            return kb.ast.return_(static_cast<Ast::Base&>(resolveNode(ast[kb.ids.value])));
+            return w.ast.return_(static_cast<Ast::Base&>(resolveNode(ast[w.ids.value])));
         }
-        return kb.ast.return_();
+        return w.ast.return_();
     }
 
     throw "Unknown AST to instantiate!";
@@ -489,9 +489,9 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& resolveState, CellI& ast)
 Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_, CellI& state)
 {
     auto& structName     = struct_.get("name");
-    auto& structs        = static_cast<TrieMap&>(state[kb.ids.structs]);
-    auto& unknownStructs = static_cast<TrieMap&>(state[kb.ids.unknownStructs]);
-    Ast::Struct& ret     = *new Ast::Struct(kb, structName);
+    auto& structs        = static_cast<TrieMap&>(state[w.ids.structs]);
+    auto& unknownStructs = static_cast<TrieMap&>(state[w.ids.unknownStructs]);
+    Ast::Struct& ret     = *new Ast::Struct(w, structName);
 
     if (struct_.has("instanceOf")) {
         ret.set("instanceOf", struct_.get("instanceOf"));
@@ -506,7 +506,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_, CellI& state)
         compiledStructPtr    = &unknownStruct["value"];
         unknownStructs.remove(fullyQualifiedName);
     } else {
-        compiledStructPtr = new Object(kb, kb.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
+        compiledStructPtr = new Object(w, w.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
     }
     auto& compiledStruct = *compiledStructPtr;
     structs.add(getFullyQualifiedName(struct_), compiledStruct);
@@ -522,11 +522,11 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_, CellI& state)
 
     // resolve sub types
     if (struct_.has("subTypes")) {
-        Visitor::visitList(struct_.subTypes()[kb.ids.list], [this, &ret, &state, &subTypesStrs](CellI& subTypeCell, int i, bool& stop) {
-            CellI& subTypeId           = subTypeCell[kb.ids.key];
-            CellI& subTypeType         = subTypeCell[kb.ids.type];
+        Visitor::visitList(struct_.subTypes()[w.ids.list], [this, &ret, &state, &subTypesStrs](CellI& subTypeCell, int i, bool& stop) {
+            CellI& subTypeId           = subTypeCell[w.ids.key];
+            CellI& subTypeType         = subTypeCell[w.ids.type];
             CellI& resolvedSubTypeType = resolveType(subTypeType, state);
-            ret.subTypes(kb.ast.slot(subTypeId, resolvedSubTypeType));
+            ret.subTypes(w.ast.slot(subTypeId, resolvedSubTypeType));
             if (IS_LOG_ENABLED) {
                 subTypesStrs.push_back(fmt::format("    type {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()));
             }
@@ -558,7 +558,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_, CellI& state)
 
     // resolve methods
     if (struct_.has("methods")) {
-        Visitor::visitList(struct_.methods()[kb.ids.list], [this, &ret, &state](CellI& origAstFunctionCell, int i, bool& stop) {
+        Visitor::visitList(struct_.methods()[w.ids.list], [this, &ret, &state](CellI& origAstFunctionCell, int i, bool& stop) {
             auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction, state);
             ret.addMethod(resolvedAstFunction);
@@ -572,12 +572,12 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_, CellI& state)
     }
     // resolve members
     if (struct_.has("members")) {
-        CellI& membersList = struct_.members()[kb.ids.list];
+        CellI& membersList = struct_.members()[w.ids.list];
         Visitor::visitList(membersList, [this, &struct_, &ret, &state](CellI& memberCell, int i, bool& stop) {
-            CellI& memberId           = memberCell[kb.ids.key];
-            CellI& memberType         = memberCell[kb.ids.type];
+            CellI& memberId           = memberCell[w.ids.key];
+            CellI& memberType         = memberCell[w.ids.type];
             CellI& resolvedMemberType = resolveType(memberType, state);
-            ret.members(kb.ast.slot(memberId, resolvedMemberType));
+            ret.members(w.ast.slot(memberId, resolvedMemberType));
             TRACE(compileStruct, "    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label());
         });
     }
@@ -591,9 +591,9 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_, CellI& state)
 Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_, CellI& state)
 {
     auto& enumName       = enum_.get("name");
-    auto& structs        = static_cast<TrieMap&>(state[kb.ids.structs]);
-    auto& unknownStructs = static_cast<TrieMap&>(state[kb.ids.unknownStructs]);
-    Ast::Enum& ret       = *new Ast::Enum(kb, enumName);
+    auto& structs        = static_cast<TrieMap&>(state[w.ids.structs]);
+    auto& unknownStructs = static_cast<TrieMap&>(state[w.ids.unknownStructs]);
+    Ast::Enum& ret       = *new Ast::Enum(w, enumName);
 
     if (enum_.has("instanceOf")) {
         ret.set("instanceOf", enum_.get("instanceOf"));
@@ -608,7 +608,7 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_, CellI& state)
         resolvedStructPtr    = &unknownStruct["value"];
         unknownStructs.remove(fullyQualifiedName);
     } else {
-        resolvedStructPtr = new Object(kb, kb.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
+        resolvedStructPtr = new Object(w, w.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
     }
     auto& resolvedStruct = *resolvedStructPtr;
     structs.add(getFullyQualifiedName(enum_), resolvedStruct);
@@ -620,7 +620,7 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_, CellI& state)
 #if 0
     // resolve methods
     if (has("methods")) {
-        Visitor::visitList(methods()[kb.ids.list], [this, &ret, &state](CellI& origAstFunctionCell, int i, bool& stop) {
+        Visitor::visitList(methods()[w.ids.list], [this, &ret, &state](CellI& origAstFunctionCell, int i, bool& stop) {
             auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction, state);
             ret.addMethod(resolvedAstFunction);
@@ -637,17 +637,17 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_, CellI& state)
 #endif
     // resolve values
     if (enum_.has("values")) {
-        CellI& valuesList = enum_.values()[kb.ids.list];
+        CellI& valuesList = enum_.values()[w.ids.list];
         Visitor::visitList(valuesList, [this, &ret, &state](CellI& kvPair, int i, bool& stop) {
-            CellI& valueCell = kvPair[kb.ids.value];
-            CellI& valueName = valueCell[kb.ids.name];
+            CellI& valueCell = kvPair[w.ids.value];
+            CellI& valueName = valueCell[w.ids.name];
             std::stringstream ss;
             if (valueCell.has("enumType")) {
                 CellI& valueType                    = valueCell["enumType"];
                 CellI& resolvedValueType            = resolveType(valueType, state);
-                Ast::TypedEnumValue& typedEnumValue = *new Ast::TypedEnumValue(kb, valueName, resolvedValueType);
-                if (valueCell.has(kb.ids.value)) {
-                    typedEnumValue.set(kb.ids.value, valueCell[kb.ids.value]);
+                Ast::TypedEnumValue& typedEnumValue = *new Ast::TypedEnumValue(w, valueName, resolvedValueType);
+                if (valueCell.has(w.ids.value)) {
+                    typedEnumValue.set(w.ids.value, valueCell[w.ids.value]);
                 }
                 ret.values(typedEnumValue);
                 if (IS_LOG_ENABLED) {
@@ -658,8 +658,8 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_, CellI& state)
                 ss << fmt::format("    {}", valueName.label());
             }
             if (IS_LOG_ENABLED) {
-                if (valueCell.has(kb.ids.value)) {
-                    ss << fmt::format(" = {}", resolveTypeInEnumValue(valueCell[kb.ids.value]).label());
+                if (valueCell.has(w.ids.value)) {
+                    ss << fmt::format(" = {}", resolveTypeInEnumValue(valueCell[w.ids.value]).label());
                 }
                 ss << ",";
                 TRACE(compileStruct, ss.str());
@@ -673,8 +673,8 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_, CellI& state)
 
 CellI& Compiler::resolveTypeInEnumValue(CellI& ast)
 {
-    if (&ast.struct_() == &kb.std.ast.Cell) {
-        return ast[kb.ids.value];
+    if (&ast.struct_() == &w.std.ast.Cell) {
+        return ast[w.ids.value];
     }
 
     throw "Unknown enum value!";
@@ -683,32 +683,32 @@ CellI& Compiler::resolveTypeInEnumValue(CellI& ast)
 int Compiler::instantiateTemplateInstances(TrieMap& unknownInstances, Object& compileState, Ast::Scope& resolvedScope)
 {
     int instantiedNum = 0;
-    Visitor::visitList(unknownInstances[kb.ids.list], [this, &compileState, &instantiedNum](CellI& unknownInstanceSlot, int i, bool& stop) {
-        CellI& unknownInstance  = unknownInstanceSlot[kb.ids.value];
-        auto& unknownInstanceId = unknownInstance[kb.ids.id];
+    Visitor::visitList(unknownInstances[w.ids.list], [this, &compileState, &instantiedNum](CellI& unknownInstanceSlot, int i, bool& stop) {
+        CellI& unknownInstance  = unknownInstanceSlot[w.ids.value];
+        auto& unknownInstanceId = unknownInstance[w.ids.id];
 
         if (IS_LOG_ENABLED) {
             TRACE(compileStruct, "unknown instance: {}", unknownInstanceId.label());
             if (unknownInstance.has("currentStruct")) {
-                TRACE(compileStruct, "     from struct: {}", unknownInstance[kb.ids.currentStruct].label());
+                TRACE(compileStruct, "     from struct: {}", unknownInstance[w.ids.currentStruct].label());
             }
             if (unknownInstance.has("currentFn")) {
-                TRACE(compileStruct, "   from function: {}", unknownInstance[kb.ids.currentFn].label());
+                TRACE(compileStruct, "   from function: {}", unknownInstance[w.ids.currentFn].label());
             }
         }
 
         std::stringstream ss;
 
-        CellI& templateId     = unknownInstance[kb.ids.templateId];
-        CellI& templateParams = unknownInstance[kb.ids.templateParams];
-        auto& scope           = static_cast<Ast::Scope&>(unknownInstance[kb.ids.scope]);
-        auto& idScope         = unknownInstance.has(kb.name("idScope")) ? static_cast<Ast::Scope&>(unknownInstance[kb.name("idScope")]) : scope;
+        CellI& templateId     = unknownInstance[w.ids.templateId];
+        CellI& templateParams = unknownInstance[w.ids.templateParams];
+        auto& scope           = static_cast<Ast::Scope&>(unknownInstance[w.ids.scope]);
+        auto& idScope         = unknownInstance.has(w.name("idScope")) ? static_cast<Ast::Scope&>(unknownInstance[w.name("idScope")]) : scope;
 
         ss << fmt::format("        in scope: {}", getFullyQualifiedName(idScope).label());
         ss << fmt::format("  instantiate id: {}<", templateId.label());
         Visitor::visitList(templateParams, [this, &ss, &compileState](CellI& param, int i, bool& stop) {
-            CellI& paramId   = param[kb.ids.key];
-            CellI& paramType = param[kb.ids.type];
+            CellI& paramId   = param[w.ids.key];
+            CellI& paramType = param[w.ids.type];
             if (i > 0) {
                 ss << ", ";
             }
@@ -717,7 +717,7 @@ int Compiler::instantiateTemplateInstances(TrieMap& unknownInstances, Object& co
         ss << ">";
         TRACE(compileStruct, ss.str());
 
-        auto& resolvedIdScope = static_cast<Ast::Scope&>(idScope[kb.ids.resolvedScope]);
+        auto& resolvedIdScope = static_cast<Ast::Scope&>(idScope[w.ids.resolvedScope]);
         compileState.set("scope", idScope);
         auto& structT          = idScope.getItem<Ast::StructT>(templateId);
         auto& instantiedStruct = instantiateStructT(structT, static_cast<List&>(templateParams), compileState);
@@ -736,15 +736,15 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, List& inputPara
         throw "No template parameter was given!";
     }
     std::stringstream ss;
-    Map inputParameters(kb, kb.std.Cell, kb.std.Cell);
-    List& idCell = *new List(kb, kb.std.Cell);
+    Map inputParameters(w, w.std.Cell, w.std.Cell);
+    List& idCell = *new List(w, w.std.Cell);
     Visitor::visitList(structT.name(), [this, &idCell](CellI& character, int i, bool& stop) {
         idCell.add(character);
     });
 
     Visitor::visitList(inputParams, [this, &structT, &inputParameters, &ss, &idCell](CellI& slot, int i, bool& stop) {
-        CellI& key  = slot[kb.ids.key];
-        CellI& type = slot[kb.ids.type];
+        CellI& key  = slot[w.ids.key];
+        CellI& type = slot[w.ids.type];
         inputParameters.add(key, type);
         CellI& compiledSlotType = getCompiledTypeFromResolvedType(type);
         if (i != 0) {
@@ -761,10 +761,10 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, List& inputPara
     Ast::Struct* retPtr       = nullptr;
     auto& unknownInstanceAsts = static_cast<TrieMap&>(state["unknownInstanceAsts"]);
     if (unknownInstanceAsts.hasKey(idCell)) {
-        retPtr = &static_cast<Ast::Struct&>(unknownInstanceAsts.getValue(idCell)[kb.ids.value]);
+        retPtr = &static_cast<Ast::Struct&>(unknownInstanceAsts.getValue(idCell)[w.ids.value]);
     } else {
         auto& instanceAsts = static_cast<TrieMap&>(state["instanceAsts"]);
-        retPtr             = new Ast::Struct(kb, idCell);
+        retPtr             = new Ast::Struct(w, idCell);
         instanceAsts.add(idCell, *retPtr);
     }
     Ast::Struct& ret = *retPtr;
@@ -774,61 +774,61 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, List& inputPara
 
     // instantiate sub types
     if (structT.has("subTypes")) {
-        Map& instantiatedSubTypes = *new Map(kb, kb.std.Cell, kb.std.ast.Base);
-        Visitor::visitList(structT.subTypes()[kb.ids.list], [this, &inputParameters, &instantiatedSubTypes, &ret, &state](CellI& slot, int i, bool& stop) {
-            CellI& key               = slot[kb.ids.key];
-            CellI& type              = slot[kb.ids.type];
+        Map& instantiatedSubTypes = *new Map(w, w.std.Cell, w.std.ast.Base);
+        Visitor::visitList(structT.subTypes()[w.ids.list], [this, &inputParameters, &instantiatedSubTypes, &ret, &state](CellI& slot, int i, bool& stop) {
+            CellI& key               = slot[w.ids.key];
+            CellI& type              = slot[w.ids.type];
             CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters, state);
-            instantiatedSubTypes.add(key, kb.ast.slot(key, instantiatedParam));
+            instantiatedSubTypes.add(key, w.ast.slot(key, instantiatedParam));
         });
         ret.set("subTypes", instantiatedSubTypes);
     }
 
     // instantiate methods
     if (structT.has("methods")) {
-        Visitor::visitList(structT.methods()[kb.ids.list], [this, &inputParameters, &ret, &state](CellI& astFunction, int i, bool& stop) {
-            Ast::Function& instantiedFunction = *new Ast::Function(kb, astFunction[kb.ids.name]);
+        Visitor::visitList(structT.methods()[w.ids.list], [this, &inputParameters, &ret, &state](CellI& astFunction, int i, bool& stop) {
+            Ast::Function& instantiedFunction = *new Ast::Function(w, astFunction[w.ids.name]);
             ret.addMethod(instantiedFunction);
 
             // parameters
             if (astFunction.has("parameters")) {
-                List& instantiatedParameters = *new List(kb, kb.std.Slot);
-                Visitor::visitList(astFunction[kb.ids.parameters], [this, &inputParameters, &instantiatedParameters, &ret, &state](CellI& slot, int i, bool& stop) {
-                    CellI& key               = slot[kb.ids.key];
-                    CellI& type              = slot[kb.ids.type];
+                List& instantiatedParameters = *new List(w, w.std.Slot);
+                Visitor::visitList(astFunction[w.ids.parameters], [this, &inputParameters, &instantiatedParameters, &ret, &state](CellI& slot, int i, bool& stop) {
+                    CellI& key               = slot[w.ids.key];
+                    CellI& type              = slot[w.ids.type];
                     CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters, state);
-                    instantiatedParameters.add(kb.ast.slot(key, instantiatedParam));
+                    instantiatedParameters.add(w.ast.slot(key, instantiatedParam));
                 });
                 instantiedFunction.set("parameters", instantiatedParameters);
             }
             // return type
             if (astFunction.has("returnType")) {
-                CellI& returnType             = astFunction[kb.ids.returnType];
+                CellI& returnType             = astFunction[w.ids.returnType];
                 CellI& instantiatedReturnType = instantiateTemplateParamType(returnType, ret, inputParameters, state);
                 instantiedFunction.set("returnType", instantiatedReturnType);
             }
             // instructions
             if (astFunction.has("instructions")) {
-                instantiedFunction.set("instructions", instantiateAst(astFunction[kb.ids.instructions], ret, inputParameters, state));
+                instantiedFunction.set("instructions", instantiateAst(astFunction[w.ids.instructions], ret, inputParameters, state));
             }
         });
     }
 
     // instantiate members
     if (structT.has("members")) {
-        Map& instantiatedMembers = *new Map(kb, kb.std.Cell, kb.std.Slot);
-        Visitor::visitList(structT.members()[kb.ids.list], [this, &inputParameters, &instantiatedMembers, &ret, &state](CellI& slot, int i, bool& stop) {
-            CellI& key               = slot[kb.ids.key];
-            CellI& type              = slot[kb.ids.type];
+        Map& instantiatedMembers = *new Map(w, w.std.Cell, w.std.Slot);
+        Visitor::visitList(structT.members()[w.ids.list], [this, &inputParameters, &instantiatedMembers, &ret, &state](CellI& slot, int i, bool& stop) {
+            CellI& key               = slot[w.ids.key];
+            CellI& type              = slot[w.ids.type];
             CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters, state);
-            instantiatedMembers.add(key, kb.ast.slot(key, instantiatedParam));
+            instantiatedMembers.add(key, w.ast.slot(key, instantiatedParam));
         });
         ret.set("members", instantiatedMembers);
     }
 
     // instantiate memberOf list
     if (structT.has("memberOf")) {
-        List& instantiatedMemberOfs = *new List(kb, kb.std.Struct);
+        List& instantiatedMemberOfs = *new List(w, w.std.Struct);
         Visitor::visitList(structT.memberOf(), [this, &inputParameters, &instantiatedMemberOfs, &ret, &state](CellI& membershipType, int i, bool& stop) {
             CellI& instantiatedParam = instantiateTemplateParamType(membershipType, ret, inputParameters, state);
             instantiatedMemberOfs.add(instantiatedParam);
@@ -841,28 +841,28 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, List& inputPara
 
 CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, CellI& state)
 {
-    if (&param.struct_() == &kb.std.ast.TemplateParam) {
-        CellI& paramValue = param[kb.ids.key];
+    if (&param.struct_() == &w.std.ast.TemplateParam) {
+        CellI& paramValue = param[w.ids.key];
         if (!inputParameters.hasKey(paramValue)) {
             throw "Instantiating with unknown template parameter!";
         }
         return inputParameters.getValue(paramValue);
     }
-    if (&param.struct_() == &kb.std.ast.TemplatedType) {
-        List& resolvedParameterList = *new List(kb, kb.std.Slot);
-        auto& ret                   = *new Ast::TemplatedType(kb, param[kb.ids.id], resolvedParameterList);
-        auto& parametersList        = param[kb.ids.parameters];
+    if (&param.struct_() == &w.std.ast.TemplatedType) {
+        List& resolvedParameterList = *new List(w, w.std.Slot);
+        auto& ret                   = *new Ast::TemplatedType(w, param[w.ids.id], resolvedParameterList);
+        auto& parametersList        = param[w.ids.parameters];
 
         Visitor::visitList(parametersList, [this, &resolvedParameterList, &selfType, &inputParameters, &state](CellI& slot, int, bool&) {
-            CellI& key              = slot[kb.ids.key];
-            CellI& type             = slot[kb.ids.type];
+            CellI& key              = slot[w.ids.key];
+            CellI& type             = slot[w.ids.type];
             CellI& resolvedSlotType = instantiateTemplateParamType(type, selfType, inputParameters, state);
-            resolvedParameterList.add(kb.ast.slot(key, resolvedSlotType));
+            resolvedParameterList.add(w.ast.slot(key, resolvedSlotType));
         });
 
         return ret;
     }
-    if (&param.struct_() == &kb.std.ast.Cell || &param.struct_() == &kb.std.ast.StructName || &param.struct_() == &kb.std.ast.SubTypeName) {
+    if (&param.struct_() == &w.std.ast.Cell || &param.struct_() == &w.std.ast.StructName || &param.struct_() == &w.std.ast.SubTypeName) {
         return param;
     }
 
@@ -873,139 +873,139 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
 {
     auto instantiate = [this, &selfType, &inputParameters, &state](CellI& ast) -> Ast::Base& { return instantiateAst(ast, selfType, inputParameters, state); };
 
-    if (&ast.struct_() == &kb.std.ast.New) {
-        auto* objectTypePtr = &ast[kb.ids.objectType];
-        if (&(*objectTypePtr).struct_() == &kb.std.ast.TemplatedType) {
+    if (&ast.struct_() == &w.std.ast.New) {
+        auto* objectTypePtr = &ast[w.ids.objectType];
+        if (&(*objectTypePtr).struct_() == &w.std.ast.TemplatedType) {
             CellI& resolvedObjectType = instantiateTemplateParamType(*objectTypePtr, selfType, inputParameters, state);
             objectTypePtr             = &resolvedObjectType;
         }
         auto& objectType = *static_cast<Ast::Base*>(objectTypePtr);
         if (ast.has("constructor")) {
-            auto& constructor = ast[kb.ids.constructor];
-            Ast::Base& ret    = kb.ast.new_(objectType, static_cast<Ast::Base&>(constructor));
+            auto& constructor = ast[w.ids.constructor];
+            Ast::Base& ret    = w.ast.new_(objectType, static_cast<Ast::Base&>(constructor));
             if (ast.has("parameters")) {
-                auto& newParameters = *new cells::List(kb, kb.std.ast.Slot);
-                Visitor::visitList(ast[kb.ids.parameters], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
-                    newParameters.add(kb.ast.slot(slot[kb.ids.key], instantiate(slot[kb.ids.type])));
+                auto& newParameters = *new cells::List(w, w.std.ast.Slot);
+                Visitor::visitList(ast[w.ids.parameters], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
+                    newParameters.add(w.ast.slot(slot[w.ids.key], instantiate(slot[w.ids.type])));
                 });
                 ret.set("parameters", newParameters);
             }
             return ret;
         } else {
-            return kb.ast.new_(objectType);
+            return w.ast.new_(objectType);
         }
-    } else if (&ast.struct_() == &kb.std.ast.Call) {
-        Ast::Base& ret = kb.ast.call(instantiate(ast[kb.ids.cell]), ast[kb.ids.method]);
+    } else if (&ast.struct_() == &w.std.ast.Call) {
+        Ast::Base& ret = w.ast.call(instantiate(ast[w.ids.cell]), ast[w.ids.method]);
         if (ast.has("parameters")) {
             // TODO process parameters
-            ret.set("parameters", ast[kb.ids.parameters]);
+            ret.set("parameters", ast[w.ids.parameters]);
         }
         return ret;
-    } else if (&ast.struct_() == &kb.std.ast.StaticCall) {
-        Ast::Base& ret = kb.ast.scall(instantiate(ast[kb.ids.cell]), ast[kb.ids.method]);
+    } else if (&ast.struct_() == &w.std.ast.StaticCall) {
+        Ast::Base& ret = w.ast.scall(instantiate(ast[w.ids.cell]), ast[w.ids.method]);
         if (ast.has("parameters")) {
             // TODO process parameters
-            ret.set("parameters", ast[kb.ids.parameters]);
+            ret.set("parameters", ast[w.ids.parameters]);
         }
         return ret;
     }
 
     // do nothing just traverse and copy the AST nodes
-    if (&ast.struct_() == &kb.std.ast.Block) {
-        auto& instantiedAsts = *new cells::List(kb, kb.std.ast.Base);
-        Visitor::visitList(ast[kb.ids.asts], [this, &instantiedAsts, &instantiate](CellI& ast, int, bool&) {
+    if (&ast.struct_() == &w.std.ast.Block) {
+        auto& instantiedAsts = *new cells::List(w, w.std.ast.Base);
+        Visitor::visitList(ast[w.ids.asts], [this, &instantiedAsts, &instantiate](CellI& ast, int, bool&) {
             instantiedAsts.add(instantiate(ast));
         });
-        return *new Ast::Block(kb, instantiedAsts);
-    } else if (&ast.struct_() == &kb.std.ast.Cell) {
-        return kb.ast.cell(ast[kb.ids.value]);
-    } else if (&ast.struct_() == &kb.std.ast.StructName) {
-        auto& ret = kb.ast.structName(ast[kb.ids.value]);
-        if (ast.has(kb.ids.scopes)) {
-            ret.set(kb.ids.scopes, ast[kb.ids.scopes]);
+        return *new Ast::Block(w, instantiedAsts);
+    } else if (&ast.struct_() == &w.std.ast.Cell) {
+        return w.ast.cell(ast[w.ids.value]);
+    } else if (&ast.struct_() == &w.std.ast.StructName) {
+        auto& ret = w.ast.structName(ast[w.ids.value]);
+        if (ast.has(w.ids.scopes)) {
+            ret.set(w.ids.scopes, ast[w.ids.scopes]);
         }
         return ret;
-    } else if (&ast.struct_() == &kb.std.ast.SelfFn) {
-        return kb.ast.selfFn();
-    } else if (&ast.struct_() == &kb.std.ast.Self) {
-        return kb.ast.self();
-    } else if (&ast.struct_() == &kb.std.ast.Continue) {
-        return kb.ast.continue_();
-    } else if (&ast.struct_() == &kb.std.ast.Break) {
-        return kb.ast.break_();
-    } else if (&ast.struct_() == &kb.std.ast.Try) {
-        return kb.ast.try_(instantiate(ast["tryBranch"]), instantiate(ast["catchBranch"]));
-    } else if (&ast.struct_() == &kb.std.ast.Throw) {
-        if (ast.has(kb.ids.value)) {
-            return kb.ast.throw_(instantiate(ast[kb.ids.value]));
+    } else if (&ast.struct_() == &w.std.ast.SelfFn) {
+        return w.ast.selfFn();
+    } else if (&ast.struct_() == &w.std.ast.Self) {
+        return w.ast.self();
+    } else if (&ast.struct_() == &w.std.ast.Continue) {
+        return w.ast.continue_();
+    } else if (&ast.struct_() == &w.std.ast.Break) {
+        return w.ast.break_();
+    } else if (&ast.struct_() == &w.std.ast.Try) {
+        return w.ast.try_(instantiate(ast["tryBranch"]), instantiate(ast["catchBranch"]));
+    } else if (&ast.struct_() == &w.std.ast.Throw) {
+        if (ast.has(w.ids.value)) {
+            return w.ast.throw_(instantiate(ast[w.ids.value]));
         } else {
-            return kb.ast.throw_();
+            return w.ast.throw_();
         }
-    } else if (&ast.struct_() == &kb.std.ast.Parameter) {
-        return kb.ast.parameter(ast[kb.ids.key]);
-    } else if (&ast.struct_() == &kb.std.ast.Var) {
-        return kb.ast.var(ast[kb.ids.name]);
-    } else if (&ast.struct_() == &kb.std.ast.Delete) {
-        return kb.ast.delete_(instantiate(ast[kb.ids.cell]));
-    } else if (&ast.struct_() == &kb.std.ast.Set) {
-        return kb.ast.set(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]), instantiate(ast[kb.ids.value]));
-    } else if (&ast.struct_() == &kb.std.ast.Erase) {
-        return kb.ast.erase(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]));
-    } else if (&ast.struct_() == &kb.std.ast.If) {
+    } else if (&ast.struct_() == &w.std.ast.Parameter) {
+        return w.ast.parameter(ast[w.ids.key]);
+    } else if (&ast.struct_() == &w.std.ast.Var) {
+        return w.ast.var(ast[w.ids.name]);
+    } else if (&ast.struct_() == &w.std.ast.Delete) {
+        return w.ast.delete_(instantiate(ast[w.ids.cell]));
+    } else if (&ast.struct_() == &w.std.ast.Set) {
+        return w.ast.set(instantiate(ast[w.ids.cell]), instantiate(ast[w.ids.key]), instantiate(ast[w.ids.value]));
+    } else if (&ast.struct_() == &w.std.ast.Erase) {
+        return w.ast.erase(instantiate(ast[w.ids.cell]), instantiate(ast[w.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.If) {
         if (ast.has("else_")) {
-            return kb.ast.if_(instantiate(ast[kb.ids.condition]))
-                .then_(instantiate(ast[kb.ids.then]))
-                .else_(instantiate(ast[kb.ids.else_]));
+            return w.ast.if_(instantiate(ast[w.ids.condition]))
+                .then_(instantiate(ast[w.ids.then]))
+                .else_(instantiate(ast[w.ids.else_]));
         } else {
-            return kb.ast.if_(instantiate(ast[kb.ids.condition])).then_(instantiate(ast[kb.ids.then]));
+            return w.ast.if_(instantiate(ast[w.ids.condition])).then_(instantiate(ast[w.ids.then]));
         }
-    } else if (&ast.struct_() == &kb.std.ast.Do) {
-        return kb.ast.do_(instantiate(ast[kb.ids.statement])).while_(instantiate(ast[kb.ids.condition]));
-    } else if (&ast.struct_() == &kb.std.ast.While) {
-        return kb.ast.while_(instantiate(ast[kb.ids.condition])).do_(instantiate(ast[kb.ids.statement]));
-    } else if (&ast.struct_() == &kb.std.ast.And) {
-        return kb.ast.and_(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Or) {
-        return kb.ast.or_(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Not) {
-        return kb.ast.not_(instantiate(ast[kb.ids.input]));
-    } else if (&ast.struct_() == &kb.std.ast.Add) {
-        return kb.ast.add(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Subtract) {
-        return kb.ast.subtract(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Multiply) {
-        return kb.ast.multiply(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Divide) {
-        return kb.ast.divide(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.LessThan) {
-        return kb.ast.lessThan(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.LessThanOrEqual) {
-        return kb.ast.lessThanOrEqual(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.GreaterThan) {
-        return kb.ast.greaterThan(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.GreaterThanOrEqual) {
-        return kb.ast.greaterThanOrEqual(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Same) {
-        return kb.ast.same(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.NotSame) {
-        return kb.ast.notSame(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Equal) {
-        return kb.ast.equal(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.NotEqual) {
-        return kb.ast.notEqual(instantiate(ast[kb.ids.lhs]), instantiate(ast[kb.ids.rhs]));
-    } else if (&ast.struct_() == &kb.std.ast.Has) {
-        return kb.ast.has(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]));
-    } else if (&ast.struct_() == &kb.std.ast.Missing) {
-        return kb.ast.missing(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]));
-    } else if (&ast.struct_() == &kb.std.ast.Get) {
-        return kb.ast.get(instantiate(ast[kb.ids.cell]), instantiate(ast[kb.ids.key]));
-    } else if (&ast.struct_() == &kb.std.ast.Member) {
-        return kb.ast.member(ast[kb.ids.key]);
-    } else if (&ast.struct_() == &kb.std.ast.Return) {
+    } else if (&ast.struct_() == &w.std.ast.Do) {
+        return w.ast.do_(instantiate(ast[w.ids.statement])).while_(instantiate(ast[w.ids.condition]));
+    } else if (&ast.struct_() == &w.std.ast.While) {
+        return w.ast.while_(instantiate(ast[w.ids.condition])).do_(instantiate(ast[w.ids.statement]));
+    } else if (&ast.struct_() == &w.std.ast.And) {
+        return w.ast.and_(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Or) {
+        return w.ast.or_(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Not) {
+        return w.ast.not_(instantiate(ast[w.ids.input]));
+    } else if (&ast.struct_() == &w.std.ast.Add) {
+        return w.ast.add(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Subtract) {
+        return w.ast.subtract(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Multiply) {
+        return w.ast.multiply(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Divide) {
+        return w.ast.divide(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.LessThan) {
+        return w.ast.lessThan(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.LessThanOrEqual) {
+        return w.ast.lessThanOrEqual(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.GreaterThan) {
+        return w.ast.greaterThan(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.GreaterThanOrEqual) {
+        return w.ast.greaterThanOrEqual(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Same) {
+        return w.ast.same(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.NotSame) {
+        return w.ast.notSame(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Equal) {
+        return w.ast.equal(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.NotEqual) {
+        return w.ast.notEqual(instantiate(ast[w.ids.lhs]), instantiate(ast[w.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Has) {
+        return w.ast.has(instantiate(ast[w.ids.cell]), instantiate(ast[w.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Missing) {
+        return w.ast.missing(instantiate(ast[w.ids.cell]), instantiate(ast[w.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Get) {
+        return w.ast.get(instantiate(ast[w.ids.cell]), instantiate(ast[w.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Member) {
+        return w.ast.member(ast[w.ids.key]);
+    } else if (&ast.struct_() == &w.std.ast.Return) {
         if (ast.has("value")) {
-            return kb.ast.return_(static_cast<Ast::Base&>(instantiate(ast[kb.ids.value])));
+            return w.ast.return_(static_cast<Ast::Base&>(instantiate(ast[w.ids.value])));
         }
-        return kb.ast.return_();
+        return w.ast.return_();
     }
 
     throw "Unknown AST to instantiate!";
@@ -1013,30 +1013,30 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
 
 Ast::Base& Compiler::resolveType(CellI& typeAst, CellI& resolveState)
 {
-    if (&typeAst.struct_() == &kb.std.ast.Cell) {
+    if (&typeAst.struct_() == &w.std.ast.Cell) {
         auto& cell      = static_cast<Ast::Cell&>(typeAst);
-        auto& cellValue = typeAst[kb.ids.value];
-        if (!cellValue.isA(kb.std.Struct) && !cellValue.isA(kb.std.Enum)) {
+        auto& cellValue = typeAst[w.ids.value];
+        if (!cellValue.isA(w.std.Struct) && !cellValue.isA(w.std.Enum)) {
             throw "Type AST referencing a non-type!";
         }
         return cell;
     }
-    if (&typeAst.struct_() == &kb.std.ast.ResolvedType) {
+    if (&typeAst.struct_() == &w.std.ast.ResolvedType) {
         return static_cast<Ast::ResolvedType&>(typeAst);
     }
-    if (&typeAst.struct_() == &kb.std.ast.StructName) {
+    if (&typeAst.struct_() == &w.std.ast.StructName) {
         Ast::Struct& resolveAstStruct = static_cast<Ast::Struct&>(resolveTypeNameAsAst(typeAst, resolveState));
         auto& resolveCompiledStruct   = resolveStructName(getFullyQualifiedName(resolveAstStruct), resolveState);
         auto& reslvedTypeNode         = resolvedType(resolveAstStruct, resolveCompiledStruct);
 
         return reslvedTypeNode;
     }
-    if (&typeAst.struct_() == &kb.std.ast.SubTypeName) {
+    if (&typeAst.struct_() == &w.std.ast.SubTypeName) {
         auto& resolveAstStruct = resolveSubTypeNameAsAst(typeAst, resolveState);
 
         return resolveAstStruct;
     }
-    if (&typeAst.struct_() == &kb.std.ast.TemplatedType) {
+    if (&typeAst.struct_() == &w.std.ast.TemplatedType) {
         return resolveTemplatedType(typeAst, resolveState);
     }
 
@@ -1045,10 +1045,10 @@ Ast::Base& Compiler::resolveType(CellI& typeAst, CellI& resolveState)
 
 CellI& Compiler::getCompiledTypeFromResolvedType(CellI& resolvedTypeAst)
 {
-    if (resolvedTypeAst.isA(kb.std.ast.Cell)) {
-        return resolvedTypeAst[kb.ids.value];
-    } else if (resolvedTypeAst.isA(kb.std.ast.ResolvedType)) {
-        return resolvedTypeAst[kb.ids.compiled];
+    if (resolvedTypeAst.isA(w.std.ast.Cell)) {
+        return resolvedTypeAst[w.ids.value];
+    } else if (resolvedTypeAst.isA(w.std.ast.ResolvedType)) {
+        return resolvedTypeAst[w.ids.compiled];
     } else {
         throw "Unexpected AST type!";
     }
@@ -1057,15 +1057,15 @@ CellI& Compiler::getCompiledTypeFromResolvedType(CellI& resolvedTypeAst)
 CellI& Compiler::getResolvedTypeById(CellI& id, bool isInstance, CellI& resolveState)
 {
     if (isInstance) {
-        auto& instances = static_cast<TrieMap&>(resolveState[kb.ids.instances]);
+        auto& instances = static_cast<TrieMap&>(resolveState[w.ids.instances]);
         if (instances.hasKey(id)) {
             return instances.getValue(id);
         } else {
-            auto& unknownInstances = static_cast<TrieMap&>(resolveState[kb.ids.unknownInstances]);
-            return unknownInstances.getValue(id)[kb.ids.value];
+            auto& unknownInstances = static_cast<TrieMap&>(resolveState[w.ids.unknownInstances]);
+            return unknownInstances.getValue(id)[w.ids.value];
         }
     } else {
-        auto& structs = static_cast<TrieMap&>(resolveState[kb.ids.structs]);
+        auto& structs = static_cast<TrieMap&>(resolveState[w.ids.structs]);
         return structs.getValue(id);
     }
 }
@@ -1079,21 +1079,21 @@ CellI& Compiler::resolveId(CellI& structId, CellI& containerId, CellI& unknownCo
     } else {
         auto& unresolvedContainer = static_cast<TrieMap&>(resolveState[unknownContainerId]);
         if (unresolvedContainer.hasKey(structId)) {
-            return unresolvedContainer.getValue(structId)[kb.ids.value];
+            return unresolvedContainer.getValue(structId)[w.ids.value];
         } else {
 
-            auto& structReference  = *new Object(kb, kb.std.StructReference);
+            auto& structReference  = *new Object(w, w.std.StructReference);
             auto& unresolvedStruct = unknownCb(structReference);
-            structReference.set(kb.ids.value, unresolvedStruct);
-            structReference.set(kb.ids.id, structId);
-            structReference.set(kb.ids.scope, resolveState[kb.ids.scope]);
-            structReference.set(kb.ids.resolvedScope, resolveState[kb.ids.resolvedScope]);
+            structReference.set(w.ids.value, unresolvedStruct);
+            structReference.set(w.ids.id, structId);
+            structReference.set(w.ids.scope, resolveState[w.ids.scope]);
+            structReference.set(w.ids.resolvedScope, resolveState[w.ids.resolvedScope]);
 
-            if (resolveState.has(kb.ids.currentFn)) {
-                structReference.set(kb.ids.currentFn, resolveState[kb.ids.currentFn]);
+            if (resolveState.has(w.ids.currentFn)) {
+                structReference.set(w.ids.currentFn, resolveState[w.ids.currentFn]);
             }
-            if (resolveState.has(kb.ids.currentStruct)) {
-                structReference.set(kb.ids.currentStruct, resolveState[kb.ids.currentStruct]);
+            if (resolveState.has(w.ids.currentStruct)) {
+                structReference.set(w.ids.currentStruct, resolveState[w.ids.currentStruct]);
             }
             unresolvedContainer.add(structId, structReference);
 
@@ -1104,15 +1104,15 @@ CellI& Compiler::resolveId(CellI& structId, CellI& containerId, CellI& unknownCo
 
 CellI& Compiler::resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams)
 {
-    auto& templateId = ast[kb.ids.id];
-    return resolveId(structId, kb.name("instances"), kb.name("unknownInstances"), resolveState, [this, &resolveState, &templateId, &structId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
-        structReference.set(kb.ids.templateId, templateId);
-        structReference.set(kb.ids.templateParams, templateParams);
-        if (ast.has(kb.ids.scopes)) {
+    auto& templateId = ast[w.ids.id];
+    return resolveId(structId, w.name("instances"), w.name("unknownInstances"), resolveState, [this, &resolveState, &templateId, &structId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
+        structReference.set(w.ids.templateId, templateId);
+        structReference.set(w.ids.templateParams, templateParams);
+        if (ast.has(w.ids.scopes)) {
             structReference.set("idScope", idScope);
         }
-        auto& unresolvedStruct = *new Object(kb, kb.std.Struct, fmt::format("{}", structId.label()));
-        unresolvedStruct.set("incomplete", kb.boolean.true_);
+        auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", structId.label()));
+        unresolvedStruct.set("incomplete", w.boolean.true_);
 
         return unresolvedStruct;
     });
@@ -1120,19 +1120,19 @@ CellI& Compiler::resolveTemplateInstanceId(CellI& structId, CellI& idScope, Cell
 
 Ast::Struct& Compiler::resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams)
 {
-    auto& templateId = ast[kb.ids.id];
-    auto& ret        = resolveId(structId, kb.name("instanceAsts"), kb.name("unknownInstanceAsts"), resolveState, [this, &resolveState, &templateId, &structId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
-        structReference.set(kb.ids.templateId, templateId);
-        structReference.set(kb.ids.templateParams, templateParams);
-        if (ast.has(kb.ids.scopes)) {
+    auto& templateId = ast[w.ids.id];
+    auto& ret        = resolveId(structId, w.name("instanceAsts"), w.name("unknownInstanceAsts"), resolveState, [this, &resolveState, &templateId, &structId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
+        structReference.set(w.ids.templateId, templateId);
+        structReference.set(w.ids.templateParams, templateParams);
+        if (ast.has(w.ids.scopes)) {
             structReference.set("idScope", idScope);
         }
-        auto& unresolvedStruct = *new Ast::Struct(kb, structId);
+        auto& unresolvedStruct = *new Ast::Struct(w, structId);
 
         return unresolvedStruct;
     });
-    if (ret.missing(kb.ids.scope)) {
-        ret.set(kb.ids.scope, idScope);
+    if (ret.missing(w.ids.scope)) {
+        ret.set(w.ids.scope, idScope);
     }
 
     return static_cast<Ast::Struct&>(ret);
@@ -1140,9 +1140,9 @@ Ast::Struct& Compiler::resolveTemplateInstanceIdAsAst(CellI& structId, CellI& id
 
 CellI& Compiler::resolveStructName(CellI& structId, CellI& resolveState)
 {
-    return resolveId(structId, kb.ids.structs, kb.ids.unknownStructs, resolveState, [this, &structId](CellI& structReference) -> CellI& {
-        auto& unresolvedStruct = *new Object(kb, kb.std.Struct, fmt::format("{}", structId.label()));
-        unresolvedStruct.set("incomplete", kb.boolean.true_);
+    return resolveId(structId, w.ids.structs, w.ids.unknownStructs, resolveState, [this, &structId](CellI& structReference) -> CellI& {
+        auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", structId.label()));
+        unresolvedStruct.set("incomplete", w.boolean.true_);
 
         return unresolvedStruct;
     });
@@ -1150,42 +1150,42 @@ CellI& Compiler::resolveStructName(CellI& structId, CellI& resolveState)
 
 Ast::Base& Compiler::resolveTypeNameAsAst(CellI& structName, CellI& resolveState)
 {
-    Ast::Scope& currentScope = static_cast<Ast::Scope&>(resolveState[kb.ids.scope]);
+    Ast::Scope& currentScope = static_cast<Ast::Scope&>(resolveState[w.ids.scope]);
     return resolveTypeName(currentScope, structName);
 }
 
 Ast::Base& Compiler::resolveSubTypeNameAsAst(CellI& subTypeName, CellI& resolveState)
 {
-    Ast::Struct& currentStruct = static_cast<Ast::Struct&>(resolveState[kb.ids.currentStruct]);
-    auto& subTypeAst           = currentStruct.getSubType(subTypeName[kb.ids.name]);
+    Ast::Struct& currentStruct = static_cast<Ast::Struct&>(resolveState[w.ids.currentStruct]);
+    auto& subTypeAst           = currentStruct.getSubType(subTypeName[w.ids.name]);
     return subTypeAst;
 }
 
 Ast::Base& Compiler::resolveTemplatedType(CellI& ast, CellI& resolveState)
 {
-    auto& templateId     = ast[kb.ids.id];
-    auto& templateParams = ast[kb.ids.parameters];
+    auto& templateId     = ast[w.ids.id];
+    auto& templateParams = ast[w.ids.parameters];
 
-    Ast::Scope* scopePtr = &static_cast<Ast::Scope&>(resolveState[kb.ids.scope]);
-    if (ast.has(kb.ids.scopes)) {
-        auto& scopeList          = ast[kb.ids.scopes];
+    Ast::Scope* scopePtr = &static_cast<Ast::Scope&>(resolveState[w.ids.scope]);
+    if (ast.has(w.ids.scopes)) {
+        auto& scopeList          = ast[w.ids.scopes];
         Ast::StructT& astStructT = resolveFullTemplateId(*scopePtr, scopeList, templateId);
-        scopePtr                 = &static_cast<Ast::Scope&>(astStructT[kb.ids.scope]);
+        scopePtr                 = &static_cast<Ast::Scope&>(astStructT[w.ids.scope]);
     }
     auto& scope = *scopePtr;
     if (!scope.hasItem<Ast::StructT>(templateId)) {
         std::cerr << fmt::format("Unknown template {}", templateId.label()) << std::endl;
         std::cerr << fmt::format("Current scope: {}", scope.label()) << std::endl;
-        if (resolveState.has(kb.ids.currentStruct)) {
-            std::cerr << fmt::format("Current struct: {}", resolveState[kb.ids.currentStruct].label()) << std::endl;
+        if (resolveState.has(w.ids.currentStruct)) {
+            std::cerr << fmt::format("Current struct: {}", resolveState[w.ids.currentStruct].label()) << std::endl;
         }
-        if (resolveState.has(kb.ids.currentFn)) {
-            std::cerr << fmt::format("Current function: {}", resolveState[kb.ids.currentFn].label()) << std::endl;
+        if (resolveState.has(w.ids.currentFn)) {
+            std::cerr << fmt::format("Current function: {}", resolveState[w.ids.currentFn].label()) << std::endl;
         }
         throw fmt::format("Unknown template {}", templateId.label());
     }
 
-    List& resolvedTemplateParams = *new List(kb, kb.std.Cell, "resolvedTemplateParams");
+    List& resolvedTemplateParams = *new List(w, w.std.Cell, "resolvedTemplateParams");
     List& idCell                 = generateTemplateId(templateId, templateParams, resolveState, resolvedTemplateParams);
     auto& resolvedAstInstance    = resolveTemplateInstanceIdAsAst(idCell, scope, resolveState, ast, resolvedTemplateParams);
     resolvedAstInstance.set("instanceOf", scope.getItem<Ast::StructT>(templateId));
@@ -1204,29 +1204,29 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
     }
     bool isEmptyName                  = false;
     CellI* scopeFullyQualifiedNamePtr = nullptr;
-    if (base.has(kb.ids.scope)) {
-        Ast::Scope& scope          = static_cast<Ast::Scope&>(base.get(kb.ids.scope));
+    if (base.has(w.ids.scope)) {
+        Ast::Scope& scope          = static_cast<Ast::Scope&>(base.get(w.ids.scope));
         scopeFullyQualifiedNamePtr = &getFullyQualifiedName(scope);
     } else if (base.has("enum")) {
         Ast::Enum& enum_           = static_cast<Ast::Enum&>(base.get("enum"));
         scopeFullyQualifiedNamePtr = &getFullyQualifiedName(enum_);
     } else {
-        static List& emptyName     = *new List(kb, kb.std.Char);
+        static List& emptyName     = *new List(w, w.std.Char);
         scopeFullyQualifiedNamePtr = &emptyName;
         isEmptyName                = true;
     }
     CellI& scopeFullyQualifiedName = *scopeFullyQualifiedNamePtr;
 
-    List& fullyQualifiedName = *new List(kb, kb.std.Char);
+    List& fullyQualifiedName = *new List(w, w.std.Char);
     Visitor::visitList(scopeFullyQualifiedName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
         fullyQualifiedName.add(character);
     });
     if (!fullyQualifiedName.empty()) {
-        fullyQualifiedName.add(kb.pools.chars.get(':'));
-        fullyQualifiedName.add(kb.pools.chars.get(':'));
+        fullyQualifiedName.add(w.pools.chars.get(':'));
+        fullyQualifiedName.add(w.pools.chars.get(':'));
     }
     if (!isEmptyName) {
-        auto& name = base.get(kb.ids.name);
+        auto& name = base.get(w.ids.name);
         Visitor::visitList(name, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
             fullyQualifiedName.add(character);
         });
@@ -1234,7 +1234,7 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
     std::stringstream ss;
     int templateParamPrintModeFromCharIndex = fullyQualifiedName.size();
     if (base.has("instanceOf")) {
-        int paramsLength                    = static_cast<List&>(base.get(kb.ids.templateParams)).size();
+        int paramsLength                    = static_cast<List&>(base.get(w.ids.templateParams)).size();
         templateParamPrintModeFromCharIndex = fullyQualifiedName.size() - paramsLength * 2;
     }
     Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
@@ -1246,9 +1246,9 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
     });
     if (base.has("instanceOf")) {
         ss << "<";
-        Visitor::visitList(base.get(kb.ids.templateParams), [this, &ss](CellI& slot, int i, bool& stop) {
-            CellI& key  = slot[kb.ids.key];
-            CellI& type = slot[kb.ids.type];
+        Visitor::visitList(base.get(w.ids.templateParams), [this, &ss](CellI& slot, int i, bool& stop) {
+            CellI& key  = slot[w.ids.key];
+            CellI& type = slot[w.ids.type];
             if (i != 0) {
                 ss << ", ";
             }
@@ -1264,7 +1264,7 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
 
 List& Compiler::generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState, List& resolvedParams)
 {
-    List& idCell = *new List(kb, kb.std.Cell);
+    List& idCell = *new List(w, w.std.Cell);
     std::stringstream ss;
     Visitor::visitList(id, [this, &idCell, &ss](CellI& character, int, bool&) {
         idCell.add(character);
@@ -1276,14 +1276,14 @@ List& Compiler::generateTemplateId(CellI& id, CellI& parameters, CellI& resolveS
         if (i != 0) {
             ss << ", ";
         }
-        CellI& key              = slot[kb.ids.key];
-        CellI& type             = slot[kb.ids.type];
+        CellI& key              = slot[w.ids.key];
+        CellI& type             = slot[w.ids.type];
         CellI& resolvedSlotType = resolveType(type, resolveState);
         CellI& compiledSlotType = getCompiledTypeFromResolvedType(resolvedSlotType);
 
         idCell.add(key);
         idCell.add(compiledSlotType);
-        resolvedParams.add(kb.ast.slot(key, resolvedSlotType));
+        resolvedParams.add(w.ast.slot(key, resolvedSlotType));
         ss << fmt::format("{}={}", key.label(), compiledSlotType.label());
     });
     ss << ">";
@@ -1294,14 +1294,14 @@ List& Compiler::generateTemplateId(CellI& id, CellI& parameters, CellI& resolveS
 
 Ast::ResolvedType& Compiler::resolvedType(CellI& astType, CellI& compiledType)
 {
-    return Ast::ResolvedType::New(kb, astType, compiledType);
+    return Ast::ResolvedType::New(w, astType, compiledType);
 }
 
 Ast::Base& Compiler::resolveTypeName(Ast::Scope& scope, CellI& typeName)
 {
-    auto& name = typeName[kb.ids.name];
-    static List emptyList(kb, kb.std.Cell, "empty list");
-    CellI* scopeListPtr = typeName.has(kb.ids.scopes) ? &typeName[kb.ids.scopes] : &emptyList;
+    auto& name = typeName[w.ids.name];
+    static List emptyList(w, w.std.Cell, "empty list");
+    CellI* scopeListPtr = typeName.has(w.ids.scopes) ? &typeName[w.ids.scopes] : &emptyList;
     auto& scopes        = *scopeListPtr;
 
     auto* struct_ = resolveFullStructName(scope, scopes, name);
@@ -1366,8 +1366,8 @@ Ast::Base* Compiler::resolveFullNameInAllScope(Ast::Scope& scope, CellI& scopeLi
             return ret;
         }
         // resolve in parent scope
-        if (currentScope->has(kb.ids.scope)) {
-            currentScope = &static_cast<Ast::Scope&>(currentScope->get(kb.ids.scope));
+        if (currentScope->has(w.ids.scope)) {
+            currentScope = &static_cast<Ast::Scope&>(currentScope->get(w.ids.scope));
         } else {
             currentScope = nullptr;
         }
@@ -1396,33 +1396,33 @@ Ast::Base* Compiler::resolveFullNameInOneScope(Ast::Scope* currentScope, CellI& 
 
 void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope, CellI& programData, CellI& state)
 {
-    auto& compiledFunctions = static_cast<TrieMap&>(programData[kb.ids.functions]);
-    auto& compiledStructs   = static_cast<TrieMap&>(programData[kb.ids.structs]);
-    auto& compiledVariables = static_cast<TrieMap&>(programData[kb.ids.variables]);
+    auto& compiledFunctions = static_cast<TrieMap&>(programData[w.ids.functions]);
+    auto& compiledStructs   = static_cast<TrieMap&>(programData[w.ids.structs]);
+    auto& compiledVariables = static_cast<TrieMap&>(programData[w.ids.variables]);
 
     if (scope.has("functions")) {
-        Visitor::visitList(resolvedScope.items<Ast::Function>()[kb.ids.list], [this, &state, &compiledFunctions](CellI& function, int i, bool& stop) {
-            Ast::Function& astFunction = static_cast<Ast::Function&>(function[kb.ids.value]);
+        Visitor::visitList(resolvedScope.items<Ast::Function>()[w.ids.list], [this, &state, &compiledFunctions](CellI& function, int i, bool& stop) {
+            Ast::Function& astFunction = static_cast<Ast::Function&>(function[w.ids.value]);
             auto& compiledFunction     = compileFunction(astFunction, state);
             compiledFunctions.add(getFullyQualifiedName(astFunction), compiledFunction);
         });
     }
     if (scope.has("structs")) {
-        Visitor::visitList(resolvedScope.items<Ast::Struct>()[kb.ids.list], [this, &state, &compiledStructs](CellI& struct_, int i, bool& stop) {
-            Ast::Struct& astStruct = static_cast<Ast::Struct&>(struct_[kb.ids.value]);
+        Visitor::visitList(resolvedScope.items<Ast::Struct>()[w.ids.list], [this, &state, &compiledStructs](CellI& struct_, int i, bool& stop) {
+            Ast::Struct& astStruct = static_cast<Ast::Struct&>(struct_[w.ids.value]);
             auto& compiledStruct   = compileStruct(astStruct, state);
             CellI& structFullName  = getFullyQualifiedName(astStruct);
             if (compiledStruct.has("subTypes")) {
-                CellI& subTypesIndex = compiledStruct["subTypes"][kb.ids.index];
-                Visitor::visitList(subTypesIndex[kb.ids.struct_][kb.ids.slots][kb.ids.list], [this, &structFullName, &subTypesIndex, &compiledStructs](CellI& subType, int i, bool& stop) {
+                CellI& subTypesIndex = compiledStruct["subTypes"][w.ids.index];
+                Visitor::visitList(subTypesIndex[w.ids.struct_][w.ids.slots][w.ids.list], [this, &structFullName, &subTypesIndex, &compiledStructs](CellI& subType, int i, bool& stop) {
                     CellI& key      = subType["key"];
-                    CellI& value    = subTypesIndex[key][kb.ids.value];
-                    List& aliasName = *new List(kb, kb.std.Char);
+                    CellI& value    = subTypesIndex[key][w.ids.value];
+                    List& aliasName = *new List(w, w.std.Char);
                     Visitor::visitList(structFullName, [&aliasName](CellI& character, int i, bool& stop) {
                         aliasName.add(character);
                     });
-                    aliasName.add(kb.pools.chars.get(':'));
-                    aliasName.add(kb.pools.chars.get(':'));
+                    aliasName.add(w.pools.chars.get(':'));
+                    aliasName.add(w.pools.chars.get(':'));
                     Visitor::visitList(key, [&aliasName](CellI& character, int i, bool& stop) {
                         aliasName.add(character);
                     });
@@ -1437,24 +1437,24 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope, CellI&
         });
     }
     if (scope.has("enums")) {
-        Visitor::visitList(resolvedScope.items<Ast::Enum>()[kb.ids.list], [this, &state, &compiledStructs](CellI& enum_, int i, bool& stop) {
-            Ast::Enum& astEnum   = static_cast<Ast::Enum&>(enum_[kb.ids.value]);
+        Visitor::visitList(resolvedScope.items<Ast::Enum>()[w.ids.list], [this, &state, &compiledStructs](CellI& enum_, int i, bool& stop) {
+            Ast::Enum& astEnum   = static_cast<Ast::Enum&>(enum_[w.ids.value]);
             auto& compiledStruct = compileEnum(astEnum, state);
             compiledStructs.add(getFullyQualifiedName(astEnum), compiledStruct);
         });
     }
     if (scope.has("variables")) {
-        Visitor::visitList(resolvedScope.items<Ast::Var>()[kb.ids.list], [this, &compiledVariables](CellI& var, int i, bool& stop) {
-            Ast::Var& astVar       = static_cast<Ast::Var&>(var[kb.ids.value]);
+        Visitor::visitList(resolvedScope.items<Ast::Var>()[w.ids.list], [this, &compiledVariables](CellI& var, int i, bool& stop) {
+            Ast::Var& astVar       = static_cast<Ast::Var&>(var[w.ids.value]);
             auto& varName          = getFullyQualifiedName(astVar);
-            auto& compiledVariable = *new Object(kb, kb.std.op.Var, fmt::format("var {}", astVar.label()));
+            auto& compiledVariable = *new Object(w, w.std.op.Var, fmt::format("var {}", astVar.label()));
             compiledVariables.add(varName, compiledVariable);
         });
     }
     if (scope.has("scopes")) {
-        Visitor::visitList(scope.items<Ast::Scope>()[kb.ids.list], [this, &programData, &state, &resolvedScope](CellI& scope, int i, bool& stop) {
-            Ast::Scope& nextScope = static_cast<Ast::Scope&>(scope[kb.ids.value]);
-            auto& nextResolvedScope = resolvedScope.getItem<Ast::Scope>(nextScope[kb.ids.name]);
+        Visitor::visitList(scope.items<Ast::Scope>()[w.ids.list], [this, &programData, &state, &resolvedScope](CellI& scope, int i, bool& stop) {
+            Ast::Scope& nextScope = static_cast<Ast::Scope&>(scope[w.ids.value]);
+            auto& nextResolvedScope = resolvedScope.getItem<Ast::Scope>(nextScope[w.ids.name]);
 
             state.set("scope", nextScope);
             state.set("resolvedScope", nextResolvedScope);
@@ -1473,10 +1473,10 @@ CellI& Compiler::compileStruct(Ast::Struct& struct_, CellI& state)
 
     // compile sub types
     if (struct_.has("subTypes")) {
-        Map& compiledSubTypes = *new Map(kb, kb.std.Cell, kb.std.Struct, "subTypes Map<Cell, Type>(...)");
-        Visitor::visitList(struct_.subTypes()[kb.ids.list], [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
-            CellI& key             = slot[kb.ids.key];
-            CellI& type            = slot[kb.ids.type];
+        Map& compiledSubTypes = *new Map(w, w.std.Cell, w.std.Struct, "subTypes Map<Cell, Type>(...)");
+        Visitor::visitList(struct_.subTypes()[w.ids.list], [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
+            CellI& key             = slot[w.ids.key];
+            CellI& type            = slot[w.ids.type];
             auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
             compiledSubTypes.add(key, compiledSlotType);
         });
@@ -1485,29 +1485,29 @@ CellI& Compiler::compileStruct(Ast::Struct& struct_, CellI& state)
 
     // compile methods
     if (struct_.has("methods")) {
-        Map& compiledMethods = *new Map(kb, kb.std.Cell, kb.std.ast.Function);
-        Visitor::visitList(struct_.methods()[kb.ids.list], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
+        Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
+        Visitor::visitList(struct_.methods()[w.ids.list], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
             auto& compiledFunction = compileFunction(static_cast<Ast::Function&>(astFunction), state);
-            compiledMethods.add(astFunction[kb.ids.name], compiledFunction);
+            compiledMethods.add(astFunction[w.ids.name], compiledFunction);
         });
         compiledStruct.set("methods", compiledMethods);
     }
 
     // compile members
     if (struct_.has("members")) {
-        Map& compiledMembers = *new Map(kb, kb.std.Cell, kb.std.Slot, "members Map<Cell, Slot>(...)");
-        Visitor::visitList(struct_.members()[kb.ids.list], [this, &compiledMembers, &compiledStruct, &state](CellI& slot, int i, bool& stop) {
-            CellI& key             = slot[kb.ids.key];
-            CellI& type            = slot[kb.ids.type];
+        Map& compiledMembers = *new Map(w, w.std.Cell, w.std.Slot, "members Map<Cell, Slot>(...)");
+        Visitor::visitList(struct_.members()[w.ids.list], [this, &compiledMembers, &compiledStruct, &state](CellI& slot, int i, bool& stop) {
+            CellI& key             = slot[w.ids.key];
+            CellI& type            = slot[w.ids.type];
             auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
-            compiledMembers.add(key, kb.std.slot(key, compiledSlotType));
+            compiledMembers.add(key, w.std.slot(key, compiledSlotType));
         });
         compiledStruct.set("slots", compiledMembers);
     }
 
     // compile memberOf list
     if (struct_.has("memberOf")) {
-        Map& compiledMemberOfs = *new Map(kb, kb.std.Struct, kb.std.Struct, "memberOf Map<Type, Type>(...)");
+        Map& compiledMemberOfs = *new Map(w, w.std.Struct, w.std.Struct, "memberOf Map<Type, Type>(...)");
         Visitor::visitList(struct_.memberOf(), [this, &compiledMemberOfs](CellI& membershipType, int i, bool& stop) {
             auto& compiledMembershipType = getCompiledTypeFromResolvedType(membershipType);
             compiledMemberOfs.add(compiledMembershipType, compiledMembershipType);
@@ -1521,19 +1521,19 @@ CellI& Compiler::compileStruct(Ast::Struct& struct_, CellI& state)
 CellI& Compiler::compileEnum(Ast::Enum& enum_, CellI& state)
 {
     CellI& compiledStruct   = getResolvedTypeById(getFullyQualifiedName(enum_), enum_.has("instanceOf"), state);
-    auto& compiledVariables = static_cast<TrieMap&>(state[kb.ids.variables]);
+    auto& compiledVariables = static_cast<TrieMap&>(state[w.ids.variables]);
 
     compiledStruct.erase("incomplete");
-    compiledStruct.set("enum", kb.boolean.true_);
+    compiledStruct.set("enum", w.boolean.true_);
     // std::cout << fmt::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
 
 #if 0
     // compile methods
     if (has("methods")) {
-        Map& compiledMethods = *new Map(kb, kb.std.Cell, kb.std.ast.Function);
-        Visitor::visitList(methods()[kb.ids.list], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
+        Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
+        Visitor::visitList(methods()[w.ids.list], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
             auto& compiledFunction = static_cast<Ast::Function&>(astFunction).compile(state);
-            compiledMethods.add(astFunction[kb.ids.name], compiledFunction);
+            compiledMethods.add(astFunction[w.ids.name], compiledFunction);
         });
         compiledStruct.set("methods", compiledMethods);
     }
@@ -1541,32 +1541,32 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_, CellI& state)
 
     // compile values
     if (enum_.has("values")) {
-        Map& compiledMembers = *new Map(kb, kb.std.Cell, kb.std.Slot, "members Map<Cell, Slot>(...)");
-        Visitor::visitList(enum_.values()[kb.ids.list], [this, &enum_, &state, &compiledMembers, &compiledVariables, &compiledStruct](CellI& kvPair, int i, bool& stop) {
-            CellI& valueKey  = kvPair[kb.ids.key];
-            CellI& valueCell = kvPair[kb.ids.value];
-            CellI& valueName = valueCell[kb.ids.name];
-            if (&valueCell.struct_() == &kb.std.ast.EnumValue) {
+        Map& compiledMembers = *new Map(w, w.std.Cell, w.std.Slot, "members Map<Cell, Slot>(...)");
+        Visitor::visitList(enum_.values()[w.ids.list], [this, &enum_, &state, &compiledMembers, &compiledVariables, &compiledStruct](CellI& kvPair, int i, bool& stop) {
+            CellI& valueKey  = kvPair[w.ids.key];
+            CellI& valueCell = kvPair[w.ids.value];
+            CellI& valueName = valueCell[w.ids.name];
+            if (&valueCell.struct_() == &w.std.ast.EnumValue) {
                 auto& enumValue = static_cast<Ast::EnumValue&>(valueCell);
                 auto& fullName  = getFullyQualifiedName(enumValue);
-                if (valueCell.has(kb.ids.value)) {
-                    auto& value         = enumValue[kb.ids.value];
+                if (valueCell.has(w.ids.value)) {
+                    auto& value         = enumValue[w.ids.value];
                     auto& resolvedValue = resolveTypeInEnumValue(value);
                     auto& valueType     = resolvedValue.struct_();
 
-                    auto& compiledValue = *new Object(kb, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
+                    auto& compiledValue = *new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
                     compiledValue.set("tag", valueName);
-                    compiledValue.set(valueName, value[kb.ids.value]);
+                    compiledValue.set(valueName, value[w.ids.value]);
                     compiledVariables.add(fullName, compiledValue);
                     compiledMembers.add(valueKey, valueType);
                 } else {
-                    auto& compiledValue = *new Object(kb, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
+                    auto& compiledValue = *new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
                     compiledValue.set("tag", valueName);
-                    compiledValue.set(valueName, kb.ids.emptyObject);
+                    compiledValue.set(valueName, w.ids.emptyObject);
                     compiledVariables.add(fullName, compiledValue);
                     compiledMembers.add(valueKey, compiledStruct);
                 }
-            } else if (&valueCell.struct_() == &kb.std.ast.TypedEnumValue) {
+            } else if (&valueCell.struct_() == &w.std.ast.TypedEnumValue) {
                 auto& enumValue             = static_cast<Ast::TypedEnumValue&>(valueCell);
                 auto& enumValueType         = valueCell["enumType"];
                 auto& compiledEnumValueType = getCompiledTypeFromResolvedType(enumValueType);
@@ -1584,34 +1584,34 @@ CellI& Compiler::compileFunction(Ast::Function& astFunction, CellI& state)
 {
     // TODO hack!
     // find a better way to create type during compilation
-    cells::Object& functionType = *new cells::Object(kb, kb.std.Struct);
-    functionType.set("memberOf", kb.map(kb.std.Struct, kb.std.Struct, kb.std.op.Function, kb.std.op.Function));
-    cells::Map& subTypesMap = kb.map(kb.std.Cell, kb.std.Struct,
-                                     kb.ids.name, astFunction.get("name"));
+    cells::Object& functionType = *new cells::Object(w, w.std.Struct);
+    functionType.set("memberOf", w.map(w.std.Struct, w.std.Struct, w.std.op.Function, w.std.op.Function));
+    cells::Map& subTypesMap = w.map(w.std.Cell, w.std.Struct,
+                                     w.ids.name, astFunction.get("name"));
     if (astFunction.has("structType")) {
-        Ast::Struct& currentStruct = static_cast<Ast::Struct&>(state[kb.ids.currentStruct]);
+        Ast::Struct& currentStruct = static_cast<Ast::Struct&>(state[w.ids.currentStruct]);
         auto& structType      = astFunction.get("structType");
-        subTypesMap.add(kb.ids.objectType, structType["compiledStruct"]);
+        subTypesMap.add(w.ids.objectType, structType["compiledStruct"]);
     }
     functionType.set("subTypes", subTypesMap);
 
-    Map& functionSlots = kb.slots(
-        kb.std.slot(kb.ids.ast, kb.std.ast.Base),
-        kb.std.slot(kb.ids.state, kb.std.Cell),
-        kb.std.slot(kb.ids.previous, kb.std.Cell),
-        kb.std.slot(kb.ids.stack, kb.std.Stack),
-        kb.std.slot(kb.ids.lastOp, kb.std.op.Base),
-        kb.std.slot(kb.ids.op, kb.ListOf(kb.std.op.Base)),
-        kb.std.slot(kb.ids.static_, kb.std.Boolean));
-    functionType.set(kb.ids.slots, functionSlots);
+    Map& functionSlots = w.slots(
+        w.std.slot(w.ids.ast, w.std.ast.Base),
+        w.std.slot(w.ids.state, w.std.Cell),
+        w.std.slot(w.ids.previous, w.std.Cell),
+        w.std.slot(w.ids.stack, w.std.Stack),
+        w.std.slot(w.ids.lastOp, w.std.op.Base),
+        w.std.slot(w.ids.op, w.ListOf(w.std.op.Base)),
+        w.std.slot(w.ids.static_, w.std.Boolean));
+    functionType.set(w.ids.slots, functionSlots);
 
-    cells::Object& compiledFunction = *new cells::Object(kb, functionType);
+    cells::Object& compiledFunction = *new cells::Object(w, functionType);
     compileFunctionParams(astFunction, compiledFunction, functionSlots, subTypesMap, state);
     functionType.label(fmt::format("Type for {}", compiledFunction.label()));
-    compiledFunction.set(kb.ids.ast, astFunction);
-    compiledFunction.set(kb.ids.op, compileFunctionAst(astFunction, astFunction.instructions(), compiledFunction, state));
-    if (astFunction.has(kb.ids.static_)) {
-        compiledFunction.set(kb.ids.static_, astFunction.get(kb.ids.static_));
+    compiledFunction.set(w.ids.ast, astFunction);
+    compiledFunction.set(w.ids.op, compileFunctionAst(astFunction, astFunction.instructions(), compiledFunction, state));
+    if (astFunction.has(w.ids.static_)) {
+        compiledFunction.set(w.ids.static_, astFunction.get(w.ids.static_));
     }
 
     return compiledFunction;
@@ -1621,23 +1621,23 @@ std::string Compiler::shortFunctionName(Ast::Function& function)
 {
     std::stringstream iss;
     std::stringstream oss;
-    if (function.has(kb.ids.parameters) || function.has(kb.ids.structType)) {
-        if (function.has(kb.ids.parameters)) {
+    if (function.has(w.ids.parameters) || function.has(w.ids.structType)) {
+        if (function.has(w.ids.parameters)) {
             Visitor::visitList(function.parameters(), [this, &iss](CellI& slot, int i, bool& stop) {
                 if (i > 0) {
                     iss << ", ";
                 }
-                iss << "p_" << slot[kb.ids.key].label() << ": " << getCompiledTypeFromResolvedType(slot[kb.ids.type]).label();
+                iss << "p_" << slot[w.ids.key].label() << ": " << getCompiledTypeFromResolvedType(slot[w.ids.type]).label();
             });
         }
     }
-    if (function.has(kb.ids.returnType)) {
+    if (function.has(w.ids.returnType)) {
         oss << getCompiledTypeFromResolvedType(function.returnType()).label();
     }
-    if (function.has(kb.ids.returnType)) {
-        return fmt::format("fn {}({}) -> {}", function.get(kb.ids.name).label(), iss.str(), oss.str());
+    if (function.has(w.ids.returnType)) {
+        return fmt::format("fn {}({}) -> {}", function.get(w.ids.name).label(), iss.str(), oss.str());
     } else {
-        return fmt::format("fn {}({})", function.get(kb.ids.name).label(), iss.str());
+        return fmt::format("fn {}({})", function.get(w.ids.name).label(), iss.str());
     }
 }
 
@@ -1647,74 +1647,74 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& 
     std::stringstream oss;
     std::string structTypeStr;
     if (astFunction.has("parameters") || astFunction.has("structType")) {
-        cells::Object& parametersType = *new cells::Object(kb, kb.std.Struct);
-        Map& slots                    = *new Map(kb, kb.std.Cell, kb.std.Slot);
+        cells::Object& parametersType = *new cells::Object(w, w.std.Struct);
+        Map& slots                    = *new Map(w, w.std.Cell, w.std.Slot);
         if (astFunction.has("structType")) {
             CellI& type = astFunction.get("structType");
-            Object& var = *new Object(kb, kb.std.op.Var, "self");
+            Object& var = *new Object(w, w.std.op.Var, "self");
             var.set("valueType", type);
-            slots.add(kb.ids.self, kb.std.slot("self", type));
+            slots.add(w.ids.self, w.std.slot("self", type));
             structTypeStr = fmt::format("{}::", type.label());
         }
-        if (astFunction.has(kb.ids.parameters)) {
+        if (astFunction.has(w.ids.parameters)) {
             Visitor::visitList(astFunction.parameters(), [this, &slots, &iss](CellI& slot, int i, bool& stop) {
                 if (i > 0) {
                     iss << ", ";
                 }
-                auto& key              = slot[kb.ids.key];
-                auto& type             = slot[kb.ids.type];
+                auto& key              = slot[w.ids.key];
+                auto& type             = slot[w.ids.type];
                 auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
                 iss << "p_" << key.label() << ": " << compiledSlotType.label();
-                slots.add(key, kb.std.slot(key, compiledSlotType));
+                slots.add(key, w.std.slot(key, compiledSlotType));
             });
         }
-        parametersType.set(kb.ids.slots, slots);
-        subTypesMap.add(kb.ids.parameters, parametersType);
+        parametersType.set(w.ids.slots, slots);
+        subTypesMap.add(w.ids.parameters, parametersType);
     }
-    if (astFunction.has(kb.ids.returnType)) {
+    if (astFunction.has(w.ids.returnType)) {
         auto& astReturnType      = astFunction.returnType();
         auto& compiledReturnType = getCompiledTypeFromResolvedType(astReturnType);
         oss << compiledReturnType.label();
-        subTypesMap.add(kb.ids.returnType, compiledReturnType);
-        functionSlots.add(kb.ids.value, compiledReturnType);
+        subTypesMap.add(w.ids.returnType, compiledReturnType);
+        functionSlots.add(w.ids.value, compiledReturnType);
     }
-    if (astFunction.has(kb.ids.returnType)) {
-        compiledFunction.label(fmt::format("fn {}{}({}) -> {}", structTypeStr, astFunction.get(kb.ids.name).label(), iss.str(), oss.str()));
+    if (astFunction.has(w.ids.returnType)) {
+        compiledFunction.label(fmt::format("fn {}{}({}) -> {}", structTypeStr, astFunction.get(w.ids.name).label(), iss.str(), oss.str()));
     } else {
-        compiledFunction.label(fmt::format("fn {}{}({})", structTypeStr, astFunction.get(kb.ids.name).label(), iss.str()));
+        compiledFunction.label(fmt::format("fn {}{}({})", structTypeStr, astFunction.get(w.ids.name).label(), iss.str()));
     }
 }
 
 CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cells::Object& function, CellI& state)
 {
     auto compile = [this, &astFunction, &function, &state](CellI& ast) -> CellI& { return compileFunctionAst(astFunction, ast, function, state); };
-    const auto _ = [this](auto& cell) -> Ast::Cell& { return kb._(cell); };
+    const auto _ = [this](auto& cell) -> Ast::Cell& { return w._(cell); };
 
-    if (&ast.struct_() == &kb.std.ast.Block) {
-        CellI& list      = ast[kb.ids.asts];
+    if (&ast.struct_() == &w.std.ast.Block) {
+        CellI& list      = ast[w.ids.asts];
         CellI* prevBlock = nullptr;
         if (state.has("lastBlock")) {
             prevBlock = &state["lastBlock"];
         }
         CellI* firstOpBlockNode   = nullptr;
         CellI* currentOpBlockNode = nullptr;
-        Object& opBlock           = *new Object(kb, kb.std.op.Block);
+        Object& opBlock           = *new Object(w, w.std.op.Block);
         state.set("lastBlock", opBlock);
         Visitor::visitList(list, [this, &compile, &opBlock, &firstOpBlockNode, &currentOpBlockNode, &function](CellI& ast, int, bool&) {
-            CellI& newOpBlockNode = *new Object(kb, kb.std.op.Activate);
-            newOpBlockNode.set(kb.ids.cell, compile(ast));
-            newOpBlockNode.set(kb.ids.parent, opBlock);
+            CellI& newOpBlockNode = *new Object(w, w.std.op.Activate);
+            newOpBlockNode.set(w.ids.cell, compile(ast));
+            newOpBlockNode.set(w.ids.parent, opBlock);
 
             if (!firstOpBlockNode) {
                 firstOpBlockNode = &newOpBlockNode;
             } else {
-                (*currentOpBlockNode).set(kb.ids.next, newOpBlockNode);
+                (*currentOpBlockNode).set(w.ids.next, newOpBlockNode);
             }
             currentOpBlockNode = &newOpBlockNode;
         });
-        opBlock.set(kb.ids.ast, ast);
+        opBlock.set(w.ids.ast, ast);
         if (firstOpBlockNode) {
-            opBlock.set(kb.ids.ops, *firstOpBlockNode);
+            opBlock.set(w.ids.ops, *firstOpBlockNode);
         }
 
         if (prevBlock) {
@@ -1724,227 +1724,227 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         }
 
         return opBlock;
-    } else if (&ast.struct_() == &kb.std.ast.Cell) {
-        Object& constVar = *new Object(kb, kb.std.op.ConstVar);
-        constVar.set(kb.ids.ast, ast);
-        constVar.set(kb.ids.value, ast[kb.ids.value]);
+    } else if (&ast.struct_() == &w.std.ast.Cell) {
+        Object& constVar = *new Object(w, w.std.op.ConstVar);
+        constVar.set(w.ids.ast, ast);
+        constVar.set(w.ids.value, ast[w.ids.value]);
         return constVar;
-    } else if (&ast.struct_() == &kb.std.ast.ResolvedType) {
-        Object& constVar = *new Object(kb, kb.std.op.ConstVar);
-        constVar.set(kb.ids.ast, ast);
-        constVar.set(kb.ids.value, ast[kb.ids.compiled]);
+    } else if (&ast.struct_() == &w.std.ast.ResolvedType) {
+        Object& constVar = *new Object(w, w.std.op.ConstVar);
+        constVar.set(w.ids.ast, ast);
+        constVar.set(w.ids.value, ast[w.ids.compiled]);
         return constVar;
-    } else if (&ast.struct_() == &kb.std.ast.SelfFn) {
-        Object& constVar = *new Object(kb, kb.std.op.ConstVar);
-        constVar.set(kb.ids.ast, ast);
-        constVar.set(kb.ids.value, function);
+    } else if (&ast.struct_() == &w.std.ast.SelfFn) {
+        Object& constVar = *new Object(w, w.std.op.ConstVar);
+        constVar.set(w.ids.ast, ast);
+        constVar.set(w.ids.value, function);
         return constVar;
-    } else if (&ast.struct_() == &kb.std.ast.Self) {
-        CellI& retOp = compile(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.input) / _(kb.ids.self));
-        retOp.set(kb.ids.ast, ast);
+    } else if (&ast.struct_() == &w.std.ast.Self) {
+        CellI& retOp = compile(w.ast.get(_(function), _(w.ids.stack)) / _(w.ids.value) / _(w.ids.input) / _(w.ids.self));
+        retOp.set(w.ids.ast, ast);
         retOp.label("self");
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Continue) {
+    } else if (&ast.struct_() == &w.std.ast.Continue) {
         if (state.missing("lastBlock")) {
             throw "No statement to break!";
         }
         CellI& lastBlock = state["lastBlock"];
-        CellI& retOp     = compile(kb.ast.set(_(lastBlock), _(kb.ids.status), _(kb.ids.continue_)));
+        CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.ids.status), _(w.ids.continue_)));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Break) {
+    } else if (&ast.struct_() == &w.std.ast.Break) {
         if (state.missing("lastBlock")) {
             throw "No statement to break!";
         }
         CellI& lastBlock = state["lastBlock"];
-        CellI& retOp     = compile(kb.ast.set(_(lastBlock), _(kb.ids.status), _(kb.ids.break_)));
+        CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.ids.status), _(w.ids.break_)));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Throw) {
+    } else if (&ast.struct_() == &w.std.ast.Throw) {
         if (state.missing("lastBlock")) {
             throw "No statement to break!";
         }
         CellI& lastBlock = state["lastBlock"];
-        CellI& retOp     = compile(kb.ast.set(_(lastBlock), _(kb.ids.status), _(kb.ids.throw_)));
+        CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.ids.status), _(w.ids.throw_)));
         if (ast.has("value")) {
-            retOp.set(kb.ids.result, compile(kb.ast.set(_(lastBlock), _(kb.ids.value), static_cast<Ast::Base&>(ast[kb.ids.value]))));
+            retOp.set(w.ids.result, compile(w.ast.set(_(lastBlock), _(w.ids.value), static_cast<Ast::Base&>(ast[w.ids.value]))));
         }
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Parameter) {
-        CellI& retOp = compile(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.input) / _(ast[kb.ids.key]));
-        retOp.set(kb.ids.ast, ast);
+    } else if (&ast.struct_() == &w.std.ast.Parameter) {
+        CellI& retOp = compile(w.ast.get(_(function), _(w.ids.stack)) / _(w.ids.value) / _(w.ids.input) / _(ast[w.ids.key]));
+        retOp.set(w.ids.ast, ast);
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Member) {
-        CellI& member = compile(kb.ast.get(kb.ast.self(), kb.ast.cell(ast[kb.ids.key])));
-        member.set(kb.ids.ast, ast);
+    } else if (&ast.struct_() == &w.std.ast.Member) {
+        CellI& member = compile(w.ast.get(w.ast.self(), w.ast.cell(ast[w.ids.key])));
+        member.set(w.ids.ast, ast);
         return member;
-    } else if (&ast.struct_() == &kb.std.ast.Return) {
-        Object& retOp = *new Object(kb, kb.std.op.Return, "op.return");
-        retOp.set(kb.ids.ast, ast);
-        if (ast.has(kb.ids.value)) {
-            retOp.set(kb.ids.result, compile(kb.ast.set(_(function), _(kb.ids.value), static_cast<Ast::Base&>(ast[kb.ids.value]))));
+    } else if (&ast.struct_() == &w.std.ast.Return) {
+        Object& retOp = *new Object(w, w.std.op.Return, "op.return");
+        retOp.set(w.ids.ast, ast);
+        if (ast.has(w.ids.value)) {
+            retOp.set(w.ids.result, compile(w.ast.set(_(function), _(w.ids.value), static_cast<Ast::Base&>(ast[w.ids.value]))));
         }
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Var) {
-        if (function.struct_()[kb.ids.subTypes][kb.ids.index].missing(kb.ids.localVars)) {
-            cells::Object& functionLocalVarsType = *new cells::Object(kb, kb.std.Struct, fmt::format("LocalVarsType of {}", function.label()));
-            functionLocalVarsType.set(kb.ids.memberOf, kb.map(kb.std.Struct, kb.std.Struct, kb.std.Index, kb.std.Index));
-            static_cast<Map&>(function.struct_()[kb.ids.subTypes]).add(kb.ids.localVars, functionLocalVarsType);
+    } else if (&ast.struct_() == &w.std.ast.Var) {
+        if (function.struct_()[w.ids.subTypes][w.ids.index].missing(w.ids.localVars)) {
+            cells::Object& functionLocalVarsType = *new cells::Object(w, w.std.Struct, fmt::format("LocalVarsType of {}", function.label()));
+            functionLocalVarsType.set(w.ids.memberOf, w.map(w.std.Struct, w.std.Struct, w.std.Index, w.std.Index));
+            static_cast<Map&>(function.struct_()[w.ids.subTypes]).add(w.ids.localVars, functionLocalVarsType);
         }
-        CellI& localVarsType = function.struct_()[kb.ids.subTypes][kb.ids.index][kb.ids.localVars][kb.ids.value];
-        if (localVarsType.missing(kb.ids.slots)) {
-            localVarsType.set(kb.ids.slots, *new Map(kb, kb.std.Cell, kb.std.Slot));
+        CellI& localVarsType = function.struct_()[w.ids.subTypes][w.ids.index][w.ids.localVars][w.ids.value];
+        if (localVarsType.missing(w.ids.slots)) {
+            localVarsType.set(w.ids.slots, *new Map(w, w.std.Cell, w.std.Slot));
         }
-        auto& slotsMap = static_cast<Map&>(localVarsType[kb.ids.slots]);
-        if (!slotsMap.hasKey(ast[kb.ids.name])) {
-            slotsMap.add(ast[kb.ids.name], kb.std.slot(ast[kb.ids.name], kb.std.op.Var));
+        auto& slotsMap = static_cast<Map&>(localVarsType[w.ids.slots]);
+        if (!slotsMap.hasKey(ast[w.ids.name])) {
+            slotsMap.add(ast[w.ids.name], w.std.slot(ast[w.ids.name], w.std.op.Var));
         }
-        CellI& retOp = compile(kb.ast.get(_(function), _(kb.ids.stack)) / _(kb.ids.value) / _(kb.ids.localVars) / _(ast[kb.ids.name]));
-        retOp.set(kb.ids.ast, ast);
+        CellI& retOp = compile(w.ast.get(_(function), _(w.ids.stack)) / _(w.ids.value) / _(w.ids.localVars) / _(ast[w.ids.name]));
+        retOp.set(w.ids.ast, ast);
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Delete) {
-        Object& retOp = *new Object(kb, kb.std.op.Delete);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.input, compile(ast[kb.ids.cell]));
+    } else if (&ast.struct_() == &w.std.ast.Delete) {
+        Object& retOp = *new Object(w, w.std.op.Delete);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.input, compile(ast[w.ids.cell]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Set) {
-        Object& retOp = *new Object(kb, kb.std.op.Set);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
-        retOp.set(kb.ids.value, compile(ast[kb.ids.value]));
+    } else if (&ast.struct_() == &w.std.ast.Set) {
+        Object& retOp = *new Object(w, w.std.op.Set);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.cell, compile(ast[w.ids.cell]));
+        retOp.set(w.ids.key, compile(ast[w.ids.key]));
+        retOp.set(w.ids.value, compile(ast[w.ids.value]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Erase) {
-        Object& retOp = *new Object(kb, kb.std.op.Erase);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Erase) {
+        Object& retOp = *new Object(w, w.std.op.Erase);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.cell, compile(ast[w.ids.cell]));
+        retOp.set(w.ids.key, compile(ast[w.ids.key]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.If) {
-        Object& retOp = *new Object(kb, kb.std.op.If);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.condition, compile(ast[kb.ids.condition]));
-        retOp.set(kb.ids.then, compile(ast[kb.ids.then]));
-        if (ast.has(kb.ids.else_)) {
-            retOp.set(kb.ids.else_, compile(ast[kb.ids.else_]));
+    } else if (&ast.struct_() == &w.std.ast.If) {
+        Object& retOp = *new Object(w, w.std.op.If);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.condition, compile(ast[w.ids.condition]));
+        retOp.set(w.ids.then, compile(ast[w.ids.then]));
+        if (ast.has(w.ids.else_)) {
+            retOp.set(w.ids.else_, compile(ast[w.ids.else_]));
             return retOp;
         } else {
             return retOp;
         }
-    } else if (&ast.struct_() == &kb.std.ast.Match) {
+    } else if (&ast.struct_() == &w.std.ast.Match) {
         auto& enumObj        = static_cast<Ast::Base&>(ast["enum"]);
-        auto& caseList       = ast["cases"][kb.ids.list];
-        auto& astCases       = *new cells::List(kb, kb.std.ast.Base);
-        Ast::Block& astBlock = *new Ast::Block(kb, astCases);
+        auto& caseList       = ast["cases"][w.ids.list];
+        auto& astCases       = *new cells::List(w, w.std.ast.Base);
+        Ast::Block& astBlock = *new Ast::Block(w, astCases);
 
         Visitor::visitList(caseList, [this, &compile, &ast, &function, &enumObj, &astCases](CellI& kvpair, int, bool&) {
-            auto& kind    = kvpair[kb.ids.key];
-            auto& op      = kvpair[kb.ids.value];
-            auto& oneCase = kb.ast.if_(kb.ast.same(kb.ast.get(enumObj, "tag"), kb._(kind))).then_(static_cast<Ast::Base&>(op));
+            auto& kind    = kvpair[w.ids.key];
+            auto& op      = kvpair[w.ids.value];
+            auto& oneCase = w.ast.if_(w.ast.same(w.ast.get(enumObj, "tag"), w._(kind))).then_(static_cast<Ast::Base&>(op));
             astCases.add(oneCase);
         });
         auto& retOp = compile(astBlock);
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Do) {
-        Object& retOp = *new Object(kb, kb.std.op.Do);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.condition, compile(ast[kb.ids.condition]));
-        retOp.set(kb.ids.statement, compile(ast[kb.ids.statement]));
+    } else if (&ast.struct_() == &w.std.ast.Do) {
+        Object& retOp = *new Object(w, w.std.op.Do);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.condition, compile(ast[w.ids.condition]));
+        retOp.set(w.ids.statement, compile(ast[w.ids.statement]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.While) {
-        Object& retOp = *new Object(kb, kb.std.op.While);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.condition, compile(ast[kb.ids.condition]));
-        retOp.set(kb.ids.statement, compile(ast[kb.ids.statement]));
+    } else if (&ast.struct_() == &w.std.ast.While) {
+        Object& retOp = *new Object(w, w.std.op.While);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.condition, compile(ast[w.ids.condition]));
+        retOp.set(w.ids.statement, compile(ast[w.ids.statement]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.New) {
+    } else if (&ast.struct_() == &w.std.ast.New) {
         CellI* firstOpBlockNode = nullptr;
-        auto& astObjectType     = ast[kb.ids.objectType];
+        auto& astObjectType     = ast[w.ids.objectType];
 
-        Object& block = *new Object(kb, kb.std.op.Block);
-        block.set(kb.ids.ast, ast);
+        Object& block = *new Object(w, w.std.op.Block);
+        block.set(w.ids.ast, ast);
 
-        Object& opSet = *new Object(kb, kb.std.op.Set, "New { block.value = new objectType(); }");
-        opSet.set(kb.ids.ast, ast);
-        opSet.set(kb.ids.cell, compile(kb.ast.cell(block)));
-        opSet.set(kb.ids.key, compile(kb.ast.cell(kb.ids.value)));
+        Object& opSet = *new Object(w, w.std.op.Set, "New { block.value = new objectType(); }");
+        opSet.set(w.ids.ast, ast);
+        opSet.set(w.ids.cell, compile(w.ast.cell(block)));
+        opSet.set(w.ids.key, compile(w.ast.cell(w.ids.value)));
 
-        Object& opNew = *new Object(kb, kb.std.op.New);
-        opNew.set(kb.ids.ast, ast);
-        opNew.set(kb.ids.objectType, compile(astObjectType));
-        opSet.set(kb.ids.value, opNew);
+        Object& opNew = *new Object(w, w.std.op.New);
+        opNew.set(w.ids.ast, ast);
+        opNew.set(w.ids.objectType, compile(astObjectType));
+        opSet.set(w.ids.value, opNew);
 
-        CellI& newOpBlockNode = *new Object(kb, kb.std.op.Activate);
-        newOpBlockNode.set(kb.ids.cell, opSet);
-        newOpBlockNode.set(kb.ids.parent, block);
+        CellI& newOpBlockNode = *new Object(w, w.std.op.Activate);
+        newOpBlockNode.set(w.ids.cell, opSet);
+        newOpBlockNode.set(w.ids.parent, block);
         firstOpBlockNode = &newOpBlockNode;
 
-        if (ast.has(kb.ids.constructor)) {
-            Object& callAst = *new Object(kb, kb.std.ast.Call);
-            callAst.set(kb.ids.cell, kb.ast.get(kb.ast.cell(block), kb.ast.cell(kb.ids.value)));
-            callAst.set(kb.ids.method, ast[kb.ids.constructor]);
-            if (ast.has(kb.ids.parameters)) {
-                callAst.set(kb.ids.parameters, ast[kb.ids.parameters]);
+        if (ast.has(w.ids.constructor)) {
+            Object& callAst = *new Object(w, w.std.ast.Call);
+            callAst.set(w.ids.cell, w.ast.get(w.ast.cell(block), w.ast.cell(w.ids.value)));
+            callAst.set(w.ids.method, ast[w.ids.constructor]);
+            if (ast.has(w.ids.parameters)) {
+                callAst.set(w.ids.parameters, ast[w.ids.parameters]);
             }
             CellI& callConstructor = compile(callAst);
             callConstructor.label("New { call constructor; }");
-            CellI& newOpBlockNode = *new Object(kb, kb.std.op.Activate);
-            newOpBlockNode.set(kb.ids.cell, callConstructor);
-            newOpBlockNode.set(kb.ids.parent, block);
-            (*firstOpBlockNode).set(kb.ids.next, newOpBlockNode);
+            CellI& newOpBlockNode = *new Object(w, w.std.op.Activate);
+            newOpBlockNode.set(w.ids.cell, callConstructor);
+            newOpBlockNode.set(w.ids.parent, block);
+            (*firstOpBlockNode).set(w.ids.next, newOpBlockNode);
         }
-        block.set(kb.ids.ops, *firstOpBlockNode);
+        block.set(w.ids.ops, *firstOpBlockNode);
         return block;
-    } else if (&ast.struct_() == &kb.std.ast.Call || &ast.struct_() == &kb.std.ast.StaticCall) {
-        Ast::Base& astCell   = static_cast<Ast::Base&>(ast[kb.ids.cell]);
-        Ast::Base& astMethod = static_cast<Ast::Base&>(ast[kb.ids.method]);
-        auto& astMethodId    = astMethod[kb.ids.value];
+    } else if (&ast.struct_() == &w.std.ast.Call || &ast.struct_() == &w.std.ast.StaticCall) {
+        Ast::Base& astCell   = static_cast<Ast::Base&>(ast[w.ids.cell]);
+        Ast::Base& astMethod = static_cast<Ast::Base&>(ast[w.ids.method]);
+        auto& astMethodId    = astMethod[w.ids.value];
 #if 1
         bool checked = false;
         // New<T>.constructor(...)
         std::stringstream ss;
-        if (&astCell.struct_() == &kb.std.ast.Get && &astCell[kb.ids.cell].struct_() == &kb.std.ast.Cell && &astCell[kb.ids.cell][kb.ids.value].struct_() == &kb.std.op.Block) {
-            auto& opBlock    = astCell[kb.ids.cell][kb.ids.value];
-            auto& opBlockAst = opBlock[kb.ids.ast];
-            if (&opBlockAst.struct_() == &kb.std.ast.New) {
-                auto& astObjectTypeStruct = opBlockAst[kb.ids.objectType];
+        if (&astCell.struct_() == &w.std.ast.Get && &astCell[w.ids.cell].struct_() == &w.std.ast.Cell && &astCell[w.ids.cell][w.ids.value].struct_() == &w.std.op.Block) {
+            auto& opBlock    = astCell[w.ids.cell][w.ids.value];
+            auto& opBlockAst = opBlock[w.ids.ast];
+            if (&opBlockAst.struct_() == &w.std.ast.New) {
+                auto& astObjectTypeStruct = opBlockAst[w.ids.objectType];
                 checkMethodCall(astObjectTypeStruct, astMethodId, state);
                 checked = true;
             }
             // var_xxx.call(...)
-        } else if (&astCell.struct_() == &kb.std.ast.Get && &astCell[kb.ids.cell].struct_() == &kb.std.ast.Var) {
-            auto& astVar = astCell[kb.ids.cell];
+        } else if (&astCell.struct_() == &w.std.ast.Get && &astCell[w.ids.cell].struct_() == &w.std.ast.Var) {
+            auto& astVar = astCell[w.ids.cell];
             ss << "In " << astVar.label() << " ";
             // m_xxx.method(...)
-        } else if (&astCell.struct_() == &kb.std.ast.Member) {
-            auto& astMemberId    = astCell[kb.ids.key];
-            auto& astMembersType = function[kb.ids.ast][kb.ids.structType];
-            if (&astMemberId == &kb.ids.struct_) {
+        } else if (&astCell.struct_() == &w.std.ast.Member) {
+            auto& astMemberId    = astCell[w.ids.key];
+            auto& astMembersType = function[w.ids.ast][w.ids.structType];
+            if (&astMemberId == &w.ids.struct_) {
                 // std::cout << "DDDD " << astMembersType.label();
-                auto& stdScope = kb.globalScope.getItem<Ast::Scope>("std");
+                auto& stdScope = w.globalScope.getItem<Ast::Scope>("std");
                 auto& type     = stdScope.getItem<Ast::Struct>("Struct");
                 checkMethodCall(type, astMethodId, state);
                 checked = true;
             } else {
-                auto& astMembers = static_cast<Map&>(function[kb.ids.ast][kb.ids.structType][kb.ids.members]);
+                auto& astMembers = static_cast<Map&>(function[w.ids.ast][w.ids.structType][w.ids.members]);
                 if (astMembers.hasKey(astMemberId)) {
                     auto& slot = static_cast<Ast::Slot&>(astMembers.getValue(astMemberId));
-                    auto& type = slot[kb.ids.type];
+                    auto& type = slot[w.ids.type];
                     checkMethodCall(type, astMethodId, state);
                     checked = true;
                 } else {
                     throw "Unknown member name!";
                 }
             }
-        } else if (&astCell.struct_() == &kb.std.ast.Self) {
-            auto& astSelfType = function[kb.ids.ast][kb.ids.structType];
+        } else if (&astCell.struct_() == &w.std.ast.Self) {
+            auto& astSelfType = function[w.ids.ast][w.ids.structType];
             checkMethodCall(astSelfType, astMethodId, state);
             checked = true;
-        } else if (&astCell.struct_() == &kb.std.ast.Parameter) {
-            auto& parameterRole                 = astCell[kb.ids.key];
-            auto& astFunctionParameters         = function[kb.ids.ast][kb.ids.parameters];
+        } else if (&astCell.struct_() == &w.std.ast.Parameter) {
+            auto& parameterRole                 = astCell[w.ids.key];
+            auto& astFunctionParameters         = function[w.ids.ast][w.ids.parameters];
             Ast::Slot* astFunctionParameterSlot = nullptr;
             Visitor::visitList(astFunctionParameters, [this, &parameterRole, &astFunctionParameterSlot](CellI& slot, int i, bool& stop) {
-                CellI& key  = slot[kb.ids.key];
-                CellI& type = slot[kb.ids.type];
+                CellI& key  = slot[w.ids.key];
+                CellI& type = slot[w.ids.type];
                 if (&key == &parameterRole) {
                     astFunctionParameterSlot = &static_cast<Ast::Slot&>(slot);
                     stop                     = true;
@@ -1953,7 +1953,7 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
             });
             if (astFunctionParameterSlot) {
                 Ast::Slot& slot        = *astFunctionParameterSlot;
-                auto& astParameterType = slot[kb.ids.type];
+                auto& astParameterType = slot[w.ids.type];
                 checkMethodCall(astParameterType, astMethodId, state);
                 checked = true;
             } else {
@@ -1964,129 +1964,129 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
             WARN(compileStruct, "{} Unchecked method call {} in {}", ss.str(), astMethodId.label(), function.label());
         }
 #endif
-        Object& retOp = *new Object(kb, kb.std.op.Call);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.method, compile(ast[kb.ids.method]));
-        retOp.set(kb.ids.stack, compile(kb.ast.get(_(function), _(kb.ids.stack))));
-        if (ast.has(kb.ids.parameters)) {
-            List& parameters = *new List(kb, kb.std.Slot);
-            Visitor::visitList(ast[kb.ids.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
-                CellI& slot = *new Object(kb, kb.std.Slot);
-                slot.set(kb.ids.key, param[kb.ids.key]);
-                slot.set(kb.ids.type, compile(param[kb.ids.type]));
+        Object& retOp = *new Object(w, w.std.op.Call);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.cell, compile(ast[w.ids.cell]));
+        retOp.set(w.ids.method, compile(ast[w.ids.method]));
+        retOp.set(w.ids.stack, compile(w.ast.get(_(function), _(w.ids.stack))));
+        if (ast.has(w.ids.parameters)) {
+            List& parameters = *new List(w, w.std.Slot);
+            Visitor::visitList(ast[w.ids.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
+                CellI& slot = *new Object(w, w.std.Slot);
+                slot.set(w.ids.key, param[w.ids.key]);
+                slot.set(w.ids.type, compile(param[w.ids.type]));
                 parameters.add(slot);
             });
-            retOp.set(kb.ids.parameters, parameters);
+            retOp.set(w.ids.parameters, parameters);
         }
 
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.And) {
-        Object& retOp = *new Object(kb, kb.std.op.And);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.And) {
+        Object& retOp = *new Object(w, w.std.op.And);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Or) {
-        Object& retOp = *new Object(kb, kb.std.op.Or);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Or) {
+        Object& retOp = *new Object(w, w.std.op.Or);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Not) {
-        Object& retOp = *new Object(kb, kb.std.op.Not);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.input, compile(ast[kb.ids.input]));
+    } else if (&ast.struct_() == &w.std.ast.Not) {
+        Object& retOp = *new Object(w, w.std.op.Not);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.input, compile(ast[w.ids.input]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Add) {
-        Object& retOp = *new Object(kb, kb.std.op.Add);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Add) {
+        Object& retOp = *new Object(w, w.std.op.Add);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Subtract) {
-        Object& retOp = *new Object(kb, kb.std.op.Subtract);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Subtract) {
+        Object& retOp = *new Object(w, w.std.op.Subtract);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Multiply) {
-        Object& retOp = *new Object(kb, kb.std.op.Multiply);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Multiply) {
+        Object& retOp = *new Object(w, w.std.op.Multiply);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Divide) {
-        Object& retOp = *new Object(kb, kb.std.op.Divide);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Divide) {
+        Object& retOp = *new Object(w, w.std.op.Divide);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.LessThan) {
-        Object& retOp = *new Object(kb, kb.std.op.LessThan);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.LessThan) {
+        Object& retOp = *new Object(w, w.std.op.LessThan);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.LessThanOrEqual) {
-        Object& retOp = *new Object(kb, kb.std.op.LessThanOrEqual);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.LessThanOrEqual) {
+        Object& retOp = *new Object(w, w.std.op.LessThanOrEqual);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.GreaterThan) {
-        Object& retOp = *new Object(kb, kb.std.op.GreaterThan);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.GreaterThan) {
+        Object& retOp = *new Object(w, w.std.op.GreaterThan);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.GreaterThanOrEqual) {
-        Object& retOp = *new Object(kb, kb.std.op.GreaterThanOrEqual);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.GreaterThanOrEqual) {
+        Object& retOp = *new Object(w, w.std.op.GreaterThanOrEqual);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Same) {
-        Object& retOp = *new Object(kb, kb.std.op.Same);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Same) {
+        Object& retOp = *new Object(w, w.std.op.Same);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.NotSame) {
-        Object& retOp = *new Object(kb, kb.std.op.NotSame);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.NotSame) {
+        Object& retOp = *new Object(w, w.std.op.NotSame);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Equal) {
-        Object& retOp = *new Object(kb, kb.std.op.Equal);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.Equal) {
+        Object& retOp = *new Object(w, w.std.op.Equal);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.NotEqual) {
-        Object& retOp = *new Object(kb, kb.std.op.NotEqual);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.lhs, compile(ast[kb.ids.lhs]));
-        retOp.set(kb.ids.rhs, compile(ast[kb.ids.rhs]));
+    } else if (&ast.struct_() == &w.std.ast.NotEqual) {
+        Object& retOp = *new Object(w, w.std.op.NotEqual);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.lhs, compile(ast[w.ids.lhs]));
+        retOp.set(w.ids.rhs, compile(ast[w.ids.rhs]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Has) {
-        Object& retOp = *new Object(kb, kb.std.op.Has);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Has) {
+        Object& retOp = *new Object(w, w.std.op.Has);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.cell, compile(ast[w.ids.cell]));
+        retOp.set(w.ids.key, compile(ast[w.ids.key]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Missing) {
-        Object& retOp = *new Object(kb, kb.std.op.Missing);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Missing) {
+        Object& retOp = *new Object(w, w.std.op.Missing);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.cell, compile(ast[w.ids.cell]));
+        retOp.set(w.ids.key, compile(ast[w.ids.key]));
         return retOp;
-    } else if (&ast.struct_() == &kb.std.ast.Get) {
-        Object& retOp = *new Object(kb, kb.std.op.Get);
-        retOp.set(kb.ids.ast, ast);
-        retOp.set(kb.ids.cell, compile(ast[kb.ids.cell]));
-        retOp.set(kb.ids.key, compile(ast[kb.ids.key]));
+    } else if (&ast.struct_() == &w.std.ast.Get) {
+        Object& retOp = *new Object(w, w.std.op.Get);
+        retOp.set(w.ids.ast, ast);
+        retOp.set(w.ids.cell, compile(ast[w.ids.cell]));
+        retOp.set(w.ids.key, compile(ast[w.ids.key]));
         return retOp;
     }
 
@@ -2097,21 +2097,21 @@ void Compiler::checkMethodCall(CellI& astType, CellI& astMethodId, CellI& state)
 {
     CellI* typePtr  = nullptr;
     Map* methodsPtr = nullptr;
-    if (astType.isA(kb.std.ast.Cell)) {
-        auto& cellValue = astType[kb.ids.value];
+    if (astType.isA(w.std.ast.Cell)) {
+        auto& cellValue = astType[w.ids.value];
         typePtr         = &cellValue;
-        methodsPtr      = &static_cast<Map&>(cellValue[kb.ids.methods]);
-    } else if (astType.isA(kb.std.ast.Struct)) {
+        methodsPtr      = &static_cast<Map&>(cellValue[w.ids.methods]);
+    } else if (astType.isA(w.std.ast.Struct)) {
         typePtr    = &astType;
-        methodsPtr = &static_cast<Map&>(astType[kb.ids.methods]);
-    } else if (astType.isA(kb.std.ast.ResolvedType)) {
-        typePtr    = &astType[kb.ids.compiled];
-        methodsPtr = &static_cast<Map&>(astType[kb.ids.ast][kb.ids.methods]);
+        methodsPtr = &static_cast<Map&>(astType[w.ids.methods]);
+    } else if (astType.isA(w.std.ast.ResolvedType)) {
+        typePtr    = &astType[w.ids.compiled];
+        methodsPtr = &static_cast<Map&>(astType[w.ids.ast][w.ids.methods]);
     } else {
         throw "Unexpected AST type";
     }
     CellI& type = *typePtr;
-    if (&type.struct_() != &kb.std.ast.Struct && &type.struct_() != &kb.std.Struct && type.label() != "Struct") {
+    if (&type.struct_() != &w.std.ast.Struct && &type.struct_() != &w.std.Struct && type.label() != "Struct") {
         throw "Resolved type must be a type!";
     }
     auto& methods = *methodsPtr;
@@ -2123,14 +2123,14 @@ void Compiler::checkMethodCall(CellI& astType, CellI& astMethodId, CellI& state)
 
 void Compiler::processDescriptionsInScope(Ast::Scope& scope, CellI& programData, CellI& state)
 {
-    auto& compiledStructs  = static_cast<TrieMap&>(programData[kb.ids.structs]);
-    m_toolFinder           = new ToolFinder(kb);
+    auto& compiledStructs  = static_cast<TrieMap&>(programData[w.ids.structs]);
+    m_toolFinder           = new ToolFinder(w);
     ToolFinder& toolFinder = *m_toolFinder;
     auto& astScope         = scope.getItem<Ast::Scope>("std").getItem<Ast::Scope>("ast");
     if (astScope.has("structs")) {
-        Visitor::visitList(astScope.items<Ast::Struct>()[kb.ids.list], [this, &toolFinder, &compiledStructs](CellI& struct_, int i, bool& stop) {
-            auto& tool = static_cast<Ast::Struct&>(struct_[kb.ids.value]);
-            if (tool.has(kb.ids.description) && tool[kb.ids.description].has(kb.ids.asts)) {
+        Visitor::visitList(astScope.items<Ast::Struct>()[w.ids.list], [this, &toolFinder, &compiledStructs](CellI& struct_, int i, bool& stop) {
+            auto& tool = static_cast<Ast::Struct&>(struct_[w.ids.value]);
+            if (tool.has(w.ids.description) && tool[w.ids.description].has(w.ids.asts)) {
                 auto& compiledAstStruct = compiledStructs.getValue(getFullyQualifiedName(tool));
                 toolFinder.add(tool, compiledAstStruct);
             }

@@ -4,41 +4,41 @@ namespace infocell {
 namespace cells {
 namespace arc {
 
-Shape::Shape(Brain& kb, Number& id, CellI& color, Number& width, Number& height) :
-    CellI(kb),
+Shape::Shape(World& w, Number& id, CellI& color, Number& width, Number& height) :
+    CellI(w),
     m_id(id),
     m_color(color),
     m_width(width),
     m_height(height),
-    m_lastEdgeId(&kb.pools.numbers.get(0))
+    m_lastEdgeId(&w.pools.numbers.get(0))
 {
-    static CellI& ShapeEdgeStruct = kb.getStruct("arc::ShapeEdge");
-    m_edges                       = new Map(kb, kb.std.Number, ShapeEdgeStruct);
+    static CellI& ShapeEdgeStruct = w.getStruct("arc::ShapeEdge");
+    m_edges                       = new Map(w, w.std.Number, ShapeEdgeStruct);
 }
 
 bool Shape::has(CellI& role)
 {
-    static CellI& name_lastEdgeId    = kb.name("lastEdgeId");
-    static CellI& name_hybridPixels  = kb.name("hybridPixels");
-    static CellI& name_pixels        = kb.name("pixels");
-    static CellI& name_shapePixels   = kb.name("shapePixels");
-    static CellI& name_shapePoints   = kb.name("shapePoints");
-    static CellI& name_edges         = kb.name("edges");
-    static CellI& name_internalEdges = kb.name("internalEdges");
+    static CellI& name_lastEdgeId    = w.name("lastEdgeId");
+    static CellI& name_hybridPixels  = w.name("hybridPixels");
+    static CellI& name_pixels        = w.name("pixels");
+    static CellI& name_shapePixels   = w.name("shapePixels");
+    static CellI& name_shapePoints   = w.name("shapePoints");
+    static CellI& name_edges         = w.name("edges");
+    static CellI& name_internalEdges = w.name("internalEdges");
 
-    if (&role == &kb.ids.struct_) {
+    if (&role == &w.ids.struct_) {
         return true;
     }
-    if (&role == &kb.ids.id) {
+    if (&role == &w.ids.id) {
         return true;
     }
-    if (&role == &kb.ids.color) {
+    if (&role == &w.ids.color) {
         return true;
     }
-    if (&role == &kb.ids.width) {
+    if (&role == &w.ids.width) {
         return true;
     }
-    if (&role == &kb.ids.height) {
+    if (&role == &w.ids.height) {
         return true;
     }
     if (&role == &name_lastEdgeId) {
@@ -69,11 +69,11 @@ bool Shape::has(CellI& role)
 
 void Shape::set(CellI& role, CellI& value)
 {
-    static CellI& name_lastEdgeId    = kb.name("lastEdgeId");
-    static CellI& name_shapePixels   = kb.name("shapePixels");
-    static CellI& name_shapePoints   = kb.name("shapePoints");
-    static CellI& name_edges         = kb.name("edges");
-    static CellI& name_internalEdges = kb.name("internalEdges");
+    static CellI& name_lastEdgeId    = w.name("lastEdgeId");
+    static CellI& name_shapePixels   = w.name("shapePixels");
+    static CellI& name_shapePoints   = w.name("shapePoints");
+    static CellI& name_edges         = w.name("edges");
+    static CellI& name_internalEdges = w.name("internalEdges");
 
     if (&role == &name_lastEdgeId) {
         m_lastEdgeId = &value;
@@ -111,26 +111,26 @@ void Shape::operator()()
 
 CellI& Shape::operator[](CellI& role)
 {
-    static CellI& ShapeStruct        = kb.getStruct("arc::Shape");
-    static CellI& name_lastEdgeId    = kb.name("lastEdgeId");
-    static CellI& name_shapePixels   = kb.name("shapePixels");
-    static CellI& name_shapePoints   = kb.name("shapePoints");
-    static CellI& name_edges         = kb.name("edges");
-    static CellI& name_internalEdges = kb.name("internalEdges");
+    static CellI& ShapeStruct        = w.getStruct("arc::Shape");
+    static CellI& name_lastEdgeId    = w.name("lastEdgeId");
+    static CellI& name_shapePixels   = w.name("shapePixels");
+    static CellI& name_shapePoints   = w.name("shapePoints");
+    static CellI& name_edges         = w.name("edges");
+    static CellI& name_internalEdges = w.name("internalEdges");
 
-    if (&role == &kb.ids.struct_) {
+    if (&role == &w.ids.struct_) {
         return ShapeStruct;
     }
-    if (&role == &kb.ids.id) {
+    if (&role == &w.ids.id) {
         return m_id;
     }
-    if (&role == &kb.ids.color) {
+    if (&role == &w.ids.color) {
         return m_color;
     }
-    if (&role == &kb.ids.width) {
+    if (&role == &w.ids.width) {
         return m_width;
     }
-    if (&role == &kb.ids.height) {
+    if (&role == &w.ids.height) {
         return m_height;
     }
     if (&role == &name_lastEdgeId) {

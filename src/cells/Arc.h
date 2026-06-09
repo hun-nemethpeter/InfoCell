@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Brain.h"
+#include "World.h"
 
 namespace infocell {
 namespace cells {
@@ -8,7 +8,7 @@ namespace cells {
 class AstArc : public AstHelper
 {
 public:
-    AstArc(Brain& kb);
+    AstArc(World& w);
 };
 
 } // namespace cells

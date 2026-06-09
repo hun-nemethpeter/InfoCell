@@ -1,6 +1,5 @@
 #pragma once
-#include "Cells.h"
-#include "Brain.h"
+#include "World.h"
 #include "ToolFinder.h"
 
 namespace infocell {
@@ -11,7 +10,7 @@ class Compiler
     Compiler(const Compiler&) = delete;
 
 public:
-    Compiler(Brain& kb);
+    Compiler(World& w);
 
     CellI& compile(Ast::Scope& scope);
     CellI& reigisterStructBeforeCompilation(CellI& id);
@@ -67,7 +66,7 @@ protected:
 
     void processDescriptionsInScope(Ast::Scope& scope, CellI& programData, CellI& state);
 
-    Brain& kb;
+    World& w;
     TrieMap m_earlyStructs;
     ToolFinder* m_toolFinder = nullptr;
 };

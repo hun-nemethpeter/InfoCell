@@ -21,7 +21,7 @@ Ast::TemplatedType& AstHelper::tt_(const std::string& nameStr, Args&&... args)
 template <typename... Args>
 List& AstHelper::list(CellI& value, Args&&... args)
 {
-    List& ret = *new List(kb, value.struct_());
+    List& ret = *new List(w, value.struct_());
     ret.add(value);
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
@@ -33,7 +33,7 @@ List& AstHelper::list(CellI& value, Args&&... args)
 template <typename... Args>
 Map& AstHelper::map(CellI& key, CellI& value, Args&&... args)
 {
-    Map& ret = *new Map(kb, key.struct_(), value.struct_(), fmt::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
+    Map& ret = *new Map(w, key.struct_(), value.struct_(), fmt::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
     }
@@ -44,13 +44,13 @@ Map& AstHelper::map(CellI& key, CellI& value, Args&&... args)
 template <typename... Args>
 Ast::Block& Ast::block(Args&&... args)
 {
-    return *new Block(kb, kb.list(std::forward<Args>(args)...));
+    return *new Block(w, w.list(std::forward<Args>(args)...));
 }
 
 template <typename... Args>
 Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& key, CellI& type, Args&&... args)
 {
-    auto& ret = templatedType(id, kb.ast.slot(key, type));
+    auto& ret = templatedType(id, w.ast.slot(key, type));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
@@ -60,7 +60,7 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 template <typename... Args>
 Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& key, const std::string& type, Args&&... args)
 {
-    auto& ret  = templatedType(id, kb.ast.slot(key, kb.ast.structName(type)));
+    auto& ret  = templatedType(id, w.ast.slot(key, w.ast.structName(type)));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
@@ -70,20 +70,20 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 template <typename... Args>
 Ast::StructBase& Ast::StructBase::description(Args&&... args)
 {
-    addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
+    addBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
     return *this;
 }
 
 template <typename... Args>
 void Ast::Function::instructions(Args&&... args)
 {
-    addBlock(*new Block(kb, kb.list(std::forward<Args>(args)...)));
+    addBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
 }
 #pragma endregion
 
 template <class MapType, class TAst>
-Ast::Items<MapType, TAst>::Items(Brain& kb, const std::string& mapName, Base& parent) :
-    kb(kb),
+Ast::Items<MapType, TAst>::Items(World& w, const std::string& mapName, Base& parent) :
+    w(w),
     m_mapName(mapName),
     m_parent(parent)
 {
@@ -102,7 +102,7 @@ bool Ast::Items<MapType, TAst>::has(CellI& id)
 template <class MapType, class TAst>
 TAst& Ast::Items<MapType, TAst>::get(const std::string& nameStr)
 {
-    return get(kb.name(nameStr));
+    return get(w.name(nameStr));
 }
 
 template <class MapType, class TAst>
@@ -122,7 +122,7 @@ TAst& Ast::Items<MapType, TAst>::get(CellI& name)
 template <class MapType, class TAst>
 TAst& Ast::Items<MapType, TAst>::add(const std::string& nameStr)
 {
-    TAst& ast = *new TAst(kb, nameStr);
+    TAst& ast = *new TAst(w, nameStr);
     add(ast);
 
     return ast;
@@ -131,10 +131,10 @@ TAst& Ast::Items<MapType, TAst>::add(const std::string& nameStr)
 template <class MapType, class TAst>
 void Ast::Items<MapType, TAst>::add(TAst& obj)
 {
-    CellI& name = obj[kb.ids.name];
+    CellI& name = obj[w.ids.name];
 
     if (m_parent.missing(m_mapName)) {
-        m_parent.set(m_mapName, *new TrieMap(kb, kb.std.Cell, kb.std.ast.Base, "TrieMap<Cell, Type::Ast::Base>(...)"));
+        m_parent.set(m_mapName, *new TrieMap(w, w.std.Cell, w.std.ast.Base, "TrieMap<Cell, Type::Ast::Base>(...)"));
     }
     if (items().hasKey(name)) {
         throw "Already registered!";

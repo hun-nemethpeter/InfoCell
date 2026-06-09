@@ -3,29 +3,29 @@
 namespace infocell {
 namespace cells {
 
-NodeBase::NodeBase(Brain& kb) :
-    kb(kb)
+NodeBase::NodeBase(World& w) :
+    w(w)
 {
 }
 
 CellI& NodeBase::getVariable(const std::string& name)
 {
-    return kb.getVariable(name);
+    return w.getVariable(name);
 }
 
 CellI& NodeBase::getStruct(const std::string& name)
 {
-    return kb.getStruct(name);
+    return w.getStruct(name);
 }
 
 CellI& NodeBase::getStruct(CellI& id)
 {
-    return kb.getStruct(id);
+    return w.getStruct(id);
 }
 
 CellI& NodeBase::toCellNumber(int number)
 {
-    return kb.pools.numbers.get(number);
+    return w.pools.numbers.get(number);
 }
 
 } // namespace cells

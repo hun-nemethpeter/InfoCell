@@ -2,18 +2,17 @@
 #include "Grid.h"
 
 #include "arc/Color.h"
-#include "cells/Brain.h"
-#include "cells/Cells.h"
+#include "cells/World.h"
 
 namespace infocell {
 namespace cells {
 namespace arc {
 
 // ============================================================================
-Pixel::Pixel(Brain& kb, int x, int y, CellI& arcColor, Grid& grid) :
-    CellI(kb),
-    m_x(kb.pools.numbers.get(x)),
-    m_y(kb.pools.numbers.get(y)),
+Pixel::Pixel(World& w, int x, int y, CellI& arcColor, Grid& grid) :
+    CellI(w),
+    m_x(w.pools.numbers.get(x)),
+    m_y(w.pools.numbers.get(y)),
     m_arcColor(arcColor),
     m_grid(grid)
 {
@@ -21,28 +20,28 @@ Pixel::Pixel(Brain& kb, int x, int y, CellI& arcColor, Grid& grid) :
 
 bool Pixel::has(CellI& key)
 {
-    if (&key == &kb.ids.struct_) {
+    if (&key == &w.ids.struct_) {
         return true;
     }
-    if (&key == &kb.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
+    if (&key == &w.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
         return true;
     }
-    if (&key == &kb.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
+    if (&key == &w.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
         return true;
     }
-    if (&key == &kb.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
+    if (&key == &w.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
         return true;
     }
-    if (&key == &kb.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
+    if (&key == &w.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
         return true;
     }
-    if (&key == &kb.ids.color) {
+    if (&key == &w.ids.color) {
         return true;
     }
-    if (&key == &kb.coordinates.x) {
+    if (&key == &w.coordinates.x) {
         return true;
     }
-    if (&key == &kb.coordinates.y) {
+    if (&key == &w.coordinates.y) {
         return true;
     }
 
@@ -66,28 +65,28 @@ void Pixel::operator()()
 
 CellI& Pixel::operator[](CellI& key)
 {
-    if (&key == &kb.ids.struct_) {
-        return kb.std.Pixel;
+    if (&key == &w.ids.struct_) {
+        return w.std.Pixel;
     }
-    if (&key == &kb.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
+    if (&key == &w.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
         return m_grid.getPixel(m_x.value(), m_y.value() - 1);
     }
-    if (&key == &kb.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
+    if (&key == &w.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
         return m_grid.getPixel(m_x.value(), m_y.value() + 1);
     }
-    if (&key == &kb.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
+    if (&key == &w.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
         return m_grid.getPixel(m_x.value() - 1, m_y.value());
     }
-    if (&key == &kb.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
+    if (&key == &w.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
         return m_grid.getPixel(m_x.value() + 1, m_y.value());
     }
-    if (&key == &kb.ids.color) {
+    if (&key == &w.ids.color) {
         return m_arcColor;
     }
-    if (&key == &kb.coordinates.x) {
+    if (&key == &w.coordinates.x) {
         return m_x;
     }
-    if (&key == &kb.coordinates.y) {
+    if (&key == &w.coordinates.y) {
         return m_y;
     }
 

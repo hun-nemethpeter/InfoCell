@@ -432,7 +432,7 @@ void AstStd::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            lessThan(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
+            lessThan(subtract(m_("rhs"), m_("lhs")), _(_0_)),
             return_(greaterThan(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Number)),
@@ -444,7 +444,7 @@ void AstStd::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            lessThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
+            lessThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(_0_)),
             return_(greaterThanOrEqual(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Number)),
@@ -479,7 +479,7 @@ void AstStd::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            greaterThan(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
+            greaterThan(subtract(m_("rhs"), m_("lhs")), _(_0_)),
             return_(lessThan(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Number)),
@@ -491,7 +491,7 @@ void AstStd::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            greaterThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(kb._0_)),
+            greaterThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(_0_)),
             return_(lessThanOrEqual(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Number)),
@@ -519,7 +519,7 @@ void AstStd::createAst()
         .returnType(_(std.Number))
         .description(
 #if 0 // we need a precondition secton for this if block
-            if_(notSame(m_("lhs"), _(kb._0_))).then_(
+            if_(notSame(m_("lhs"), _(_0_))).then_(
 #endif
             divide(return_(), m_("lhs")) == m_("rhs")
 #if 0 // we need a precondition secton for this if block
@@ -750,9 +750,9 @@ void AstStd::createAst()
             member("statement", "Base"));
 }
 
-AstStd::AstStd(Brain& kb) :
-    AstHelper(kb),
-    stdScope(kb.globalScope.add<Scope>("std"))
+AstStd::AstStd(World& w) :
+    AstHelper(w),
+    stdScope(w.globalScope.add<Scope>("std"))
 {
     createOp();
     createAst();
@@ -1224,9 +1224,9 @@ AstStd::AstStd(Brain& kb) :
         if (m_recursiveType) {
             return;
         }
-        Object& slot = *new Object(kb, kb.type.Slot);
+        Object& slot = *new Object(w, w.type.Slot);
         slot.set("key", key);
-        slot.set("type", kb.type.Slot);
+        slot.set("type", w.type.Slot);
         m_type->addSlot(key, slot);
     }
     */
@@ -1329,7 +1329,7 @@ AstStd::AstStd(Brain& kb) :
     CellI& Map::getValue(CellI& key)
     {
         if (m_index.has(key)) {
-            return m_index[key][kb.ids.value];
+            return m_index[key][w.ids.value];
         }
         throw "No such key!";
     }
@@ -1495,18 +1495,18 @@ AstStd::AstStd(Brain& kb) :
     {
         CellI* currentNode = &m_rootNode;
 
-        if (isA(key, kb.type.List)) {
+        if (isA(key, w.type.List)) {
             throw "Key is not a list!";
         }
 
         Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(kb.ids.children)) {
+            if (currentNode->missing(w.ids.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.ids.children));
             if (childrenIndex.has(keyItem)) {
                 children = &childrenIndex.get(keyItem);
             } else {
@@ -1517,7 +1517,7 @@ AstStd::AstStd(Brain& kb) :
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(kb.ids.data)) {
+        if (!currentNode || currentNode->missing(w.ids.data)) {
             return false;
         }
 
@@ -1554,7 +1554,7 @@ AstStd::AstStd(Brain& kb) :
     /*
     CellI& TrieMap::getValue(CellI& key)
     {
-        if (isA(key, kb.type.List)) {
+        if (isA(key, w.type.List)) {
             throw "Key is not a list!";
         }
 
@@ -1562,12 +1562,12 @@ AstStd::AstStd(Brain& kb) :
 
         Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(kb.ids.children)) {
+            if (currentNode->missing(w.ids.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.ids.children));
             if (childrenIndex.has(keyItem)) {
                 children = &childrenIndex.get(keyItem);
             } else {
@@ -1578,11 +1578,11 @@ AstStd::AstStd(Brain& kb) :
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(kb.ids.data)) {
+        if (!currentNode || currentNode->missing(w.ids.data)) {
             throw "No such key!";
         }
 
-        return (*currentNode)[kb.ids.data][kb.ids.value][kb.ids.value];
+        return (*currentNode)[w.ids.data][w.ids.value][w.ids.value];
     }
     */
     trieMapStructT.addMethod("getValue")
@@ -1615,7 +1615,7 @@ AstStd::AstStd(Brain& kb) :
     /*
     void TrieMap::add(CellI& key, CellI& value)
     {
-        if (isA(key, kb.type.List)) {
+        if (isA(key, w.type.List)) {
             throw "Key is not a list!";
         }
 
@@ -1623,22 +1623,22 @@ AstStd::AstStd(Brain& kb) :
 
         Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
             CellI* child = nullptr;
-            if (currentNode->missing(kb.ids.children)) {
-                currentNode->set(kb.ids.children, *new Index(kb));
+            if (currentNode->missing(w.ids.children)) {
+                currentNode->set(w.ids.children, *new Index(w));
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.ids.children));
             if (childrenIndex.has(keyItem)) {
                 child = &childrenIndex.get(keyItem);
             } else {
-                child = new Object(kb, kb.type.TrieMapNode);
-                child->set(kb.ids.parent, *currentNode);
+                child = new Object(w, w.type.TrieMapNode);
+                child->set(w.ids.parent, *currentNode);
                 childrenIndex.insert(keyItem, *child);
             }
             currentNode = child;
         });
 
-        List::Item& item = *m_list.add(kb.type.kvPair(key, value));
-        currentNode->set(kb.ids.data, item);
+        List::Item& item = *m_list.add(w.type.kvPair(key, value));
+        currentNode->set(w.ids.data, item);
         ++m_size;
     }
     */
@@ -1675,11 +1675,11 @@ AstStd::AstStd(Brain& kb) :
     /*
     void TrieMap::remove(CellI& key)
     {
-        if (isA(key, kb.type.List)) {
+        if (isA(key, w.type.List)) {
             throw "Key is not a list!";
         }
 
-        if (&key[kb.ids.size] == &kb._0_) {
+        if (&key[w.ids.size] == &w._0_) {
             return;
         }
 
@@ -1687,12 +1687,12 @@ AstStd::AstStd(Brain& kb) :
 
         Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(kb.ids.children)) {
+            if (currentNode->missing(w.ids.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(kb.ids.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.ids.children));
             if (childrenIndex.has(keyItem)) {
                 children = &childrenIndex.get(keyItem);
             } else {
@@ -1703,26 +1703,26 @@ AstStd::AstStd(Brain& kb) :
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(kb.ids.data)) {
+        if (!currentNode || currentNode->missing(w.ids.data)) {
             return;
         }
-        List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[kb.ids.data]);
-        currentNode->erase(kb.ids.data);
+        List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[w.ids.data]);
+        currentNode->erase(w.ids.data);
 
-        CellI* keyItemPtr = &key[kb.ids.last];
-        while (currentNode->has(kb.ids.parent)) {
+        CellI* keyItemPtr = &key[w.ids.last];
+        while (currentNode->has(w.ids.parent)) {
             CellI& keyItem = *keyItemPtr;
-            CellI& parent = currentNode->get(kb.ids.parent);
+            CellI& parent = currentNode->get(w.ids.parent);
             CellI& child = *currentNode;
-            if (child.missing(kb.ids.data)) {
-                if (child.missing(kb.ids.children) || ( child.has(kb.ids.children) && static_cast<Index&>(child[kb.ids.children]).empty())) {
+            if (child.missing(w.ids.data)) {
+                if (child.missing(w.ids.children) || ( child.has(w.ids.children) && static_cast<Index&>(child[w.ids.children]).empty())) {
                     delete currentNode;
-                    parent[kb.ids.children].erase(keyItem[kb.ids.value]);
+                    parent[w.ids.children].erase(keyItem[w.ids.value]);
                 }
             }
             currentNode = &parent;
-            if (keyItem.has(kb.ids.previous)) {
-                keyItemPtr = &keyItem[kb.ids.previous];
+            if (keyItem.has(w.ids.previous)) {
+                keyItemPtr = &keyItem[w.ids.previous];
             } else {
                 break;
             }

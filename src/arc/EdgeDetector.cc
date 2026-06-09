@@ -4,11 +4,8 @@
 #include "arc/Task.h"
 #include "EdgeDetector.h"
 
-#include <fstream>
-
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "util/Log.h"
-#include <fmt/color.h>
 
 using namespace infocell::cells;
 
@@ -18,8 +15,8 @@ namespace hybridarc = infocell::cells::arc;
 namespace infocell {
 namespace arc {
 
-EdgeDetector::EdgeDetector(Brain& kb) :
-    NodeBase(kb),
+EdgeDetector::EdgeDetector(World& w) :
+    NodeBase(w),
     FrameStruct(getStruct("arc::Frame")),
     ShapeStruct(getStruct("arc::Shape")),
     ShapePointStruct(getStruct("arc::ShapePoint")),
@@ -42,14 +39,14 @@ EdgeDetector::EdgeDetector(Brain& kb) :
     Symmetry_Horizontal(getVariable("arc::LineSymmetry::horizontal")),
     Symmetry_Vertical(getVariable("arc::LineSymmetry::vertical"))
 {
-    auto& TableRowStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, ShapeStruct));
-    auto& TableStruct    = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, TableRowStruct));
+    auto& TableRowStruct = getStruct(w.templateId("std::Map", ids.keyType, w.std.Number, ids.valueType, ShapeStruct));
+    auto& TableStruct    = getStruct(w.templateId("std::Map", ids.keyType, w.std.Number, ids.valueType, TableRowStruct));
 }
 
 void EdgeDetector::detect(const std::string& jsonStr)
 {
     m_inputGrid       = std::make_unique<nativearc::Grid>("inputGrid", jsonStr);
-    m_inputHybridGrid = std::make_unique<hybridarc::Grid>(kb, *m_inputGrid);
+    m_inputHybridGrid = std::make_unique<hybridarc::Grid>(w, *m_inputGrid);
     detect();
 }
 
@@ -77,12 +74,12 @@ void EdgeDetector::detect()
 void EdgeDetector::frameProcess()
 {
 #if 1
-    auto& TableRowStruct = getStruct(kb.templateId("std::Map", ids.keyType, kb.std.Number, ids.valueType, ShapeStruct));
-    m_hybridFrame        = std::make_unique<hybridarc::Frame>(kb, inputHybridGrid(), ShapeStruct, TableRowStruct);
+    auto& TableRowStruct = getStruct(w.templateId("std::Map", ids.keyType, w.std.Number, ids.valueType, ShapeStruct));
+    m_hybridFrame        = std::make_unique<hybridarc::Frame>(w, inputHybridGrid(), ShapeStruct, TableRowStruct);
     m_hybridFrame->process();
     return;
 #endif
-    m_frame = std::make_unique<Object>(kb, FrameStruct, kb.name("constructor"), Param { "grid", inputHybridGrid() });
+    m_frame = std::make_unique<Object>(w, FrameStruct, w.name("constructor"), Param { "grid", inputHybridGrid() });
     m_frame->method("process");
 }
 
@@ -94,7 +91,7 @@ void EdgeDetector::addEdgeToShape(CellI& shape, CellI& newEdgeId, CellI& newEdge
         edges.add(newEdgeId, newEdge);
     } else {
         Object& map = static_cast<Object&>(shape["edges"]);
-        map.method(kb.name("add"), { ids.key, newEdgeId }, { ids.value, newEdge });
+        map.method(w.name("add"), { ids.key, newEdgeId }, { ids.value, newEdge });
     }
 }
 
@@ -104,7 +101,7 @@ int EdgeDetector::getShapeEdgesSize(CellI& shape)
         return static_cast<Map&>(shape["edges"]).size();
     } else {
         Object& map = static_cast<Object&>(shape["edges"]);
-        return static_cast<Number&>(map.method(kb.name("size"))).value();
+        return static_cast<Number&>(map.method(w.name("size"))).value();
     }
 }
 
@@ -145,9 +142,9 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
     CellI* leftPixel       = nullptr;
     CellI* firstShapePixel = nullptr;
     for (int y = 0; y < inputHybridGrid().height(); ++y) {
-        Object& colX = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, toCellNumber(y) }));
+        Object& colX = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.ids.key, toCellNumber(y) }));
         for (int x = 0; x < inputHybridGrid().width(); ++x) {
-            CellI& shapePixel = colX.method(kb.name("getValue"), { kb.ids.key, toCellNumber(x) });
+            CellI& shapePixel = colX.method(w.name("getValue"), { w.ids.key, toCellNumber(x) });
             if (!firstShapePixel) {
                 firstShapePixel = &shapePixel;
             }
@@ -165,7 +162,7 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
             CellI* upLeftPointPtr    = nullptr;
             CellI* downLeftPointPtr  = nullptr;
             CellI* upRightPointPtr   = nullptr;
-            CellI* downRightPointPtr = new Object(kb, ShapePointStruct);
+            CellI* downRightPointPtr = new Object(w, ShapePointStruct);
 
             bool upLeftPointCreated    = false;
             bool upRightPointCreated   = false;
@@ -178,7 +175,7 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
                 downLeftPointPtr = &(*leftPixel)["downRightPoint"];
             } else if (leftPixel && !upPixel) {
                 upLeftPointPtr   = &(*leftPixel)["upRightPoint"];
-                upRightPointPtr  = new Object(kb, ShapePointStruct);
+                upRightPointPtr  = new Object(w, ShapePointStruct);
                 downLeftPointPtr = &(*leftPixel)["downRightPoint"];
 
                 upRightPointCreated = true;
@@ -186,12 +183,12 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
                 (*upLeftPointPtr).set("right", *upRightPointPtr);
                 (*upRightPointPtr).set("left", *upLeftPointPtr);
 
-                (*upRightPointPtr).set("x", kb.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
+                (*upRightPointPtr).set("x", w.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
                 (*upRightPointPtr).set("y", pixel["y"]);
             } else if (!leftPixel && upPixel) {
                 upLeftPointPtr   = &(*upPixel)["downLeftPoint"];
                 upRightPointPtr  = &(*upPixel)["downRightPoint"];
-                downLeftPointPtr = new Object(kb, ShapePointStruct);
+                downLeftPointPtr = new Object(w, ShapePointStruct);
 
                 downLeftPointCreated = true;
 
@@ -199,11 +196,11 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
                 (*downLeftPointPtr).set("up", *upLeftPointPtr);
 
                 (*downLeftPointPtr).set("x", pixel["x"]);
-                (*downLeftPointPtr).set("y", kb.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
+                (*downLeftPointPtr).set("y", w.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
             } else if (!leftPixel && !upPixel) {
-                upLeftPointPtr   = new Object(kb, ShapePointStruct);
-                upRightPointPtr  = new Object(kb, ShapePointStruct);
-                downLeftPointPtr = new Object(kb, ShapePointStruct);
+                upLeftPointPtr   = new Object(w, ShapePointStruct);
+                upRightPointPtr  = new Object(w, ShapePointStruct);
+                downLeftPointPtr = new Object(w, ShapePointStruct);
 
                 upLeftPointCreated   = true;
                 upRightPointCreated  = true;
@@ -218,11 +215,11 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
                 (*upLeftPointPtr).set("x", pixel["x"]);
                 (*upLeftPointPtr).set("y", pixel["y"]);
 
-                (*upRightPointPtr).set("x", kb.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
+                (*upRightPointPtr).set("x", w.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
                 (*upRightPointPtr).set("y", pixel["y"]);
 
                 (*downLeftPointPtr).set("x", pixel["x"]);
-                (*downLeftPointPtr).set("y", kb.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
+                (*downLeftPointPtr).set("y", w.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
             }
             (*upRightPointPtr).set("down", *downRightPointPtr);
             (*downRightPointPtr).set("up", *upRightPointPtr);
@@ -230,8 +227,8 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
             (*downLeftPointPtr).set("right", *downRightPointPtr);
             (*downRightPointPtr).set("left", *downLeftPointPtr);
 
-            (*downRightPointPtr).set("x", kb.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
-            (*downRightPointPtr).set("y", kb.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
+            (*downRightPointPtr).set("x", w.pools.numbers.get(static_cast<Number&>(pixel["x"]).value() + 1));
+            (*downRightPointPtr).set("y", w.pools.numbers.get(static_cast<Number&>(pixel["y"]).value() + 1));
 
             (*upLeftPointPtr).set("downRightPixel", shapePixel);
             (*upRightPointPtr).set("downLeftPixel", shapePixel);
@@ -244,7 +241,7 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
             shapePixel.set("downRightPoint", *downRightPointPtr);
 
             if (currentShape.missing("shapePixels")) {
-                currentShape.set("shapePixels", *new List(kb, ShapePixelStruct));
+                currentShape.set("shapePixels", *new List(w, ShapePixelStruct));
             }
             List& shapePixelList = static_cast<List&>(currentShape["shapePixels"]);
             shapePixelList.add(shapePixel);
@@ -291,15 +288,15 @@ void EdgeDetector::sortShapePoints()
 
         ScanLineState scanLineState = ScanLineState::Up;
 
-        List& shapePoints = *new List(kb, ShapePointStruct);
+        List& shapePoints = *new List(w, ShapePointStruct);
         currentShape.set("shapePoints", shapePoints);
 
-        CellI* currentPixelItemPtr      = &currentShape["shapePixels"][kb.ids.first];
+        CellI* currentPixelItemPtr      = &currentShape["shapePixels"][w.ids.first];
         CellI* currentMiddleRowListItem = nullptr;
         CellI* upMiddleRowListItem      = nullptr;
         CellI* downMiddleRowListItem    = nullptr;
         CellI* firstColumnPixelItem     = currentPixelItemPtr;
-        CellI& firstPixel               = (*currentPixelItemPtr)[kb.ids.value];
+        CellI& firstPixel               = (*currentPixelItemPtr)[w.ids.value];
 
         bool isUpperLine          = false;
         bool hasMoreUp            = false;
@@ -315,7 +312,7 @@ void EdgeDetector::sortShapePoints()
             switch (scanLineState) {
             case ScanLineState::Up: {
                 CellI& currentPixelItem = *currentPixelItemPtr;
-                CellI& currentPixel     = currentPixelItem[kb.ids.value];
+                CellI& currentPixel     = currentPixelItem[w.ids.value];
                 CellI& currentPoint     = currentPixel["upLeftPoint"];
                 int upLeftPointX        = static_cast<Number&>(currentPoint["x"]).value();
 
@@ -348,7 +345,7 @@ void EdgeDetector::sortShapePoints()
                 pointX = upLeftPointX + 1;
                 ss << fmt::format("({},{}) ", pointX, pointY);
                 shapePoints.add(currentPoint["right"]);
-                CellI* nextPixelItem            = currentPixelItem.has(kb.ids.next) ? &currentPixelItem[kb.ids.next] : nullptr;
+                CellI* nextPixelItem            = currentPixelItem.has(w.ids.next) ? &currentPixelItem[w.ids.next] : nullptr;
                 bool isNextPixelIsInTheSameLine = nextPixelItem ? &(*firstColumnPixelItem)["value"]["pixel"]["y"] == &(*nextPixelItem)["value"]["pixel"]["y"] : false;
 
                 if (nextPixelItem) {
@@ -387,7 +384,7 @@ void EdgeDetector::sortShapePoints()
             case ScanLineState::Middle: {
                 // we have at least two rows of pixels
                 CellI& currentPixelItem = *currentPixelItemPtr;
-                CellI& currentPixel     = currentPixelItem[kb.ids.value];
+                CellI& currentPixel     = currentPixelItem[w.ids.value];
                 CellI& currentPoint     = currentPixel[isUpperLine ? "downLeftPoint" : "upLeftPoint"];
                 int currentPointX       = static_cast<Number&>(currentPoint["x"]).value();
                 int currentPointY       = static_cast<Number&>(currentPoint["y"]).value();
@@ -410,7 +407,7 @@ void EdgeDetector::sortShapePoints()
                         // │  │xx│ <- down-line
                         // └──┴──┘
                         // step up-line iter only
-                        nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
+                        nextUpListItem   = &(*upMiddleRowListItem)[w.ids.next];
                         nextDownListItem = downMiddleRowListItem;
                     } else if (upMiddleColumnIndex == downMiddleColumnIndex) {
                         // ┌──┬──┐
@@ -419,8 +416,8 @@ void EdgeDetector::sortShapePoints()
                         // │██│xx│ <- down line
                         // └──┴──┘
                         // step up- and down-line iters
-                        nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
-                        nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
+                        nextUpListItem   = &(*upMiddleRowListItem)[w.ids.next];
+                        nextDownListItem = (*downMiddleRowListItem).has(w.ids.next) ? &(*downMiddleRowListItem)[w.ids.next] : nullptr;
                     } else {
                         // ┌──┬──┐
                         // │  │xx│ <- up-line
@@ -429,7 +426,7 @@ void EdgeDetector::sortShapePoints()
                         // └──┴──┘
                         // step down-line iter only
                         nextUpListItem   = upMiddleRowListItem;
-                        nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
+                        nextDownListItem = (*downMiddleRowListItem).has(w.ids.next) ? &(*downMiddleRowListItem)[w.ids.next] : nullptr;
                     }
                 } else if (hasMoreUp && !hasMoreDown) {
                     // ┌──┬──┐
@@ -438,7 +435,7 @@ void EdgeDetector::sortShapePoints()
                     // │xx│  │ <- down-line, no more pixel in this line
                     // └──┴──┘
                     // step up line iter only
-                    nextUpListItem   = &(*upMiddleRowListItem)[kb.ids.next];
+                    nextUpListItem   = &(*upMiddleRowListItem)[w.ids.next];
                     nextDownListItem = downMiddleRowListItem;
                 } else if (!hasMoreUp && hasMoreDown) {
                     // ┌──┐
@@ -448,7 +445,7 @@ void EdgeDetector::sortShapePoints()
                     // └──┘
                     // step down line iter only
                     nextUpListItem   = upMiddleRowListItem;
-                    nextDownListItem = (*downMiddleRowListItem).has(kb.ids.next) ? &(*downMiddleRowListItem)[kb.ids.next] : nullptr;
+                    nextDownListItem = (*downMiddleRowListItem).has(w.ids.next) ? &(*downMiddleRowListItem)[w.ids.next] : nullptr;
                 }
 
                 hasMoreUp       = (nextUpListItem != firstColumnPixelItem);
@@ -504,7 +501,7 @@ void EdgeDetector::sortShapePoints()
             } break;
             case ScanLineState::Down: {
                 CellI& currentPixelItem = *currentPixelItemPtr;
-                CellI& currentPixel     = currentPixelItem[kb.ids.value];
+                CellI& currentPixel     = currentPixelItem[w.ids.value];
                 CellI& currentPoint     = currentPixel["downLeftPoint"];
                 int downLeftPointX      = static_cast<Number&>(currentPoint["x"]).value();
 
@@ -516,7 +513,7 @@ void EdgeDetector::sortShapePoints()
                 ss << fmt::format("({},{}) ", pointX, pointY);
                 shapePoints.add(currentPoint["right"]);
 
-                currentPixelItemPtr = currentPixelItem.has(kb.ids.next) ? &currentPixelItem[kb.ids.next] : nullptr;
+                currentPixelItemPtr = currentPixelItem.has(w.ids.next) ? &currentPixelItem[w.ids.next] : nullptr;
             } break;
             }
         }
@@ -543,7 +540,7 @@ void EdgeDetector::calculateEdgesForShapes()
 
         ProcessingMode processingMode = ProcessingMode::ExternalEdgeStart;
         CellI* processingDirectionPtr = &DirectionRightEV;
-        CellI* currentListItemPtr     = &currentShape["shapePoints"][kb.ids.first];
+        CellI* currentListItemPtr     = &currentShape["shapePoints"][w.ids.first];
         CellI* previousListItemPtr    = nullptr;
         CellI* firstColumnPointItem   = currentListItemPtr;
 
@@ -562,7 +559,7 @@ void EdgeDetector::calculateEdgesForShapes()
 
         while (currentListItemPtr || currentShapePointPtr) {
             CellI& currentListItem = *currentListItemPtr;
-            CellI& shapePoint      = currentListItemPtr ? (*currentListItemPtr)[kb.ids.value] : *currentShapePointPtr;
+            CellI& shapePoint      = currentListItemPtr ? (*currentListItemPtr)[w.ids.value] : *currentShapePointPtr;
             int pointX             = static_cast<Number&>(shapePoint["x"]).value();
             int pointY             = static_cast<Number&>(shapePoint["y"]).value();
 #if 0
@@ -619,15 +616,15 @@ For leftToRight direction edge from point middle
             case ProcessingMode::ExternalEdgeStart:
             case ProcessingMode::InternalEdgeStart: {
                 // create new edge
-                CellI& newEdge   = *new Object(kb, ShapeEdgeStruct);
-                List& edgeNodes  = *new List(kb, ShapeEdgeNodeStruct);
-                CellI& newEdgeId = kb.pools.numbers.get(static_cast<Number&>(currentShape["lastEdgeId"]).value() + 1);
+                CellI& newEdge   = *new Object(w, ShapeEdgeStruct);
+                List& edgeNodes  = *new List(w, ShapeEdgeNodeStruct);
+                CellI& newEdgeId = w.pools.numbers.get(static_cast<Number&>(currentShape["lastEdgeId"]).value() + 1);
                 currentShape.set("lastEdgeId", newEdgeId);
                 newEdge.set("shape", currentShape);
                 newEdge.set("edgeNodes", edgeNodes);
                 newEdge.set("id", newEdgeId);
-                newEdge.set("rotationCorners", *new Object(kb, ShapeEdgeRotationCornersStruct));
-                newEdge.set("mirroringCorners", *new Object(kb, ShapeEdgeMirroringCornersStruct));
+                newEdge.set("rotationCorners", *new Object(w, ShapeEdgeRotationCornersStruct));
+                newEdge.set("mirroringCorners", *new Object(w, ShapeEdgeMirroringCornersStruct));
 
                 addEdgeToShape(currentShape, newEdge["id"], newEdge);
 
@@ -647,15 +644,15 @@ For leftToRight direction edge from point middle
                 } else {
                     newEdge.set("kind", InternalEdgeEV);
                     processingMode   = ProcessingMode::InternalEdgeDetect;
-                    CellI& distanceX = kb.pools.numbers.get(pointX - startPointX);
-                    CellI& distanceY = kb.pools.numbers.get(pointY - startPointY);
+                    CellI& distanceX = w.pools.numbers.get(pointX - startPointX);
+                    CellI& distanceY = w.pools.numbers.get(pointY - startPointY);
                     newEdge.set("fromExternalX", distanceX);
                     newEdge.set("fromExternalY", distanceY);
                     CellI* internalEdgesPtr = nullptr;
                     if (currentShape.missing("internalEdges")) {
-                        static CellI& InternalEdgeLookup = kb.getStruct("arc::Shape::InternalEdgeLookup");
+                        static CellI& InternalEdgeLookup = w.getStruct("arc::Shape::InternalEdgeLookup");
 
-                        internalEdgesPtr = new Map(kb, kb.std.Number, InternalEdgeLookup);
+                        internalEdgesPtr = new Map(w, w.std.Number, InternalEdgeLookup);
                         currentShape.set("internalEdges", *internalEdgesPtr);
                     } else {
                         internalEdgesPtr = &currentShape["internalEdges"];
@@ -663,9 +660,9 @@ For leftToRight direction edge from point middle
                     Map& internalEdges = static_cast<Map&>(*internalEdgesPtr);
                     CellI* colXPtr     = nullptr;
                     if (!internalEdges.hasKey(distanceY)) {
-                        static CellI& InternalEdgeLookupRow = kb.getStruct(kb.templateId("std::Map", kb.ids.keyType, kb.std.Number, kb.ids.valueType, ShapeEdgeStruct));
+                        static CellI& InternalEdgeLookupRow = w.getStruct(w.templateId("std::Map", w.ids.keyType, w.std.Number, w.ids.valueType, ShapeEdgeStruct));
 
-                        colXPtr = new Map(kb, kb.std.Number, InternalEdgeLookupRow);
+                        colXPtr = new Map(w, w.std.Number, InternalEdgeLookupRow);
                         internalEdges.add(distanceY, *colXPtr);
                     } else {
                         colXPtr = &internalEdges.getValue(distanceY);
@@ -1139,7 +1136,7 @@ For leftToRight direction edge from point middle
                 if (shapePoint.has("edgeJoint")) {
                     fromEdgeJointPtr = &shapePoint["edgeJoint"];
                 } else {
-                    fromEdgeJointPtr = new Object(kb, ShapeEdgeJointStruct);
+                    fromEdgeJointPtr = new Object(w, ShapeEdgeJointStruct);
                     shapePoint.set("edgeJoint", *fromEdgeJointPtr);
                 }
                 CellI& fromEdgeJoint = *fromEdgeJointPtr;
@@ -1152,7 +1149,7 @@ For leftToRight direction edge from point middle
                 if (toShapePoint.has("edgeJoint")) {
                     toEdgeJointPtr = &toShapePoint["edgeJoint"];
                 } else {
-                    toEdgeJointPtr = new Object(kb, ShapeEdgeJointStruct);
+                    toEdgeJointPtr = new Object(w, ShapeEdgeJointStruct);
                     toShapePoint.set("edgeJoint", *toEdgeJointPtr);
                 }
 
@@ -1162,7 +1159,7 @@ For leftToRight direction edge from point middle
                 }
 
                 // new edge node
-                CellI& newEdgeNode = *new Object(kb, ShapeEdgeNodeStruct);
+                CellI& newEdgeNode = *new Object(w, ShapeEdgeNodeStruct);
                 newEdgeNode.set("edge", newEdge);
                 newEdgeNode.set("from", shapePoint);
                 newEdgeNode.set("direction", *processingDirectionPtr);
@@ -1225,7 +1222,7 @@ For leftToRight direction edge from point middle
                     processingDirectionPtr = &DirectionRightEV;
                     processingMode         = ProcessingMode::InternalEdgeStart;
                 } else {
-                    currentListItemPtr = currentListItem.has(kb.ids.next) ? &currentListItem[kb.ids.next] : nullptr;
+                    currentListItemPtr = currentListItem.has(w.ids.next) ? &currentListItem[w.ids.next] : nullptr;
                 }
             } break;
             } // switch processinMode
@@ -1238,7 +1235,7 @@ void EdgeDetector::processEdgeNodes()
     CellI* firstColumnPointPtr = &(*firstShapePixelPtr())["upLeftPoint"];
     CellI* shapePointPtr       = firstColumnPointPtr;
     CellI* lastShapeEdgeInLine = nullptr;
-    List internalEdges(kb, ShapeEdgeStruct);
+    List internalEdges(w, ShapeEdgeStruct);
     List::Item* lastInternalEdgeItem = nullptr;
     enum class ProcessingDirection
     {
@@ -1329,7 +1326,7 @@ void EdgeDetector::processEdgeNodes()
                     CellI* edgePixelListPtr = nullptr;
                     CellI& shapeEdge        = *lastShapeEdgeInLine;
                     if (shapeEdge.missing("shapePixels")) {
-                        List& edgeNodes = *new List(kb, ShapePixelStruct);
+                        List& edgeNodes = *new List(w, ShapePixelStruct);
                         shapeEdge.set("shapePixels", edgeNodes);
                         edgePixelListPtr = &edgeNodes;
                     } else {
@@ -1342,7 +1339,7 @@ void EdgeDetector::processEdgeNodes()
                         CellI& lastInternalEdge = internalEdges["last"]["value"];
                         CellI* shapeSetPtr      = nullptr;
                         if (lastInternalEdge.missing("shapes")) {
-                            Set& newShapesSet = *new Set(kb, ShapeStruct);
+                            Set& newShapesSet = *new Set(w, ShapeStruct);
                             lastInternalEdge.set("shapes", newShapesSet);
                             shapeSetPtr = &newShapesSet;
                         } else {
@@ -1647,8 +1644,8 @@ void EdgeDetector::findMirroringCornersDownLeft()
 CellI* EdgeDetector::firstShapePixelPtr()
 {
     Object& shapePixels = static_cast<Object&>(frame()["shapePixels"]);
-    Object& colX        = static_cast<Object&>(shapePixels.method(kb.name("getValue"), { kb.ids.key, _0_ }));
-    CellI& shapePixel   = colX.method(kb.name("getValue"), { kb.ids.key, _0_ });
+    Object& colX        = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.ids.key, _0_ }));
+    CellI& shapePixel   = colX.method(w.name("getValue"), { w.ids.key, _0_ });
     return &shapePixel;
 }
 
@@ -1767,21 +1764,21 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
 class Vector : public cells::CellI
 {
 public:
-    Vector(Brain& kb, Number& x, Number& y) :
-        CellI(kb, "Vector"),
+    Vector(World& w, Number& x, Number& y) :
+        CellI(w, "Vector"),
         m_x(x),
         m_y(y)
     { }
 
     bool has(CellI& key) override
     {
-        if (&key == &kb.ids.struct_) {
+        if (&key == &w.ids.struct_) {
             return true;
         }
-        if (&key == &kb.coordinates.x) {
+        if (&key == &w.coordinates.x) {
             return true;
         }
-        if (&key == &kb.coordinates.y) {
+        if (&key == &w.coordinates.y) {
             return true;
         }
 
@@ -1805,15 +1802,15 @@ public:
 
     CellI& operator[](CellI& key) override
     {
-        if (&key == &kb.ids.struct_) {
-            static CellI& VectorStruct = kb.getStruct("arc::Vector");
+        if (&key == &w.ids.struct_) {
+            static CellI& VectorStruct = w.getStruct("arc::Vector");
 
             return VectorStruct;
         }
-        if (&key == &kb.coordinates.x) {
+        if (&key == &w.coordinates.x) {
             return m_x;
         }
-        if (&key == &kb.coordinates.y) {
+        if (&key == &w.coordinates.y) {
             return m_y;
         }
 
@@ -1832,8 +1829,8 @@ public:
 class Shape : public cells::CellI
 {
 public:
-    Shape(Brain& kb, cells::CellI& color, List& externalEdgeLine, cells::TrieMap& internalEdges) :
-        cells::CellI(kb),
+    Shape(World& w, cells::CellI& color, List& externalEdgeLine, cells::TrieMap& internalEdges) :
+        cells::CellI(w),
         m_color(color),
         m_externalEdgeLine(externalEdgeLine),
         m_internalEdges(internalEdges) { }
@@ -1847,16 +1844,16 @@ public:
 
     bool has(CellI& key) override
     {
-        if (&key == &kb.ids.struct_) {
+        if (&key == &w.ids.struct_) {
             return true;
         }
-        if (&key == &kb.name("externalEdgeLine")) {
+        if (&key == &w.name("externalEdgeLine")) {
             return true;
         }
-        if (&key == &kb.ids.color) {
+        if (&key == &w.ids.color) {
             return true;
         }
-        if (&key == &kb.name("internalEdges")) {
+        if (&key == &w.name("internalEdges")) {
             return true;
         }
 
@@ -1880,16 +1877,16 @@ public:
 
     CellI& operator[](CellI& key) override
     {
-        if (&key == &kb.ids.struct_) {
-            return kb.std.Cell; // TODO
+        if (&key == &w.ids.struct_) {
+            return w.std.Cell; // TODO
         }
-        if (&key == &kb.name("externalEdgeLine")) {
+        if (&key == &w.name("externalEdgeLine")) {
             return m_externalEdgeLine;
         }
-        if (&key == &kb.ids.color) {
+        if (&key == &w.ids.color) {
             return m_color;
         }
-        if (&key == &kb.name("internalEdges")) {
+        if (&key == &w.name("internalEdges")) {
             return m_internalEdges;
         }
 
@@ -1915,11 +1912,11 @@ public:
 class RootFrame : public cells::CellI
 {
 public:
-    RootFrame(Brain& kb, int width, int height) :
-        cells::CellI(kb),
-        m_width(kb, width),
-        m_height(kb, height),
-        m_shapesMap(kb,kb.std.Cell, kb.std.Cell) // TODO
+    RootFrame(World& w, int width, int height) :
+        cells::CellI(w),
+        m_width(w, width),
+        m_height(w, height),
+        m_shapesMap(w,w.std.Cell, w.std.Cell) // TODO
     { }
 
     using CellI::erase;
@@ -1931,16 +1928,16 @@ public:
 
     bool has(CellI& key) override
     {
-        if (&key == &kb.ids.struct_) {
+        if (&key == &w.ids.struct_) {
             return true;
         }
-        if (&key == &kb.ids.width) {
+        if (&key == &w.ids.width) {
             return true;
         }
-        if (&key == &kb.ids.height) {
+        if (&key == &w.ids.height) {
             return true;
         }
-        if (&key == &kb.name("shapesMap")) {
+        if (&key == &w.name("shapesMap")) {
             return true;
         }
 
@@ -1964,16 +1961,16 @@ public:
 
     CellI& operator[](CellI& key) override
     {
-        if (&key == &kb.ids.struct_) {
-            return kb.std.Cell; // TODO
+        if (&key == &w.ids.struct_) {
+            return w.std.Cell; // TODO
         }
-        if (&key == &kb.ids.width) {
+        if (&key == &w.ids.width) {
             return m_width;
         }
-        if (&key == &kb.ids.height) {
+        if (&key == &w.ids.height) {
             return m_height;
         }
-        if (&key == &kb.name("shapesMap")) {
+        if (&key == &w.name("shapesMap")) {
             return m_shapesMap;
         }
 
@@ -1999,22 +1996,22 @@ public:
 
 void EdgeDetector::createResult()
 {
-    int width = static_cast<Number&>(frame().get(kb.ids.width)).value();
-    int height = static_cast<Number&>(frame().get(kb.ids.height)).value();
-    RootFrame rootFrame(kb, width, height);
+    int width = static_cast<Number&>(frame().get(w.ids.width)).value();
+    int height = static_cast<Number&>(frame().get(w.ids.height)).value();
+    RootFrame rootFrame(w, width, height);
 
     Visitor::visitList(frame()["shapes"], [this, &rootFrame](CellI& currentShape, int, bool&) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
-        static CellI& ArcDirections = kb.getStruct("arc::Directions");
+        static CellI& ArcDirections = w.getStruct("arc::Directions");
 
         // offset
-        CellI& firstPoint      = currentShape["shapePoints"][kb.ids.first][kb.ids.value];
+        CellI& firstPoint      = currentShape["shapePoints"][w.ids.first][w.ids.value];
         Number& x              = static_cast<Number&>(firstPoint["x"]);
         Number& y              = static_cast<Number&>(firstPoint["y"]);
-        Vector& offset         = *new Vector(kb, x, y);
+        Vector& offset         = *new Vector(w, x, y);
         CellI& edgesList       = currentShape["edges"]["list"];
-        List& externalEdgeLine = *new List(kb, ArcDirections);
-        TrieMap& internalEdges = *new TrieMap(kb, kb.std.Cell, kb.std.Cell);
+        List& externalEdgeLine = *new List(w, ArcDirections);
+        TrieMap& internalEdges = *new TrieMap(w, w.std.Cell, w.std.Cell);
 
         Visitor::visitList(edgesList, [this, &externalEdgeLine, &internalEdges](CellI& currentEdge, int i, bool&) {
             List* outEdgePtr = nullptr;
@@ -2024,8 +2021,8 @@ void EdgeDetector::createResult()
             } else {
                 Number& x                  = static_cast<Number&>(currentEdge["fromExternalX"]);
                 Number& y                  = static_cast<Number&>(currentEdge["fromExternalY"]);
-                Vector& offset             = *new Vector(kb, x, y);
-                List& internalEdgeLine     = *new List(kb, ArcDirections);
+                Vector& offset             = *new Vector(w, x, y);
+                List& internalEdgeLine     = *new List(w, ArcDirections);
                 internalEdges.addWithDataKey(offset, internalEdgeLine);
                 outEdgePtr = &internalEdgeLine;
             }
@@ -2035,7 +2032,7 @@ void EdgeDetector::createResult()
                 outEdge.add(node["direction"]);
             });
         });
-        Shape& shape = *new Shape(kb, currentShape["color"], externalEdgeLine, internalEdges);
+        Shape& shape = *new Shape(w, currentShape["color"], externalEdgeLine, internalEdges);
         rootFrame.addShape(offset, shape);
     });
     auto printDirection = [this](CellI& direction) {
@@ -2054,29 +2051,29 @@ void EdgeDetector::createResult()
     {
     public:
         Base* ast = nullptr;
-        RootFrameMaker(Brain& kb, Number& width, Number& height) :
-            AstHelper(kb)
+        RootFrameMaker(World& w, Number& width, Number& height) :
+            AstHelper(w)
         {
             ast = &(var_("rootFrame") = new_("RootFrame", "new")("width", _(width))("height", _(height)));
         }
-    } rootFrameMaker(kb, rootFrame.m_width, rootFrame.m_height);
+    } rootFrameMaker(w, rootFrame.m_width, rootFrame.m_height);
     CellI& astNewRootFrame = *rootFrameMaker.ast;
     CellI& shapesMap = rootFrame["shapesMap"];
     Visitor::visitList(shapesMap[ids.list], [this, &printDirection, &shapesMap](CellI& kvPair, int, bool&) {
-        Vector& offset = static_cast<Vector&>(kvPair[kb.ids.key]);
-        Shape& shape   = static_cast<Shape&>(kvPair[kb.ids.value]);
+        Vector& offset = static_cast<Vector&>(kvPair[w.ids.key]);
+        Shape& shape   = static_cast<Shape&>(kvPair[w.ids.value]);
         std::cout << "rootFrame.addShape({ " << shape.m_color.label() << ", [" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
 
         class GetShapeAst : public AstHelper
         {
         public:
             Base* ast = nullptr;
-            GetShapeAst(Brain& kb, CellI& offset, CellI& shape) :
-                AstHelper(kb)
+            GetShapeAst(World& w, CellI& offset, CellI& shape) :
+                AstHelper(w)
             {
                 Base& var = equal(var_("rootFrame")("getShape")("offset", _(offset)), _(shape));
             }
-        } getShapeAst(kb, offset, shape);
+        } getShapeAst(w, offset, shape);
 
         Visitor::visitList(shape["externalEdgeLine"], [this, &printDirection](CellI& direction, int, bool&) {
             printDirection(direction);
@@ -2086,8 +2083,8 @@ void EdgeDetector::createResult()
             std::cout << ", inEdges: {";
         }
         Visitor::visitList(shape["internalEdges"][ids.list], [this, &printDirection, &shape](CellI& kvPair, int, bool&) {
-            Vector& offset     = static_cast<Vector&>(kvPair[kb.ids.key]);
-            List& internalEdge = static_cast<List&>(kvPair[kb.ids.value]);
+            Vector& offset     = static_cast<Vector&>(kvPair[w.ids.key]);
+            List& internalEdge = static_cast<List&>(kvPair[w.ids.value]);
             std::cout << "[" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
             Visitor::visitList(internalEdge, [this, &printDirection](CellI& direction, int, bool&) {
                 printDirection(direction);
@@ -2100,9 +2097,9 @@ void EdgeDetector::createResult()
         std::cout << "});" << std::endl;
     });
 
-    ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
-    toolFinder.findConversionTools(kb._2_, kb._4_);
-    toolFinder.findConversionTools(kb.boolean.false_, kb.boolean.true_);
+    ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
+    toolFinder.findConversionTools(w._2_, w._4_);
+    toolFinder.findConversionTools(w.boolean.false_, w.boolean.true_);
 
 #if 0
 ┌──┬──┬──┬──┐

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "cells/Brain.h"
-#include "cells/Cells.h"
+#include "cells/World.h"
 
 namespace infocell {
 namespace cells {
@@ -10,7 +9,7 @@ namespace arc {
 class Shape : public CellI
 {
 public:
-    Shape(Brain& kb, Number& id, CellI& color, Number& width, Number& height);
+    Shape(World& w, Number& id, CellI& color, Number& width, Number& height);
 
     bool has(CellI& role) override;
     void set(CellI& role, CellI& value) override;

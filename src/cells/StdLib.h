@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Brain.h"
+#include "World.h"
 
 namespace infocell {
 namespace cells {
@@ -8,7 +8,7 @@ namespace cells {
 class AstStd : public AstHelper
 {
 public:
-    AstStd(Brain& kb);
+    AstStd(World& w);
 
 private:
     void createOp();

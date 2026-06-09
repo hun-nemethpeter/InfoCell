@@ -16,12 +16,12 @@ namespace cli {
 class CompareEdgesCommand
 {
 public:
-    CompareEdgesCommand(cells::Brain& kb, cells::arc::Grid& inputGrid, cells::arc::Grid& outputGrid) :
-        kb(kb),
+    CompareEdgesCommand(cells::World& w, cells::arc::Grid& inputGrid, cells::arc::Grid& outputGrid) :
+        w(w),
         m_inputGrid(inputGrid),
         m_outputGrid(outputGrid),
-        m_inputEdges(kb),
-        m_outputEdges(kb)
+        m_inputEdges(w),
+        m_outputEdges(w)
     {
         std::cout << "Compare edges!" << std::endl;
     }
@@ -33,7 +33,7 @@ public:
         m_outputEdges.detect(m_outputGrid);
     }
 
-    cells::Brain& kb;
+    cells::World& w;
     cells::arc::Grid& m_inputGrid;
     cells::arc::Grid& m_outputGrid;
     arc::EdgeDetector m_inputEdges;
@@ -143,12 +143,12 @@ int App::run(int argc, char* argv[])
     outputGrid->add_option("-ik,--io-kind", outputIoKind, "Input or output grid inside the pair (input or output)")->transform(CLI::CheckedTransformer(ioKindMap, CLI::ignore_case));
 
     compareEdgeCommand->callback([&]() {
-        cells::Brain kb([]() {
-            Brain::Logger::createLogger("edge");
-            Brain::Logger::createLogger("shapeCorners");
-            Brain::Logger::createLogger("shapeRelations");
-            Brain::Logger::createLogger("shapeIdGrid");
-            Brain::Logger::createLogger("grid");
+        cells::World w([]() {
+            World::Logger::createLogger("edge");
+            World::Logger::createLogger("shapeCorners");
+            World::Logger::createLogger("shapeRelations");
+            World::Logger::createLogger("shapeIdGrid");
+            World::Logger::createLogger("grid");
 
             spdlog::get("cells")->set_level(spdlog::level::off);
             spdlog::get("compileStruct")->set_level(spdlog::level::off);
@@ -188,7 +188,7 @@ int App::run(int argc, char* argv[])
                 taskFilePathStr       = taskFilePath.make_preferred().string();
                 std::cout << "File " << taskFilePathStr << " " << (fs::exists(taskFilePath) ? "exist" : "doesn't exist") << std::endl;
             }
-            taskUniquePtr = std::make_unique<arc::Task>(kb, taskId, nlohmann::json::parse(std::ifstream(taskFilePathStr)));
+            taskUniquePtr = std::make_unique<arc::Task>(w, taskId, nlohmann::json::parse(std::ifstream(taskFilePathStr)));
         }
         if (agi2Mode) {
             fs::path rootDir;
@@ -198,7 +198,7 @@ int App::run(int argc, char* argv[])
             if (hasFullEval || hasEvalChallenges) {
                 fs::path taskSetFilePath       = rootDir / INFOCELL_ARC_PRIZE_EVALUATION_CHALLENGES_FILENAME;
                 std::string taskSetFilePathStr = taskSetFilePath.make_preferred().string();
-                taskSetPtr                     = std::make_unique<arc::TaskSet>(kb, taskSetFilePathStr);
+                taskSetPtr                     = std::make_unique<arc::TaskSet>(w, taskSetFilePathStr);
                 if (hasFullEval) {
                     fs::path solutionPath       = rootDir / INFOCELL_ARC_PRIZE_EVALUATION_SOLUTIONS_FILENAME;
                     std::string solutionPathStr = solutionPath.make_preferred().string();
@@ -208,7 +208,7 @@ int App::run(int argc, char* argv[])
             if (hasFullTraining || hasTrainingChallenges) {
                 fs::path taskSetFilePath       = rootDir / INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME;
                 std::string taskSetFilePathStr = taskSetFilePath.make_preferred().string();
-                taskSetPtr                     = std::make_unique<arc::TaskSet>(kb, taskSetFilePathStr);
+                taskSetPtr                     = std::make_unique<arc::TaskSet>(w, taskSetFilePathStr);
                 if (hasFullTraining) {
                     fs::path solutionPath       = rootDir / INFOCELL_ARC_PRIZE_TRAINING_SOLUTIONS_FILENAME;
                     std::string solutionPathStr = solutionPath.make_preferred().string();
@@ -231,7 +231,7 @@ int App::run(int argc, char* argv[])
         cells::arc::Grid& inputGrid         = (inputIoKind == IoKind::Input) ? inputGridPair.m_input : *inputGridPair.m_output;
         arc::Task::GridPair& outputGridPair = (outputPairKind == PairKind::Training) ? task.m_examples[outputPairIndex] : task.m_tests[outputPairIndex];
         cells::arc::Grid& outputGrid        = (outputIoKind == IoKind::Input) ? outputGridPair.m_input : *outputGridPair.m_output;
-        CompareEdgesCommand compareEdgesCommand(kb, inputGrid, outputGrid);
+        CompareEdgesCommand compareEdgesCommand(w, inputGrid, outputGrid);
         compareEdgesCommand.start();
         std::cout << "Finished!" << std::endl;
     });

@@ -12,8 +12,8 @@ public:
     class GridPair
     {
     public:
-        GridPair(cells::Brain& kb, int number, const std::string& input);
-        GridPair(cells::Brain& kb, int number, const std::string& input, const std::string& output);
+        GridPair(cells::World& w, int number, const std::string& input);
+        GridPair(cells::World& w, int number, const std::string& input, const std::string& output);
 
         const int m_number;
         native::Grid m_inputGrid;
@@ -22,8 +22,8 @@ public:
         std::unique_ptr<cells::arc::Grid> m_output;
     };
 
-    Task(cells::Brain& kb, const nlohmann::json& arcJsonTask);
-    Task(cells::Brain& kb, const std::string& id, const nlohmann::json& jsonTask);
+    Task(cells::World& w, const nlohmann::json& arcJsonTask);
+    Task(cells::World& w, const std::string& id, const nlohmann::json& jsonTask);
 
     std::string m_id;
     std::vector<GridPair> m_examples;
@@ -44,10 +44,10 @@ class TaskSet
 {
 public:
     using Tasks = std::map<std::string, Task>;
-    TaskSet(cells::Brain& kb, const std::string& filePath);
+    TaskSet(cells::World& w, const std::string& filePath);
     void addSolutions(const std::string& filePath);
 
-    cells::Brain& kb;
+    cells::World& w;
     Tasks m_tasks;
 };
 

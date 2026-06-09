@@ -9,8 +9,6 @@ add_library(cells-lib STATIC
     AstImpl.h
     Cells.cc
     Cells.h
-    Brain.cc
-    Brain.h
     Compiler.cc
     Compiler.h
     NodeBase.cc
@@ -19,6 +17,8 @@ add_library(cells-lib STATIC
     StdLib.h
     ToolFinder.cc
     ToolFinder.h
+    World.cc
+    World.h
 )
 target_include_directories(cells-lib
     PUBLIC

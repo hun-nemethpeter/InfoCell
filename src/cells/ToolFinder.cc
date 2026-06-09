@@ -1,6 +1,6 @@
 ﻿#include "ToolFinder.h"
 
-#include "Brain.h"
+#include "World.h"
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "util/Log.h"
@@ -19,8 +19,8 @@ ToolFinder::Node::~Node()
 }
 
 // ============================================================================
-ToolFinder::ToolFinder(Brain& kb) :
-    kb(kb)
+ToolFinder::ToolFinder(World& w) :
+    w(w)
 {
     m_root = std::make_unique<Node>();
 }
@@ -34,9 +34,9 @@ bool ToolFinder::empty()
 // ============================================================================
 CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
 {
-    CellI& slotList    = effectAst.struct_()[kb.ids.slots][kb.ids.list];
-    CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
-    List& ret          = *new List(kb, kb.std.Cell);
+    CellI& slotList    = effectAst.struct_()[w.ids.slots][w.ids.list];
+    CellI* slotItemPtr = slotList.has(w.ids.first) ? &slotList[w.ids.first] : nullptr;
+    List& ret          = *new List(w, w.std.Cell);
     ret.label(effectAst.label());
     struct Context
     {
@@ -48,55 +48,55 @@ CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
     CellI* currentPtr = &effectAst;
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
-        CellI& slot     = slotItem[kb.ids.value];
-        CellI& key     = slot[kb.ids.key];
+        CellI& slot     = slotItem[w.ids.value];
+        CellI& key     = slot[w.ids.key];
         CellI& current  = *currentPtr;
 
         if (first) {
             first = false;
-            ret.add(kb.ids.struct_);
+            ret.add(w.ids.struct_);
             ret.add(current.struct_());
         }
 
         if (current.has(key)) {
             CellI& value = current[key];
             ret.add(key);
-            if (&key == &kb.ids.struct_) {
+            if (&key == &w.ids.struct_) {
                 ret.add(value);
-                if (&key == &kb.ids.op) {
+                if (&key == &w.ids.op) {
                     ret.add(value);
                 }
-            } else if (&value.struct_() == &kb.std.ast.Cell) {
-                ret.add(value[kb.ids.value]);
-                if (&value[kb.ids.value] == &kb.ids.op) {
-                    ret.add(value[kb.ids.value]);
+            } else if (&value.struct_() == &w.std.ast.Cell) {
+                ret.add(value[w.ids.value]);
+                if (&value[w.ids.value] == &w.ids.op) {
+                    ret.add(value[w.ids.value]);
                 }
-            } else if (&value.struct_() == &kb.std.ast.Member || &value.struct_() == &kb.std.ast.Return) {
-                ret.add(kb.ids.op);
-                if (&value.struct_() == &kb.std.ast.Member) {
-                    ret.add(kb.ids.variable);
+            } else if (&value.struct_() == &w.std.ast.Member || &value.struct_() == &w.std.ast.Return) {
+                ret.add(w.ids.op);
+                if (&value.struct_() == &w.std.ast.Member) {
+                    ret.add(w.ids.variable);
                 } else {
-                    ret.add(kb.ids.return_);
+                    ret.add(w.ids.return_);
                 }
-            } else if ((&key != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
-                ret.add(kb.ids.op);
-                ret.add(kb.ids.push);
+            } else if ((&key != &w.ids.struct_) && value.struct_()[w.ids.memberOf][w.ids.index].has(w.std.ast.Base)) {
+                ret.add(w.ids.op);
+                ret.add(w.ids.push);
                 stack.push({ current, *slotItemPtr });
                 first       = true;
                 currentPtr  = &value;
-                slotItemPtr = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
+                slotItemPtr = &value.struct_()[w.ids.slots][w.ids.list][w.ids.first];
                 continue;
             }
         }
 
-        slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
+        slotItemPtr = slotItem.has(w.ids.next) ? &slotItem[w.ids.next] : nullptr;
         if (!slotItemPtr && !stack.empty()) {
             slotItemPtr = &stack.top().slotItem;
             currentPtr  = &stack.top().ast;
             stack.pop();
-            ret.add(kb.ids.op);
-            ret.add(kb.ids.pop);
-            slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+            ret.add(w.ids.op);
+            ret.add(w.ids.pop);
+            slotItemPtr = (*slotItemPtr).has(w.ids.next) ? &(*slotItemPtr)[w.ids.next] : nullptr;
         }
     }
 
@@ -152,15 +152,15 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBluep
 // ============================================================================
 void ToolFinder::add(CellI& tool, CellI& compiledToolType)
 {
-    auto& effects = tool[kb.ids.description][kb.ids.asts];
-    if (tool.has(kb.ids.returnType)) {
+    auto& effects = tool[w.ids.description][w.ids.asts];
+    if (tool.has(w.ids.returnType)) {
         // so this can be a conversion tool
-        CellI& returnType = tool[kb.ids.returnType][kb.ids.value];
-        CellI& toolInputSlots = compiledToolType[kb.ids.slots][kb.ids.list];
+        CellI& returnType = tool[w.ids.returnType][w.ids.value];
+        CellI& toolInputSlots = compiledToolType[w.ids.slots][w.ids.list];
         Visitor::visitList(toolInputSlots, [this, &tool, &compiledToolType, &returnType](CellI& slot, int i, bool& stop) {
-            CellI& inputType = slot[kb.ids.type];
+            CellI& inputType = slot[w.ids.type];
             ConversionToolKey key(inputType, returnType);
-            ConversionToolBlueprint blueprint(tool, compiledToolType, slot[kb.ids.key]);
+            ConversionToolBlueprint blueprint(tool, compiledToolType, slot[w.ids.key]);
             m_conversionTools.insert({ key, blueprint });
         });
     }
@@ -170,17 +170,17 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
 
         ss << "" << tool.label() << "(";
 
-        CellI& toolInputSlots = compiledToolType[kb.ids.slots][kb.ids.list];
+        CellI& toolInputSlots = compiledToolType[w.ids.slots][w.ids.list];
         Visitor::visitList(toolInputSlots, [this, &ss, &tool](CellI& slot, int i, bool& stop) {
             if (i > 0) {
                 ss << ", ";
             }
-            CellI& inputType = slot[kb.ids.type];
-            ss << slot[kb.ids.key].label() << ": " << inputType.label();
+            CellI& inputType = slot[w.ids.type];
+            ss << slot[w.ids.key].label() << ": " << inputType.label();
         });
         ss << ")";
-        if (tool.has(kb.ids.returnType)) {
-            CellI& returnType = tool[kb.ids.returnType][kb.ids.value];
+        if (tool.has(w.ids.returnType)) {
+            CellI& returnType = tool[w.ids.returnType][w.ids.value];
             ss << ": " << returnType.label();
         }
         TRACE(toolFinder, "{} =>", ss.str());
@@ -202,75 +202,75 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
     std::deque<Context> stack;
 
     Node* currentNode  = m_root.get();
-    CellI& slotList    = effect.struct_()[kb.ids.slots][kb.ids.list];
-    CellI* slotItemPtr = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr;
+    CellI& slotList    = effect.struct_()[w.ids.slots][w.ids.list];
+    CellI* slotItemPtr = slotList.has(w.ids.first) ? &slotList[w.ids.first] : nullptr;
     bool first         = true;
     CellI* currentPtr  = &effect;
-    Map memberIds(kb, kb.std.Cell, kb.std.Cell);
+    Map memberIds(w, w.std.Cell, w.std.Cell);
 
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
-        CellI& slot     = slotItem[kb.ids.value];
-        CellI& key     = slot[kb.ids.key];
+        CellI& slot     = slotItem[w.ids.value];
+        CellI& key     = slot[w.ids.key];
         CellI& current  = *currentPtr;
 
         if (first) {
             first = false;
-            addValue(currentNode, kb.ids.struct_);
+            addValue(currentNode, w.ids.struct_);
             addValue(currentNode, current.struct_());
         }
 
         if (current.has(key)) {
             CellI& value = current[key];
             addValue(currentNode, key);
-            if (&value.struct_() == &kb.std.ast.Cell) {
-                addValue(currentNode, value[kb.ids.value]);
-                if (&value[kb.ids.value] == &kb.ids.op) {
-                    addValue(currentNode, value[kb.ids.value]);
+            if (&value.struct_() == &w.std.ast.Cell) {
+                addValue(currentNode, value[w.ids.value]);
+                if (&value[w.ids.value] == &w.ids.op) {
+                    addValue(currentNode, value[w.ids.value]);
                 }
-            } else if (&value.struct_() == &kb.std.ast.Member || &value.struct_() == &kb.std.ast.Return) {
-                addValue(currentNode, kb.ids.op);
+            } else if (&value.struct_() == &w.std.ast.Member || &value.struct_() == &w.std.ast.Return) {
+                addValue(currentNode, w.ids.op);
                 CellI* memberKeyPtr = nullptr;
-                if (&value.struct_() == &kb.std.ast.Member) {
-                    addValue(currentNode, kb.ids.variable);
-                    memberKeyPtr = &value[kb.ids.key];
+                if (&value.struct_() == &w.std.ast.Member) {
+                    addValue(currentNode, w.ids.variable);
+                    memberKeyPtr = &value[w.ids.key];
                 } else {
-                    addValue(currentNode, kb.ids.return_);
-                    // TODO kb.ids.return_ can not be a member name
-                    memberKeyPtr = &kb.ids.return_;
+                    addValue(currentNode, w.ids.return_);
+                    // TODO w.ids.return_ can not be a member name
+                    memberKeyPtr = &w.ids.return_;
                 }
                 CellI& memberKey = *memberKeyPtr;
                 if (!memberIds.hasKey(memberKey)) {
-                    List& path = *new List(kb, kb.std.Cell, fmt::format("path for {}", memberKey.label()));
+                    List& path = *new List(w, w.std.Cell, fmt::format("path for {}", memberKey.label()));
                     for (auto& stackItem : stack) {
-                        if (&stackItem.ast.struct_() == &kb.std.ast.Return) {
+                        if (&stackItem.ast.struct_() == &w.std.ast.Return) {
                             continue;
                         }
-                        auto& key = stackItem.slotItem[kb.ids.value][kb.ids.key];
+                        auto& key = stackItem.slotItem[w.ids.value][w.ids.key];
                         path.add(key);
                     }
-                    path.add(slotItem[kb.ids.value][kb.ids.key]);
+                    path.add(slotItem[w.ids.value][w.ids.key]);
                     memberIds.add(memberKey, path);
                 }
-            } else if ((&key != &kb.ids.struct_) && value.struct_()[kb.ids.memberOf][kb.ids.index].has(kb.std.ast.Base)) {
-                addValue(currentNode, kb.ids.op);
-                addValue(currentNode, kb.ids.push);
+            } else if ((&key != &w.ids.struct_) && value.struct_()[w.ids.memberOf][w.ids.index].has(w.std.ast.Base)) {
+                addValue(currentNode, w.ids.op);
+                addValue(currentNode, w.ids.push);
                 stack.push_back({ current, *slotItemPtr });
                 first       = true;
                 currentPtr  = &value;
-                slotItemPtr = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
+                slotItemPtr = &value.struct_()[w.ids.slots][w.ids.list][w.ids.first];
                 continue;
             }
         }
 
-        slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
+        slotItemPtr = slotItem.has(w.ids.next) ? &slotItem[w.ids.next] : nullptr;
         if (!slotItemPtr && !stack.empty()) {
             currentPtr  = &stack.back().ast;
             slotItemPtr = &stack.back().slotItem;
             stack.pop_back();
-            addValue(currentNode, kb.ids.op);
-            addValue(currentNode, kb.ids.pop);
-            slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+            addValue(currentNode, w.ids.op);
+            addValue(currentNode, w.ids.pop);
+            slotItemPtr = (*slotItemPtr).has(w.ids.next) ? &(*slotItemPtr)[w.ids.next] : nullptr;
         }
     }
 
@@ -290,26 +290,26 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
 // ============================================================================
 CellI* ToolFinder::processToolAst(CellI& toolAst, Map& memberIds, CellI& compiledToolType)
 {
-    CellI& membersList = toolAst[kb.ids.members][kb.ids.list];
-    CellI* slotItemPtr = membersList.has(kb.ids.first) ? &membersList[kb.ids.first] : nullptr;
+    CellI& membersList = toolAst[w.ids.members][w.ids.list];
+    CellI* slotItemPtr = membersList.has(w.ids.first) ? &membersList[w.ids.first] : nullptr;
     bool first         = true;
-    List& builder      = *new List(kb, kb.std.Cell, fmt::format("builder for {}", toolAst.label()));
+    List& builder      = *new List(w, w.std.Cell, fmt::format("builder for {}", toolAst.label()));
 
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
-        CellI& slot     = slotItem[kb.ids.value];
-        CellI& key     = slot[kb.ids.key];
+        CellI& slot     = slotItem[w.ids.value];
+        CellI& key     = slot[w.ids.key];
 
         if (first) {
             first = false;
-            builder.add(kb.ast.cell(kb.ids.struct_));
-            builder.add(kb.ast.cell(compiledToolType));
+            builder.add(w.ast.cell(w.ids.struct_));
+            builder.add(w.ast.cell(compiledToolType));
             continue;
         }
-        builder.add(kb.ast.cell(key));
+        builder.add(w.ast.cell(key));
         builder.add(memberIds.getValue(key));
 
-        slotItemPtr = slotItem.has(kb.ids.next) ? &slotItem[kb.ids.next] : nullptr;
+        slotItemPtr = slotItem.has(w.ids.next) ? &slotItem[w.ids.next] : nullptr;
     }
 
     return &builder;
@@ -318,18 +318,18 @@ CellI* ToolFinder::processToolAst(CellI& toolAst, Map& memberIds, CellI& compile
 // ============================================================================
 void ToolFinder::handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::stack<StackNode>& stack)
 {
-    slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+    slotItemPtr = (*slotItemPtr).has(w.ids.next) ? &(*slotItemPtr)[w.ids.next] : nullptr;
     while (!slotItemPtr) {
         if (stack.empty()) {
             return;
         }
 
-        auto opFindIt = node->m_children.find(&kb.ids.op);
+        auto opFindIt = node->m_children.find(&w.ids.op);
         if (opFindIt == node->m_children.end()) {
             return;
         }
         Node* opNode   = opFindIt->second;
-        auto popFindIt = opNode->m_children.find(&kb.ids.pop);
+        auto popFindIt = opNode->m_children.find(&w.ids.pop);
         if (popFindIt == opNode->m_children.end()) {
             return;
         }
@@ -338,7 +338,7 @@ void ToolFinder::handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& no
         slotItemPtr  = &stack.top().slotItem;
         effectAstPtr = &stack.top().effectAst;
         stack.pop();
-        slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+        slotItemPtr = (*slotItemPtr).has(w.ids.next) ? &(*slotItemPtr)[w.ids.next] : nullptr;
     }
 }
 
@@ -361,7 +361,7 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
 
     auto findIt = node->m_children.find(&value);
     if (findIt == node->m_children.end()) {
-        auto opFindIt = node->m_children.find(&kb.ids.op);
+        auto opFindIt = node->m_children.find(&w.ids.op);
         if (opFindIt == node->m_children.end()) {
             node = nullptr;
             return false;
@@ -370,12 +370,12 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
             Node* opNode = opFindIt->second;
 
             for (auto& [opKey, nextNode] : opNode->m_children) {
-                if (opKey == &kb.ids.variable) {
+                if (opKey == &w.ids.variable) {
                     node = nextNode;
                     handleStep(effectAstPtr, slotItemPtr, node, stack);
                     return true;
                 }
-                if (opKey == &kb.ids.return_) {
+                if (opKey == &w.ids.return_) {
                     if (findContext.toolKind == ToolKind::Expression) {
                         // TODO What to do if there are two "op return" in the effect description?
                         throw "Not implemented! Handling more then one op return is missing";
@@ -386,22 +386,22 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
                     findContext.expressionToolPtr = &(*effectAstPtr)[key];
                     return true;
                 }
-                if (opKey == &kb.ids.push) {
+                if (opKey == &w.ids.push) {
                     stack.push({ .effectAst = *effectAstPtr, .slotItem = *slotItemPtr });
                     effectAstPtr = &(*effectAstPtr)[key];
-                    slotItemPtr  = &value.struct_()[kb.ids.slots][kb.ids.list][kb.ids.first];
+                    slotItemPtr  = &value.struct_()[w.ids.slots][w.ids.list][w.ids.first];
                     node         = nextNode;
                     slotKind     = SlotKind::StructSlot;
                     return true;
                 }
-                if (opKey == &kb.ids.pop) {
+                if (opKey == &w.ids.pop) {
                     if (stack.empty()) {
                         return false;
                     }
                     slotItemPtr  = &stack.top().slotItem;
                     effectAstPtr = &stack.top().effectAst;
                     stack.pop();
-                    slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+                    slotItemPtr = (*slotItemPtr).has(w.ids.next) ? &(*slotItemPtr)[w.ids.next] : nullptr;
                     node        = nextNode;
                     if (!slotItemPtr) {
                         handleStep(effectAstPtr, slotItemPtr, node, stack);
@@ -413,7 +413,7 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
     } else {
         node = findIt->second;
     }
-    // the first slot is the kb.ids.struct_ but it is not in the slot list
+    // the first slot is the w.ids.struct_ but it is not in the slot list
     if (slotKind == SlotKind::StructSlot) {
         slotKind = SlotKind::NormalSlot;
         return true;
@@ -431,19 +431,19 @@ CellI* ToolFinder::findToolByEffectAst(CellI& effectAst)
     if (!tool) {
         return nullptr;
     }
-    Object retVal(kb, kb.std.ast.Cell);
-    createTool(retVal, kb.ids.value, *toolAst, *tool);
-    return &retVal[kb.ids.value];
+    Object retVal(w, w.std.ast.Cell);
+    createTool(retVal, w.ids.value, *toolAst, *tool);
+    return &retVal[w.ids.value];
 }
 
 // ============================================================================
 CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& outputEffectAst)
 {
-    CellI& slotList         = inputEffectAst.struct_()[kb.ids.slots][kb.ids.list];
+    CellI& slotList         = inputEffectAst.struct_()[w.ids.slots][w.ids.list];
     FindContext findContext = {
         .trieNode     = m_root.get(),
         .slotList     = &slotList,
-        .slotItemPtr  = slotList.has(kb.ids.first) ? &slotList[kb.ids.first] : nullptr,
+        .slotItemPtr  = slotList.has(w.ids.first) ? &slotList[w.ids.first] : nullptr,
         .slotKind     = SlotKind::StructSlot,
         .effectAstPtr = &inputEffectAst,
     };
@@ -452,8 +452,8 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
         findContext.toolKind = ToolKind::Statement;
         while (findContext.slotItemPtr)
         {
-            CellI& key = (*findContext.slotItemPtr)[kb.ids.value][kb.ids.key];
-            if (findContext.slotKind == SlotKind::StructSlot && !checkValue(findContext, kb.ids.struct_, (*findContext.effectAstPtr).struct_())) {
+            CellI& key = (*findContext.slotItemPtr)[w.ids.value][w.ids.key];
+            if (findContext.slotKind == SlotKind::StructSlot && !checkValue(findContext, w.ids.struct_, (*findContext.effectAstPtr).struct_())) {
                 return nullptr;
             }
 
@@ -465,16 +465,16 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
             if (!(findContext.trieNode && findContext.trieNode->m_isLeaf)) {
                 return nullptr;
             }
-            CellI& newEffectAst = *new Object(kb, kb.std.ast.Equal); // TODO FIX memory leak
+            CellI& newEffectAst = *new Object(w, w.std.ast.Equal); // TODO FIX memory leak
 
-            newEffectAst.set(kb.ids.lhs, *findContext.expressionToolPtr);
-            createTool(newEffectAst, kb.ids.rhs, inputEffectAst, *findContext.trieNode->m_data);
+            newEffectAst.set(w.ids.lhs, *findContext.expressionToolPtr);
+            createTool(newEffectAst, w.ids.rhs, inputEffectAst, *findContext.trieNode->m_data);
 
-            CellI& newSlotList = newEffectAst.struct_()[kb.ids.slots][kb.ids.list];
+            CellI& newSlotList = newEffectAst.struct_()[w.ids.slots][w.ids.list];
 
             findContext.trieNode     = m_root.get();
             findContext.slotList     = &newSlotList;
-            findContext.slotItemPtr  = newSlotList.has(kb.ids.first) ? &newSlotList[kb.ids.first] : nullptr;
+            findContext.slotItemPtr  = newSlotList.has(w.ids.first) ? &newSlotList[w.ids.first] : nullptr;
             findContext.slotKind     = SlotKind::StructSlot;
             findContext.effectAstPtr = &newEffectAst;
         }
@@ -492,58 +492,58 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
 // ============================================================================
 void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI& inputToolDesc)
 {
-    auto& ListOfCellStruct = kb.getStruct(kb.templateId("std::List", kb.ids.valueType, kb.std.Cell));
+    auto& ListOfCellStruct = w.getStruct(w.templateId("std::List", w.ids.valueType, w.std.Cell));
 
-    Brain& kb        = this->kb;
-    List& toCreate          = *new List(kb, kb.std.Cell);
-    Index& toCreateItemRoot = *new Index(kb);
-    toCreateItemRoot.set(kb.ids.ast, inputAst);
-    toCreateItemRoot.set(kb.ids.description, inputToolDesc);
-    toCreateItemRoot.set(kb.ids.cell, outCell);
-    toCreateItemRoot.set(kb.ids.key, outKey);
+    World& w        = this->w;
+    List& toCreate          = *new List(w, w.std.Cell);
+    Index& toCreateItemRoot = *new Index(w);
+    toCreateItemRoot.set(w.ids.ast, inputAst);
+    toCreateItemRoot.set(w.ids.description, inputToolDesc);
+    toCreateItemRoot.set(w.ids.cell, outCell);
+    toCreateItemRoot.set(w.ids.key, outKey);
 
     toCreate.add(toCreateItemRoot);
-    CellI* toCreateItemPtr = &toCreate[kb.ids.first];
+    CellI* toCreateItemPtr = &toCreate[w.ids.first];
     while (toCreateItemPtr) {
-        CellI& toCreateItem = (*toCreateItemPtr)[kb.ids.value];
-        CellI& ast          = toCreateItem[kb.ids.ast];
-        CellI& toolDesc     = toCreateItem[kb.ids.description];
-        CellI* ret          = &toCreateItem[kb.ids.cell];
-        CellI& retKey       = toCreateItem[kb.ids.key];
+        CellI& toCreateItem = (*toCreateItemPtr)[w.ids.value];
+        CellI& ast          = toCreateItem[w.ids.ast];
+        CellI& toolDesc     = toCreateItem[w.ids.description];
+        CellI* ret          = &toCreateItem[w.ids.cell];
+        CellI& retKey       = toCreateItem[w.ids.key];
 
-        CellI* slotItemPtr = &toolDesc[kb.ids.first];
+        CellI* slotItemPtr = &toolDesc[w.ids.first];
         bool first         = true;
-        List& subTools     = *new List(kb, kb.std.Cell);
+        List& subTools     = *new List(w, w.std.Cell);
         while (slotItemPtr) {
-            CellI& key = (*slotItemPtr)[kb.ids.value];
+            CellI& key = (*slotItemPtr)[w.ids.value];
 
             if (first) {
-                if (&key.struct_() != &kb.std.ast.Cell && (&key[kb.ids.value] != &kb.ids.struct_)) {
+                if (&key.struct_() != &w.std.ast.Cell && (&key[w.ids.value] != &w.ids.struct_)) {
                     throw "Tool description without type!";
                 }
                 first               = false;
-                CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
-                CellI& valueCell    = nextSlotItem[kb.ids.value];
-                if (&valueCell.struct_() != &kb.std.ast.Cell) {
+                CellI& nextSlotItem = (*slotItemPtr)[w.ids.next];
+                CellI& valueCell    = nextSlotItem[w.ids.value];
+                if (&valueCell.struct_() != &w.std.ast.Cell) {
                     throw "Tool description type is not constant value!";
                 }
-                CellI& type   = valueCell[kb.ids.value];
-                CellI* newObj = new Object(kb, type, fmt::format("built from {}", toolDesc.label()));
+                CellI& type   = valueCell[w.ids.value];
+                CellI* newObj = new Object(w, type, fmt::format("built from {}", toolDesc.label()));
                 ret->set(retKey, *newObj);
                 ret = newObj;
 
                 slotItemPtr = &nextSlotItem;
-            } else if (&key.struct_() == &kb.std.ast.Cell) {
-                CellI& unwrappedKey         = key[kb.ids.value];
-                CellI& nextSlotItem = (*slotItemPtr)[kb.ids.next];
-                CellI& valueCell    = nextSlotItem[kb.ids.value];
+            } else if (&key.struct_() == &w.std.ast.Cell) {
+                CellI& unwrappedKey         = key[w.ids.value];
+                CellI& nextSlotItem = (*slotItemPtr)[w.ids.next];
+                CellI& valueCell    = nextSlotItem[w.ids.value];
                 CellI* valuePtr     = nullptr;
-                if (&valueCell.struct_() == &kb.std.ast.Cell) {
+                if (&valueCell.struct_() == &w.std.ast.Cell) {
                     valuePtr = &ast[unwrappedKey];
                     ret->set(unwrappedKey, *valuePtr);
                 } else if (&valueCell.struct_() == &ListOfCellStruct) {
                     valuePtr = &ast;
-                    Visitor::visitList(valueCell, [&valuePtr, &kb](CellI& pathItem, int, bool& stop) {
+                    Visitor::visitList(valueCell, [&valuePtr, &w](CellI& pathItem, int, bool& stop) {
                         CellI& currentValue = *valuePtr;
                         valuePtr            = &currentValue[pathItem];
                     });
@@ -551,46 +551,46 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
                 } else {
                     throw "Tool description value is not a constant value or List!";
                 }
-                if (&(*valuePtr).struct_() != &kb.std.ast.Cell) {
-                    CellI& retVal = *new Object(kb, kb.std.ast.Return); // TODO FIX memory leak
-                    retVal.set(kb.ids.value, *valuePtr);
-                    subTools.add(kb.ast.slot(*ret, unwrappedKey));
+                if (&(*valuePtr).struct_() != &w.std.ast.Cell) {
+                    CellI& retVal = *new Object(w, w.std.ast.Return); // TODO FIX memory leak
+                    retVal.set(w.ids.value, *valuePtr);
+                    subTools.add(w.ast.slot(*ret, unwrappedKey));
                 }
                 slotItemPtr = &nextSlotItem;
             } else {
                 throw "Tool description key is not constant value!";
             }
 
-            slotItemPtr = (*slotItemPtr).has(kb.ids.next) ? &(*slotItemPtr)[kb.ids.next] : nullptr;
+            slotItemPtr = (*slotItemPtr).has(w.ids.next) ? &(*slotItemPtr)[w.ids.next] : nullptr;
         }
-        CellI* subpToolItemPtr = &subTools[kb.ids.first];
-        CellI& retVal          = *new Object(kb, kb.std.ast.Return); // TODO FIX memory leak
+        CellI* subpToolItemPtr = &subTools[w.ids.first];
+        CellI& retVal          = *new Object(w, w.std.ast.Return); // TODO FIX memory leak
         while (subpToolItemPtr) {
-            CellI& slot       = (*subpToolItemPtr)[kb.ids.value];
-            CellI& key        = slot[kb.ids.key];
-            CellI& value      = slot[kb.ids.type];
+            CellI& slot       = (*subpToolItemPtr)[w.ids.value];
+            CellI& key        = slot[w.ids.key];
+            CellI& value      = slot[w.ids.type];
             CellI& subToolAst = key[value];
 
-            retVal.set(kb.ids.value, subToolAst);
+            retVal.set(w.ids.value, subToolAst);
             CellI* toolAst     = nullptr;
             CellI* subToolDesc = findToolByEffectAstImpl(retVal, toolAst);
 
             if (!subToolDesc) {
                 throw "Sub tool not found!";
             }
-            Index& toCreateItemSub = *new Index(kb);
-            toCreateItemSub.set(kb.ids.ast, subToolAst);
-            toCreateItemSub.set(kb.ids.description, *subToolDesc);
-            toCreateItemSub.set(kb.ids.cell, (*ret));
-            toCreateItemSub.set(kb.ids.key, value);
+            Index& toCreateItemSub = *new Index(w);
+            toCreateItemSub.set(w.ids.ast, subToolAst);
+            toCreateItemSub.set(w.ids.description, *subToolDesc);
+            toCreateItemSub.set(w.ids.cell, (*ret));
+            toCreateItemSub.set(w.ids.key, value);
             toCreate.add(toCreateItemSub);
 
             CellI* toDelete = subpToolItemPtr;
-            subpToolItemPtr = (*subpToolItemPtr).has(kb.ids.next) ? &(*subpToolItemPtr)[kb.ids.next] : nullptr;
+            subpToolItemPtr = (*subpToolItemPtr).has(w.ids.next) ? &(*subpToolItemPtr)[w.ids.next] : nullptr;
             subTools.remove((List::Item*)toDelete);
         }
         CellI* toDelete = toCreateItemPtr;
-        toCreateItemPtr = (*toCreateItemPtr).has(kb.ids.next) ? &(*toCreateItemPtr)[kb.ids.next] : nullptr;
+        toCreateItemPtr = (*toCreateItemPtr).has(w.ids.next) ? &(*toCreateItemPtr)[w.ids.next] : nullptr;
         toCreate.remove((List::Item*)toDelete);
     }
 }
@@ -615,34 +615,34 @@ void ToolFinder::printCb(Node* node)
 
 static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot)
 {
-    Brain& kb = tool.kb;
-    CellI& slotList  = tool.struct_()[kb.ids.slots][kb.ids.list];
-    Visitor::visitList(slotList, [&kb, &tool, &filledSlot](CellI& slot, int i, bool& stop) {
-        CellI& slotType = slot[kb.ids.type];
-        CellI& slotKey = slot[kb.ids.key];
+    World& w = tool.w;
+    CellI& slotList  = tool.struct_()[w.ids.slots][w.ids.list];
+    Visitor::visitList(slotList, [&w, &tool, &filledSlot](CellI& slot, int i, bool& stop) {
+        CellI& slotType = slot[w.ids.type];
+        CellI& slotKey = slot[w.ids.key];
         if (&slotKey != &filledSlot) {
-            tool.set(slotKey, kb.ast.get(kb.ast.cell(kb.ast.var("x")), kb.ast.cell(kb.ids.value)));
+            tool.set(slotKey, w.ast.get(w.ast.cell(w.ast.var("x")), w.ast.cell(w.ids.value)));
         }
     });
 }
 
 CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint)
 {
-    Brain& kb  = blueprint.m_tool->kb;
-    CellI& tool = *new Object(kb, *blueprint.m_compiledToolType);
-    tool.set(*blueprint.m_slotId, kb.ast.cell(from));
+    World& w  = blueprint.m_tool->w;
+    CellI& tool = *new Object(w, *blueprint.m_compiledToolType);
+    tool.set(*blueprint.m_slotId, w.ast.cell(from));
 
     fillMissingSlotsWithUnknown(tool, *blueprint.m_slotId);
 
-    CellI& missingSlotEquation = *new Object(kb, kb.std.ast.Equal, "tool(from, x) == to");
-    missingSlotEquation.set(kb.ids.lhs, tool);
-    missingSlotEquation.set(kb.ids.rhs, kb.ast.cell(to));
+    CellI& missingSlotEquation = *new Object(w, w.std.ast.Equal, "tool(from, x) == to");
+    missingSlotEquation.set(w.ids.lhs, tool);
+    missingSlotEquation.set(w.ids.rhs, w.ast.cell(to));
 
     if (CellI* missingSlotSolver = findToolByEffectAst(missingSlotEquation)) {
         std::cout << "";
     }
 
-    return kb.ids.emptyObject; // TODO
+    return w.ids.emptyObject; // TODO
 }
 
 // ============================================================================
@@ -704,7 +704,7 @@ sub(lhs, rhs) solves [add(return(), rhs) == lhs] so [unknown1 == sub(4, 2)] so A
 
 
 #endif
-    return from.kb.ids.emptyObject; // TODO
+    return from.w.ids.emptyObject; // TODO
 }
 
 } // namespace cells

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cells/Cells.h"
-#include "cells/Brain.h"
+#include "cells/World.h"
 #include "arc/Color.h"
 
 namespace infocell {
@@ -13,7 +13,7 @@ class Grid;
 class Pixel : public CellI
 {
 public:
-    Pixel(Brain& kb, int x, int y, CellI& arcColor, Grid& grid);
+    Pixel(World& w, int x, int y, CellI& arcColor, Grid& grid);
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;

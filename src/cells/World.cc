@@ -1,4 +1,4 @@
-﻿#include "Brain.h"
+﻿#include "World.h"
 #include "Compiler.h"
 
 #include "Arc.h"
@@ -12,307 +12,307 @@
 namespace infocell {
 namespace cells {
 
-ID::ID(Brain& kb) :
-    kb(kb),
-    argument(kb, kb.std.Char, "argument"),
-    ast(kb, kb.std.Char, "ast"),
-    asts(kb, kb.std.Char, "asts"),
-    blue(kb, kb.std.Char, "blue"),
-    break_(kb, kb.std.Char, "break_"),
-    cell(kb, kb.std.Char, "cell"),
-    children(kb, kb.std.Char, "children"),
-    color(kb, kb.std.Char, "color"),
-    compiled(kb, kb.std.Char, "compiled"),
-    condition(kb, kb.std.Char, "condition"),
-    constructor(kb, kb.std.Char, "constructor"),
-    container(kb, kb.std.Char, "container"),
-    continue_(kb, kb.std.Char, "continue_"),
-    currentFn(kb, kb.std.Char, "currentFn"),
-    currentParam(kb, kb.std.Char, "currentParam"),
-    currentStruct(kb, kb.std.Char, "currentStruct"),
-    data(kb, kb.std.Char, "data"),
-    description(kb, kb.std.Char, "description"),
-    destructor(kb, kb.std.Char, "destructor"),
-    else_(kb, kb.std.Char, "else_"),
-    enum_(kb, kb.std.Char, "enum_"),
-    emptyObject(kb, kb.std.Char, "emptyObject"),
-    first(kb, kb.std.Char, "first"),
-    functions(kb, kb.std.Char, "functions"),
-    globalScope(kb, kb.std.Char, "globalScope"),
-    green(kb, kb.std.Char, "green"),
-    height(kb, kb.std.Char, "height"),
-    id(kb, kb.std.Char, "id"),
-    index(kb, kb.std.Char, "index"),
-    input(kb, kb.std.Char, "input"),
-    instances(kb, kb.std.Char, "instances"),
-    instructions(kb, kb.std.Char, "instructions"),
-    item(kb, kb.std.Char, "item"),
-    itemType(kb, kb.std.Char, "itemType"),
-    key(kb, kb.std.Char, "key"),
-    keyType(kb, kb.std.Char, "keyType"),
-    last(kb, kb.std.Char, "last"),
-    lastOp(kb, kb.std.Char, "lastOp"),
-    lhs(kb, kb.std.Char, "lhs"),
-    list(kb, kb.std.Char, "list"),
-    listType(kb, kb.std.Char, "listType"),
-    localVars(kb, kb.std.Char, "localVars"),
-    memberOf(kb, kb.std.Char, "memberOf"),
-    members(kb, kb.std.Char, "members"),
-    method(kb, kb.std.Char, "method"),
-    methods(kb, kb.std.Char, "methods"),
-    name(kb, kb.std.Char, "name"),
-    next(kb, kb.std.Char, "next"),
-    objectType(kb, kb.std.Char, "objectType"),
-    op(kb, kb.std.Char, "op"),
-    ops(kb, kb.std.Char, "ops"),
-    output(kb, kb.std.Char, "output"),
-    parameters(kb, kb.std.Char, "parameters"),
-    parent(kb, kb.std.Char, "parent"),
-    pixels(kb, kb.std.Char, "pixels"),
-    pixelsMap(kb, kb.std.Char, "pixelsMap"),
-    pop(kb, kb.std.Char, "pop"),
-    previous(kb, kb.std.Char, "previous"),
-    process(kb, kb.std.Char, "process"),
-    push(kb, kb.std.Char, "push"),
-    red(kb, kb.std.Char, "red"),
-    resolvedScope(kb, kb.std.Char, "resolvedScope"),
-    result(kb, kb.std.Char, "result"),
-    return_(kb, kb.std.Char, "return_"),
-    returnType(kb, kb.std.Char, "returnType"),
-    rhs(kb, kb.std.Char, "rhs"),
-    rootNode(kb, kb.std.Char, "rootNode"),
-    scope(kb, kb.std.Char, "scope"),
-    scopes(kb, kb.std.Char, "scopes"),
-    self(kb, kb.std.Char, "self"),
-    size(kb, kb.std.Char, "size"),
-    slots(kb, kb.std.Char, "slots"),
-    stack(kb, kb.std.Char, "stack"),
-    state(kb, kb.std.Char, "state"),
-    stateCondition(kb, kb.std.Char, "stateCondition"),
-    stateElse(kb, kb.std.Char, "stateElse"),
-    stateLhs(kb, kb.std.Char, "stateLhs"),
-    statement(kb, kb.std.Char, "statement"),
-    stateParam1(kb, kb.std.Char, "stateParam1"),
-    stateParam2(kb, kb.std.Char, "stateParam2"),
-    stateParam3(kb, kb.std.Char, "stateParam3"),
-    stateParamEval(kb, kb.std.Char, "stateParamEval"),
-    stateParamInit(kb, kb.std.Char, "stateParamInit"),
-    stateRhs(kb, kb.std.Char, "stateRhs"),
-    stateStackCall(kb, kb.std.Char, "stateStackCall"),
-    stateStatement(kb, kb.std.Char, "stateStatement"),
-    stateThen(kb, kb.std.Char, "stateThen"),
-    static_(kb, kb.std.Char, "static_"),
-    status(kb, kb.std.Char, "status"),
-    struct_(kb, kb.std.Char, "struct"),
-    structs(kb, kb.std.Char, "structs"),
-    structType(kb, kb.std.Char, "structType"),
-    subTypes(kb, kb.std.Char, "subTypes"),
-    templateId(kb, kb.std.Char, "templateId"),
-    templateParams(kb, kb.std.Char, "templateParams"),
-    then(kb, kb.std.Char, "then"),
-    throw_(kb, kb.std.Char, "throw"),
-    type(kb, kb.std.Char, "type"),
-    unknownInstances(kb, kb.std.Char, "unknownInstances"),
-    unknownStructs(kb, kb.std.Char, "unknownStructs"),
-    value(kb, kb.std.Char, "value"),
-    valueType(kb, kb.std.Char, "valueType"),
-    variable(kb, kb.std.Char, "variable"),
-    variables(kb, kb.std.Char, "variables"),
-    width(kb, kb.std.Char, "width")
+ID::ID(World& w) :
+    w(w),
+    argument(w, w.std.Char, "argument"),
+    ast(w, w.std.Char, "ast"),
+    asts(w, w.std.Char, "asts"),
+    blue(w, w.std.Char, "blue"),
+    break_(w, w.std.Char, "break_"),
+    cell(w, w.std.Char, "cell"),
+    children(w, w.std.Char, "children"),
+    color(w, w.std.Char, "color"),
+    compiled(w, w.std.Char, "compiled"),
+    condition(w, w.std.Char, "condition"),
+    constructor(w, w.std.Char, "constructor"),
+    container(w, w.std.Char, "container"),
+    continue_(w, w.std.Char, "continue_"),
+    currentFn(w, w.std.Char, "currentFn"),
+    currentParam(w, w.std.Char, "currentParam"),
+    currentStruct(w, w.std.Char, "currentStruct"),
+    data(w, w.std.Char, "data"),
+    description(w, w.std.Char, "description"),
+    destructor(w, w.std.Char, "destructor"),
+    else_(w, w.std.Char, "else_"),
+    enum_(w, w.std.Char, "enum_"),
+    emptyObject(w, w.std.Char, "emptyObject"),
+    first(w, w.std.Char, "first"),
+    functions(w, w.std.Char, "functions"),
+    globalScope(w, w.std.Char, "globalScope"),
+    green(w, w.std.Char, "green"),
+    height(w, w.std.Char, "height"),
+    id(w, w.std.Char, "id"),
+    index(w, w.std.Char, "index"),
+    input(w, w.std.Char, "input"),
+    instances(w, w.std.Char, "instances"),
+    instructions(w, w.std.Char, "instructions"),
+    item(w, w.std.Char, "item"),
+    itemType(w, w.std.Char, "itemType"),
+    key(w, w.std.Char, "key"),
+    keyType(w, w.std.Char, "keyType"),
+    last(w, w.std.Char, "last"),
+    lastOp(w, w.std.Char, "lastOp"),
+    lhs(w, w.std.Char, "lhs"),
+    list(w, w.std.Char, "list"),
+    listType(w, w.std.Char, "listType"),
+    localVars(w, w.std.Char, "localVars"),
+    memberOf(w, w.std.Char, "memberOf"),
+    members(w, w.std.Char, "members"),
+    method(w, w.std.Char, "method"),
+    methods(w, w.std.Char, "methods"),
+    name(w, w.std.Char, "name"),
+    next(w, w.std.Char, "next"),
+    objectType(w, w.std.Char, "objectType"),
+    op(w, w.std.Char, "op"),
+    ops(w, w.std.Char, "ops"),
+    output(w, w.std.Char, "output"),
+    parameters(w, w.std.Char, "parameters"),
+    parent(w, w.std.Char, "parent"),
+    pixels(w, w.std.Char, "pixels"),
+    pixelsMap(w, w.std.Char, "pixelsMap"),
+    pop(w, w.std.Char, "pop"),
+    previous(w, w.std.Char, "previous"),
+    process(w, w.std.Char, "process"),
+    push(w, w.std.Char, "push"),
+    red(w, w.std.Char, "red"),
+    resolvedScope(w, w.std.Char, "resolvedScope"),
+    result(w, w.std.Char, "result"),
+    return_(w, w.std.Char, "return_"),
+    returnType(w, w.std.Char, "returnType"),
+    rhs(w, w.std.Char, "rhs"),
+    rootNode(w, w.std.Char, "rootNode"),
+    scope(w, w.std.Char, "scope"),
+    scopes(w, w.std.Char, "scopes"),
+    self(w, w.std.Char, "self"),
+    size(w, w.std.Char, "size"),
+    slots(w, w.std.Char, "slots"),
+    stack(w, w.std.Char, "stack"),
+    state(w, w.std.Char, "state"),
+    stateCondition(w, w.std.Char, "stateCondition"),
+    stateElse(w, w.std.Char, "stateElse"),
+    stateLhs(w, w.std.Char, "stateLhs"),
+    statement(w, w.std.Char, "statement"),
+    stateParam1(w, w.std.Char, "stateParam1"),
+    stateParam2(w, w.std.Char, "stateParam2"),
+    stateParam3(w, w.std.Char, "stateParam3"),
+    stateParamEval(w, w.std.Char, "stateParamEval"),
+    stateParamInit(w, w.std.Char, "stateParamInit"),
+    stateRhs(w, w.std.Char, "stateRhs"),
+    stateStackCall(w, w.std.Char, "stateStackCall"),
+    stateStatement(w, w.std.Char, "stateStatement"),
+    stateThen(w, w.std.Char, "stateThen"),
+    static_(w, w.std.Char, "static_"),
+    status(w, w.std.Char, "status"),
+    struct_(w, w.std.Char, "struct"),
+    structs(w, w.std.Char, "structs"),
+    structType(w, w.std.Char, "structType"),
+    subTypes(w, w.std.Char, "subTypes"),
+    templateId(w, w.std.Char, "templateId"),
+    templateParams(w, w.std.Char, "templateParams"),
+    then(w, w.std.Char, "then"),
+    throw_(w, w.std.Char, "throw"),
+    type(w, w.std.Char, "type"),
+    unknownInstances(w, w.std.Char, "unknownInstances"),
+    unknownStructs(w, w.std.Char, "unknownStructs"),
+    value(w, w.std.Char, "value"),
+    valueType(w, w.std.Char, "valueType"),
+    variable(w, w.std.Char, "variable"),
+    variables(w, w.std.Char, "variables"),
+    width(w, w.std.Char, "width")
 {
 }
 
 namespace type {
 
-Op::Op(Brain& kb) :
-    kb(kb),
-    Activate(kb, kb.std.Struct, "op::Activate"),
-    Add(kb, kb.std.Struct, "op::Add"),
-    And(kb, kb.std.Struct, "op::And"),
-    Base(kb, kb.std.Struct, "op::Base"),
-    Block(kb, kb.std.Struct, "op::Block"),
-    Call(kb, kb.std.Struct, "op::Call"),
-    ConstVar(kb, kb.std.Struct, "op::ConstVar"),
-    Delete(kb, kb.std.Struct, "op::Delete"),
-    Divide(kb, kb.std.Struct, "op::Divide"),
-    Do(kb, kb.std.Struct, "op::Do"),
-    Equal(kb, kb.std.Struct, "op::Equal"),
-    Erase(kb, kb.std.Struct, "op::Erase"),
-    Function(kb, kb.std.Struct, "op::Function"),
-    Get(kb, kb.std.Struct, "op::Get"),
-    GreaterThan(kb, kb.std.Struct, "op::GreaterThan"),
-    GreaterThanOrEqual(kb, kb.std.Struct, "op::GreaterThanOrEqual"),
-    Has(kb, kb.std.Struct, "op::Has"),
-    If(kb, kb.std.Struct, "op::If"),
-    LessThan(kb, kb.std.Struct, "op::LessThan"),
-    LessThanOrEqual(kb, kb.std.Struct, "op::LessThanOrEqual"),
-    Missing(kb, kb.std.Struct, "op::Missing"),
-    Multiply(kb, kb.std.Struct, "op::Multiply"),
-    New(kb, kb.std.Struct, "op::New"),
-    Not(kb, kb.std.Struct, "op::Not"),
-    NotEqual(kb, kb.std.Struct, "op::NotEqual"),
-    NotSame(kb, kb.std.Struct, "op::NotSame"),
-    Or(kb, kb.std.Struct, "op::Or"),
-    Return(kb, kb.std.Struct, "op::Return"),
-    Same(kb, kb.std.Struct, "op::Same"),
-    Set(kb, kb.std.Struct, "op::Set"),
-    Subtract(kb, kb.std.Struct, "op::Subtract"),
-    Var(kb, kb.std.Struct, "op::Var"),
-    While(kb, kb.std.Struct, "op::While")
+Op::Op(World& w) :
+    w(w),
+    Activate(w, w.std.Struct, "op::Activate"),
+    Add(w, w.std.Struct, "op::Add"),
+    And(w, w.std.Struct, "op::And"),
+    Base(w, w.std.Struct, "op::Base"),
+    Block(w, w.std.Struct, "op::Block"),
+    Call(w, w.std.Struct, "op::Call"),
+    ConstVar(w, w.std.Struct, "op::ConstVar"),
+    Delete(w, w.std.Struct, "op::Delete"),
+    Divide(w, w.std.Struct, "op::Divide"),
+    Do(w, w.std.Struct, "op::Do"),
+    Equal(w, w.std.Struct, "op::Equal"),
+    Erase(w, w.std.Struct, "op::Erase"),
+    Function(w, w.std.Struct, "op::Function"),
+    Get(w, w.std.Struct, "op::Get"),
+    GreaterThan(w, w.std.Struct, "op::GreaterThan"),
+    GreaterThanOrEqual(w, w.std.Struct, "op::GreaterThanOrEqual"),
+    Has(w, w.std.Struct, "op::Has"),
+    If(w, w.std.Struct, "op::If"),
+    LessThan(w, w.std.Struct, "op::LessThan"),
+    LessThanOrEqual(w, w.std.Struct, "op::LessThanOrEqual"),
+    Missing(w, w.std.Struct, "op::Missing"),
+    Multiply(w, w.std.Struct, "op::Multiply"),
+    New(w, w.std.Struct, "op::New"),
+    Not(w, w.std.Struct, "op::Not"),
+    NotEqual(w, w.std.Struct, "op::NotEqual"),
+    NotSame(w, w.std.Struct, "op::NotSame"),
+    Or(w, w.std.Struct, "op::Or"),
+    Return(w, w.std.Struct, "op::Return"),
+    Same(w, w.std.Struct, "op::Same"),
+    Set(w, w.std.Struct, "op::Set"),
+    Subtract(w, w.std.Struct, "op::Subtract"),
+    Var(w, w.std.Struct, "op::Var"),
+    While(w, w.std.Struct, "op::While")
 {
 }
 
-Ast::Ast(Brain& kb) :
-    kb(kb),
-    Add(kb, kb.std.Struct, "ast::Add"),
-    And(kb, kb.std.Struct, "ast::And"),
-    Base(kb, kb.std.Struct, "ast::Base"),
-    Block(kb, kb.std.Struct, "ast::Block"),
-    Break(kb, kb.std.Struct, "ast::Break"),
-    Call(kb, kb.std.Struct, "ast::Call"),
-    Cell(kb, kb.std.Struct, "ast::Cell"),
-    Continue(kb, kb.std.Struct, "ast::Continue"),
-    Delete(kb, kb.std.Struct, "ast::Delete"),
-    Divide(kb, kb.std.Struct, "ast::Divide"),
-    Do(kb, kb.std.Struct, "ast::Do"),
-    Enum(kb, kb.std.Struct, "ast::Enum"),
-    EnumValue(kb, kb.std.Struct, "ast::EnumValue"),
-    Equal(kb, kb.std.Struct, "ast::Equal"),
-    Erase(kb, kb.std.Struct, "ast::Erase"),
-    For(kb, kb.std.Struct, "ast::For"),
-    Function(kb, kb.std.Struct, "ast::Function"),
-    FunctionT(kb, kb.std.Struct, "ast::FunctionT"),
-    Get(kb, kb.std.Struct, "ast::Get"),
-    GreaterThan(kb, kb.std.Struct, "ast::GreaterThan"),
-    GreaterThanOrEqual(kb, kb.std.Struct, "ast::GreaterThanOrEqual"),
-    Has(kb, kb.std.Struct, "ast::Has"),
-    If(kb, kb.std.Struct, "ast::If"),
-    LessThan(kb, kb.std.Struct, "ast::LessThan"),
-    LessThanOrEqual(kb, kb.std.Struct, "ast::LessThanOrEqual"),
-    Match(kb, kb.std.Struct, "ast::Match"),
-    Member(kb, kb.std.Struct, "ast::Member"),
-    Missing(kb, kb.std.Struct, "ast::Missing"),
-    Multiply(kb, kb.std.Struct, "ast::Multiply"),
-    New(kb, kb.std.Struct, "ast::New"),
-    Not(kb, kb.std.Struct, "ast::Not"),
-    NotEqual(kb, kb.std.Struct, "ast::NotEqual"),
-    NotSame(kb, kb.std.Struct, "ast::NotSame"),
-    Or(kb, kb.std.Struct, "ast::Or"),
-    Parameter(kb, kb.std.Struct, "ast::Parameter"),
-    ResolvedType(kb, kb.std.Struct, "ast::ResolvedType"),
-    Return(kb, kb.std.Struct, "ast::Return"),
-    Same(kb, kb.std.Struct, "ast::Same"),
-    Scope(kb, kb.std.Struct, "ast::Scope"),
-    Self(kb, kb.std.Struct, "ast::Self"),
-    SelfFn(kb, kb.std.Struct, "ast::SelfFn"),
-    Set(kb, kb.std.Struct, "ast::Set"),
-    Slot(kb, kb.std.Struct, "ast::Slot"),
-    StaticCall(kb, kb.std.Struct, "ast::StaticCall"),
-    Struct(kb, kb.std.Struct, "ast::Struct"),
-    StructName(kb, kb.std.Struct, "ast::StructName"),
-    StructT(kb, kb.std.Struct, "ast::StructT"),
-    SubTypeName(kb, kb.std.Struct, "ast::SubTypeName"),
-    Subtract(kb, kb.std.Struct, "ast::Subtract"),
-    TemplatedType(kb, kb.std.Struct, "ast::TemplatedType"),
-    TemplateParam(kb, kb.std.Struct, "ast::TemplateParam"),
-    Throw(kb, kb.std.Struct, "ast::Throw"),
-    Trait(kb, kb.std.Struct, "ast::Trait"),
-    TraitImpl(kb, kb.std.Struct, "ast::TraitImpl"),
-    Try(kb, kb.std.Struct, "ast::Try"),
-    TypedEnumValue(kb, kb.std.Struct, "ast::TypedEnumValue"),
-    Var(kb, kb.std.Struct, "ast::Var"),
-    While(kb, kb.std.Struct, "ast::While")
+Ast::Ast(World& w) :
+    w(w),
+    Add(w, w.std.Struct, "ast::Add"),
+    And(w, w.std.Struct, "ast::And"),
+    Base(w, w.std.Struct, "ast::Base"),
+    Block(w, w.std.Struct, "ast::Block"),
+    Break(w, w.std.Struct, "ast::Break"),
+    Call(w, w.std.Struct, "ast::Call"),
+    Cell(w, w.std.Struct, "ast::Cell"),
+    Continue(w, w.std.Struct, "ast::Continue"),
+    Delete(w, w.std.Struct, "ast::Delete"),
+    Divide(w, w.std.Struct, "ast::Divide"),
+    Do(w, w.std.Struct, "ast::Do"),
+    Enum(w, w.std.Struct, "ast::Enum"),
+    EnumValue(w, w.std.Struct, "ast::EnumValue"),
+    Equal(w, w.std.Struct, "ast::Equal"),
+    Erase(w, w.std.Struct, "ast::Erase"),
+    For(w, w.std.Struct, "ast::For"),
+    Function(w, w.std.Struct, "ast::Function"),
+    FunctionT(w, w.std.Struct, "ast::FunctionT"),
+    Get(w, w.std.Struct, "ast::Get"),
+    GreaterThan(w, w.std.Struct, "ast::GreaterThan"),
+    GreaterThanOrEqual(w, w.std.Struct, "ast::GreaterThanOrEqual"),
+    Has(w, w.std.Struct, "ast::Has"),
+    If(w, w.std.Struct, "ast::If"),
+    LessThan(w, w.std.Struct, "ast::LessThan"),
+    LessThanOrEqual(w, w.std.Struct, "ast::LessThanOrEqual"),
+    Match(w, w.std.Struct, "ast::Match"),
+    Member(w, w.std.Struct, "ast::Member"),
+    Missing(w, w.std.Struct, "ast::Missing"),
+    Multiply(w, w.std.Struct, "ast::Multiply"),
+    New(w, w.std.Struct, "ast::New"),
+    Not(w, w.std.Struct, "ast::Not"),
+    NotEqual(w, w.std.Struct, "ast::NotEqual"),
+    NotSame(w, w.std.Struct, "ast::NotSame"),
+    Or(w, w.std.Struct, "ast::Or"),
+    Parameter(w, w.std.Struct, "ast::Parameter"),
+    ResolvedType(w, w.std.Struct, "ast::ResolvedType"),
+    Return(w, w.std.Struct, "ast::Return"),
+    Same(w, w.std.Struct, "ast::Same"),
+    Scope(w, w.std.Struct, "ast::Scope"),
+    Self(w, w.std.Struct, "ast::Self"),
+    SelfFn(w, w.std.Struct, "ast::SelfFn"),
+    Set(w, w.std.Struct, "ast::Set"),
+    Slot(w, w.std.Struct, "ast::Slot"),
+    StaticCall(w, w.std.Struct, "ast::StaticCall"),
+    Struct(w, w.std.Struct, "ast::Struct"),
+    StructName(w, w.std.Struct, "ast::StructName"),
+    StructT(w, w.std.Struct, "ast::StructT"),
+    SubTypeName(w, w.std.Struct, "ast::SubTypeName"),
+    Subtract(w, w.std.Struct, "ast::Subtract"),
+    TemplatedType(w, w.std.Struct, "ast::TemplatedType"),
+    TemplateParam(w, w.std.Struct, "ast::TemplateParam"),
+    Throw(w, w.std.Struct, "ast::Throw"),
+    Trait(w, w.std.Struct, "ast::Trait"),
+    TraitImpl(w, w.std.Struct, "ast::TraitImpl"),
+    Try(w, w.std.Struct, "ast::Try"),
+    TypedEnumValue(w, w.std.Struct, "ast::TypedEnumValue"),
+    Var(w, w.std.Struct, "ast::Var"),
+    While(w, w.std.Struct, "ast::While")
 {
 }
 
 } // namespace type
 
-Std::Std(Brain& kb) :
-    kb(kb),
-    Cell(kb, kb.std.Struct, "Cell"),
-    Slot(kb, kb.std.Struct, "Slot"),
-    Struct(kb, kb.std.Struct, "Struct"),
-    Enum(kb, kb.std.Struct, "Enum"),
-    OpState(kb, kb.std.Struct, "OpState"),
-    Container(kb, kb.std.Struct, "Conatainer"),
-    List(kb, kb.std.Struct, "List"),
-    ListItem(kb, kb.std.Struct, "ListItem"),
-    KVPair(kb, kb.std.Struct, "KVPair"),
-    Map(kb, kb.std.Struct, "Map"),
-    Index(kb, kb.std.Struct, "Index"),
-    TrieMap(kb, kb.std.Struct, "TrieMap"),
-    TrieMapNode(kb, kb.std.Struct, "TrieMapNode"),
-    Boolean(kb, kb.std.Struct, "Boolean"),
-    Char(kb, kb.std.Struct, "Char"),
-    Digit(kb, kb.std.Struct, "Digit"),
-    Number(kb, kb.std.Struct, "Number"),
-    String(kb, kb.std.Struct, "String"),
-    Color(kb, kb.std.Struct, "Color"),
-    Pixel(kb, kb.std.Struct, "Pixel"),
-    Grid(kb, kb.std.Struct, "Grid"),
-    Stack(kb, kb.std.Struct, "Stack"),
-    StackFrame(kb, kb.std.Struct, "StackFrame"),
-    Program(kb, kb.std.Struct, "Program"),
-    ProgramData(kb, kb.std.Struct, "ProgramData"),
-    StructReference(kb, kb.std.Struct, "StructReference"),
-    CompileState(kb, kb.std.Struct, "CompileState"),
-    Directions(kb, kb.std.Enum, "Directions"),
-    op(kb),
-    ast(kb)
+Std::Std(World& w) :
+    w(w),
+    Cell(w, w.std.Struct, "Cell"),
+    Slot(w, w.std.Struct, "Slot"),
+    Struct(w, w.std.Struct, "Struct"),
+    Enum(w, w.std.Struct, "Enum"),
+    OpState(w, w.std.Struct, "OpState"),
+    Container(w, w.std.Struct, "Conatainer"),
+    List(w, w.std.Struct, "List"),
+    ListItem(w, w.std.Struct, "ListItem"),
+    KVPair(w, w.std.Struct, "KVPair"),
+    Map(w, w.std.Struct, "Map"),
+    Index(w, w.std.Struct, "Index"),
+    TrieMap(w, w.std.Struct, "TrieMap"),
+    TrieMapNode(w, w.std.Struct, "TrieMapNode"),
+    Boolean(w, w.std.Struct, "Boolean"),
+    Char(w, w.std.Struct, "Char"),
+    Digit(w, w.std.Struct, "Digit"),
+    Number(w, w.std.Struct, "Number"),
+    String(w, w.std.Struct, "String"),
+    Color(w, w.std.Struct, "Color"),
+    Pixel(w, w.std.Struct, "Pixel"),
+    Grid(w, w.std.Struct, "Grid"),
+    Stack(w, w.std.Struct, "Stack"),
+    StackFrame(w, w.std.Struct, "StackFrame"),
+    Program(w, w.std.Struct, "Program"),
+    ProgramData(w, w.std.Struct, "ProgramData"),
+    StructReference(w, w.std.Struct, "StructReference"),
+    CompileState(w, w.std.Struct, "CompileState"),
+    Directions(w, w.std.Enum, "Directions"),
+    op(w),
+    ast(w)
 {
 }
 
 cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
 {
-    CellI& ret = *new Object(kb, kb.std.Slot);
-    ret.set(kb.ids.key, key);
-    ret.set(kb.ids.type, type);
+    CellI& ret = *new Object(w, w.std.Slot);
+    ret.set(w.ids.key, key);
+    ret.set(w.ids.type, type);
 
     return ret;
 }
 
 cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
 {
-    CellI& ret = *new Object(kb, kb.std.Slot);
-    ret.set(kb.ids.key, kb.name(key));
-    ret.set(kb.ids.type, type);
+    CellI& ret = *new Object(w, w.std.Slot);
+    ret.set(w.ids.key, w.name(key));
+    ret.set(w.ids.type, type);
 
     return ret;
 }
 
 cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
 {
-    CellI& ret = *new Object(kb, kb.std.KVPair);
-    ret.set(kb.ids.key, key);
-    ret.set(kb.ids.value, value);
+    CellI& ret = *new Object(w, w.std.KVPair);
+    ret.set(w.ids.key, key);
+    ret.set(w.ids.value, value);
 
     return ret;
 }
 
-Directions::Directions(Brain& kb) :
-    up(kb, kb.std.Char, "up"),
-    down(kb, kb.std.Char, "down"),
-    left(kb, kb.std.Char, "left"),
-    right(kb, kb.std.Char, "right")
+Directions::Directions(World& w) :
+    up(w, w.std.Char, "up"),
+    down(w, w.std.Char, "down"),
+    left(w, w.std.Char, "left"),
+    right(w, w.std.Char, "right")
 {
 }
 
-Coordinates::Coordinates(Brain& kb) :
-    x(kb, kb.std.Char, "x"),
-    y(kb, kb.std.Char, "y")
+Coordinates::Coordinates(World& w) :
+    x(w, w.std.Char, "x"),
+    y(w, w.std.Char, "y")
 {
 }
 
-Boolean::Boolean(Brain& kb) :
-    true_(kb, kb.std.Boolean, "true"),
-    false_(kb, kb.std.Boolean, "false")
+Boolean::Boolean(World& w) :
+    true_(w, w.std.Boolean, "true"),
+    false_(w, w.std.Boolean, "false")
 {
 }
 
-Numbers::Numbers(Brain& kb) :
-    sign(kb, kb.std.Cell, kb.std.Cell, "sign"),
-    positive(kb, kb.std.Cell, "positive"),
-    negative(kb, kb.std.Cell, "negative")
+Numbers::Numbers(World& w) :
+    sign(w, w.std.Cell, w.std.Cell, "sign"),
+    positive(w, w.std.Cell, "positive"),
+    negative(w, w.std.Cell, "negative")
 
 {
     sign.add(positive, positive);
@@ -320,8 +320,8 @@ Numbers::Numbers(Brain& kb) :
 }
 
 // ============================================================================
-Pools::Chars::Chars(Brain& kb) :
-    kb(kb)
+Pools::Chars::Chars(World& w) :
+    w(w)
 {
     // These are enough for me currently
     registerUnicodeBlock(0x020, 0x07e); // Basic Latin - without the DEL (0x7f) control character
@@ -353,18 +353,18 @@ void Pools::Chars::registerUnicodeBlock(char32_t from, char32_t to)
         }
         auto it = m_characters.emplace(std::piecewise_construct,
                              std::forward_as_tuple(unicodeValue),
-                             std::forward_as_tuple(kb, kb.std.Char, characterName));
+                             std::forward_as_tuple(w, w.std.Char, characterName));
         auto& value = it.first->second;
     }
 }
 
 // ============================================================================
-Pools::Digits::Digits(Brain& kb)
+Pools::Digits::Digits(World& w)
 {
     m_digits.reserve(10);
     for (int i = 0; i < 10; ++i) {
         std::string digitName = "Digit_" + std::to_string(i);
-        m_digits.emplace_back(kb, kb.std.Digit, digitName);
+        m_digits.emplace_back(w, w.std.Digit, digitName);
     }
 }
 
@@ -374,8 +374,8 @@ Object& Pools::Digits::operator[](int digit)
 }
 
 // ============================================================================
-Pools::Numbers::Numbers(Brain& kb) :
-    m_kb(kb)
+Pools::Numbers::Numbers(World& w) :
+    w(w)
 {
 }
 
@@ -387,7 +387,7 @@ Number& Pools::Numbers::get(int number)
     } else {
         auto it           = m_numbers.emplace(std::piecewise_construct,
                                               std::forward_as_tuple(number),
-                                              std::forward_as_tuple(m_kb, number));
+                                              std::forward_as_tuple(w, number));
         Number& newNumber = it.first->second;
         newNumber.label(std::to_string(number));
         return newNumber;
@@ -404,123 +404,123 @@ struct StringInit
 };
 
 // ============================================================================
-Pools::Strings::Strings(Brain& kb) :
-    kb(kb)
+Pools::Strings::Strings(World& w) :
+    w(w)
 {
     StringInit reservedStrings[] = {
-        { "argument", kb.ids.argument },
-        { "ast", kb.ids.ast },
-        { "asts", kb.ids.asts },
-        { "blue", kb.ids.blue },
-        { "cell", kb.ids.cell },
-        { "children", kb.ids.children },
-        { "color", kb.ids.color },
-        { "compiled", kb.ids.compiled },
-        { "condition", kb.ids.condition },
-        { "constructor", kb.ids.constructor },
-        { "container", kb.ids.container },
-        { "continue_", kb.ids.continue_ },
-        { "currentFn", kb.ids.currentFn },
-        { "currentParam", kb.ids.currentParam },
-        { "currentStruct", kb.ids.currentStruct },
-        { "data", kb.ids.data },
-        { "description", kb.ids.description },
-        { "destructor", kb.ids.destructor },
-        { "else_", kb.ids.else_ },
-        { "emptyObject", kb.ids.emptyObject },
-        { "first", kb.ids.first },
-        { "functions", kb.ids.functions },
-        { "globalScope", kb.ids.globalScope },
-        { "green", kb.ids.green },
-        { "height", kb.ids.height },
-        { "id", kb.ids.id },
-        { "index", kb.ids.index },
-        { "input", kb.ids.input },
-        { "instances", kb.ids.instances },
-        { "instructions", kb.ids.instructions },
-        { "item", kb.ids.item },
-        { "itemType", kb.ids.itemType },
-        { "key", kb.ids.key },
-        { "keyType", kb.ids.keyType },
-        { "last", kb.ids.last },
-        { "lastOp", kb.ids.lastOp },
-        { "lhs", kb.ids.lhs },
-        { "list", kb.ids.list },
-        { "listType", kb.ids.listType },
-        { "localVars", kb.ids.localVars },
-        { "memberOf", kb.ids.memberOf },
-        { "members", kb.ids.members },
-        { "method", kb.ids.method },
-        { "methods", kb.ids.methods },
-        { "name", kb.ids.name },
-        { "next", kb.ids.next },
-        { "objectType", kb.ids.objectType },
-        { "op", kb.ids.op },
-        { "ops", kb.ids.ops },
-        { "output", kb.ids.output },
-        { "parameters", kb.ids.parameters },
-        { "parent", kb.ids.parent },
-        { "pixels", kb.ids.pixels },
-        { "pixelsMap", kb.ids.pixelsMap },
-        { "previous", kb.ids.previous },
-        { "red", kb.ids.red },
-        { "resolvedScope", kb.ids.resolvedScope },
-        { "result", kb.ids.result },
-        { "returnType", kb.ids.returnType },
-        { "rhs", kb.ids.rhs },
-        { "key", kb.ids.key },
-        { "rootNode", kb.ids.rootNode },
-        { "scope", kb.ids.scope },
-        { "scopes", kb.ids.scopes },
-        { "self", kb.ids.self },
-        { "size", kb.ids.size },
-        { "key", kb.ids.key },
-        { "slots", kb.ids.slots },
-        { "stack", kb.ids.stack },
-        { "state", kb.ids.state },
-        { "stateCondition", kb.ids.stateCondition },
-        { "stateElse", kb.ids.stateElse },
-        { "stateLhs", kb.ids.stateLhs },
-        { "statement", kb.ids.statement },
-        { "stateParam1", kb.ids.stateParam1 },
-        { "stateParam2", kb.ids.stateParam2 },
-        { "stateParam3", kb.ids.stateParam3 },
-        { "stateParamEval", kb.ids.stateParamEval },
-        { "stateParamInit", kb.ids.stateParamInit },
-        { "stateRhs", kb.ids.stateRhs },
-        { "stateStackCall", kb.ids.stateStackCall },
-        { "stateStatement", kb.ids.stateStatement },
-        { "stateThen", kb.ids.stateThen },
-        { "static_", kb.ids.static_ },
-        { "status", kb.ids.status },
-        { "struct", kb.ids.struct_ },
-        { "structs", kb.ids.structs },
-        { "structType", kb.ids.structType },
-        { "subTypes", kb.ids.subTypes },
-        { "templateId", kb.ids.templateId },
-        { "templateParams", kb.ids.templateParams },
-        { "then", kb.ids.then },
-        { "throw", kb.ids.throw_ },
-        { "type", kb.ids.type },
-        { "unknownInstances", kb.ids.unknownInstances },
-        { "unknownStructs", kb.ids.unknownStructs },
-        { "value", kb.ids.value },
-        { "valueType", kb.ids.valueType },
-        { "variable", kb.ids.variable },
-        { "variables", kb.ids.variables },
-        { "width", kb.ids.width },
-        { "up", kb.directions.up },
-        { "down", kb.directions.down },
-        { "left", kb.directions.left },
-        { "right", kb.directions.right },
-        { "x", kb.coordinates.x },
-        { "y", kb.coordinates.y }
+        { "argument", w.ids.argument },
+        { "ast", w.ids.ast },
+        { "asts", w.ids.asts },
+        { "blue", w.ids.blue },
+        { "cell", w.ids.cell },
+        { "children", w.ids.children },
+        { "color", w.ids.color },
+        { "compiled", w.ids.compiled },
+        { "condition", w.ids.condition },
+        { "constructor", w.ids.constructor },
+        { "container", w.ids.container },
+        { "continue_", w.ids.continue_ },
+        { "currentFn", w.ids.currentFn },
+        { "currentParam", w.ids.currentParam },
+        { "currentStruct", w.ids.currentStruct },
+        { "data", w.ids.data },
+        { "description", w.ids.description },
+        { "destructor", w.ids.destructor },
+        { "else_", w.ids.else_ },
+        { "emptyObject", w.ids.emptyObject },
+        { "first", w.ids.first },
+        { "functions", w.ids.functions },
+        { "globalScope", w.ids.globalScope },
+        { "green", w.ids.green },
+        { "height", w.ids.height },
+        { "id", w.ids.id },
+        { "index", w.ids.index },
+        { "input", w.ids.input },
+        { "instances", w.ids.instances },
+        { "instructions", w.ids.instructions },
+        { "item", w.ids.item },
+        { "itemType", w.ids.itemType },
+        { "key", w.ids.key },
+        { "keyType", w.ids.keyType },
+        { "last", w.ids.last },
+        { "lastOp", w.ids.lastOp },
+        { "lhs", w.ids.lhs },
+        { "list", w.ids.list },
+        { "listType", w.ids.listType },
+        { "localVars", w.ids.localVars },
+        { "memberOf", w.ids.memberOf },
+        { "members", w.ids.members },
+        { "method", w.ids.method },
+        { "methods", w.ids.methods },
+        { "name", w.ids.name },
+        { "next", w.ids.next },
+        { "objectType", w.ids.objectType },
+        { "op", w.ids.op },
+        { "ops", w.ids.ops },
+        { "output", w.ids.output },
+        { "parameters", w.ids.parameters },
+        { "parent", w.ids.parent },
+        { "pixels", w.ids.pixels },
+        { "pixelsMap", w.ids.pixelsMap },
+        { "previous", w.ids.previous },
+        { "red", w.ids.red },
+        { "resolvedScope", w.ids.resolvedScope },
+        { "result", w.ids.result },
+        { "returnType", w.ids.returnType },
+        { "rhs", w.ids.rhs },
+        { "key", w.ids.key },
+        { "rootNode", w.ids.rootNode },
+        { "scope", w.ids.scope },
+        { "scopes", w.ids.scopes },
+        { "self", w.ids.self },
+        { "size", w.ids.size },
+        { "key", w.ids.key },
+        { "slots", w.ids.slots },
+        { "stack", w.ids.stack },
+        { "state", w.ids.state },
+        { "stateCondition", w.ids.stateCondition },
+        { "stateElse", w.ids.stateElse },
+        { "stateLhs", w.ids.stateLhs },
+        { "statement", w.ids.statement },
+        { "stateParam1", w.ids.stateParam1 },
+        { "stateParam2", w.ids.stateParam2 },
+        { "stateParam3", w.ids.stateParam3 },
+        { "stateParamEval", w.ids.stateParamEval },
+        { "stateParamInit", w.ids.stateParamInit },
+        { "stateRhs", w.ids.stateRhs },
+        { "stateStackCall", w.ids.stateStackCall },
+        { "stateStatement", w.ids.stateStatement },
+        { "stateThen", w.ids.stateThen },
+        { "static_", w.ids.static_ },
+        { "status", w.ids.status },
+        { "struct", w.ids.struct_ },
+        { "structs", w.ids.structs },
+        { "structType", w.ids.structType },
+        { "subTypes", w.ids.subTypes },
+        { "templateId", w.ids.templateId },
+        { "templateParams", w.ids.templateParams },
+        { "then", w.ids.then },
+        { "throw", w.ids.throw_ },
+        { "type", w.ids.type },
+        { "unknownInstances", w.ids.unknownInstances },
+        { "unknownStructs", w.ids.unknownStructs },
+        { "value", w.ids.value },
+        { "valueType", w.ids.valueType },
+        { "variable", w.ids.variable },
+        { "variables", w.ids.variables },
+        { "width", w.ids.width },
+        { "up", w.directions.up },
+        { "down", w.directions.down },
+        { "left", w.directions.left },
+        { "right", w.directions.right },
+        { "x", w.coordinates.x },
+        { "y", w.coordinates.y }
     };
     for (auto& reservedString : reservedStrings) {
         auto& str = reservedString.str;
         m_strings.emplace(std::piecewise_construct,
                           std::forward_as_tuple(reservedString.str),
-                          std::forward_as_tuple(kb, reservedString.list, reservedString.str));
+                          std::forward_as_tuple(w, reservedString.list, reservedString.str));
 
     }
 }
@@ -533,7 +533,7 @@ String& Pools::Strings::get(const std::string& str)
     } else {
         auto it           = m_strings.emplace(std::piecewise_construct,
                                               std::forward_as_tuple(str),
-                                              std::forward_as_tuple(kb, str));
+                                              std::forward_as_tuple(w, str));
         String& newString = it.first->second;
         newString.label(str);
         return newString;
@@ -543,30 +543,30 @@ String& Pools::Strings::get(const std::string& str)
 List& Pools::Strings::getCharList(const std::string& str)
 {
     auto& string = get(str);
-    auto& ret = static_cast<List&>(string[string.kb.ids.value]);
+    auto& ret = static_cast<List&>(string[string.w.ids.value]);
 
     return ret;
 }
 
-Pools::Pools(Brain& kb) :
-    chars(kb),
-    digits(kb),
-    numbers(kb),
-    strings(kb)
+Pools::Pools(World& w) :
+    chars(w),
+    digits(w),
+    numbers(w),
+    strings(w)
 {
 }
 
-Ast::Cell& Brain::_(CellI& cell)
+Ast::Cell& World::_(CellI& cell)
 {
     return ast.cell(cell);
 }
 
-Ast::Cell& Brain::_(const std::string& nameStr)
+Ast::Cell& World::_(const std::string& nameStr)
 {
     return ast.cell(name(nameStr));
 }
 
-Ast::StructName& Brain::struct_(const std::string& nameStr)
+Ast::StructName& World::struct_(const std::string& nameStr)
 {
     return ast.structName(nameStr);
 }
@@ -574,11 +574,11 @@ Ast::StructName& Brain::struct_(const std::string& nameStr)
 class AstTest : public AstHelper
 {
 public:
-    AstTest(Brain& kb);
+    AstTest(World& w);
 };
 
-AstTest::AstTest(Brain& kb) :
-    AstHelper(kb)
+AstTest::AstTest(World& w) :
+    AstHelper(w)
 {
     auto& testScope = globalScope.add<Scope>("test");
 
@@ -638,14 +638,14 @@ AstTest::AstTest(Brain& kb) :
     //
 }
 
-void Brain::createContent()
+void World::createContent()
 {
     AstStd astStd(*this);
     AstArc astArc(*this);
     AstTest astTest(*this);
 }
 
-Brain::Brain(std::function<void()> loggerLevelInit) :
+World::World(std::function<void()> loggerLevelInit) :
     m_initPhase(InitPhase::Init),
     logger(loggerLevelInit),
     pools(*this),
@@ -829,17 +829,17 @@ Brain::Brain(std::function<void()> loggerLevelInit) :
     testIndex.method(name("insert"), { "key", _1_ }, { "value", _2_ });
 }
 
-Brain::~Brain()
+World::~World()
 {
     m_initPhase = InitPhase::DestructBegin;
 }
 
-CellI& Brain::getStruct(const std::string& nameStr)
+CellI& World::getStruct(const std::string& nameStr)
 {
     return getStruct(name(nameStr));
 }
 
-CellI& Brain::getStruct(CellI& name)
+CellI& World::getStruct(CellI& name)
 {
     switch (m_initPhase) {
     case InitPhase::Init:
@@ -854,12 +854,12 @@ CellI& Brain::getStruct(CellI& name)
     throw "Unhandled state!";
 }
 
-CellI& Brain::getVariable(const std::string& nameStr)
+CellI& World::getVariable(const std::string& nameStr)
 {
     return getVariable(name(nameStr));
 }
 
-CellI& Brain::getVariable(CellI& name)
+CellI& World::getVariable(CellI& name)
 {
     switch (m_initPhase) {
     case InitPhase::Init:
@@ -874,12 +874,12 @@ CellI& Brain::getVariable(CellI& name)
     throw "Unhandled state!";
 }
 
-CellI& Brain::name(const std::string& str)
+CellI& World::name(const std::string& str)
 {
     return pools.strings.getCharList(str);
 }
 
-CellI& Brain::ListOf(CellI& valueType)
+CellI& World::ListOf(CellI& valueType)
 {
     switch (m_initPhase) {
     case InitPhase::Init: {
@@ -899,7 +899,7 @@ CellI& Brain::ListOf(CellI& valueType)
     throw "Unhandled state!";
 }
 
-CellI& Brain::MapOf(CellI& keyType, CellI& valueType)
+CellI& World::MapOf(CellI& keyType, CellI& valueType)
 {
     switch (m_initPhase) {
     case InitPhase::Init: {
@@ -919,17 +919,17 @@ CellI& Brain::MapOf(CellI& keyType, CellI& valueType)
     throw "Unhandled state!";
 }
 
-CellI& Brain::toKbBool(bool value)
+CellI& World::toCellBool(bool value)
 {
     return value ? boolean.true_ : boolean.false_;
 }
 
-Brain::InitPhase Brain::initPhase()
+World::InitPhase World::initPhase()
 {
     return m_initPhase;
 }
 
-Brain::Logger::Logger(std::function<void()> loggerLevelInit)
+World::Logger::Logger(std::function<void()> loggerLevelInit)
 {
     registerLogger("cells");
     registerLogger("compileStruct");
@@ -939,16 +939,16 @@ Brain::Logger::Logger(std::function<void()> loggerLevelInit)
     loggerLevelInit();
 }
 
-Brain::Logger::~Logger()
+World::Logger::~Logger()
 {
     for (const auto& name : m_loggerNames) {
         spdlog::drop(name);
     }
 }
 
-void Brain::Logger::registerLogger(const std::string& name)
+void World::Logger::registerLogger(const std::string& name)
 {
-    // handle if multiple Brain instance is created
+    // handle if multiple World instance is created
     auto logger = spdlog::get(name);
     if (logger) {
         return;
@@ -957,7 +957,7 @@ void Brain::Logger::registerLogger(const std::string& name)
     m_loggerNames.push_back(name);
 }
 
-std::shared_ptr<spdlog::logger> Brain::Logger::createLogger(const std::string& name)
+std::shared_ptr<spdlog::logger> World::Logger::createLogger(const std::string& name)
 {
     static auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
     console_sink->set_level(spdlog::level::trace);

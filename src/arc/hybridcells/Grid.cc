@@ -2,7 +2,7 @@
 
 #include "arc/Color.h"
 #include "arc/Grid.h"
-#include "cells/Brain.h"
+#include "cells/World.h"
 
 #include "Grid.h"
 
@@ -13,24 +13,24 @@ namespace cells {
 namespace arc {
 
 // ============================================================================
-Grid::Grid(Brain& kb, nativearc::Grid& grid) :
-    CellI(kb, grid.label()),
+Grid::Grid(World& w, nativearc::Grid& grid) :
+    CellI(w, grid.label()),
     m_width(grid.width()),
     m_height(grid.height()),
-    m_widthCell(kb.pools.numbers.get(m_width)),
-    m_heightCell(kb.pools.numbers.get(m_height)),
-    m_pixelsMap(kb, kb.std.Cell, kb.std.Pixel, "PixelsMap")
+    m_widthCell(w.pools.numbers.get(m_width)),
+    m_heightCell(w.pools.numbers.get(m_height)),
+    m_pixelsMap(w, w.std.Cell, w.std.Pixel, "PixelsMap")
 {
-    static CellI& ArcColorBlack   = kb.getVariable("arc::Color::black");
-    static CellI& ArcColorBlue    = kb.getVariable("arc::Color::blue");
-    static CellI& ArcColorRed     = kb.getVariable("arc::Color::red");
-    static CellI& ArcColorGreen   = kb.getVariable("arc::Color::green");
-    static CellI& ArcColorYellow  = kb.getVariable("arc::Color::yellow");
-    static CellI& ArcColorGrey    = kb.getVariable("arc::Color::grey");
-    static CellI& ArcColorFuschia = kb.getVariable("arc::Color::fuschia");
-    static CellI& ArcColorOrange  = kb.getVariable("arc::Color::orange");
-    static CellI& ArcColorTeal    = kb.getVariable("arc::Color::teal");
-    static CellI& ArcColorBrown   = kb.getVariable("arc::Color::brown");
+    static CellI& ArcColorBlack   = w.getVariable("arc::Color::black");
+    static CellI& ArcColorBlue    = w.getVariable("arc::Color::blue");
+    static CellI& ArcColorRed     = w.getVariable("arc::Color::red");
+    static CellI& ArcColorGreen   = w.getVariable("arc::Color::green");
+    static CellI& ArcColorYellow  = w.getVariable("arc::Color::yellow");
+    static CellI& ArcColorGrey    = w.getVariable("arc::Color::grey");
+    static CellI& ArcColorFuschia = w.getVariable("arc::Color::fuschia");
+    static CellI& ArcColorOrange  = w.getVariable("arc::Color::orange");
+    static CellI& ArcColorTeal    = w.getVariable("arc::Color::teal");
+    static CellI& ArcColorBrown   = w.getVariable("arc::Color::brown");
     static std::array<CellI*, 10> arcColorEnumValues = {
         &ArcColorBlack,
         &ArcColorBlue,
@@ -54,10 +54,10 @@ Grid::Grid(Brain& kb, nativearc::Grid& grid) :
 
     for (const infocell::arc::Color& color : grid.pixels()) {
         CellI& arcColorEnumValue = *arcColorEnumValues[(int)color.id()];
-        m_pixels.emplace_back(kb, x, y, arcColorEnumValue, *this);
-        List pixelContent(kb, kb.std.Pixel);
-        pixelContent.add(kb.pools.numbers.get(x));
-        pixelContent.add(kb.pools.numbers.get(y));
+        m_pixels.emplace_back(w, x, y, arcColorEnumValue, *this);
+        List pixelContent(w, w.std.Pixel);
+        pixelContent.add(w.pools.numbers.get(x));
+        pixelContent.add(w.pools.numbers.get(y));
         m_pixelsMap.add(pixelContent, arcColorEnumValue);
         x = x + 1;
         if (x == m_width) {
@@ -66,12 +66,12 @@ Grid::Grid(Brain& kb, nativearc::Grid& grid) :
         }
     }
 
-    m_pixelsList.reset(new List(kb, m_pixels));
+    m_pixelsList.reset(new List(w, m_pixels));
 }
 
 bool Grid::has(CellI& key)
 {
-    if (&key == &kb.ids.struct_ || &key == &kb.ids.width || &key == &kb.ids.height || &key == &kb.ids.pixels || &key == &kb.ids.pixelsMap) {
+    if (&key == &w.ids.struct_ || &key == &w.ids.width || &key == &w.ids.height || &key == &w.ids.pixels || &key == &w.ids.pixelsMap) {
         return true;
     }
 
@@ -94,19 +94,19 @@ void Grid::operator()()
 
 CellI& Grid::operator[](CellI& key)
 {
-    if (&key == &kb.ids.struct_) {
-        return kb.std.Grid;
+    if (&key == &w.ids.struct_) {
+        return w.std.Grid;
     }
-    if (&key == &kb.ids.width) {
+    if (&key == &w.ids.width) {
         return m_widthCell;
     }
-    if (&key == &kb.ids.height) {
+    if (&key == &w.ids.height) {
         return m_heightCell;
     }
-    if (&key == &kb.ids.pixels) {
+    if (&key == &w.ids.pixels) {
         return *m_pixelsList;
     }
-    if (&key == &kb.ids.pixelsMap) {
+    if (&key == &w.ids.pixelsMap) {
         return m_pixelsMap;
     }
 

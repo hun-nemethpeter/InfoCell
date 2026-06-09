@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "arc/Grid.h"
-#include "cells/Brain.h"
+#include "cells/World.h"
 #include "tui/Logging.h"
 
 #include "Task.h"
@@ -364,7 +364,7 @@ protected:
     void processPixel(Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
     cells::arc::Pixel* processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
 
-    cells::Brain& kb;
+    cells::World& w;
     const int m_width;
     const int m_height;
     const cells::arc::Grid& m_grid;

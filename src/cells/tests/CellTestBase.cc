@@ -43,14 +43,14 @@ void PrintAs::cell(CellI& cell, const std::string& label)
 }
 
 #if 0
-class AstTest : public brain::AstHelper
+class AstTest : public World::AstHelper
 {
 public:
-    AstTest(Brain& kb);
+    AstTest(World& w);
 };
 
-AstTest::AstTest(Brain& kb) :
-    AstHelper(kb)
+AstTest::AstTest(World& w) :
+    AstHelper(w)
 {
     auto& testScope = globalScope.add<Scope>("test");
 
@@ -108,70 +108,70 @@ AstTest::AstTest(Brain& kb) :
     // Iterators, range-based-for
     // Variable scopes
     //
-    TrieMap earlyStructs(kb, std.Cell, std.Cell, "earlyStructs");
+    TrieMap earlyStructs(w, std.Cell, std.Cell, "earlyStructs");
     testScope.compile(earlyStructs);
 }
 
 CellTest::CellTest(std::function<void()> loggerLevelInit) :
-    kb(m_kb.get() ? *m_kb : (m_kb = std::make_unique<Brain>(loggerLevelInit), AstTest(*m_kb), *m_kb)),
+    w(m_world.get() ? *m_world : (m_world = std::make_unique<World>(loggerLevelInit), AstTest(*m_world), *m_world)),
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
 #else
 CellTest::CellTest(std::function<void()> loggerLevelInit) :
-    NodeBase(m_kb.get() ? *m_kb : (m_kb = std::make_unique<Brain>(loggerLevelInit), *m_kb)),
+    NodeBase(m_world.get() ? *m_world : (m_world = std::make_unique<World>(loggerLevelInit), *m_world)),
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
 #endif
 
-void CellTest::freeKb()
+void CellTest::freeWorld()
 {
-    m_kb.reset();
+    m_world.reset();
 }
 
-Brain& CellTest::getKb()
+World& CellTest::getWorld()
 {
-    return *m_kb;
+    return *m_world;
 }
 
 void CellTest::printMethodInType(CellI& type, const std::string& method)
 {
-    printAs.value(type[ids.methods][ids.index][kb.name(method)][ids.value]);
+    printAs.value(type[ids.methods][ids.index][w.name(method)][ids.value]);
 }
 
-std::unique_ptr<Brain> CellTest::m_kb;
+std::unique_ptr<World> CellTest::m_world;
 
 TestBase::TestBase() :
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
 
-void TestBase::freeKb()
+void TestBase::freeWorld()
 {
-    m_kb.reset();
+    m_world.reset();
 }
 
-Brain& TestBase::getKb()
+World& TestBase::getWorld()
 {
-    if (!m_kb) {
-        createKb();
+    if (!m_world) {
+        createWorld();
     }
-    return *m_kb;
+    return *m_world;
 }
 
-void TestBase::createKb(std::function<void()> loggerLevelInit)
+void TestBase::createWorld(std::function<void()> loggerLevelInit)
 {
-    m_kb = std::make_unique<Brain>(loggerLevelInit);
+    m_world = std::make_unique<World>(loggerLevelInit);
 }
 
 void TestBase::printMethodInType(CellI& type, const std::string& method)
 {
-    Brain& kb = getKb();
-    printAs.value(type[kb.ids.methods][kb.ids.index][kb.name(method)][kb.ids.value]);
+    World& w = getWorld();
+    printAs.value(type[w.ids.methods][w.ids.index][w.name(method)][w.ids.value]);
 }
 
-std::unique_ptr<Brain> TestBase::m_kb;
+std::unique_ptr<World> TestBase::m_world;
 
 } // namespace test
 } // namespace cells

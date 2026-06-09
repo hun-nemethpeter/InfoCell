@@ -13,14 +13,14 @@ class logger;
 namespace infocell {
 namespace cells {
 
-class Brain;
+class World;
 class Compiler;
 class ID
 {
-    Brain& kb;
+    World& w;
 
 public:
-    ID(Brain& kb);
+    ID(World& w);
 
     List argument;
     List ast;
@@ -134,10 +134,10 @@ namespace type {
 class Op
 {
 public:
-    Op(Brain& kb);
+    Op(World& w);
 
 protected:
-    Brain& kb;
+    World& w;
 
 public:
     Object Activate;
@@ -178,10 +178,10 @@ public:
 class Ast
 {
 public:
-    Ast(Brain& kb);
+    Ast(World& w);
 
 protected:
-    Brain& kb;
+    World& w;
 
 public:
     Object Add;
@@ -249,14 +249,14 @@ public:
 class Std
 {
 public:
-    Std(Brain& kb);
+    Std(World& w);
 
     cells::CellI& slot(const std::string& key, cells::CellI& type);
     cells::CellI& slot(cells::CellI& key, cells::CellI& type);
     cells::CellI& kvPair(cells::CellI& key, cells::CellI& value);
 
 protected:
-    Brain& kb;
+    World& w;
 
 public:
     Object Cell;
@@ -295,7 +295,7 @@ public:
 class Directions
 {
 public:
-    Directions(Brain& kb);
+    Directions(World& w);
     List up;
     List down;
     List left;
@@ -305,7 +305,7 @@ public:
 class Coordinates
 {
 public:
-    Coordinates(Brain& kb);
+    Coordinates(World& w);
     List x;
     List y;
 };
@@ -313,7 +313,7 @@ public:
 class Boolean
 {
 public:
-    Boolean(Brain& kb);
+    Boolean(World& w);
     Object true_;
     Object false_;
 };
@@ -321,7 +321,7 @@ public:
 class Numbers
 {
 public:
-    Numbers(Brain& kb);
+    Numbers(World& w);
     Map sign;
     Object positive;
     Object negative;
@@ -333,19 +333,19 @@ public:
     class Chars
     {
     public:
-        Chars(Brain& kb);
+        Chars(World& w);
         Object& get(char32_t utf32Char);
 
     protected:
         void registerUnicodeBlock(char32_t from, char32_t to);
         std::map<char32_t, Object> m_characters;
-        Brain& kb;
+        World& w;
     };
 
     class Digits
     {
     public:
-        Digits(Brain& kb);
+        Digits(World& w);
         Object& operator[](int digit);
 
     protected:
@@ -355,27 +355,27 @@ public:
     class Numbers
     {
     public:
-        Numbers(Brain& kb);
+        Numbers(World& w);
         Number& get(int number);
 
     protected:
         std::map<int, Number> m_numbers;
-        Brain& m_kb;
+        World& w;
     };
 
     class Strings
     {
     public:
-        Strings(Brain& kb);
+        Strings(World& w);
         String& get(const std::string& str);
         List& getCharList(const std::string& str);
 
     protected:
         std::map<std::string, String> m_strings;
-        Brain& kb;
+        World& w;
     };
 
-    Pools(Brain& kb);
+    Pools(World& w);
 
     Chars chars;
     Digits digits;
@@ -383,7 +383,7 @@ public:
     Strings strings;
 };
 
-class Brain
+class World
 {
 public:
     class Logger
@@ -420,8 +420,8 @@ public:
     Ast::StructName& struct_(const std::string& name);
 
 public:
-    Brain(std::function<void()> loggerLevelInit = []() {});
-    ~Brain();
+    World(std::function<void()> loggerLevelInit = []() {});
+    ~World();
 
     Logger logger;
     Pools pools;
@@ -460,7 +460,7 @@ public:
     CellI& ListOf(CellI& type);
     CellI& MapOf(CellI& keyType, CellI& valueType);
 
-    CellI& toKbBool(bool value);
+    CellI& toCellBool(bool value);
 
     template <typename... Args>
     List& list(CellI& value, Args&&... args);
@@ -487,15 +487,15 @@ public:
 
 void splitNamespacedString(std::vector<std::string>& out, const std::string& input);
 
-#pragma region Brain
+#pragma region World
 template <typename... Args>
-Ast::TemplatedType& Brain::tt_(const std::string& nameStr, Args&&... args)
+Ast::TemplatedType& World::tt_(const std::string& nameStr, Args&&... args)
 {
     return ast.templatedType(nameStr, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
-CellI& Brain::templateId(const std::string& nameStr, Args&&... args)
+CellI& World::templateId(const std::string& nameStr, Args&&... args)
 {
     List& idCell = *new List(*this, std.Cell);
     for (const auto& character : nameStr) {
@@ -507,9 +507,9 @@ CellI& Brain::templateId(const std::string& nameStr, Args&&... args)
 }
 
 template <typename... Args>
-List& Brain::list(CellI& value, Args&&... args)
+List& World::list(CellI& value, Args&&... args)
 {
-    List& ret = *new List(*this, value.kb.std.Cell);
+    List& ret = *new List(*this, value.w.std.Cell);
     ret.add(value);
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
@@ -519,7 +519,7 @@ List& Brain::list(CellI& value, Args&&... args)
 }
 
 template <typename... Args>
-Map& Brain::map(CellI& key, CellI& value, Args&&... args)
+Map& World::map(CellI& key, CellI& value, Args&&... args)
 {
     Map& ret = *new Map(*this, key.struct_(), value.struct_(), fmt::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
     if constexpr (sizeof...(Args) > 0) {
@@ -530,7 +530,7 @@ Map& Brain::map(CellI& key, CellI& value, Args&&... args)
 }
 
 template <typename... Args>
-Set& Brain::set(CellI& value, Args&&... args)
+Set& World::set(CellI& value, Args&&... args)
 {
     Set& ret = *new Set(*this, value.struct_(), fmt::format("Map<{}, {}>(...)", value.struct_().label()));
     if constexpr (sizeof...(Args) > 0) {
@@ -541,14 +541,14 @@ Set& Brain::set(CellI& value, Args&&... args)
 }
 
 template <typename... Args>
-void Brain::addSlots(Map& map, CellI& value, Args&&... args)
+void World::addSlots(Map& map, CellI& value, Args&&... args)
 {
     map.add(value["key"], value);
     addSlots(map, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
-Map& Brain::slots(CellI& value, Args&&... args)
+Map& World::slots(CellI& value, Args&&... args)
 {
     Map& ret = *new Map(*this, std.Cell, std.Slot, "Map<Cell, Slot>(...)");
     addSlots(ret, value, std::forward<Args>(args)...);

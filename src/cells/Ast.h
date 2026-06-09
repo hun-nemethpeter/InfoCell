@@ -7,7 +7,7 @@
 namespace infocell {
 namespace cells {
 
-class Brain;
+class World;
 class ToolFinder;
 
 template <typename T>
@@ -34,7 +34,7 @@ public:
     {
         Base(const Base&) = delete;
     public:
-        Base(Brain& kb, CellI& classCell, const std::string& label = "");
+        Base(World& w, CellI& classCell, const std::string& label = "");
     };
 
     class Equal;
@@ -44,13 +44,13 @@ public:
                   public NewT<T>
     {
     public:
-        BaseT(Brain& kb, CellI& classCell, const std::string& label) :
-            Base(kb, classCell, label)
+        BaseT(World& w, CellI& classCell, const std::string& label) :
+            Base(w, classCell, label)
         {
         }
         Equal& operator==(Base& rhs) const
         {
-            return Equal::New(kb, const_cast<BaseT<T>&>(*this), rhs);
+            return Equal::New(w, const_cast<BaseT<T>&>(*this), rhs);
         }
         Equal& operator!=(Base& rhs) const;
     };
@@ -59,58 +59,58 @@ public:
     class Cell : public BaseT<Cell>
     {
     public:
-        Cell(Brain& kb, CellI& value);
+        Cell(World& w, CellI& value);
         Get& operator/(Base& key);
         Get& operator/(const std::string& key);
     };
     class StructName : public BaseT<StructName>
     {
     public:
-        StructName(Brain& kb, CellI& name);
+        StructName(World& w, CellI& name);
     };
     class Call;
     class Self : public BaseT<Self>
     {
     public:
-        Self(Brain& kb);
+        Self(World& w);
         Call& operator()(const std::string& method);
     };
     class SelfFn : public BaseT<SelfFn>
     {
     public:
-        SelfFn(Brain& kb);
+        SelfFn(World& w);
     };
     class Continue : public BaseT<Continue>
     {
     public:
-        Continue(Brain& kb);
+        Continue(World& w);
     };
     class Break : public BaseT<Break>
     {
     public:
-        Break(Brain& kb);
+        Break(World& w);
     };
     class Try : public BaseT<Try>
     {
     public:
-        Try(Brain& kb, Base& tryBranch, Base& catchBranch);
+        Try(World& w, Base& tryBranch, Base& catchBranch);
     };
     class Throw : public BaseT<Throw>
     {
     public:
-        Throw(Brain& kb);
-        Throw(Brain& kb, Base& value);
+        Throw(World& w);
+        Throw(World& w, Base& value);
     };
     class Return : public BaseT<Return>
     {
     public:
-        Return(Brain& kb);
-        Return(Brain& kb, CellI& value);
+        Return(World& w);
+        Return(World& w, CellI& value);
     };
     class Parameter : public BaseT<Parameter>
     {
     public:
-        Parameter(Brain& kb, CellI& key);
+        Parameter(World& w, CellI& key);
         Get& operator/(Base& key);
         Get& operator/(const std::string& key);
         Call& operator()(const std::string& method);
@@ -118,17 +118,17 @@ public:
     class ResolvedType : public BaseT<ResolvedType>
     {
     public:
-        ResolvedType(Brain& kb, CellI& astType, CellI& compiledType);
+        ResolvedType(World& w, CellI& astType, CellI& compiledType);
     };
     class Slot : public BaseT<Slot>
     {
     public:
-        Slot(Brain& kb, CellI& key, CellI& value);
+        Slot(World& w, CellI& key, CellI& value);
     };
     class Call : public BaseT<Call>
     {
     public:
-        Call(Brain& kb, CellI& cell, CellI& method);
+        Call(World& w, CellI& cell, CellI& method);
 
         Call& operator()(const std::string& nameStr, CellI& value);
     };
@@ -136,7 +136,7 @@ public:
     class StaticCall : public BaseT<StaticCall>
     {
     public:
-        StaticCall(Brain& kb, CellI& cell, CellI& method);
+        StaticCall(World& w, CellI& cell, CellI& method);
 
         StaticCall& operator()(const std::string& nameStr, CellI& value);
     };
@@ -144,7 +144,7 @@ public:
     class Block : public BaseT<Block>
     {
     public:
-        Block(Brain& kb, List& list);
+        Block(World& w, List& list);
     };
 
     class Var;
@@ -160,7 +160,7 @@ public:
     class Items
     {
     public:
-        Items(Brain& kb, const std::string& mapName, Base& parent);
+        Items(World& w, const std::string& mapName, Base& parent);
 
         bool has(CellI& id);
         TAst& get(const std::string& nameStr);
@@ -169,7 +169,7 @@ public:
         void add(TAst& obj);
         MapType& items();
 
-        Brain& kb;
+        World& w;
         const std::string m_mapName;
         Base& m_parent;
     };
@@ -177,7 +177,7 @@ public:
     class Scope : public BaseT<Scope>
     {
     public:
-        Scope(Brain& kb, const std::string& nameStr);
+        Scope(World& w, const std::string& nameStr);
 
         Scope& getRootScope();
 
@@ -239,7 +239,7 @@ public:
     class StructBase : public Base
     {
     public:
-        StructBase(Brain& kb, CellI& astType, CellI& name, const std::string& nameStr);
+        StructBase(World& w, CellI& astType, CellI& name, const std::string& nameStr);
 
         Function& addMethod(const std::string& nameStr);
         void addMethod(Function& method);
@@ -296,17 +296,17 @@ public:
                    public NewT<Struct>
     {
     public:
-        Struct(Brain& kb, const std::string& nameStr);
-        Struct(Brain& kb, CellI& id);
+        Struct(World& w, const std::string& nameStr);
+        Struct(World& w, CellI& id);
     };
 
     class StructT : public StructBase,
                     public NewT<StructT>
     {
     public:
-        using StructBase::kb;
-        StructT(Brain& kb, const std::string& nameStr);
-        StructT(Brain& kb, CellI& id);
+        using StructBase::w;
+        StructT(World& w, const std::string& nameStr);
+        StructT(World& w, CellI& id);
 
         StructT& templateParams(Slot& param);
 
@@ -326,9 +326,9 @@ public:
                   public NewT<Trait>
     {
     public:
-        using StructBase::kb;
-        Trait(Brain& kb, const std::string& nameStr);
-        Trait(Brain& kb, CellI& id);
+        using StructBase::w;
+        Trait(World& w, const std::string& nameStr);
+        Trait(World& w, CellI& id);
 
         Trait& templateParams(Slot& param);
 
@@ -355,9 +355,9 @@ public:
                       public NewT<TraitImpl>
     {
     public:
-        using StructBase::kb;
-        TraitImpl(Brain& kb, const std::string& nameStr);
-        TraitImpl(Brain& kb, CellI& id);
+        using StructBase::w;
+        TraitImpl(World& w, const std::string& nameStr);
+        TraitImpl(World& w, CellI& id);
 
         TraitImpl& templateParams(Slot& param);
 
@@ -387,23 +387,23 @@ public:
     class EnumValue : public BaseT<EnumValue>
     {
     public:
-        EnumValue(Brain& kb, const std::string& nameStr);
-        EnumValue(Brain& kb, const std::string& nameStr, CellI& value);
+        EnumValue(World& w, const std::string& nameStr);
+        EnumValue(World& w, const std::string& nameStr, CellI& value);
     };
 
     class TypedEnumValue : public BaseT<TypedEnumValue>
     {
     public:
-        TypedEnumValue(Brain& kb, CellI& name, CellI& type);
-        TypedEnumValue(Brain& kb, const std::string& nameStr, CellI& type);
-        TypedEnumValue(Brain& kb, const std::string& nameStr, CellI& type, CellI& value);
+        TypedEnumValue(World& w, CellI& name, CellI& type);
+        TypedEnumValue(World& w, const std::string& nameStr, CellI& type);
+        TypedEnumValue(World& w, const std::string& nameStr, CellI& type, CellI& value);
     };
 
     class Enum : public BaseT<Enum>
     {
     public:
-        Enum(Brain& kb, CellI& name);
-        Enum(Brain& kb, const std::string& nameStr);
+        Enum(World& w, CellI& name);
+        Enum(World& w, const std::string& nameStr);
 
         Enum& values(Base& value);
 
@@ -424,8 +424,8 @@ public:
     class Function : public BaseT<Function>
     {
     public:
-        Function(Brain& kb, CellI& name);
-        Function(Brain& kb, const std::string& nameStr);
+        Function(World& w, CellI& name);
+        Function(World& w, const std::string& nameStr);
 
         Function& parameters(Slot& param);
 
@@ -457,8 +457,8 @@ public:
     class FunctionT : public BaseT<FunctionT>
     {
     public:
-        FunctionT(Brain& kb, CellI& name, const std::string& label);
-        FunctionT(Brain& kb, const std::string& name);
+        FunctionT(World& w, CellI& name, const std::string& label);
+        FunctionT(World& w, const std::string& name);
 
         void templateParams(Slot& param);
 
@@ -492,24 +492,24 @@ public:
     class Delete : public BaseT<Delete>
     {
     public:
-        Delete(Brain& kb, Base& cell);
+        Delete(World& w, Base& cell);
     };
     class Set : public BaseT<Set>
     {
     public:
-        Set(Brain& kb, Base& cell, Base& key, Base& value);
+        Set(World& w, Base& cell, Base& key, Base& value);
     };
     class Erase : public BaseT<Erase>
     {
     public:
-        Erase(Brain& kb, Base& cell, Base& key);
+        Erase(World& w, Base& cell, Base& key);
     };
     class If : public BaseT<If>
     {
     public:
-        If(Brain& kb, Base& condition);
-        If(Brain& kb, Base& condition, Base& thenBranch);
-        If(Brain& kb, Base& condition, Base& thenBranch, Base& elseBranch);
+        If(World& w, Base& condition);
+        If(World& w, Base& condition, Base& thenBranch);
+        If(World& w, Base& condition, Base& thenBranch, Base& elseBranch);
 
         If& then_(Base& thenBranch);
         If& else_(Base& elseBranch);
@@ -517,7 +517,7 @@ public:
     class Match : public BaseT<Match>
     {
     public:
-        Match(Brain& kb, Base& enum_);
+        Match(World& w, Base& enum_);
 
         Match& case_(CellI& memberName, Base& op);
         Match& case_(const std::string& memberStr, Base& op);
@@ -526,27 +526,27 @@ public:
     class Do : public BaseT<Do>
     {
     public:
-        Do(Brain& kb, Base& statement);
+        Do(World& w, Base& statement);
         Do& while_(Base& condition);
     };
     class While : public BaseT<While>
     {
     public:
-        While(Brain& kb, Base& condition);
+        While(World& w, Base& condition);
         While& do_(Base& statement);
     };
     class For : public BaseT<For>
     {
     public:
-        For(Brain& kb, const std::string& varName);
+        For(World& w, const std::string& varName);
         For& in(Base& container);
         For& operator()(Base& statement);
     };
     class Var : public BaseT<Var>
     {
     public:
-        Var(Brain& kb, const std::string& nameStr);
-        Var(Brain& kb, CellI& name);
+        Var(World& w, const std::string& nameStr);
+        Var(World& w, CellI& name);
 
         Set& operator=(Base& value);
         Get& operator*();
@@ -558,7 +558,7 @@ public:
     {
     public:
         Member(const Member&) = delete;
-        Member(Brain& kb, CellI& key);
+        Member(World& w, CellI& key);
         Set& operator=(Base& value);
         Get& operator/(Base& key);
         Get& operator/(const std::string& key);
@@ -570,13 +570,13 @@ public:
     {
     public:
         SubType(const SubType&) = delete;
-        SubType(Brain& kb, CellI& name);
+        SubType(World& w, CellI& name);
     };
     class TemplatedType : public BaseT<TemplatedType>
     {
     public:
         TemplatedType(const TemplatedType&) = delete;
-        TemplatedType(Brain& kb, CellI& id, CellI& typeList);
+        TemplatedType(World& w, CellI& id, CellI& typeList);
 
         void addParam(const std::string& key, CellI& type);
         void addParam(const std::string& key, const std::string& type);
@@ -598,56 +598,56 @@ public:
     {
     public:
         TemplateParam(const TemplateParam&) = delete;
-        TemplateParam(Brain& kb, CellI& key);
+        TemplateParam(World& w, CellI& key);
     };
     class AssociatedType : public BaseT<AssociatedType>
     {
     public:
         AssociatedType(const AssociatedType&) = delete;
-        AssociatedType(Brain& kb, CellI& key);
+        AssociatedType(World& w, CellI& key);
     };
     class New : public BaseT<New>
     {
     public:
-        New(Brain& kb, Base& objectType);
-        New(Brain& kb, Base& objectType, Base& constructor);
+        New(World& w, Base& objectType);
+        New(World& w, Base& objectType, Base& constructor);
 
         New& operator()(const std::string& nameStr, CellI& value);
     };
     class Same : public BaseT<Same>
     {
     public:
-        Same(Brain& kb, Base& lhs, Base& rhs);
+        Same(World& w, Base& lhs, Base& rhs);
     };
     class NotSame : public BaseT<NotSame>
     {
     public:
-        NotSame(Brain& kb, Base& lhs, Base& rhs);
+        NotSame(World& w, Base& lhs, Base& rhs);
     };
     class Equal : public BaseT<Equal>
     {
     public:
-        Equal(Brain& kb, Base& lhs, Base& rhs);
+        Equal(World& w, Base& lhs, Base& rhs);
     };
     class NotEqual : public BaseT<NotEqual>
     {
     public:
-        NotEqual(Brain& kb, Base& lhs, Base& rhs);
+        NotEqual(World& w, Base& lhs, Base& rhs);
     };
     class Has : public BaseT<Has>
     {
     public:
-        Has(Brain& kb, Base& cell, Base& key);
+        Has(World& w, Base& cell, Base& key);
     };
     class Missing : public BaseT<Missing>
     {
     public:
-        Missing(Brain& kb, Base& cell, Base& key);
+        Missing(World& w, Base& cell, Base& key);
     };
     class Get : public BaseT<Get>
     {
     public:
-        Get(Brain& kb, Base& cell, Base& key);
+        Get(World& w, Base& cell, Base& key);
         Get& operator/(Base& key);
         Get& operator/(const std::string& key);
         Call& operator()(const std::string& method);
@@ -655,60 +655,60 @@ public:
     class And : public BaseT<And>
     {
     public:
-        And(Brain& kb, Base& lhs, Base& rhs);
+        And(World& w, Base& lhs, Base& rhs);
     };
     class Or : public BaseT<Or>
     {
     public:
-        Or(Brain& kb, Base& lhs, Base& rhs);
+        Or(World& w, Base& lhs, Base& rhs);
     };
     class Not : public BaseT<Not>
     {
     public:
-        Not(Brain& kb, Base& input);
+        Not(World& w, Base& input);
     };
     class Add : public BaseT<Add>
     {
     public:
-        Add(Brain& kb, Base& lhs, Base& rhs);
+        Add(World& w, Base& lhs, Base& rhs);
     };
     class Subtract : public BaseT<Subtract>
     {
     public:
-        Subtract(Brain& kb, Base& lhs, Base& rhs);
+        Subtract(World& w, Base& lhs, Base& rhs);
     };
     class Multiply : public BaseT<Multiply>
     {
     public:
-        Multiply(Brain& kb, Base& lhs, Base& rhs);
+        Multiply(World& w, Base& lhs, Base& rhs);
     };
     class Divide : public BaseT<Divide>
     {
     public:
-        Divide(Brain& kb, Base& lhs, Base& rhs);
+        Divide(World& w, Base& lhs, Base& rhs);
     };
     class LessThan : public BaseT<LessThan>
     {
     public:
-        LessThan(Brain& kb, Base& lhs, Base& rhs);
+        LessThan(World& w, Base& lhs, Base& rhs);
     };
     class LessThanOrEqual : public BaseT<LessThanOrEqual>
     {
     public:
-        LessThanOrEqual(Brain& kb, Base& lhs, Base& rhs);
+        LessThanOrEqual(World& w, Base& lhs, Base& rhs);
     };
     class GreaterThan : public BaseT<GreaterThan>
     {
     public:
-        GreaterThan(Brain& kb, Base& lhs, Base& rhs);
+        GreaterThan(World& w, Base& lhs, Base& rhs);
     };
     class GreaterThanOrEqual : public BaseT<GreaterThanOrEqual>
     {
     public:
-        GreaterThanOrEqual(Brain& kb, Base& lhs, Base& rhs);
+        GreaterThanOrEqual(World& w, Base& lhs, Base& rhs);
     };
 
-    Ast(Brain& kb);
+    Ast(World& w);
 
     Cell& cell(CellI& value);
     StructName& structName(CellI& id);
@@ -786,7 +786,7 @@ public:
 
 protected:
     CellI& processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb);
-    Brain& kb;
+    World& w;
 };
 
 class ID;
@@ -797,7 +797,7 @@ class Coordinates;
 class AstHelper : public Ast
 {
 public:
-    AstHelper(Brain& kb);
+    AstHelper(World& w);
 
 protected:
     CellI& name(const std::string& str);

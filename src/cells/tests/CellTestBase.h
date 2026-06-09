@@ -2,8 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "cells/Cells.h"
-#include "cells/Brain.h"
+#include "cells/World.h"
 #include "cells/NodeBase.h"
 
 namespace infocell {
@@ -27,31 +26,31 @@ class CellTest :
     public NodeBase
 {
 public:
-    static void freeKb();
-    static Brain& getKb();
+    static void freeWorld();
+    static World& getWorld();
 
 protected:
     CellTest(std::function<void()> loggerLevelInit = []() {});
 
     void printMethodInType(CellI& type, const std::string& method);
 
-    static std::unique_ptr<Brain> m_kb;
+    static std::unique_ptr<World> m_world;
     PrintAs printAs;
 };
 
 class TestBase : public ::testing::Test
 {
 public:
-    static void freeKb();
-    static Brain& getKb();
-    static void createKb(std::function<void()> loggerLevelInit = []() { });
+    static void freeWorld();
+    static World& getWorld();
+    static void createWorld(std::function<void()> loggerLevelInit = []() { });
 
 protected:
     TestBase();
 
     void printMethodInType(CellI& type, const std::string& method);
 
-    static std::unique_ptr<Brain> m_kb;
+    static std::unique_ptr<World> m_world;
     PrintAs printAs;
 };
 

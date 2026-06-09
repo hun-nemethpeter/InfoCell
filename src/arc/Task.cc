@@ -2,7 +2,7 @@
 #include <fmt/core.h>
 #include <fstream>
 
-#include "cells/Brain.h"
+#include "cells/World.h"
 
 #include "Grid.h"
 #include "Task.h"
@@ -12,44 +12,44 @@ using namespace nlohmann;
 namespace infocell {
 namespace arc {
 
-Task::GridPair::GridPair(cells::Brain& kb, int number, const std::string& input, const std::string& output) :
+Task::GridPair::GridPair(cells::World& w, int number, const std::string& input, const std::string& output) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
     m_outputGrid(std::make_unique<native::Grid>(fmt::format("Train output {}", number))),
-    m_input(kb, m_inputGrid.loadFromJsonArray(input)),
-    m_output(std::make_unique<cells::arc::Grid>(kb, m_outputGrid->loadFromJsonArray(output)))
+    m_input(w, m_inputGrid.loadFromJsonArray(input)),
+    m_output(std::make_unique<cells::arc::Grid>(w, m_outputGrid->loadFromJsonArray(output)))
 {
 }
 
-Task::GridPair::GridPair(cells::Brain& kb, int number, const std::string& input) :
+Task::GridPair::GridPair(cells::World& w, int number, const std::string& input) :
     m_number(number),
     m_inputGrid(fmt::format("Train input {}", number)),
-    m_input(kb, m_inputGrid.loadFromJsonArray(input))
+    m_input(w, m_inputGrid.loadFromJsonArray(input))
 {
 }
 
-Task::Task(cells::Brain& kb, const nlohmann::json& arcJsonTask) :
-    Task(kb, "", arcJsonTask)
+Task::Task(cells::World& w, const nlohmann::json& arcJsonTask) :
+    Task(w, "", arcJsonTask)
 {
 
 }
 
-Task::Task(cells::Brain& kb, const std::string& id, const nlohmann::json& jsonTask) :
+Task::Task(cells::World& w, const std::string& id, const nlohmann::json& jsonTask) :
     m_id(id),
-    m_cellTaskStruct(kb.getStruct("arc::Task")),
-    m_cellExampleStruct(kb.getStruct("arc::Example")),
-    m_cellTask(kb, m_cellTaskStruct),
-    m_cellExamplesList(kb, m_cellExampleStruct),
-    m_cellTestsList(kb, m_cellExampleStruct)
+    m_cellTaskStruct(w.getStruct("arc::Task")),
+    m_cellExampleStruct(w.getStruct("arc::Example")),
+    m_cellTask(w, m_cellTaskStruct),
+    m_cellExamplesList(w, m_cellExampleStruct),
+    m_cellTestsList(w, m_cellExampleStruct)
 {
     const nlohmann::json& jsonTrainSet = jsonTask.at("train");
     m_examples.reserve(jsonTrainSet.size());
     m_cellExamples.reserve(jsonTrainSet.size());
     int trainExampleNumber = 1;
     for (const auto& trainExample : jsonTrainSet) {
-        m_examples.emplace_back(kb, trainExampleNumber++, to_string(trainExample.at("input")), to_string(trainExample.at("output")));
+        m_examples.emplace_back(w, trainExampleNumber++, to_string(trainExample.at("input")), to_string(trainExample.at("output")));
         GridPair& gridPair = m_examples.back();
-        m_cellExamples.emplace_back(kb, m_cellExampleStruct);
+        m_cellExamples.emplace_back(w, m_cellExampleStruct);
         cells::Object& exampleObject = m_cellExamples.back();
         exampleObject.set("input", gridPair.m_input);
         exampleObject.set("output", *gridPair.m_output);
@@ -60,9 +60,9 @@ Task::Task(cells::Brain& kb, const std::string& id, const nlohmann::json& jsonTa
     m_cellTests.reserve(jsonTrainSet.size());
     int testExampleNumber = 1;
     for (const auto& testExample : jsonTestSet) {
-        m_tests.emplace_back(kb, testExampleNumber++, to_string(testExample.at("input")));
+        m_tests.emplace_back(w, testExampleNumber++, to_string(testExample.at("input")));
         GridPair& gridPair = m_tests.back();
-        m_cellTests.emplace_back(kb, m_cellExampleStruct);
+        m_cellTests.emplace_back(w, m_cellExampleStruct);
         cells::Object& exampleObject = m_cellTests.back();
         exampleObject.set("input", gridPair.m_input);
         m_cellTestsList.add(exampleObject);
@@ -72,14 +72,14 @@ Task::Task(cells::Brain& kb, const std::string& id, const nlohmann::json& jsonTa
     m_cellTask.set("tests", m_cellTestsList);
 }
 
-TaskSet::TaskSet(cells::Brain& kb, const std::string& filePath) :
-    kb(kb)
+TaskSet::TaskSet(cells::World& w, const std::string& filePath) :
+    w(w)
 {
     auto allTasks = json::parse(std::ifstream(filePath));
     for (json::const_iterator it = allTasks.begin(); it != allTasks.end(); ++it) {
         m_tasks.emplace(std::piecewise_construct,
                         std::forward_as_tuple(it.key()),
-                        std::forward_as_tuple(kb, it.key(), it.value()));
+                        std::forward_as_tuple(w, it.key(), it.value()));
     }
 }
 
@@ -101,7 +101,7 @@ void TaskSet::addSolutions(const std::string& filePath)
         for (const auto& testExample : jsonSolutionArray) {
             Task::GridPair& gridPair = task.m_tests[index];
             gridPair.m_outputGrid    = std::make_unique<native::Grid>(fmt::format("Test output {}", index));
-            gridPair.m_output        = std::make_unique<cells::arc::Grid>(kb, gridPair.m_outputGrid->loadFromJsonArray(to_string(jsonSolutionArray[index])));
+            gridPair.m_output        = std::make_unique<cells::arc::Grid>(w, gridPair.m_outputGrid->loadFromJsonArray(to_string(jsonSolutionArray[index])));
             ++index;
         }
     }
