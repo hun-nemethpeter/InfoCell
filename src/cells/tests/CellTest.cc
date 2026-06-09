@@ -29,22 +29,6 @@ namespace hybridarc = infocell::cells::arc;
 // type checking
 // remove .label() from CellI
 
-static void splitNamespacedString(std::vector<std::string>& out, const std::string& input)
-{
-    const std::string delim = "::";
-    std::string leftover = input;
-
-    while (true) {
-        int delim_pos = leftover.find(delim);
-        if (delim_pos == std::string::npos) {
-            out.push_back(leftover);
-            break;
-        }
-        std::string next_token = leftover.substr(0, delim_pos);
-        leftover               = leftover.substr(delim_pos + delim.length());
-        out.push_back(next_token);
-    }
-}
 
 TEST_F(CellTest, StringSplit)
 {

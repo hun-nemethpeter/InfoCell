@@ -13,6 +13,7 @@ namespace infocell {
 namespace cells {
 
 class Brain;
+class Compiler;
 class ID
 {
     Brain& kb;
@@ -317,22 +318,6 @@ public:
         Base(const Base&) = delete;
     public:
         Base(Brain& kb, CellI& classCell, const std::string& label = "");
-
-        Base& resolveType(CellI& typeAst, CellI& resolveState);
-        CellI& getCompiledTypeFromResolvedType(CellI& ast);
-        CellI& getResolvedTypeById(CellI& id, bool isInstance, CellI& resolveState);
-
-    protected:
-        CellI& getFullyQualifiedNameImpl();
-        CellI& resolveId(CellI& id, CellI& containerId, CellI& unknownContainerId, CellI& resolveState, std::function<CellI&(CellI& structReference)> unknownCb);
-        CellI& resolveStructName(CellI& structName, CellI& resolveState);
-        Base& resolveTypeNameAsAst(CellI& structName, CellI& resolveState);
-        Base& resolveSubTypeNameAsAst(CellI& subTypeName, CellI& resolveState);
-        CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
-        Struct& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
-        Base& resolveTemplatedType(CellI& ast, CellI& resolveState);
-        List& generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState, List& resolvedParams);
-        ResolvedType& resolvedType(CellI& astType, CellI& compiledType);
     };
 
     class Equal;
@@ -474,13 +459,7 @@ public:
     public:
         Scope(Brain& kb, const std::string& nameStr);
 
-        Base& resolveTypeName(CellI& name);
-        StructT& resolveFullTemplateId(CellI& scopeList, CellI& name);
         Scope& getRootScope();
-        CellI& getFullyQualifiedName();
-        CellI& compile();
-        CellI& reigisterStructBeforeCompilation(CellI& id);
-        void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
 
         template <typename TAst>
         bool hasItem(CellI& name)
@@ -521,16 +500,6 @@ public:
         ToolFinder* m_toolFinder = nullptr;
 
     protected:
-        void registerEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances);
-        void resolveEarlyStructs(TrieMap& unknownStructs, TrieMap& unknownInstances, Scope& resolvedScope);
-        int instantiateTemplateInstances(TrieMap& unknownInstances, Object& compileState, Scope& resolvedScope);
-        Enum* resolveFullEnumName(CellI& scopeList, CellI& name);
-        Struct* resolveFullStructName(CellI& scopeList, CellI& name);
-        Base* resolveFullNameInAllScope(CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
-        Base* resolveFullNameInOneScope(Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Base*(Ast::Scope& currentScope)> getCb);
-        Ast::Scope& resolveTypes(CellI& state);
-        void compileTheResolvedAsts(CellI& programData, CellI& state);
-        void processDescriptionsInAsts(CellI& programData, CellI& state);
 
         template<class TAst>
         Items<TrieMap, TAst>& getItemMember();
@@ -609,10 +578,6 @@ public:
     public:
         Struct(Brain& kb, const std::string& nameStr);
         Struct(Brain& kb, CellI& id);
-
-        CellI& getFullyQualifiedName();
-        Struct& resolveTypes(CellI& resolveState);
-        CellI& compile(CellI& state);
     };
 
     class StructT : public StructBase,
@@ -634,12 +599,7 @@ public:
             return *this;
         }
 
-        Struct& instantiateWith(List& slotList, CellI& state);
         Map& templateParams();
-
-    protected:
-        CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, CellI& state);
-        Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, CellI& state);
     };
 
     class Trait : public StructBase,
@@ -709,8 +669,6 @@ public:
     public:
         EnumValue(Brain& kb, const std::string& nameStr);
         EnumValue(Brain& kb, const std::string& nameStr, CellI& value);
-
-        CellI& getFullyQualifiedName();
     };
 
     class TypedEnumValue : public BaseT<TypedEnumValue>
@@ -719,8 +677,6 @@ public:
         TypedEnumValue(Brain& kb, CellI& name, CellI& type);
         TypedEnumValue(Brain& kb, const std::string& nameStr, CellI& type);
         TypedEnumValue(Brain& kb, const std::string& nameStr, CellI& type, CellI& value);
-
-        CellI& getFullyQualifiedName();
     };
 
     class Enum : public BaseT<Enum>
@@ -728,10 +684,6 @@ public:
     public:
         Enum(Brain& kb, CellI& name);
         Enum(Brain& kb, const std::string& nameStr);
-
-        CellI& getFullyQualifiedName();
-        Enum& resolveTypes(CellI& resolveState);
-        CellI& compile(CellI& state);
 
         Enum& values(Base& value);
 
@@ -776,21 +728,12 @@ public:
         template <typename... Args>
         void description(Args&&... args);
 
-        Ast::Function& resolveTypes(CellI& resolveState);
-        CellI& compile(CellI& state);
-        std::string shortName();
-        CellI& getFullyQualifiedName();
-
         List& parameters();
         CellI& returnType();
         Base& instructions();
 
     protected:
-        Ast::Base& resolveTypesInCode(CellI& resolveState, CellI& ast);
         void addBlock(Block& block);
-        void compileParams(cells::Object& function, cells::Map& functionSlots, cells::Map& subTypesMap, CellI& state);
-        CellI& compileAst(CellI& ast, cells::Object& function, CellI& state);
-        void checkMethodCall(CellI& astType, CellI& astMethodId, CellI& state);
     };
 
     class FunctionT : public BaseT<FunctionT>
@@ -820,8 +763,6 @@ public:
 
         template <typename... Args>
         void code(Args&&... args);
-
-        CellI& instantiate();
 
     protected:
         void addBlock(Block& block);
@@ -889,7 +830,6 @@ public:
         Var(Brain& kb, const std::string& nameStr);
         Var(Brain& kb, CellI& name);
 
-        CellI& getFullyQualifiedName();
         Set& operator=(Base& value);
         Get& operator*();
         Call& operator()(const std::string& method);
@@ -1392,13 +1332,13 @@ public:
     CellI& _9_;
 
     CellI* compiledGlobalScopePtr = nullptr;
+    std::unique_ptr<Compiler> m_compiler;
 
 public:
     CellI& getStruct(const std::string& nameStr);
     CellI& getStruct(CellI& name);
     CellI& getVariable(const std::string& nameStr);
     CellI& getVariable(CellI& name);
-    void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
     CellI& name(const std::string& str);
     template <typename... Args>
     CellI& templateId(const std::string& str, Args&&... args);
@@ -1429,6 +1369,8 @@ public:
 
     InitPhase initPhase();
 };
+
+void splitNamespacedString(std::vector<std::string>& out, const std::string& input);
 
 #pragma region Brain
 template <typename... Args>

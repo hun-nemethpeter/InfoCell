@@ -144,23 +144,6 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
     }
 }
 
-static void splitNamespacedString(std::vector<std::string>& out, const std::string& input)
-{
-    const std::string delim = "::";
-    std::string leftover    = input;
-
-    while (true) {
-        int delim_pos = leftover.find(delim);
-        if (delim_pos == std::string::npos) {
-            out.push_back(leftover);
-            break;
-        }
-        std::string next_token = leftover.substr(0, delim_pos);
-        leftover               = leftover.substr(delim_pos + delim.length());
-        out.push_back(next_token);
-    }
-}
-
 void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct)
 {
     std::vector<std::string> sliced;
@@ -516,7 +499,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_, CellI& state)
         ret.set("scope", struct_.get("scope"));
     }
 
-    auto& fullyQualifiedName = struct_.getFullyQualifiedName();
+    auto& fullyQualifiedName = getFullyQualifiedName(struct_);
     CellI* compiledStructPtr = nullptr;
     if (unknownStructs.hasKey(fullyQualifiedName)) {
         CellI& unknownStruct = unknownStructs.getValue(fullyQualifiedName);
@@ -526,7 +509,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_, CellI& state)
         compiledStructPtr = new Object(kb, kb.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
     }
     auto& compiledStruct = *compiledStructPtr;
-    structs.add(struct_.getFullyQualifiedName(), compiledStruct);
+    structs.add(getFullyQualifiedName(struct_), compiledStruct);
     ret.set("compiledStruct", compiledStruct);
 
     state.set("currentStruct", ret);
@@ -618,7 +601,7 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_, CellI& state)
         ret.set("scope", enum_.get("scope"));
     }
 
-    auto& fullyQualifiedName = enum_.getFullyQualifiedName();
+    auto& fullyQualifiedName = getFullyQualifiedName(enum_);
     CellI* resolvedStructPtr = nullptr;
     if (unknownStructs.hasKey(fullyQualifiedName)) {
         CellI& unknownStruct = unknownStructs.getValue(fullyQualifiedName);
@@ -628,7 +611,7 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_, CellI& state)
         resolvedStructPtr = new Object(kb, kb.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
     }
     auto& resolvedStruct = *resolvedStructPtr;
-    structs.add(enum_.getFullyQualifiedName(), resolvedStruct);
+    structs.add(getFullyQualifiedName(enum_), resolvedStruct);
 
     state.set("currentStruct", ret);
 
@@ -721,7 +704,7 @@ int Compiler::instantiateTemplateInstances(TrieMap& unknownInstances, Object& co
         auto& scope           = static_cast<Ast::Scope&>(unknownInstance[kb.ids.scope]);
         auto& idScope         = unknownInstance.has(kb.name("idScope")) ? static_cast<Ast::Scope&>(unknownInstance[kb.name("idScope")]) : scope;
 
-        ss << fmt::format("        in scope: {}", idScope.getFullyQualifiedName().label());
+        ss << fmt::format("        in scope: {}", getFullyQualifiedName(idScope).label());
         ss << fmt::format("  instantiate id: {}<", templateId.label());
         Visitor::visitList(templateParams, [this, &ss, &compileState](CellI& param, int i, bool& stop) {
             CellI& paramId   = param[kb.ids.key];
@@ -1043,7 +1026,7 @@ Ast::Base& Compiler::resolveType(CellI& typeAst, CellI& resolveState)
     }
     if (&typeAst.struct_() == &kb.std.ast.StructName) {
         Ast::Struct& resolveAstStruct = static_cast<Ast::Struct&>(resolveTypeNameAsAst(typeAst, resolveState));
-        auto& resolveCompiledStruct   = resolveStructName(resolveAstStruct.getFullyQualifiedName(), resolveState);
+        auto& resolveCompiledStruct   = resolveStructName(getFullyQualifiedName(resolveAstStruct), resolveState);
         auto& reslvedTypeNode         = resolvedType(resolveAstStruct, resolveCompiledStruct);
 
         return reslvedTypeNode;
@@ -1207,11 +1190,76 @@ Ast::Base& Compiler::resolveTemplatedType(CellI& ast, CellI& resolveState)
     auto& resolvedAstInstance    = resolveTemplateInstanceIdAsAst(idCell, scope, resolveState, ast, resolvedTemplateParams);
     resolvedAstInstance.set("instanceOf", scope.getItem<Ast::StructT>(templateId));
     resolvedAstInstance.set("templateParams", resolvedTemplateParams);
-    auto& resolvedCompiledInstance = resolveTemplateInstanceId(resolvedAstInstance.getFullyQualifiedName(), scope, resolveState, ast, resolvedTemplateParams);
+    auto& resolvedCompiledInstance = resolveTemplateInstanceId(getFullyQualifiedName(resolvedAstInstance), scope, resolveState, ast, resolvedTemplateParams);
 
     // std::cout << fmt::format("DDDD {} resolved at {:p}\n", idCell.label(), (void*)&resolvedCompiledInstance) << std::endl;
 
     return resolvedType(resolvedAstInstance, resolvedCompiledInstance);
+}
+
+CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
+{
+    if (base.has("fullyQualifiedName")) {
+        return base.get("fullyQualifiedName");
+    }
+    bool isEmptyName                  = false;
+    CellI* scopeFullyQualifiedNamePtr = nullptr;
+    if (base.has(kb.ids.scope)) {
+        Ast::Scope& scope          = static_cast<Ast::Scope&>(base.get(kb.ids.scope));
+        scopeFullyQualifiedNamePtr = &getFullyQualifiedName(scope);
+    } else if (base.has("enum")) {
+        Ast::Enum& enum_           = static_cast<Ast::Enum&>(base.get("enum"));
+        scopeFullyQualifiedNamePtr = &getFullyQualifiedName(enum_);
+    } else {
+        static List& emptyName     = *new List(kb, kb.std.Char);
+        scopeFullyQualifiedNamePtr = &emptyName;
+        isEmptyName                = true;
+    }
+    CellI& scopeFullyQualifiedName = *scopeFullyQualifiedNamePtr;
+
+    List& fullyQualifiedName = *new List(kb, kb.std.Char);
+    Visitor::visitList(scopeFullyQualifiedName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
+        fullyQualifiedName.add(character);
+    });
+    if (!fullyQualifiedName.empty()) {
+        fullyQualifiedName.add(kb.pools.chars.get(':'));
+        fullyQualifiedName.add(kb.pools.chars.get(':'));
+    }
+    if (!isEmptyName) {
+        auto& name = base.get(kb.ids.name);
+        Visitor::visitList(name, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
+            fullyQualifiedName.add(character);
+        });
+    }
+    std::stringstream ss;
+    int templateParamPrintModeFromCharIndex = fullyQualifiedName.size();
+    if (base.has("instanceOf")) {
+        int paramsLength                    = static_cast<List&>(base.get(kb.ids.templateParams)).size();
+        templateParamPrintModeFromCharIndex = fullyQualifiedName.size() - paramsLength * 2;
+    }
+    Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
+        if (i == templateParamPrintModeFromCharIndex) {
+            stop = true;
+            return;
+        }
+        ss << character.label();
+    });
+    if (base.has("instanceOf")) {
+        ss << "<";
+        Visitor::visitList(base.get(kb.ids.templateParams), [this, &ss](CellI& slot, int i, bool& stop) {
+            CellI& key  = slot[kb.ids.key];
+            CellI& type = slot[kb.ids.type];
+            if (i != 0) {
+                ss << ", ";
+            }
+            ss << fmt::format("{}={}", key.label(), getCompiledTypeFromResolvedType(type).label());
+        });
+        ss << ">";
+    }
+    fullyQualifiedName.label(ss.str());
+    base.set("fullyQualifiedName", fullyQualifiedName);
+
+    return fullyQualifiedName;
 }
 
 List& Compiler::generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState, List& resolvedParams)
@@ -1355,15 +1403,15 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope, CellI&
     if (scope.has("functions")) {
         Visitor::visitList(resolvedScope.items<Ast::Function>()[kb.ids.list], [this, &state, &compiledFunctions](CellI& function, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(function[kb.ids.value]);
-            auto& compiledFunction     = astFunction.compile(state);
-            compiledFunctions.add(astFunction.getFullyQualifiedName(), compiledFunction);
+            auto& compiledFunction     = compileFunction(astFunction, state);
+            compiledFunctions.add(getFullyQualifiedName(astFunction), compiledFunction);
         });
     }
     if (scope.has("structs")) {
         Visitor::visitList(resolvedScope.items<Ast::Struct>()[kb.ids.list], [this, &state, &compiledStructs](CellI& struct_, int i, bool& stop) {
             Ast::Struct& astStruct = static_cast<Ast::Struct&>(struct_[kb.ids.value]);
             auto& compiledStruct   = compileStruct(astStruct, state);
-            CellI& structFullName  = astStruct.getFullyQualifiedName();
+            CellI& structFullName  = getFullyQualifiedName(astStruct);
             if (compiledStruct.has("subTypes")) {
                 CellI& subTypesIndex = compiledStruct["subTypes"][kb.ids.index];
                 Visitor::visitList(subTypesIndex[kb.ids.struct_][kb.ids.slots][kb.ids.list], [this, &structFullName, &subTypesIndex, &compiledStructs](CellI& subType, int i, bool& stop) {
@@ -1391,14 +1439,14 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope, CellI&
     if (scope.has("enums")) {
         Visitor::visitList(resolvedScope.items<Ast::Enum>()[kb.ids.list], [this, &state, &compiledStructs](CellI& enum_, int i, bool& stop) {
             Ast::Enum& astEnum   = static_cast<Ast::Enum&>(enum_[kb.ids.value]);
-            auto& compiledStruct = astEnum.compile(state);
-            compiledStructs.add(astEnum.getFullyQualifiedName(), compiledStruct);
+            auto& compiledStruct = compileEnum(astEnum, state);
+            compiledStructs.add(getFullyQualifiedName(astEnum), compiledStruct);
         });
     }
     if (scope.has("variables")) {
         Visitor::visitList(resolvedScope.items<Ast::Var>()[kb.ids.list], [this, &compiledVariables](CellI& var, int i, bool& stop) {
             Ast::Var& astVar       = static_cast<Ast::Var&>(var[kb.ids.value]);
-            auto& varName          = astVar.getFullyQualifiedName();
+            auto& varName          = getFullyQualifiedName(astVar);
             auto& compiledVariable = *new Object(kb, kb.std.op.Var, fmt::format("var {}", astVar.label()));
             compiledVariables.add(varName, compiledVariable);
         });
@@ -1419,7 +1467,7 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope, CellI&
 
 CellI& Compiler::compileStruct(Ast::Struct& struct_, CellI& state)
 {
-    CellI& compiledStruct = getResolvedTypeById(struct_.getFullyQualifiedName(), struct_.has("instanceOf"), state);
+    CellI& compiledStruct = getResolvedTypeById(getFullyQualifiedName(struct_), struct_.has("instanceOf"), state);
     compiledStruct.erase("incomplete");
     // std::cout << fmt::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
 
@@ -1439,7 +1487,7 @@ CellI& Compiler::compileStruct(Ast::Struct& struct_, CellI& state)
     if (struct_.has("methods")) {
         Map& compiledMethods = *new Map(kb, kb.std.Cell, kb.std.ast.Function);
         Visitor::visitList(struct_.methods()[kb.ids.list], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
-            auto& compiledFunction = static_cast<Ast::Function&>(astFunction).compile(state);
+            auto& compiledFunction = compileFunction(static_cast<Ast::Function&>(astFunction), state);
             compiledMethods.add(astFunction[kb.ids.name], compiledFunction);
         });
         compiledStruct.set("methods", compiledMethods);
@@ -1472,7 +1520,7 @@ CellI& Compiler::compileStruct(Ast::Struct& struct_, CellI& state)
 
 CellI& Compiler::compileEnum(Ast::Enum& enum_, CellI& state)
 {
-    CellI& compiledStruct   = getResolvedTypeById(enum_.getFullyQualifiedName(), enum_.has("instanceOf"), state);
+    CellI& compiledStruct   = getResolvedTypeById(getFullyQualifiedName(enum_), enum_.has("instanceOf"), state);
     auto& compiledVariables = static_cast<TrieMap&>(state[kb.ids.variables]);
 
     compiledStruct.erase("incomplete");
@@ -1500,7 +1548,7 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_, CellI& state)
             CellI& valueName = valueCell[kb.ids.name];
             if (&valueCell.struct_() == &kb.std.ast.EnumValue) {
                 auto& enumValue = static_cast<Ast::EnumValue&>(valueCell);
-                auto& fullName  = enumValue.getFullyQualifiedName();
+                auto& fullName  = getFullyQualifiedName(enumValue);
                 if (valueCell.has(kb.ids.value)) {
                     auto& value         = enumValue[kb.ids.value];
                     auto& resolvedValue = resolveTypeInEnumValue(value);
@@ -1522,7 +1570,7 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_, CellI& state)
                 auto& enumValue             = static_cast<Ast::TypedEnumValue&>(valueCell);
                 auto& enumValueType         = valueCell["enumType"];
                 auto& compiledEnumValueType = getCompiledTypeFromResolvedType(enumValueType);
-                auto& fullName              = enumValue.getFullyQualifiedName();
+                auto& fullName              = getFullyQualifiedName(enumValue);
                 compiledMembers.add(valueKey, compiledEnumValueType);
             }
         });
@@ -2083,7 +2131,7 @@ void Compiler::processDescriptionsInScope(Ast::Scope& scope, CellI& programData,
         Visitor::visitList(astScope.items<Ast::Struct>()[kb.ids.list], [this, &toolFinder, &compiledStructs](CellI& struct_, int i, bool& stop) {
             auto& tool = static_cast<Ast::Struct&>(struct_[kb.ids.value]);
             if (tool.has(kb.ids.description) && tool[kb.ids.description].has(kb.ids.asts)) {
-                auto& compiledAstStruct = compiledStructs.getValue(tool.getFullyQualifiedName());
+                auto& compiledAstStruct = compiledStructs.getValue(getFullyQualifiedName(tool));
                 toolFinder.add(tool, compiledAstStruct);
             }
         });

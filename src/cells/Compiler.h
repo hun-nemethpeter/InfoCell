@@ -47,6 +47,8 @@ protected:
     CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
     Ast::Struct& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& resolveState, CellI& ast, CellI& templateParams);
     Ast::Base& resolveTemplatedType(CellI& ast, CellI& resolveState);
+
+    CellI& getFullyQualifiedName(Ast::Base& base);
     List& generateTemplateId(CellI& id, CellI& parameters, CellI& resolveState, List& resolvedParams);
     Ast::ResolvedType& resolvedType(CellI& astType, CellI& compiledType);
     Ast::Enum* resolveFullEnumName(Ast::Scope& scope, CellI& scopeList, CellI& name);
