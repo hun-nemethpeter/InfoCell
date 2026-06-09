@@ -2,6 +2,8 @@ add_subdirectory(printers)
 add_subdirectory(tests)
 
 add_library(cells-lib STATIC
+    Arc.cc
+    Arc.h
     Ast.cc
     Ast.h
     AstImpl.h
