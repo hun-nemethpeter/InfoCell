@@ -2,6 +2,9 @@ add_subdirectory(printers)
 add_subdirectory(tests)
 
 add_library(cells-lib STATIC
+    Ast.cc
+    Ast.h
+    AstImpl.h
     Cells.cc
     Cells.h
     Brain.cc
