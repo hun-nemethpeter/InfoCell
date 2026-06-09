@@ -13,6 +13,8 @@ add_library(cells-lib STATIC
     Compiler.h
     NodeBase.cc
     NodeBase.h
+    StdLib.cc
+    StdLib.h
     ToolFinder.cc
     ToolFinder.h
 )
