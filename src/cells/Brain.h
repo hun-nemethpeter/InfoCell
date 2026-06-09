@@ -592,15 +592,15 @@ public:
         CellI& name();
 
         Base& getSubType(CellI& name);
+        Map& methods();
+        Map& members();
+        Map& subTypes();
+        List& memberOf();
 
     protected:
         void addBlock(Block& block);
 
         Items<Map, Function> methodsImpl;
-        Map& methods();
-        Map& members();
-        Map& subTypes();
-        List& memberOf();
     };
 
     class Struct : public StructBase,
@@ -635,11 +635,11 @@ public:
         }
 
         Struct& instantiateWith(List& slotList, CellI& state);
+        Map& templateParams();
 
     protected:
         CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, CellI& state);
         Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, CellI& state);
-        Map& templateParams();
     };
 
     class Trait : public StructBase,
@@ -745,10 +745,10 @@ public:
             values(std::forward<Args>(args)...);
             return *this;
         }
+        TrieMap& values();
 
     private:
         CellI& resolveEnumValue(CellI& ast);
-        TrieMap& values();
     };
 
     class Function : public BaseT<Function>
@@ -781,15 +781,16 @@ public:
         std::string shortName();
         CellI& getFullyQualifiedName();
 
+        List& parameters();
+        CellI& returnType();
+        Base& instructions();
+
     protected:
         Ast::Base& resolveTypesInCode(CellI& resolveState, CellI& ast);
         void addBlock(Block& block);
         void compileParams(cells::Object& function, cells::Map& functionSlots, cells::Map& subTypesMap, CellI& state);
         CellI& compileAst(CellI& ast, cells::Object& function, CellI& state);
         void checkMethodCall(CellI& astType, CellI& astMethodId, CellI& state);
-        List& parameters();
-        CellI& returnType();
-        Base& instructions();
     };
 
     class FunctionT : public BaseT<FunctionT>
