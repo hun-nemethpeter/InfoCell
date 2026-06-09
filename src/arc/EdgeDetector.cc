@@ -2049,7 +2049,6 @@ void EdgeDetector::createResult()
             std::cout << "🡪 ";
         }
     };
-    ToolFinder toolFinder(kb);
     std::cout << "RootFrame rootFrame(width: " << static_cast<Number&>(rootFrame.m_width).value() << ", height: " << static_cast<Number&>(rootFrame.m_height).value() << ");" << std::endl;
     class RootFrameMaker : public brain::AstHelper
     {
@@ -2100,6 +2099,11 @@ void EdgeDetector::createResult()
         }
         std::cout << "});" << std::endl;
     });
+
+    ToolFinder& toolFinder = *kb.globalScope.m_toolFinder;
+    toolFinder.findConversionTools(kb._2_, kb._4_);
+    toolFinder.findConversionTools(kb.boolean.false_, kb.boolean.true_);
+
 #if 0
 ┌──┬──┬──┬──┐
 │  │██│██│██│

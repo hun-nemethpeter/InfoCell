@@ -54,6 +54,30 @@ class ToolFinder
     };
 
 public:
+    class ConversionToolKey
+    {
+    public:
+        ConversionToolKey(CellI& inputType, CellI& outputType);
+
+        bool operator<(const ConversionToolKey& rhs) const;
+
+        CellI* m_inputType;
+        CellI* m_outputType;
+    };
+
+    class ConversionToolBlueprint
+    {
+    public:
+        ConversionToolBlueprint(CellI& tool, CellI& compiledToolType, CellI& slotId);
+
+        bool operator<(const ConversionToolBlueprint& blueprint) const;
+
+        CellI* m_tool;
+        CellI* m_compiledToolType;
+        CellI* m_slotId;
+    };
+
+public:
     ToolFinder(brain::Brain& kb);
 
     bool empty();
@@ -61,6 +85,7 @@ public:
     void add(CellI& tool, CellI& compiledToolType);
     void add(CellI& effect, CellI& tool, CellI& compiledToolType);
     CellI* findToolByEffectAst(CellI& ast);
+    CellI& findConversionTools(CellI& from, CellI& to);
     void print();
 
 private:
@@ -71,10 +96,16 @@ private:
     void handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::stack<StackNode>& stack);
     void printCb(Node* node);
     CellI* processToolAst(CellI& toolAst, Map& memberIds, CellI& compiledToolType);
+    CellI& createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint);
+
 
     brain::Brain& kb;
     std::unique_ptr<Node> m_root;
+    std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;
 };
+
+std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolKey& key);
+std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBlueprint& blueprint);
 
 } // namespace cells
 } // namespace infocell

@@ -4872,10 +4872,14 @@ void AstStd::createAst()
             member("parameters", ListOf(std.ast.Slot)));
 
     astScope.add<Struct>("Not")
+        .memberOf(
+            _(std.ast.Base))
         .primitiveTool()
         .returnType(_(std.Boolean))
+        .description(
+            return_(not_(m_("input"))))
         .members(
-            member("input", "Base"));
+            member("input", _(std.Boolean)));
 
     astScope.add<Struct>("NotEqual")
         .memberOf(
@@ -5117,10 +5121,16 @@ AstStd::AstStd(brain::Brain& kb) :
     stdScope.add<Struct>("Boolean");
     stdScope.add<Struct>("Char");
     stdScope.add<Struct>("Digit");
+
+    stdScope.add<Enum>("NumberSign")
+        .values(
+            ev_("positive"),
+            ev_("negative"));
+
     stdScope.add<Struct>("Number")
         .members(
             member("value", ListOf(std.Digit)),
-            member("sign", _(std.Number))); // TODO sign has no class currently
+            member("sign", "NumberSign"));
 
     stdScope.add<Struct>("String");
 

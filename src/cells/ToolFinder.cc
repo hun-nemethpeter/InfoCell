@@ -114,9 +114,57 @@ void ToolFinder::addValue(Node*& node, CellI& value)
 }
 
 // ============================================================================
+ToolFinder::ConversionToolKey::ConversionToolKey(CellI& inputType, CellI& outputType) :
+    m_inputType(&inputType),
+    m_outputType(&outputType)
+{
+}
+
+bool ToolFinder::ConversionToolKey::operator<(const ConversionToolKey& rhs) const
+{
+    return std::tie(m_inputType, m_outputType) < std::tie(rhs.m_inputType, rhs.m_outputType);
+}
+
+std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolKey& key)
+{
+    os << "ConversionToolKey [from: " << key.m_inputType->label() << ", to: " << key.m_outputType->label() << "]";
+    return os;
+}
+
+ToolFinder::ConversionToolBlueprint::ConversionToolBlueprint(CellI& tool, CellI& compiledToolType, CellI& slotId) :
+    m_tool(&tool),
+    m_compiledToolType(&compiledToolType),
+    m_slotId(&slotId)
+{
+}
+
+bool ToolFinder::ConversionToolBlueprint::operator<(const ConversionToolBlueprint& blueprint) const
+{
+    return std::tie(m_tool, m_slotId) < std::tie(blueprint.m_tool, blueprint.m_slotId);
+}
+
+std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBlueprint& blueprint)
+{
+    os << "ConversionToolBlueprint [tool: " << blueprint.m_tool->label() << ", input: " << blueprint.m_slotId->label() << "]";
+    return os;
+}
+
+// ============================================================================
 void ToolFinder::add(CellI& tool, CellI& compiledToolType)
 {
     auto& effects = tool[kb.ids.description][kb.ids.asts];
+    if (tool.has(kb.ids.returnType)) {
+        // so this can be a conversion tool
+        CellI& returnType = tool[kb.ids.returnType][kb.ids.value];
+        CellI& toolInputSlots = compiledToolType[kb.ids.slots][kb.ids.list];
+        Visitor::visitList(toolInputSlots, [this, &tool, &compiledToolType, &returnType](CellI& slot, int i, bool& stop) {
+            CellI& inputType = slot[kb.ids.type];
+            ConversionToolKey key(inputType, returnType);
+            ConversionToolBlueprint blueprint(tool, compiledToolType, slot[kb.ids.key]);
+            m_conversionTools.insert({ key, blueprint });
+        });
+    }
+
     if (IS_LOG_ENABLED) {
         std::stringstream ss;
 
@@ -127,11 +175,13 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
             if (i > 0) {
                 ss << ", ";
             }
-            ss << slot[kb.ids.key].label() << ": " << slot[kb.ids.type].label();
+            CellI& inputType = slot[kb.ids.type];
+            ss << slot[kb.ids.key].label() << ": " << inputType.label();
         });
         ss << ")";
         if (tool.has(kb.ids.returnType)) {
-            ss << ": " << tool[kb.ids.returnType][kb.ids.value].label();
+            CellI& returnType = tool[kb.ids.returnType][kb.ids.value];
+            ss << ": " << returnType.label();
         }
         TRACE(toolFinder, "{} =>", ss.str());
 
@@ -561,6 +611,100 @@ void ToolFinder::printCb(Node* node)
     for (auto& it : node->m_children) {
         printCb(it.second);
     }
+}
+
+static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot)
+{
+    brain::Brain& kb = tool.kb;
+    CellI& slotList  = tool.struct_()[kb.ids.slots][kb.ids.list];
+    Visitor::visitList(slotList, [&kb, &tool, &filledSlot](CellI& slot, int i, bool& stop) {
+        CellI& slotType = slot[kb.ids.type];
+        CellI& slotKey = slot[kb.ids.key];
+        if (&slotKey != &filledSlot) {
+            tool.set(slotKey, kb.ast.get(kb.ast.cell(kb.ast.var("x")), kb.ast.cell(kb.ids.value)));
+        }
+    });
+}
+
+CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint)
+{
+    brain::Brain& kb  = blueprint.m_tool->kb;
+    CellI& tool = *new Object(kb, *blueprint.m_compiledToolType);
+    tool.set(*blueprint.m_slotId, kb.ast.cell(from));
+
+    fillMissingSlotsWithUnknown(tool, *blueprint.m_slotId);
+
+    CellI& missingSlotEquation = *new Object(kb, kb.std.ast.Equal, "tool(from, x) == to");
+    missingSlotEquation.set(kb.ids.lhs, tool);
+    missingSlotEquation.set(kb.ids.rhs, kb.ast.cell(to));
+
+    if (CellI* missingSlotSolver = findToolByEffectAst(missingSlotEquation)) {
+        std::cout << "";
+    }
+
+    return kb.ids.emptyObject; // TODO
+}
+
+// ============================================================================
+CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
+{
+    CellI& inputType = from.struct_();
+    CellI& outputType = to.struct_();
+
+    ConversionToolKey conversionToolKey(inputType, outputType);
+
+    auto tools = m_conversionTools.equal_range(conversionToolKey);
+    if (tools.first != m_conversionTools.end()) {
+        std::cout << conversionToolKey << '\n';
+    }
+    for (auto it = tools.first; it != tools.second; ++it) {
+        ConversionToolBlueprint blueprint = it->second;
+        std::cout << "  " << blueprint << '\n';
+        // ConversionToolKey [from: Number, to: Number]: ConversionToolBlueprint [tool: Add, input: lhs]
+        CellI& conversionTool = createConversionToolFromBlueprint(from, to, blueprint);
+    }
+    std::cout << "";
+#if 0
+Add(lhs: Number, rhs: Number): Number
+And(lhs: Boolean, rhs: Boolean): Boolean
+Divide(lhs: Number, rhs: Number): Number
+Equal(lhs: ast::Base, rhs: ast::Base): Boolean
+Get(cell: ast::Base, key: ast::Base): ast::Base
+GreaterThan(lhs: Number, rhs: Number): Boolean
+GreaterThanOrEqual(lhs: Number, rhs: Number): Boolean
+Has(cell: ast::Base, key: ast::Base): Boolean
+LessThan(lhs: Number, rhs: Number): Boolean
+LessThanOrEqual(lhs: Number, rhs: Number): Boolean
+Missing(cell: ast::Base, key: ast::Base): Boolean
+Multiply(lhs: Number, rhs: Number): Number
+Not(input: Boolean): Boolean
+NotEqual(lhs: ast::Base, rhs: ast::Base): Boolean
+NotSame(lhs: ast::Base, rhs: ast::Base): Boolean
+Or(lhs: Boolean, rhs: Boolean): Boolean
+Same(lhs: ast::Base, rhs: ast::Base): Boolean
+Subtract(lhs: Number, rhs: Number): Number
+
+2 -> 4
+Number -> Number
+
+Add(lhs: Number, rhs: Number): Number           // commutative so only Add(x, 2) == 4 is considered
+Divide(lhs: Number, rhs: Number): Number        // Divide(x, 2) == 4 and Divide(2, x) == 4
+Get(cell: ast::Base, key: ast::Base): ast::Base // Get(x, 2) == 4 and Get(2, x) == 4 are considered, but can not be solved with Set as that function is not a conversion tool
+Multiply(lhs: Number, rhs: Number): Number      // commutative so only Multiply(x, 2) == 4 is considered
+Subtract(lhs: Number, rhs: Number): Number      // Subtract(x, 2) == 4 and Divide(2, x) == 4
+
+
+Solving equations:
+
+Add(unknown1, 2) == 4
+
+solving with
+sub(lhs, rhs) solves [add(return(), rhs) == lhs] so [unknown1 == sub(4, 2)] so Add(Subtract(4, 2), lhs)
+
+
+
+#endif
+    return from.kb.ids.emptyObject; // TODO
 }
 
 } // namespace cells

@@ -273,6 +273,7 @@ TEST_F(CellTest, CellTrieTestForMathAdd)
 
     CellI& resultToolAst = *toolFinder.findToolByEffectAst(request);
 
+    // set(_(x), _(kb.ids.value), subtract(_(4), _(2)))
     EXPECT_EQ(&resultToolAst.struct_(), &kb.std.ast.Set);
     EXPECT_EQ(&resultToolAst[kb.ids.cell].struct_(), &kb.std.ast.Cell);
     EXPECT_EQ(&resultToolAst[kb.ids.cell][kb.ids.value], &varX);
