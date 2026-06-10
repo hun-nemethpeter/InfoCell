@@ -1,7 +1,7 @@
 ﻿#include "World.h"
 #include "Compiler.h"
 
-#include "Arc.h"
+#include "ArcLib.h"
 #include "StdLib.h"
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
@@ -640,8 +640,8 @@ AstTest::AstTest(World& w) :
 
 void World::createContent()
 {
-    AstStd astStd(*this);
-    AstArc astArc(*this);
+    StdLib stdLib(*this);
+    ArcLib arcLib(*this);
     AstTest astTest(*this);
 }
 

@@ -1,9 +1,9 @@
-﻿#include "Arc.h"
+﻿#include "ArcLib.h"
 
 namespace infocell {
 namespace cells {
 
-AstArc::AstArc(World& w) :
+ArcLib::ArcLib(World& w) :
     AstHelper(w)
 {
     auto& arcScope = globalScope.add<Scope>("arc");

@@ -5,10 +5,10 @@
 namespace infocell {
 namespace cells {
 
-class AstStd : public AstHelper
+class StdLib : public AstHelper
 {
 public:
-    AstStd(World& w);
+    StdLib(World& w);
 
 private:
     void createOp();

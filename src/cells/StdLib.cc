@@ -3,7 +3,7 @@
 namespace infocell {
 namespace cells {
 
-void AstStd::createOp()
+void StdLib::createOp()
 {
     auto& opScope = stdScope.add<Scope>("op");
     opScope.add<Struct>("Base");
@@ -289,7 +289,7 @@ void AstStd::createOp()
             member("statement", "Base"));
 }
 
-void AstStd::createAst()
+void StdLib::createAst()
 {
     auto& astScope = stdScope.add<Scope>("ast");
     astScope.add<Struct>("Base");
@@ -750,7 +750,7 @@ void AstStd::createAst()
             member("statement", "Base"));
 }
 
-AstStd::AstStd(World& w) :
+StdLib::StdLib(World& w) :
     AstHelper(w),
     stdScope(w.globalScope.add<Scope>("std"))
 {

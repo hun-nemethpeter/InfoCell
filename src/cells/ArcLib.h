@@ -5,10 +5,10 @@
 namespace infocell {
 namespace cells {
 
-class AstArc : public AstHelper
+class ArcLib : public AstHelper
 {
 public:
-    AstArc(World& w);
+    ArcLib(World& w);
 };
 
 } // namespace cells
