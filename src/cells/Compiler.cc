@@ -13,6 +13,7 @@ Compiler::Compiler(World& w) :
     m_earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs"),
     m_compiledFunctions(*new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions")),
     m_compiledStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "Types")),
+    m_compiledVariables(*new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables")),
     m_functions(*new List(w, w.std.op.Function, "Functions")),
     m_structs(*new TrieMap(w, w.std.Cell, w.std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs")),
@@ -20,8 +21,11 @@ Compiler::Compiler(World& w) :
     m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances")),
     m_instanceAsts(*new TrieMap(w, w.std.Cell, w.std.Struct, "instanceAsts")),
     m_unknownInstanceAsts(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstanceAsts")),
-    m_compiledVariables(*new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables"))
+    m_programData(*new Object(w, w.std.ProgramData, "ProgramData"))
 {
+    m_programData.set(w.ids.functions, m_compiledFunctions);
+    m_programData.set(w.ids.structs, m_compiledStructs);
+    m_programData.set(w.ids.variables, m_compiledVariables);
 }
 
 /*
@@ -37,14 +41,6 @@ Resolve template related references in normal functions or structs:
 */
 CellI& Compiler::compile(Ast::Scope& scope)
 {
-    auto& program     = *new Object(w, w.std.Program, "Program");
-    auto& programData = *new Object(w, w.std.ProgramData, "ProgramData");
-    program.set(w.ids.data, programData);
-
-    programData.set(w.ids.functions, m_compiledFunctions);
-    programData.set(w.ids.structs, m_compiledStructs);
-    programData.set(w.ids.variables, m_compiledVariables);
-
     registerEarlyStructs();
 
     // Step 1. creating a shadow AST tree where templated thing are resolved
@@ -72,7 +68,7 @@ CellI& Compiler::compile(Ast::Scope& scope)
     // Step 3. process descriptions
     processDescriptionsInScope(scope);
 
-    return program;
+    return m_programData;
 }
 
 CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)

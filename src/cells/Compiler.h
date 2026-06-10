@@ -65,7 +65,6 @@ protected:
     void processDescriptionsInScope(Ast::Scope& scope);
 
     World& w;
-    TrieMap m_earlyStructs;
     ToolFinder* m_toolFinder = nullptr;
 
     Ast::Function* m_currentFn        = nullptr;
@@ -76,8 +75,11 @@ protected:
     Ast::Scope* m_globalScope         = nullptr;
     Ast::Scope* m_globalResolvedScope = nullptr;
 
+    TrieMap m_earlyStructs;
+
     TrieMap& m_compiledFunctions;
     TrieMap& m_compiledStructs;
+    TrieMap& m_compiledVariables;
 
     List& m_functions;
     TrieMap& m_structs;
@@ -86,7 +88,8 @@ protected:
     TrieMap& m_unknownInstances;
     TrieMap& m_instanceAsts;
     TrieMap& m_unknownInstanceAsts;
-    TrieMap& m_compiledVariables;
+
+    Object& m_programData;
 };
 
 } // namespace cells

@@ -791,33 +791,33 @@ World::World(std::function<void()> loggerLevelInit) :
     compiler.registerBuiltInStruct("std::Directions", std.Directions);
     auto& compiledGlobalScope = compiler.compile(globalScope);
     globalScope.m_toolFinder  = compiler.getToolFinder();
-    compiledGlobalScopePtr    = &compiledGlobalScope[ids.data];
+    compiledGlobalScopePtr    = &compiledGlobalScope;
     m_initPhase               = InitPhase::FullyConstructed;
 
     // Test should be removed from here
     TRACE(compiledSymbols, "All compiled symbols:");
 
     TRACE(compiledSymbols, "  structs:");
-    auto& compiledStructs = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]);
+    auto& compiledStructs = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]);
     Visitor::visitList(compiledStructs[ids.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {}", kv[ids.key].label());
     });
 
     TRACE(compiledSymbols, "  functions:");
-    auto& compiledFunctions = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.functions]);
+    auto& compiledFunctions = static_cast<TrieMap&>(compiledGlobalScope[ids.functions]);
     Visitor::visitList(compiledFunctions[ids.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
     });
 
     TRACE(compiledSymbols, "  variables:");
-    auto& compiledVariables = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.variables]);
+    auto& compiledVariables = static_cast<TrieMap&>(compiledGlobalScope[ids.variables]);
     Visitor::visitList(compiledVariables[ids.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
     });
-    auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::ListItem", name("valueType"), std.Cell));
-    auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(templateId("std::List", name("valueType"), std.Cell));
-    auto& compiledTypeStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(name("std::Struct"));
-    auto& compiledIndexStruct    = static_cast<TrieMap&>(compiledGlobalScope[ids.data][ids.structs]).getValue(name("std::Index"));
+    auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]).getValue(templateId("std::ListItem", name("valueType"), std.Cell));
+    auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]).getValue(templateId("std::List", name("valueType"), std.Cell));
+    auto& compiledTypeStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]).getValue(name("std::Struct"));
+    auto& compiledIndexStruct    = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]).getValue(name("std::Index"));
     std.ListItem.set("methods", compiledListItemStruct[ids.methods]);
     std.List.set("methods", compiledListStruct[ids.methods]);
     std.Struct.set("methods", compiledTypeStruct[ids.methods]);
