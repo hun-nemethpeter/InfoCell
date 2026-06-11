@@ -671,7 +671,7 @@ void Solver::solve()
 {
     loggerPtr = &logger;
     logger.clearLogFile();
-    logger.log(INFO) << "There are " << m_arcTask.m_examples.size() << " example tasks";
+    logger.log(LogLevel::INFO) << "There are " << m_arcTask.m_examples.size() << " example tasks";
     unsigned int i = 1;
 
     std::vector<Rules> rules;
@@ -688,7 +688,7 @@ void Solver::solve()
     DrawingBoard result = applyCode(testInput, code);
 
     const cells::arc::Grid& m_input = m_arcTask.m_tests[0].m_input;
-    logger.log(INFO) << "Mapping input[" << m_input.width() << ", " << m_input.height() << "] to ... ?";
+    logger.log(LogLevel::INFO) << "Mapping input[" << m_input.width() << ", " << m_input.height() << "] to ... ?";
 }
 
 Solver::Grid Solver::parse(const cells::arc::Grid& grid)
@@ -696,11 +696,11 @@ Solver::Grid Solver::parse(const cells::arc::Grid& grid)
     Shaper shaper(grid);
     shaper.process();
     for (std::shared_ptr<Shape> shape : shaper.shapes()) {
-        logger.log(DEBUG) << "Shape:";
-        logger.logBoard(DEBUG) << shape->toString() << "\n";
+        logger.log(LogLevel::DEBUG) << "Shape:";
+        logger.logBoard(LogLevel::DEBUG) << shape->toString() << "\n";
         VectorShape vectorShape = shape->toVectorShape();
     }
-    logger.log(DEBUG) << "Number of shapes found: " << shaper.shapes().size();
+    logger.log(LogLevel::DEBUG) << "Number of shapes found: " << shaper.shapes().size();
 
     return Solver::Grid(shaper.shapes());
 }

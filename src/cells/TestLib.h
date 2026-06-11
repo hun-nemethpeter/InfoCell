@@ -5,12 +5,12 @@
 namespace infocell {
 namespace cells {
 
-class ArcLib : public AstHelper
+class TestLib : public AstHelper
 {
 public:
-    ArcLib(World& w, Scope& scope);
+    TestLib(World& w, Scope& scope);
 
-    Scope& arcScope;
+    Scope& testScope;
 };
 
 } // namespace cells

@@ -9,6 +9,7 @@ namespace infocell {
 namespace cells {
 namespace test {
 
+// ============================================================================
 class PrintAs
 {
 public:
@@ -21,6 +22,7 @@ public:
     std::string m_postfix;
 };
 
+// ============================================================================
 class CellTest :
     public ::testing::Test,
     public NodeBase
@@ -38,6 +40,7 @@ protected:
     PrintAs printAs;
 };
 
+// ============================================================================
 class TestBase : public ::testing::Test
 {
 public:

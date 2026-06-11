@@ -9,6 +9,7 @@ namespace infocell {
 namespace cells {
 namespace test {
 
+// ============================================================================
 PrintAs::PrintAs(const std::string& postfix) :
     m_postfix(postfix)
 {
@@ -42,88 +43,12 @@ void PrintAs::cell(CellI& cell, const std::string& label)
     std::cout << structPrinter.print() << std::endl;
 }
 
-#if 0
-class AstTest : public World::AstHelper
-{
-public:
-    AstTest(World& w);
-};
-
-AstTest::AstTest(World& w) :
-    AstHelper(w)
-{
-    auto& testScope = globalScope.add<Scope>("test");
-
-    auto& testFunction = testScope.add<Function>("testFunction");
-    testFunction.code(
-        var_("result") = new_(struct_("std::Index")));
-
-    auto& testVariable = testScope.add<Var>("testVariable");
-    auto& testStruct   = testScope.add<Struct>("TestStruct");
-
-    testStruct.addMethod("testCreateNewListOfNumbers")
-        .code(
-            var_("result") = new_(struct_("std::Index")),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Number))),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Cell))),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Pixel))),
-            var_("result") = new_(tt_("std::Set", "valueType", _(std.Number))),
-            var_("result") = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", _(std.Color))),
-            var_("result") = new_(tt_("std::TrieMap", "keyType", _(std.Number), "valueType", _(std.Color))));
-
-    testStruct.addMethod("factorial")
-        .parameters(
-            param("input", _(std.Number)))
-        .returnType(_(std.Number))
-        .code(
-            if_(greaterThanOrEqual(p_("input"), _(_1_)))
-                .then_(return_(multiply(p_("input"), self()("factorial", param("input", subtract(p_("input"), _(_1_)))))))
-                .else_(return_(_(_1_))));
-
-    testScope.add<Enum>("TestEnum")
-        .values(
-            ev_("value1"), // init with Void
-            ev_("value2"));
-
-    testScope.add<Enum>("TestEnumWithValues")
-        .values(
-            ev_("value1", _(_1_)), // init with a value
-            ev_("value2", _(_2_)));
-
-    testScope.add<Enum>("TestEnumTyped")
-        .values(
-            tev_("value1", struct_("TestStruct")), // init with value
-            tev_("value2", "TestStruct"));
-
-    testScope.add<Enum>("TestEnumTypedWithValues")
-        .values(
-            tev_("value1", "TestStruct", _(_1_)), // init with value
-            tev_("value2", "TestStruct", _(_2_)));
-
-    // TODO
-    //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
-    // try/catch: almost the same as break/continue/return it can go through function calls. We need an op::Catch node
-    // output: we need some kind of output, maybe a console thing first. Maybe just a new hybrid cell is needed
-    // SlotType should hold an std::Type which can be a std::Struct, std::Enum or similar
-    // Iterators, range-based-for
-    // Variable scopes
-    //
-    TrieMap earlyStructs(w, std.Cell, std.Cell, "earlyStructs");
-    testScope.compile(earlyStructs);
-}
-
-CellTest::CellTest(std::function<void()> loggerLevelInit) :
-    w(m_world.get() ? *m_world : (m_world = std::make_unique<World>(loggerLevelInit), AstTest(*m_world), *m_world)),
-    printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
-{
-}
-#else
+// ============================================================================
 CellTest::CellTest(std::function<void()> loggerLevelInit) :
     NodeBase(m_world.get() ? *m_world : (m_world = std::make_unique<World>(loggerLevelInit), *m_world)),
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
-#endif
 
 void CellTest::freeWorld()
 {
@@ -142,6 +67,7 @@ void CellTest::printMethodInType(CellI& type, const std::string& method)
 
 std::unique_ptr<World> CellTest::m_world;
 
+// ============================================================================
 TestBase::TestBase() :
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {

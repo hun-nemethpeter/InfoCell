@@ -13,7 +13,12 @@
 #include "arc/Task.h"
 #include "arc/hybridcells/Grid.h"
 #include "cells/Cells.h"
+#include "cells/Compiler.h"
+#include "cells/TestLib.h"
 #include "tui/App.h"
+
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#include "util/Log.h"
 
 namespace fs = std::filesystem;
 using nlohmann::json;
@@ -29,6 +34,44 @@ namespace hybridarc = infocell::cells::arc;
 // type checking
 // remove .label() from CellI
 
+TEST_F(CellTest, CompilerSmokeTest)
+{
+    Ast::Scope testScope(w, "test");
+    TestLib lestLib(w, testScope);
+
+    Compiler compiler(w);
+
+#if 0
+    auto& compiledScope = compiler.compile(testScope);
+
+    // Test should be removed from here
+    TRACE(compiledSymbols, "All compiled symbols:");
+
+    TRACE(compiledSymbols, "  structs:");
+    auto& compiledStructs = static_cast<TrieMap&>(compiledScope[ids.structs]);
+    Visitor::visitList(compiledStructs[ids.list], [this](CellI& kv, int, bool&) {
+        TRACE(compiledSymbols, "    {}", kv[ids.key].label());
+    });
+
+    TRACE(compiledSymbols, "  functions:");
+    auto& compiledFunctions = static_cast<TrieMap&>(compiledScope[ids.functions]);
+    Visitor::visitList(compiledFunctions[ids.list], [this](CellI& kv, int, bool&) {
+        TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
+    });
+
+    TRACE(compiledSymbols, "  variables:");
+    auto& compiledVariables = static_cast<TrieMap&>(compiledScope[ids.variables]);
+    Visitor::visitList(compiledVariables[ids.list], [this](CellI& kv, int, bool&) {
+        TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
+    });
+
+    Object testStruct(w, w.getStruct("std::Struct"), w.name("constructor"), "testStruct");
+    Object testRecursiveStruct(w, w.getStruct("std::Struct"), w.name("constructorWithRecursiveStruct"), "testRecursiveStruct");
+
+    Object testIndex(w, w.getStruct("std::Index"), w.name("constructor"), "testIndex");
+    testIndex.method(w.name("insert"), { "key", _1_ }, { "value", _2_ });
+#endif
+}
 
 TEST_F(CellTest, StringSplit)
 {
@@ -73,7 +116,7 @@ TEST_F(CellTest, StringSplitWithExtraChar)
     EXPECT_EQ(sliced[2], "Cell");
 }
 
-TEST_F(CellTest, CellTrieTestForSet)
+TEST_F(CellTest, ToolFinderTestForSet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     // test the pixel.set(green, 5)
@@ -106,7 +149,7 @@ TEST_F(CellTest, CellTrieTestForSet)
     EXPECT_EQ(&resultToolAst[w.ids.value][w.ids.value], &w._5_);
 }
 
-TEST_F(CellTest, CellTrieTestForGet)
+TEST_F(CellTest, ToolFinderTestForGet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     Object& pixel                 = *new Object(w, w.std.Color, "pixel");
@@ -143,7 +186,7 @@ TEST_F(CellTest, CellTrieTestForGet)
 #endif
 }
 
-TEST_F(CellTest, CellTrieTestForGetInGet)
+TEST_F(CellTest, ToolFinderTestForGetInGet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
 
@@ -189,7 +232,7 @@ TEST_F(CellTest, CellTrieTestForGetInGet)
     std::cout << "";
 }
 
-TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
+TEST_F(CellTest, ToolFinderTestForGetInGetWithAstHelper)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
 
@@ -217,7 +260,7 @@ TEST_F(CellTest, CellTrieTestForGetInGetWithAstHelper)
     }
 }
 
-TEST_F(CellTest, CellTrieTestForMathAdd)
+TEST_F(CellTest, ToolFinderTestForMathAdd)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
 

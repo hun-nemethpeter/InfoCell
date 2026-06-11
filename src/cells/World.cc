@@ -3,11 +3,10 @@
 
 #include "ArcLib.h"
 #include "StdLib.h"
+#include "TestLib.h"
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "util/Log.h"
-
-#include <sstream>
 
 namespace infocell {
 namespace cells {
@@ -571,78 +570,11 @@ Ast::StructName& World::struct_(const std::string& nameStr)
     return ast.structName(nameStr);
 }
 
-class AstTest : public AstHelper
-{
-public:
-    AstTest(World& w);
-};
-
-AstTest::AstTest(World& w) :
-    AstHelper(w)
-{
-    auto& testScope = globalScope.add<Scope>("test");
-
-    auto& testFunction = testScope.add<Function>("testFunction");
-    testFunction.instructions(
-        var_("result") = new_(struct_("std::Index")));
-
-    auto& testVariable = testScope.add<Var>("testVariable");
-    auto& testStruct   = testScope.add<Struct>("TestStruct");
-
-    testStruct.addMethod("testCreateNewListOfNumbers")
-        .instructions(
-            var_("result") = new_(struct_("std::Index")),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Number))),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Cell))),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Pixel))),
-            var_("result") = new_(tt_("std::Set", "valueType", _(std.Number))),
-            var_("result") = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", _(std.Color))),
-            var_("result") = new_(tt_("std::TrieMap", "keyType", _(std.Number), "valueType", _(std.Color))));
-
-    testStruct.addMethod("factorial")
-        .parameters(
-            parameter("input", _(std.Number)))
-        .returnType(_(std.Number))
-        .instructions(
-            if_(greaterThanOrEqual(p_("input"), _(_1_)))
-                .then_(return_(multiply(p_("input"), self()("factorial")("input", subtract(p_("input"), _(_1_))))))
-                .else_(return_(_(_1_))));
-
-    testScope.add<Enum>("TestEnum")
-        .values(
-            ev_("value1"), // init with Void
-            ev_("value2"));
-
-    testScope.add<Enum>("TestEnumWithValues")
-        .values(
-            ev_("value1", _(_1_)), // init with a value
-            ev_("value2", _(_2_)));
-
-    testScope.add<Enum>("TestEnumTyped")
-        .values(
-            tev_("value1", struct_("TestStruct")), // init with value
-            tev_("value2", "TestStruct"));
-
-    testScope.add<Enum>("TestEnumTypedWithValues")
-        .values(
-            tev_("value1", "TestStruct", _(_1_)), // init with value
-            tev_("value2", "TestStruct", _(_2_)));
-
-    // TODO
-    //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
-    // try/catch: almost the same as break/continue/return it can go through function calls. We need an op::Catch node
-    // output: we need some kind of output, maybe a console thing first. Maybe just a new hybrid cell is needed
-    // Type should hold an std::Type which can be a std::Struct, std::Enum or similar
-    // Iterators, range-based-for
-    // Variable scopes
-    //
-}
-
 void World::createContent()
 {
-    StdLib stdLib(*this);
-    ArcLib arcLib(*this);
-    AstTest astTest(*this);
+    StdLib stdLib(*this, globalScope);
+    ArcLib arcLib(*this, globalScope);
+    TestLib lestLib(*this, globalScope);
 }
 
 World::World(std::function<void()> loggerLevelInit) :
@@ -790,7 +722,7 @@ World::World(std::function<void()> loggerLevelInit) :
     compiler.registerBuiltInStruct("std::CompileState", std.CompileState);
     compiler.registerBuiltInStruct("std::Directions", std.Directions);
     auto& compiledGlobalScope = compiler.compile(globalScope);
-    globalScope.m_toolFinder  = compiler.getToolFinder();
+    globalScope.m_toolFinder  = &compiler.getToolFinder();
     compiledGlobalScopePtr    = &compiledGlobalScope;
     m_initPhase               = InitPhase::FullyConstructed;
 
@@ -814,16 +746,20 @@ World::World(std::function<void()> loggerLevelInit) :
     Visitor::visitList(compiledVariables[ids.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
     });
-    auto& compiledListItemStruct = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]).getValue(templateId("std::ListItem", name("valueType"), std.Cell));
-    auto& compiledListStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]).getValue(templateId("std::List", name("valueType"), std.Cell));
-    auto& compiledTypeStruct     = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]).getValue(name("std::Struct"));
-    auto& compiledIndexStruct    = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]).getValue(name("std::Index"));
+
+    // TODO hack: std.List is a "baseclass" now so we just set its method to std.List<Cell>
+    // we need to implement the trait system properly
+    auto& compiledListItemStruct = getStruct(templateId("std::ListItem", ids.valueType, std.Cell));
+    auto& compiledListStruct     = getStruct(templateId("std::List", ids.valueType, std.Cell));
+    auto& compiledStructStruct   = getStruct("std::Struct");
     std.ListItem.set("methods", compiledListItemStruct[ids.methods]);
     std.List.set("methods", compiledListStruct[ids.methods]);
-    std.Struct.set("methods", compiledTypeStruct[ids.methods]);
+    std.Struct.set("methods", compiledStructStruct[ids.methods]);
 
-    Object testType(*this, compiledTypeStruct, name("constructor"), "testType");
-    Object testRecursiveType(*this, compiledTypeStruct, name("constructorWithRecursiveType"), "testRecursiveType");
+    // TODO: remove these tests from here
+    auto& compiledIndexStruct = getStruct("std::Index");
+    Object testType(*this, compiledStructStruct, name("constructor"), "testType");
+    Object testRecursiveType(*this, compiledStructStruct, name("constructorWithRecursiveType"), "testRecursiveType");
 
     Object testIndex(*this, compiledIndexStruct, name("constructor"), "testIndex");
     testIndex.method(name("insert"), { "key", _1_ }, { "value", _2_ });

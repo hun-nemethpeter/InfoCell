@@ -15,6 +15,8 @@ add_library(cells-lib STATIC
     NodeBase.h
     StdLib.cc
     StdLib.h
+    TestLib.cc
+    TestLib.h
     ToolFinder.cc
     ToolFinder.h
     World.cc

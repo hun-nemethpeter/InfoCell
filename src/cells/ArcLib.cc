@@ -3,11 +3,10 @@
 namespace infocell {
 namespace cells {
 
-ArcLib::ArcLib(World& w) :
-    AstHelper(w)
+ArcLib::ArcLib(World& w, Scope& scope) :
+    AstHelper(w),
+    arcScope(scope.add<Scope>("arc"))
 {
-    auto& arcScope = globalScope.add<Scope>("arc");
-
     auto& exampleStruct
         = arcScope.add<Struct>("Example")
               .members(

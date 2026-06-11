@@ -82,11 +82,11 @@ void TestCases::addTestCases()
         shaper.process();
 #if 0
         for (std::shared_ptr<Shape> shape : shaper.shapes()) {
-            loggerPtr->log(DEBUG) << "Shape:";
-            loggerPtr->logBoard(DEBUG) << shape->toString() << "\n";
+            loggerPtr->log(LogLevel::DEBUG) << "Shape:";
+            loggerPtr->logBoard(LogLevel::DEBUG) << shape->toString() << "\n";
         }
 #endif
-        loggerPtr->log(DEBUG) << "Number of shapes found: " << shaper.shapes().size();
+        loggerPtr->log(LogLevel::DEBUG) << "Number of shapes found: " << shaper.shapes().size();
         assert(shaper.shapes().size() == 3);
     }));
 
@@ -97,11 +97,11 @@ void TestCases::addTestCases()
         shaper.process();
 #if 0
         for (std::shared_ptr<Shape> shape : shaper.shapes()) {
-            loggerPtr->log(DEBUG) << "Shape:";
-            loggerPtr->logBoard(DEBUG) << shape->toString() << "\n";
+            loggerPtr->log(LogLevel::DEBUG) << "Shape:";
+            loggerPtr->logBoard(LogLevel::DEBUG) << shape->toString() << "\n";
         }
 #endif
-        loggerPtr->log(DEBUG) << "Number of shapes found: " << shaper.shapes().size();
+        loggerPtr->log(LogLevel::DEBUG) << "Number of shapes found: " << shaper.shapes().size();
         assert(shaper.shapes().size() == 2);
     }));
 
@@ -112,11 +112,11 @@ void TestCases::addTestCases()
         shaper.process();
 #if 0
         for (std::shared_ptr<Shape> shape : shaper.shapes()) {
-            loggerPtr->log(DEBUG) << "Shape:";
-            loggerPtr->logBoard(DEBUG) << shape->toString() << "\n";
+            loggerPtr->log(LogLevel::DEBUG) << "Shape:";
+            loggerPtr->logBoard(LogLevel::DEBUG) << shape->toString() << "\n";
         }
 #endif
-        loggerPtr->log(DEBUG) << "Number of shapes found: " << shaper.shapes().size();
+        loggerPtr->log(LogLevel::DEBUG) << "Number of shapes found: " << shaper.shapes().size();
         assert(shaper.shapes().size() == 2);
     }));
 
@@ -138,7 +138,7 @@ void TestCases::addTestCases()
         drawingBoard.renderVectorShape(10, 9, vectorShape.stretch(2, 2));
         drawingBoard.renderVectorShape(10, 18, vectorShape.stretch(3, 3));
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("RotationTest", []() {
@@ -157,7 +157,7 @@ void TestCases::addTestCases()
         drawingBoard.renderVectorShape(rotatedShape.mirror(DistanceType::FromFirstPixel, { 3, 0 }, RotationDir::Degree_0));
         drawingBoard.renderVectorShape(rotatedShape.mirror(DistanceType::FromFirstPixel, { 0, 3 }, RotationDir::Degree_90));
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("LineDrawingAxisTest", []() {
@@ -168,7 +168,7 @@ void TestCases::addTestCases()
         drawingBoard.renderLine(6, 6, arc::colors(arc::ColorId::grey), RotationDir::Degree_90);
         drawingBoard.renderLine(6, 6, arc::colors(arc::ColorId::grey), RotationDir::Degree_135);
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("LineDrawingPositionTest", []() {
@@ -179,7 +179,7 @@ void TestCases::addTestCases()
         drawingBoard.renderLine(14, 0, arc::colors(arc::ColorId::grey), RotationDir::Degree_0);
         drawingBoard.renderLine(0, 14, arc::colors(arc::ColorId::grey), RotationDir::Degree_90);
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("BoundingBoxTest", []() {
@@ -202,7 +202,7 @@ void TestCases::addTestCases()
         drawingBoard.renderBoundingBox(boundingBox);
         drawingBoard.renderVectorShape(vectorShape);
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("Mirroring vertically (0 or 180 degree)", []() {
@@ -221,7 +221,7 @@ void TestCases::addTestCases()
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("Mirroring horizontally (90 or 270 degree)", []() {
@@ -240,7 +240,7 @@ void TestCases::addTestCases()
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("Mirroring (45 or 225 degree)", []() {
@@ -257,7 +257,7 @@ void TestCases::addTestCases()
 
         Vector distanceVector(2, 2);
         Pixel mirroringPixel = boundingBox.bottomRightPixel() + distanceVector;
-        loggerPtr->log(DEBUG) << "Mirroring at [" << mirroringPixel.x << ", " << mirroringPixel.y << "]";
+        loggerPtr->log(LogLevel::DEBUG) << "Mirroring at [" << mirroringPixel.x << ", " << mirroringPixel.y << "]";
 
         VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromBottomRight, distanceVector, RotationDir::Degree_45);
         DrawingBoard drawingBoard(10, 12);
@@ -266,7 +266,7 @@ void TestCases::addTestCases()
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("Mirroring shape 45", []() {
@@ -277,22 +277,22 @@ void TestCases::addTestCases()
             { 1, 0 }
         };
         VectorShape vectorShape(shapeVectors, arc::ColorId::orange, { 2, 2 });
-        loggerPtr->log(DEBUG) << "vectorShape.vectors";
+        loggerPtr->log(LogLevel::DEBUG) << "vectorShape.vectors";
         for (const Vector& vector : vectorShape.vectors()) {
-            loggerPtr->log(DEBUG) << " - " << vector;
+            loggerPtr->log(LogLevel::DEBUG) << " - " << vector;
         }
 
         BoundingBox boundingBox(vectorShape);
         Vector distanceVector(3, 0);
         Pixel mirroringPixel = boundingBox.bottomRightPixel() + distanceVector;
-        loggerPtr->log(DEBUG) << "boundingBox.bottomRightPixel: " << boundingBox.bottomRightPixel();
-        loggerPtr->log(DEBUG) << "Mirroring at " << mirroringPixel;
+        loggerPtr->log(LogLevel::DEBUG) << "boundingBox.bottomRightPixel: " << boundingBox.bottomRightPixel();
+        loggerPtr->log(LogLevel::DEBUG) << "Mirroring at " << mirroringPixel;
 
 
         VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromBottomRight, distanceVector, RotationDir::Degree_45);
-        loggerPtr->log(DEBUG) << "mirrorShape.vectors";
+        loggerPtr->log(LogLevel::DEBUG) << "mirrorShape.vectors";
         for (const Vector& vector : mirrorShape.vectors()) {
-            loggerPtr->log(DEBUG) << " - " << vector;
+            loggerPtr->log(LogLevel::DEBUG) << " - " << vector;
         }
         DrawingBoard drawingBoard(12, 12);
         drawingBoard.renderLine(mirroringPixel.x, mirroringPixel.y, arc::colors(arc::ColorId::grey), RotationDir::Degree_45);
@@ -300,7 +300,7 @@ void TestCases::addTestCases()
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 
     add(TestCase("Mirroring (135 or 315 degree)", []() {
@@ -316,8 +316,8 @@ void TestCases::addTestCases()
         BoundingBox boundingBox(vectorShape);
         Vector distanceVector(2, -2);
         Pixel mirroringPixel = boundingBox.topRightPixel() + distanceVector;
-        loggerPtr->log(DEBUG) << "boundingBox.topRightPixel: " << boundingBox.topRightPixel();
-        loggerPtr->log(DEBUG) << "Mirroring at " << mirroringPixel;
+        loggerPtr->log(LogLevel::DEBUG) << "boundingBox.topRightPixel: " << boundingBox.topRightPixel();
+        loggerPtr->log(LogLevel::DEBUG) << "Mirroring at " << mirroringPixel;
 
         VectorShape mirrorShape = vectorShape.mirror(DistanceType::FromTopRight, distanceVector, RotationDir::Degree_135);
 
@@ -327,7 +327,7 @@ void TestCases::addTestCases()
         drawingBoard.renderVectorShape(vectorShape);
         drawingBoard.renderVectorShape(mirrorShape);
 
-        loggerPtr->logBoard(DEBUG) << drawingBoard.toString() << "\n";
+        loggerPtr->logBoard(LogLevel::DEBUG) << drawingBoard.toString() << "\n";
     }));
 }
 
@@ -337,11 +337,11 @@ void Tester::start()
 
     loggerPtr = &logger;
     logger.clearLogFile();
-    logger.log(INFO) << "There are " << testCases.size() << " test cases";
+    logger.log(LogLevel::INFO) << "There are " << testCases.size() << " test cases";
     int i = 0;
     for (const TestCase& testCase : testCases.testCases()) {
         i++;
-        logger.log(INFO) << i << ". " << testCase.name;
+        logger.log(LogLevel::INFO) << i << ". " << testCase.name;
         testCase.test();
     }
 }

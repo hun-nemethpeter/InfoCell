@@ -8,7 +8,7 @@ namespace cells {
 class StdLib : public AstHelper
 {
 public:
-    StdLib(World& w);
+    StdLib(World& w, Scope& scope);
 
 private:
     void createOp();

@@ -15,7 +15,7 @@ public:
     CellI& compile(Ast::Scope& scope);
     CellI& reigisterStructBeforeCompilation(CellI& id);
     void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
-    ToolFinder* getToolFinder();
+    ToolFinder& getToolFinder();
 
 protected:
     void registerEarlyStructs();
@@ -34,7 +34,7 @@ protected:
     Ast::Enum& resolveTypesInEnum(Ast::Enum& enum_);
     CellI& resolveTypeInEnumValue(CellI& ast);
 
-    int instantiateTemplateInstances(Ast::Scope& resolvedScope);
+    void instantiateTemplateInstances();
     Ast::Struct& instantiateStructT(Ast::StructT& structT, List& inputParams);
     CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
     Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
@@ -65,15 +65,13 @@ protected:
     void processDescriptionsInScope(Ast::Scope& scope);
 
     World& w;
-    ToolFinder* m_toolFinder = nullptr;
+    ToolFinder& m_toolFinder;
 
-    Ast::Function* m_currentFn        = nullptr;
-    Ast::Base* m_currentStruct        = nullptr;
-    CellI* m_lastBlock                = nullptr;
-    Ast::Scope* m_scope               = nullptr;
-    Ast::Scope* m_resolvedScope       = nullptr;
-    Ast::Scope* m_globalScope         = nullptr;
-    Ast::Scope* m_globalResolvedScope = nullptr;
+    Ast::Function* m_currentFn  = nullptr;
+    Ast::Base* m_currentStruct  = nullptr;
+    CellI* m_lastBlock          = nullptr;
+    Ast::Scope* m_scope         = nullptr;
+    Ast::Scope* m_resolvedScope = nullptr;
 
     TrieMap m_earlyStructs;
 

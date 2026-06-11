@@ -2,7 +2,7 @@
 
 namespace infocell {
 
-enum LogLevel
+enum class LogLevel
 {
     TRACE,
     DEBUG,

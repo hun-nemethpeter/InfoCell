@@ -835,7 +835,6 @@ protected:
     template <typename... Args>
     Map& map(CellI& key, CellI& value, Args&&... args);
 
-    Ast::Scope& globalScope;
     ID& ids;
     Std& std;
     Directions& directions;

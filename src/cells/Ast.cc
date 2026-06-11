@@ -1455,7 +1455,6 @@ CellI& Ast::processNamespacedName(const std::string& inputName, std::function<Ce
 
 AstHelper::AstHelper(World& w) :
     Ast(w),
-    globalScope(w.globalScope),
     ids(w.ids),
     std(w.std),
     directions(w.directions),

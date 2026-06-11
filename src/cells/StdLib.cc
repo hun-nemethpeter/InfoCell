@@ -270,10 +270,12 @@ void StdLib::createOp()
             member("value", "std::Number"));
 
     opScope.add<Struct>("Var")
+#if 0 // TODO
         .description(
             var_("x")("isA")("struct", m_("valueType")),
             self()("hasA")("member", member("ast", "ast::Base")),
             self()("stores")("place", m_("value"))("value", var_("x")))
+#endif
         .members(
             member("ast", "ast::Base"),
             member("valueType", "std::Struct"),
@@ -750,9 +752,9 @@ void StdLib::createAst()
             member("statement", "Base"));
 }
 
-StdLib::StdLib(World& w) :
+StdLib::StdLib(World& w, Scope& scope) :
     AstHelper(w),
-    stdScope(w.globalScope.add<Scope>("std"))
+    stdScope(scope.add<Scope>("std"))
 {
     createOp();
     createAst();

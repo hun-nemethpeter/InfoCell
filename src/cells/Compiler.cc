@@ -10,6 +10,7 @@ namespace cells {
 
 Compiler::Compiler(World& w) :
     w(w),
+    m_toolFinder(*new ToolFinder(w)),
     m_earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs"),
     m_compiledFunctions(*new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions")),
     m_compiledStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "Types")),
@@ -55,12 +56,7 @@ CellI& Compiler::compile(Ast::Scope& scope)
     });
 
     // Step 2. process the shadow AST tree and instantiate templates
-    int countOfInstantiedTemplates = instantiateTemplateInstances(resolvedScope);
-
-    // Stop the compilation as we have unknown references
-    if (m_unknownStructs.size() > 0 || m_unknownInstances.size() != countOfInstantiedTemplates) {
-        throw "Referencing an unknown type!";
-    }
+    instantiateTemplateInstances();
 
     // Step 3. actual compilation
     compileScope(scope, resolvedScope);
@@ -160,7 +156,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     m_earlyStructs.add(idCell, w.std.slot(w.struct_(fullName), compiledStruct));
 }
 
-ToolFinder* Compiler::getToolFinder()
+ToolFinder& Compiler::getToolFinder()
 {
     return m_toolFinder;
 }
@@ -205,7 +201,7 @@ void Compiler::resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolve
             if (m_unknownInstances.hasKey(structId)) {
                 CellI& structReference = m_unknownInstances.getValue(structId);
                 structReference.set("scope", stdScope);
-                structReference.set("resolvedScope", stdScope);
+                structReference.set("resolvedScope", resolvedStdScope);
                 structReference.set("templateId", structRefAst["id"]);
                 structReference.set(w.ids.templateParams, structRefAst[w.ids.parameters]);
             }
@@ -658,7 +654,7 @@ CellI& Compiler::resolveTypeInEnumValue(CellI& ast)
     throw "Unknown enum value!";
 }
 
-int Compiler::instantiateTemplateInstances(Ast::Scope& resolvedScope)
+void Compiler::instantiateTemplateInstances()
 {
     int instantiedNum = 0;
     Visitor::visitList(m_unknownInstances[w.ids.list], [this, &instantiedNum](CellI& unknownInstanceSlot, int i, bool& stop) {
@@ -678,7 +674,7 @@ int Compiler::instantiateTemplateInstances(Ast::Scope& resolvedScope)
         std::stringstream ss;
 
         CellI& templateId     = unknownInstance[w.ids.templateId];
-        CellI& templateParams = unknownInstance[w.ids.templateParams];
+        auto& templateParams  = static_cast<List&>(unknownInstance[w.ids.templateParams]);
         auto& scope           = static_cast<Ast::Scope&>(unknownInstance[w.ids.scope]);
         auto& idScope         = unknownInstance.has(w.name("idScope")) ? static_cast<Ast::Scope&>(unknownInstance[w.name("idScope")]) : scope;
 
@@ -698,13 +694,15 @@ int Compiler::instantiateTemplateInstances(Ast::Scope& resolvedScope)
         auto& resolvedIdScope  = static_cast<Ast::Scope&>(idScope[w.ids.resolvedScope]);
         m_scope                = &idScope;
         auto& structT          = idScope.getItem<Ast::StructT>(templateId);
-        auto& instantiedStruct = instantiateStructT(structT, static_cast<List&>(templateParams));
+        auto& instantiedStruct = instantiateStructT(structT, templateParams);
         auto& resolvedStruct   = resolveTypesInStruct(instantiedStruct);
         resolvedIdScope.add<Ast::Struct>(resolvedStruct);
         instantiedNum = i + 1;
     });
 
-    return instantiedNum;
+    if (m_unknownStructs.size() > 0 || m_unknownInstances.size() != instantiedNum) {
+        throw "Referencing an unknown type!";
+    }
 }
 
 Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, List& inputParams)
@@ -740,7 +738,7 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, List& inputPara
     if (m_unknownInstanceAsts.hasKey(idCell)) {
         retPtr = &static_cast<Ast::Struct&>(m_unknownInstanceAsts.getValue(idCell)[w.ids.value]);
     } else {
-        retPtr             = new Ast::Struct(w, idCell);
+        retPtr = new Ast::Struct(w, idCell);
         m_instanceAsts.add(idCell, *retPtr);
     }
     Ast::Struct& ret = *retPtr;
@@ -2075,16 +2073,20 @@ void Compiler::checkMethodCall(CellI& astType, CellI& astMethodId)
 
 void Compiler::processDescriptionsInScope(Ast::Scope& scope)
 {
-    m_toolFinder           = new ToolFinder(w);
-    ToolFinder& toolFinder = *m_toolFinder;
-    auto& astScope         = scope.getItem<Ast::Scope>("std").getItem<Ast::Scope>("ast");
-    if (astScope.has("structs")) {
-        Visitor::visitList(astScope.items<Ast::Struct>()[w.ids.list], [this, &toolFinder](CellI& struct_, int i, bool& stop) {
+    if (scope.has("structs")) {
+        Visitor::visitList(scope.items<Ast::Struct>()[w.ids.list], [this](CellI& struct_, int i, bool& stop) {
             auto& tool = static_cast<Ast::Struct&>(struct_[w.ids.value]);
             if (tool.has(w.ids.description) && tool[w.ids.description].has(w.ids.asts)) {
                 auto& compiledAstStruct = m_compiledStructs.getValue(getFullyQualifiedName(tool));
-                toolFinder.add(tool, compiledAstStruct);
+                m_toolFinder.add(tool, compiledAstStruct);
             }
+        });
+    }
+    if (scope.has("scopes")) {
+        Visitor::visitList(scope.items<Ast::Scope>()[w.ids.list], [this, &scope](CellI& scopeItem, int i, bool& stop) {
+            Ast::Scope& nextScope = static_cast<Ast::Scope&>(scopeItem[w.ids.value]);
+            processDescriptionsInScope(nextScope);
+            m_scope = &scope;
         });
     }
 }
