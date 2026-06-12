@@ -399,7 +399,8 @@ public:
         TypedEnumValue(World& w, const std::string& nameStr, CellI& type, CellI& value);
     };
 
-    class Enum : public BaseT<Enum>
+    class Enum : public StructBase,
+                 public NewT<Struct>
     {
     public:
         Enum(World& w, CellI& name);

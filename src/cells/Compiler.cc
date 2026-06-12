@@ -15,7 +15,6 @@ Compiler::Compiler(World& w) :
     m_compiledFunctions(*new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions")),
     m_compiledStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "Types")),
     m_compiledVariables(*new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables")),
-    m_functions(*new List(w, w.std.op.Function, "Functions")),
     m_structs(*new TrieMap(w, w.std.Cell, w.std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs")),
     m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances")),
@@ -582,24 +581,16 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_)
 
     TRACE(compileStruct, "enum {} {{", enum_.label());
 
-#if 0
     // resolve methods
-    if (has("methods")) {
-        Visitor::visitList(methods()[w.ids.list], [this, &ret, &state](CellI& origAstFunctionCell, int i, bool& stop) {
+    if (enum_.has("methods")) {
+        Visitor::visitList(enum_.methods()[w.ids.list], [this, &ret](CellI& origAstFunctionCell, int i, bool& stop) {
             auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
-            auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction, state);
+            auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction);
             ret.addMethod(resolvedAstFunction);
-            if (debugCompiledStructs) {
-                std::cout << fmt::format("    {};\n", resolvedAstFunction.shortName());
-            }
+            TRACE(compileStruct, "    {};", shortFunctionName(resolvedAstFunction));
         });
-        if (debugCompiledStructs) {
-            if (has("members")) {
-                std::cout << std::endl;
-            }
-        }
     }
-#endif
+
     // resolve values
     if (enum_.has("values")) {
         CellI& valuesList = enum_.values()[w.ids.list];
@@ -818,13 +809,14 @@ Ast::Base& Compiler::resolveType(CellI& typeAst)
     }
     if (&typeAst.struct_() == &w.std.ast.StructName) {
         auto& resolveAstStruct   = findEnumOrStructByAstStructName(*m_scope, typeAst);
+        auto& name               = resolveAstStruct[w.ids.name];
         auto& fullyQualifiedName = getFullyQualifiedName(resolveAstStruct);
 
         if (m_compiledStructs.hasKey(fullyQualifiedName)) {
             return w.ast.cell(m_compiledStructs.getValue(fullyQualifiedName));
         }
 
-        auto& resolveCompiledStruct = resolveStructName(fullyQualifiedName);
+        auto& resolveCompiledStruct = resolveStructName(name, fullyQualifiedName);
         auto& reslvedTypeNode       = createResolvedType(resolveAstStruct, resolveCompiledStruct);
 
         return reslvedTypeNode;
@@ -861,15 +853,6 @@ CellI& Compiler::getResolvedTypeById(CellI& id, bool isInstance)
     }
 }
 
-CellI& Compiler::resolveId(CellI& structId, TrieMap& container, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb)
-{
-    if (container.hasKey(structId)) {
-        return container.getValue(structId);
-    } else {
-        return getOrCreateStructReference(structId, unresolvedContainer, unknownCb);
-    }
-}
-
 CellI& Compiler::getOrCreateStructReference(CellI& structId, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb)
 {
     if (unresolvedContainer.hasKey(structId)) {
@@ -894,14 +877,18 @@ CellI& Compiler::getOrCreateStructReference(CellI& structId, TrieMap& unresolved
     }
 }
 
-CellI& Compiler::resolveStructName(CellI& structId)
+CellI& Compiler::resolveStructName(CellI& name, CellI& fullyQualifiedName)
 {
-    return resolveId(structId, m_structs, m_unknownStructs, [this, &structId](CellI& structReference) -> CellI& {
-        auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", structId.label()));
-        unresolvedStruct.set("incomplete", w.boolean.true_);
+    if (m_structs.hasKey(fullyQualifiedName)) {
+        return m_structs.getValue(fullyQualifiedName);
+    } else {
+        return getOrCreateStructReference(fullyQualifiedName, m_unknownStructs, [this, &name](CellI& structReference) -> CellI& {
+            auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", name.label()));
+            unresolvedStruct.set("incomplete", w.boolean.true_);
 
-        return unresolvedStruct;
-    });
+            return unresolvedStruct;
+        });
+    }
 }
 
 CellI& Compiler::resolveTemplateInstanceId(CellI& name, CellI& fullyQualifiedName, CellI& idScope, CellI& ast, CellI& templateParams)
@@ -1463,7 +1450,6 @@ CellI& Compiler::compileStruct(Ast::Struct& struct_)
 {
     CellI& compiledStruct = getResolvedTypeById(getFullyQualifiedName(struct_), struct_.has("instanceOf"));
     compiledStruct.erase("incomplete");
-    // std::cout << fmt::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
 
     // compile sub types
     if (struct_.has("subTypes")) {
@@ -1518,19 +1504,16 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
 
     compiledStruct.erase("incomplete");
     compiledStruct.set("enum", w.boolean.true_);
-    // std::cout << fmt::format("DDDD compile {} resolved at {:p}\n", getFullId().label(), (void*)&compiledStruct) << std::endl;
 
-#if 0
     // compile methods
-    if (has("methods")) {
+    if (enum_.has("methods")) {
         Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
-        Visitor::visitList(methods()[w.ids.list], [this, &compiledMethods, &state](CellI& astFunction, int i, bool& stop) {
-            auto& compiledFunction = static_cast<Ast::Function&>(astFunction).compile(state);
+        Visitor::visitList(enum_.methods()[w.ids.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
+            auto& compiledFunction = compileFunction(static_cast<Ast::Function&>(astFunction));
             compiledMethods.add(astFunction[w.ids.name], compiledFunction);
         });
         compiledStruct.set("methods", compiledMethods);
     }
-#endif
 
     // compile values
     if (enum_.has("values")) {

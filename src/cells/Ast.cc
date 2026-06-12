@@ -529,14 +529,14 @@ Ast::TypedEnumValue::TypedEnumValue(World& w, const std::string& nameStr, CellI&
 }
 
 Ast::Enum::Enum(World& w, CellI& name) :
-    BaseT<Enum>(w, w.std.ast.Enum, name.label())
+    StructBase(w, w.std.ast.Enum, name, name.label())
 {
     set("name", name);
     label(name.label());
 }
 
 Ast::Enum::Enum(World& w, const std::string& nameStr) :
-    BaseT<Enum>(w, w.std.ast.Enum, nameStr)
+    StructBase(w, w.std.ast.Enum, w.name(nameStr), nameStr)
 {
     set("name", w.name(nameStr));
     label(nameStr);

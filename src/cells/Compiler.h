@@ -36,9 +36,8 @@ protected:
     Ast::Base& resolveType(CellI& typeAst);
     CellI& getCompiledTypeFromResolvedType(CellI& ast);
     CellI& getResolvedTypeById(CellI& id, bool isInstance);
-    CellI& resolveId(CellI& id, TrieMap& container, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb);
     CellI& getOrCreateStructReference(CellI& structId, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb);
-    CellI& resolveStructName(CellI& structName);
+    CellI& resolveStructName(CellI& name, CellI& fullyQualifiedName);
     CellI& resolveTemplateInstanceId(CellI& name, CellI& fullyQualifiedName, CellI& idScope, CellI& ast, CellI& templateParams);
     Ast::Base& resolveTemplatedType(CellI& ast);
 
@@ -80,7 +79,6 @@ protected:
     TrieMap& m_compiledStructs;
     TrieMap& m_compiledVariables;
 
-    List& m_functions;
     TrieMap& m_structs;
     TrieMap& m_unknownStructs;
     TrieMap& m_unknownInstances;
