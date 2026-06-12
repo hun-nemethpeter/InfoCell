@@ -239,10 +239,6 @@ void Object::set(CellI& key, CellI& value)
     if ((&key == &w.ids.struct_) && !((&struct_() == &w.std.Index))) {
         throw "Type change not allowed.";
     }
-    if ((&key == &w.ids.struct_) && (&struct_() == &w.std.Index)) {
-        std::cout << "";
-    }
-
     if (w.initPhase() == InitPhase::Init) {
         m_slots[&key] = &value;
         return;

@@ -21,12 +21,6 @@ protected:
     void registerEarlyStructs();
     void resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
 
-    Ast::Base& resolveType(CellI& typeAst);
-    CellI& getCompiledTypeFromResolvedType(CellI& ast);
-    CellI& getResolvedTypeById(CellI& id, bool isInstance);
-    Ast::Base& resolveTypeName(Ast::Scope& scope, CellI& name);
-    Ast::StructT& resolveFullTemplateId(Ast::Scope& scope, CellI& scopeList, CellI& name);
-
     Ast::Scope& resolveTypesInScope(Ast::Scope& scope);
     Ast::Function& resolveTypesInFunction(Ast::Function& function);
     Ast::Base& resolveTypesInFunctionCode(CellI& ast);
@@ -34,24 +28,31 @@ protected:
     Ast::Enum& resolveTypesInEnum(Ast::Enum& enum_);
     CellI& resolveTypeInEnumValue(CellI& ast);
 
-    void instantiateTemplateInstances();
-    Ast::Struct& instantiateStructT(Ast::StructT& structT, List& inputParams);
-    CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
-    Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
+    Ast::ResolvedType& createResolvedType(CellI& astType, CellI& compiledType);
+    CellI& getFullyQualifiedName(Ast::Base& base);
+    List& generateTemplateId(CellI& id, CellI& parameters, List& resolvedParams);
 
-    CellI& resolveId(CellI& id, TrieMap& container, TrieMap& unresolvedContainer, std::function<CellI&(CellI&)> unknownCb);
+    Ast::Base& resolveType(CellI& typeAst);
+    CellI& getCompiledTypeFromResolvedType(CellI& ast);
+    CellI& getResolvedTypeById(CellI& id, bool isInstance);
+    CellI& resolveId(CellI& id, TrieMap& container, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb);
+    CellI& getOrCreateStructReference(CellI& structId, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb);
     CellI& resolveStructName(CellI& structName);
     CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& ast, CellI& templateParams);
     Ast::Struct& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& ast, CellI& templateParams);
     Ast::Base& resolveTemplatedType(CellI& ast);
 
-    CellI& getFullyQualifiedName(Ast::Base& base);
-    List& generateTemplateId(CellI& id, CellI& parameters, List& resolvedParams);
-    Ast::ResolvedType& resolvedType(CellI& astType, CellI& compiledType);
-    Ast::Enum* resolveFullEnumName(Ast::Scope& scope, CellI& scopeList, CellI& name);
-    Ast::Struct* resolveFullStructName(Ast::Scope& scope, CellI& scopeList, CellI& name);
-    Ast::Base* resolveFullNameInAllScope(Ast::Scope& scope, CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Ast::Base*(Ast::Scope& currentScope)> getCb);
-    Ast::Base* resolveFullNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Ast::Base*(Ast::Scope& currentScope)> getCb);
+    Ast::Base& findEnumOrStructByAstStructName(Ast::Scope& scope, CellI& astStructName);
+    Ast::Enum* findEnumByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
+    Ast::Struct* findStructByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
+    Ast::StructT& findTemplateByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
+    Ast::Base* findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Ast::Base*(Ast::Scope& currentScope)> getCb);
+    Ast::Base* findAstByNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Ast::Base*(Ast::Scope& currentScope)> getCb);
+
+    void instantiateTemplateInstances();
+    Ast::Struct& instantiateStructT(Ast::StructT& structT, List& inputParams);
+    CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
+    Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
 
     void compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
     CellI& compileStruct(Ast::Struct& struct_);
@@ -82,9 +83,7 @@ protected:
     List& m_functions;
     TrieMap& m_structs;
     TrieMap& m_unknownStructs;
-    TrieMap& m_instances;
     TrieMap& m_unknownInstances;
-    TrieMap& m_instanceAsts;
     TrieMap& m_unknownInstanceAsts;
 
     Object& m_programData;
