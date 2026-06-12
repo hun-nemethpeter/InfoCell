@@ -30,7 +30,8 @@ protected:
 
     Ast::ResolvedType& createResolvedType(CellI& astType, CellI& compiledType);
     CellI& getFullyQualifiedName(Ast::Base& base);
-    List& generateTemplateId(CellI& id, CellI& parameters, List& resolvedParams);
+    List& generateTemplateId(CellI &id, CellI& parameters, List& resolvedParams);
+    List& generateFullyQualifiedIdFromTemplateId(Ast::Scope& scope, List& name, List& templateParams);
 
     Ast::Base& resolveType(CellI& typeAst);
     CellI& getCompiledTypeFromResolvedType(CellI& ast);
@@ -38,19 +39,18 @@ protected:
     CellI& resolveId(CellI& id, TrieMap& container, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb);
     CellI& getOrCreateStructReference(CellI& structId, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb);
     CellI& resolveStructName(CellI& structName);
-    CellI& resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& ast, CellI& templateParams);
-    Ast::Struct& resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& ast, CellI& templateParams);
+    CellI& resolveTemplateInstanceId(CellI& name, CellI& fullyQualifiedName, CellI& idScope, CellI& ast, CellI& templateParams);
     Ast::Base& resolveTemplatedType(CellI& ast);
 
     Ast::Base& findEnumOrStructByAstStructName(Ast::Scope& scope, CellI& astStructName);
     Ast::Enum* findEnumByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
     Ast::Struct* findStructByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
     Ast::StructT& findTemplateByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
-    Ast::Base* findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Ast::Base*(Ast::Scope& currentScope)> getCb);
-    Ast::Base* findAstByNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Ast::Base*(Ast::Scope& currentScope)> getCb);
+    Ast::Base* findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& )> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb);
+    Ast::Base* findAstByNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope&)> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb);
 
     void instantiateTemplateInstances();
-    Ast::Struct& instantiateStructT(Ast::StructT& structT, List& inputParams);
+    Ast::Struct& instantiateStructT(Ast::StructT& structT, Ast::Struct& compiledStruct, List& inputParams);
     CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
     Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
 
@@ -84,7 +84,6 @@ protected:
     TrieMap& m_structs;
     TrieMap& m_unknownStructs;
     TrieMap& m_unknownInstances;
-    TrieMap& m_unknownInstanceAsts;
 
     Object& m_programData;
 };

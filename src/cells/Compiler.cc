@@ -19,7 +19,6 @@ Compiler::Compiler(World& w) :
     m_structs(*new TrieMap(w, w.std.Cell, w.std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs")),
     m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances")),
-    m_unknownInstanceAsts(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstanceAsts")),
     m_programData(*new Object(w, w.std.ProgramData, "ProgramData"))
 {
     m_programData.set(w.ids.functions, m_compiledFunctions);
@@ -477,7 +476,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_)
         compiledStructPtr = new Object(w, w.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
     }
     auto& compiledStruct = *compiledStructPtr;
-    m_structs.add(getFullyQualifiedName(struct_), compiledStruct);
+    m_structs.add(fullyQualifiedName, compiledStruct);
     ret.set("compiledStruct", compiledStruct);
 
     m_currentStruct = &ret;
@@ -577,7 +576,7 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& enum_)
         resolvedStructPtr = new Object(w, w.std.Struct, fmt::format("{}", fullyQualifiedName.label()));
     }
     auto& resolvedStruct = *resolvedStructPtr;
-    m_structs.add(getFullyQualifiedName(enum_), resolvedStruct);
+    m_structs.add(fullyQualifiedName, resolvedStruct);
 
     m_currentStruct = &ret;
 
@@ -717,6 +716,63 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
     return fullyQualifiedName;
 }
 
+List& Compiler::generateFullyQualifiedIdFromTemplateId(Ast::Scope& scope, List& name, List& templateParams)
+{
+    List& idCell = *new List(w, w.std.Cell);
+    std::stringstream ss;
+    std::list<Ast::Scope*> scopes;
+    scopes.push_front(&scope);
+
+    Ast::Scope* childScopePtr = &scope;
+    while (childScopePtr->has(w.ids.scope)) {
+        childScopePtr = &static_cast<Ast::Scope&>(childScopePtr->get(w.ids.scope));
+        if (childScopePtr->has(w.ids.scope)) {
+            scopes.push_front(childScopePtr);
+        }
+    }
+
+    for (Ast::Scope* currentScopePtr : scopes) {
+        Ast::Scope& currentScope = *currentScopePtr;
+        CellI& scopeName         = currentScope[w.ids.name];
+        Visitor::visitList(scopeName, [this, &idCell, &ss](CellI& character, int, bool&) {
+            idCell.add(character);
+            ss << character.label();
+        });
+        idCell.add(w.pools.chars.get(':'));
+        idCell.add(w.pools.chars.get(':'));
+        ss << "::";
+    }
+
+    // The generated struct name for a template consist of the template name + parameters
+    // Here the name contains the template name + (param1 + value1)+
+    int nameLength = name.size() - templateParams.size() * 2;
+    Visitor::visitList(name, [this, &idCell, &ss, &nameLength](CellI& character, int i, bool&) {
+        if (i >= nameLength) {
+            return;
+        }
+        idCell.add(character);
+        ss << character.label();
+    });
+    ss << "<";
+    Visitor::visitList(templateParams, [this, &idCell, &ss](CellI& slot, int i, bool&) {
+        CellI& key          = slot[w.ids.key];
+        CellI& type         = slot[w.ids.type];
+        CellI& compiledType = getCompiledTypeFromResolvedType(type);
+
+        idCell.add(key);
+        idCell.add(compiledType);
+        if (i != 0) {
+            ss << ", ";
+        }
+        ss << fmt::format("{}={}", key.label(), compiledType.label());
+    });
+    ss << ">";
+
+    idCell.label(ss.str());
+
+    return idCell;
+}
+
 List& Compiler::generateTemplateId(CellI& id, CellI& parameters, List& resolvedParams)
 {
     List& idCell = *new List(w, w.std.Cell);
@@ -848,46 +904,27 @@ CellI& Compiler::resolveStructName(CellI& structId)
     });
 }
 
-CellI& Compiler::resolveTemplateInstanceId(CellI& structId, CellI& idScope, CellI& ast, CellI& templateParams)
+CellI& Compiler::resolveTemplateInstanceId(CellI& name, CellI& fullyQualifiedName, CellI& idScope, CellI& ast, CellI& templateParams)
 {
     auto& templateId = ast[w.ids.id];
-    return getOrCreateStructReference(structId, m_unknownInstances, [this, &templateId, &structId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
+    return getOrCreateStructReference(fullyQualifiedName, m_unknownInstances, [this, &templateId, &name, &fullyQualifiedName, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
         structReference.set(w.ids.templateId, templateId);
         structReference.set(w.ids.templateParams, templateParams);
         if (ast.has(w.ids.scopes)) {
             structReference.set("idScope", idScope);
         }
-        auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", structId.label()));
+        auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", name.label()));
+        unresolvedStruct.set("fullyQualifiedName", fullyQualifiedName);
         unresolvedStruct.set("incomplete", w.boolean.true_);
 
         return unresolvedStruct;
     });
 }
 
-Ast::Struct& Compiler::resolveTemplateInstanceIdAsAst(CellI& structId, CellI& idScope, CellI& ast, CellI& templateParams)
-{
-    auto& templateId = ast[w.ids.id];
-    auto& ret        = getOrCreateStructReference(structId, m_unknownInstanceAsts, [this, &templateId, &structId, &templateParams, &ast, &idScope](CellI& structReference) -> CellI& {
-        structReference.set(w.ids.templateId, templateId);
-        structReference.set(w.ids.templateParams, templateParams);
-        if (ast.has(w.ids.scopes)) {
-            structReference.set("idScope", idScope);
-        }
-        auto& unresolvedStruct = *new Ast::Struct(w, structId);
-        if (unresolvedStruct.missing(w.ids.scope)) {
-            unresolvedStruct.set(w.ids.scope, idScope);
-        }
-
-        return unresolvedStruct;
-    });
-
-    return static_cast<Ast::Struct&>(ret);
-}
-
 Ast::Base& Compiler::resolveTemplatedType(CellI& ast)
 {
     auto& templateId     = ast[w.ids.id];
-    auto& templateParams = ast[w.ids.parameters];
+    auto& templateParams = static_cast<List&>(ast[w.ids.parameters]);
 
     Ast::Scope* scopePtr = m_scope;
     if (ast.has(w.ids.scopes)) {
@@ -908,23 +945,37 @@ Ast::Base& Compiler::resolveTemplatedType(CellI& ast)
         throw fmt::format("Unknown template {}", templateId.label());
     }
 
-    List& resolvedTemplateParams = *new List(w, w.std.Cell, "resolvedTemplateParams");
-    List& idCell                 = generateTemplateId(templateId, templateParams, resolvedTemplateParams);
+    List& resolvedTemplateParams   = *new List(w, w.std.Cell, "resolvedTemplateParams");
+    List& structName               = generateTemplateId(templateId, templateParams, resolvedTemplateParams);
+    List& fullyQualifiedStructName = generateFullyQualifiedIdFromTemplateId(scope, structName, resolvedTemplateParams);
 
-    if (m_compiledStructs.hasKey(idCell)) {
-        return w.ast.cell(m_compiledStructs.getValue(idCell));
+    if (m_compiledStructs.hasKey(fullyQualifiedStructName)) {
+        return w.ast.cell(m_compiledStructs.getValue(fullyQualifiedStructName));
+    }
+    CellI* unknownInstancePtr = nullptr;
+    if (m_unknownInstances.hasKey(fullyQualifiedStructName)) {
+        CellI& unknownInstance = m_unknownInstances.getValue(fullyQualifiedStructName)[w.ids.value];
+        if (unknownInstance.has(w.ids.ast)) {
+            return createResolvedType(unknownInstance[w.ids.ast], unknownInstance);
+        } else {
+            unknownInstancePtr = &unknownInstance;
+        }
     }
 
-    auto& resolvedAstInstance = resolveTemplateInstanceIdAsAst(idCell, scope, ast, resolvedTemplateParams);
+    auto& resolvedAstInstance = *new Ast::Struct(w, structName);
+    resolvedAstInstance.set("fullyQualifiedName", fullyQualifiedStructName);
+    resolvedAstInstance.set(w.ids.scope, scope);
     resolvedAstInstance.set("instanceOf", scope.getItem<Ast::StructT>(templateId));
     resolvedAstInstance.set("templateParams", resolvedTemplateParams);
-    auto& resolvedCompiledInstance = resolveTemplateInstanceId(getFullyQualifiedName(resolvedAstInstance), scope, ast, resolvedTemplateParams);
-
-    // std::cout << fmt::format("DDDD {} resolved at {:p}\n", idCell.label(), (void*)&resolvedCompiledInstance) << std::endl;
+    if (unknownInstancePtr) {
+        unknownInstancePtr->set(w.ids.ast, resolvedAstInstance);
+        return createResolvedType(resolvedAstInstance, *unknownInstancePtr);
+    }
+    auto& resolvedCompiledInstance = resolveTemplateInstanceId(structName, fullyQualifiedStructName, scope, ast, resolvedTemplateParams);
+    resolvedCompiledInstance.set(w.ids.ast, resolvedAstInstance);
 
     return createResolvedType(resolvedAstInstance, resolvedCompiledInstance);
 }
-
 
 Ast::Base& Compiler::findEnumOrStructByAstStructName(Ast::Scope& scope, CellI& astStructName)
 {
@@ -985,7 +1036,7 @@ Ast::StructT& Compiler::findTemplateByNameInScopes(Ast::Scope& scope, CellI& sco
     return static_cast<Ast::StructT&>(*resolvedAst);
 }
 
-Ast::Base* Compiler::findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Ast::Base*(Ast::Scope& currentScope)> getCb)
+Ast::Base* Compiler::findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, CellI& id, std::function<bool(Ast::Scope&)> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb)
 {
     Ast::Scope* currentScope = &scope;
 
@@ -1005,7 +1056,7 @@ Ast::Base* Compiler::findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList
     return nullptr;
 }
 
-Ast::Base* Compiler::findAstByNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope& currentScope)> hasCb, std::function<Ast::Base*(Ast::Scope& currentScope)> getCb)
+Ast::Base* Compiler::findAstByNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope&)> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb)
 {
     // resolve in local scope
     Visitor::visitList(scopeList, [this, &currentScope](CellI& scopeId, int, bool& stop) {
@@ -1067,9 +1118,10 @@ void Compiler::instantiateTemplateInstances()
         TRACE(compileStruct, ss.str());
 
         auto& resolvedIdScope  = static_cast<Ast::Scope&>(idScope[w.ids.resolvedScope]);
+        auto& compiledStruct   = static_cast<Ast::Struct&>(unknownInstance[w.ids.value][w.ids.ast]);
         m_scope                = &idScope;
         auto& structT          = idScope.getItem<Ast::StructT>(templateId);
-        auto& instantiedStruct = instantiateStructT(structT, templateParams);
+        auto& instantiedStruct = instantiateStructT(structT, compiledStruct, templateParams);
         auto& resolvedStruct   = resolveTypesInStruct(instantiedStruct);
         resolvedIdScope.add<Ast::Struct>(resolvedStruct);
         instantiedNum = i + 1;
@@ -1080,7 +1132,7 @@ void Compiler::instantiateTemplateInstances()
     }
 }
 
-Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, List& inputParams)
+Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& compiledStruct, List& inputParams)
 {
     // process input parameters
     if (!inputParams.empty() && structT.missing("templateParams")) {
@@ -1088,61 +1140,14 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, List& inputPara
     }
     std::stringstream ss;
     Map inputParameters(w, w.std.Cell, w.std.Cell);
-    List& idCell = *new List(w, w.std.Cell);
-    Visitor::visitList(structT.name(), [this, &idCell](CellI& character, int i, bool& stop) {
-        idCell.add(character);
-    });
 
-    Visitor::visitList(inputParams, [this, &structT, &inputParameters, &ss, &idCell](CellI& slot, int i, bool& stop) {
+    Visitor::visitList(inputParams, [this, &structT, &inputParameters, &ss](CellI& slot, int i, bool& stop) {
         CellI& key  = slot[w.ids.key];
         CellI& type = slot[w.ids.type];
         inputParameters.add(key, type);
-        CellI& compiledSlotType = getCompiledTypeFromResolvedType(type);
-        if (i != 0) {
-            ss << ", ";
-        }
-        ss << key.label() << "=" << compiledSlotType.label();
-        if (!structT.templateParams().hasKey(key)) {
-            throw "Instantiating with unknown template parameter!";
-        }
-        idCell.add(key);
-        idCell.add(compiledSlotType);
     });
-    idCell.label(fmt::format("{}<{}>", structT.name().label(), ss.str()));
-    Ast::Struct* retPtr       = nullptr;
-    if (m_unknownInstanceAsts.hasKey(idCell)) {
-        retPtr = &static_cast<Ast::Struct&>(m_unknownInstanceAsts.getValue(idCell)[w.ids.value]);
 
-        auto& fullyQualifiedName = getFullyQualifiedName(structT);
-        List& fullyQualifiedId = *new List(w, w.std.Cell);
-        Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedId](CellI& character, int i, bool& stop) {
-            fullyQualifiedId.add(character);
-        });
-
-        Visitor::visitList(inputParams, [this, &structT, &inputParameters, &ss, &fullyQualifiedId](CellI& slot, int i, bool& stop) {
-            CellI& key  = slot[w.ids.key];
-            CellI& type = slot[w.ids.type];
-            CellI& compiledSlotType = getCompiledTypeFromResolvedType(type);
-            if (i != 0) {
-                ss << ", ";
-            }
-            ss << key.label() << "=" << compiledSlotType.label();
-            if (!structT.templateParams().hasKey(key)) {
-                throw "Instantiating with unknown template parameter!";
-            }
-            fullyQualifiedId.add(key);
-            fullyQualifiedId.add(compiledSlotType);
-        });
-        if (m_unknownInstances.hasKey(fullyQualifiedId)) {
-            auto& unknownInstance = static_cast<Ast::Struct&>(m_unknownInstances.getValue(fullyQualifiedId));
-            std::cout << "";
-        } else {
-            std::cout << "";
-        }
-    } else {
-        throw "Trying to instantiate something that was somehow never was referenced!";
-    }
-    Ast::Struct& ret = *retPtr;
+    Ast::Struct& ret = compiledStruct;
     ret.set("instanceOf", structT);
     ret.set("templateParams", inputParams);
     ret.set("scope", static_cast<Ast::Scope&>(structT.get("scope")));
