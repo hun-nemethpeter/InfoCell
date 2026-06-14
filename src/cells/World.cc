@@ -594,12 +594,11 @@ World::World(std::function<void()> loggerLevelInit) :
     _7_(pools.numbers.get(7)),
     _8_(pools.numbers.get(8)),
     _9_(pools.numbers.get(9)),
-    m_compiler(std::make_unique<Compiler>(*this))
+    m_stdCompiler(std::make_unique<Compiler>(*this)),
+    m_stdLib(std::make_unique<StdLib>(*this, globalScope)),
+    m_arcLib(std::make_unique<ArcLib>(*this, globalScope))
 {
-    StdLib stdLib(*this, globalScope);
-    ArcLib arcLib(*this, globalScope);
-
-    Compiler& compiler = *m_compiler;
+    Compiler& compiler = *m_stdCompiler;
     compiler.reigisterStructBeforeCompilation(tt_("std::List", "valueType", _(std.Char)));    // TODO instantiate on demand in getStruct
     compiler.registerBuiltInStruct("std::op::Activate", std.op.Activate);
     compiler.registerBuiltInStruct("std::op::Add", std.op.Add);
@@ -658,6 +657,7 @@ World::World(std::function<void()> loggerLevelInit) :
     compiler.registerBuiltInStruct("std::ast::If", std.ast.If);
     compiler.registerBuiltInStruct("std::ast::LessThan", std.ast.LessThan);
     compiler.registerBuiltInStruct("std::ast::LessThanOrEqual", std.ast.LessThanOrEqual);
+    compiler.registerBuiltInStruct("std::ast::Match", std.ast.Match);
     compiler.registerBuiltInStruct("std::ast::Member", std.ast.Member);
     compiler.registerBuiltInStruct("std::ast::Missing", std.ast.Missing);
     compiler.registerBuiltInStruct("std::ast::Multiply", std.ast.Multiply);
@@ -716,26 +716,30 @@ World::World(std::function<void()> loggerLevelInit) :
     compiler.registerBuiltInStruct("std::CompileState", std.CompileState);
     compiler.registerBuiltInStruct("std::Directions", std.Directions);
 
-    auto& compiledStdLib      = compiler.compile(globalScope);
+    compiler.compile(stdLib());
+
     globalScope.m_toolFinder  = &compiler.getToolFinder();
-    m_stdLibPtr               = &compiledStdLib;
     m_initPhase               = InitPhase::FullyConstructed;
+
+    arcLib().include(stdLib());
+    Compiler arcCompiler(*this);
+    arcCompiler.compile(arcLib());
 
     if (IS_LOG_ENABLED) {
         TRACE(compiledSymbols, "All compiled symbols:");
 
         TRACE(compiledSymbols, "  structs:");
-        Visitor::visitList(compiledStdLib.structs()[ids.list], [this](CellI& kv, int, bool&) {
+        Visitor::visitList(stdLib().structs()[ids.list], [this](CellI& kv, int, bool&) {
             TRACE(compiledSymbols, "    {}", kv[ids.key].label());
         });
 
         TRACE(compiledSymbols, "  functions:");
-        Visitor::visitList(compiledStdLib.functions()[ids.list], [this](CellI& kv, int, bool&) {
+        Visitor::visitList(stdLib().functions()[ids.list], [this](CellI& kv, int, bool&) {
             TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
         });
 
         TRACE(compiledSymbols, "  variables:");
-        Visitor::visitList(compiledStdLib.variables()[ids.list], [this](CellI& kv, int, bool&) {
+        Visitor::visitList(stdLib().variables()[ids.list], [this](CellI& kv, int, bool&) {
             TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
         });
     }
@@ -755,12 +759,20 @@ World::~World()
     m_initPhase = InitPhase::DestructBegin;
 }
 
-Library& World::stdLib()
+Library& World::arcLib()
 {
-    if (!m_stdLibPtr) {
+    if (!m_arcLib) {
         throw "Get compiled stdlib before compilation is not possible";
     }
-    return *m_stdLibPtr;
+    return *m_arcLib;
+}
+
+Library& World::stdLib()
+{
+    if (!m_stdLib) {
+        throw "Get compiled stdlib before compilation is not possible";
+    }
+    return *m_stdLib;
 }
 
 CellI& World::getStruct(const std::string& nameStr)
@@ -813,8 +825,7 @@ CellI& World::ListOf(CellI& valueType)
     switch (m_initPhase) {
     case InitPhase::Init: {
         auto& ret = tt_("std::List", "valueType", _(valueType));
-        m_compiler->reigisterStructBeforeCompilation(ret);
-
+        m_stdCompiler->reigisterStructBeforeCompilation(ret);
         return ret;
     }
     case InitPhase::Compiling:
@@ -833,7 +844,7 @@ CellI& World::MapOf(CellI& keyType, CellI& valueType)
     switch (m_initPhase) {
     case InitPhase::Init: {
         auto& ret = tt_("std::Map", "keyType", _(keyType), "valueType", _(valueType));
-        m_compiler->reigisterStructBeforeCompilation(ret);
+        m_stdCompiler->reigisterStructBeforeCompilation(ret);
 
         return ret;
     }

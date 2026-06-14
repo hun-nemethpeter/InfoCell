@@ -9,22 +9,19 @@ namespace infocell {
 namespace cells {
 
 Compiler::Compiler(World& w) :
-    Compiler(w, *new Library(w))
-{
-}
-
-Compiler::Compiler(World& w, Library& library) :
     w(w),
     m_toolFinder(*new ToolFinder(w)),
     m_earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs"),
     m_structs(*new TrieMap(w, w.std.Cell, w.std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs")),
-    m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances")),
-    m_library(library),
-    m_compiledFunctions(library.functions()),
-    m_compiledStructs(library.structs()),
-    m_compiledVariables(library.variables())
+    m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances"))
 {
+}
+
+void Compiler::compile(Library& library)
+{
+    m_libraryPtr = &library;
+    compile(library.scope());
 }
 
 /*
@@ -40,6 +37,10 @@ Resolve template related references in normal functions or structs:
 */
 Library& Compiler::compile(Ast::Scope& scope)
 {
+    if (!m_libraryPtr) {
+        m_libraryPtr = new Library(w, scope);
+    }
+
     registerEarlyStructs();
 
     // Creating a shadow AST tree where templated thing are resolved
@@ -56,10 +57,10 @@ Library& Compiler::compile(Ast::Scope& scope)
     // Process the descriptions
     processDescriptionsInScope(scope);
 
-    m_library.set(w.ids.scope, scope);
-    m_library.set(w.ids.resolvedScope, resolvedScope);
+    m_libraryPtr->set(w.ids.scope, scope);
+    m_libraryPtr->set(w.ids.resolvedScope, resolvedScope);
 
-    return m_library;
+    return *m_libraryPtr;
 }
 
 CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
@@ -154,6 +155,25 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
 ToolFinder& Compiler::getToolFinder()
 {
     return m_toolFinder;
+}
+
+Library& Compiler::library()
+{
+    return *m_libraryPtr;
+}
+
+TrieMap& Compiler::compiledFunctions()
+{
+    return library().functions();
+}
+
+TrieMap& Compiler::compiledStructs()
+{
+    return library().structs();
+}
+TrieMap& Compiler::compiledVariables()
+{
+    return library().variables();
 }
 
 void Compiler::registerEarlyStructs()
@@ -821,8 +841,8 @@ Ast::Base& Compiler::resolveType(CellI& typeAst)
         auto& name               = resolveAstStruct[w.ids.name];
         auto& fullyQualifiedName = getFullyQualifiedName(resolveAstStruct);
 
-        if (m_compiledStructs.hasKey(fullyQualifiedName)) {
-            return w.ast.cell(m_compiledStructs.getValue(fullyQualifiedName));
+        if (compiledStructs().hasKey(fullyQualifiedName)) {
+            return w.ast.cell(compiledStructs().getValue(fullyQualifiedName));
         }
 
         auto& resolveCompiledStruct = resolveStructName(name, fullyQualifiedName);
@@ -945,8 +965,8 @@ Ast::Base& Compiler::resolveTemplatedType(CellI& ast)
     List& structName               = generateTemplateId(templateId, templateParams, resolvedTemplateParams);
     List& fullyQualifiedStructName = generateFullyQualifiedIdFromTemplateId(scope, structName, resolvedTemplateParams);
 
-    if (m_compiledStructs.hasKey(fullyQualifiedStructName)) {
-        return w.ast.cell(m_compiledStructs.getValue(fullyQualifiedStructName));
+    if (compiledStructs().hasKey(fullyQualifiedStructName)) {
+        return w.ast.cell(compiledStructs().getValue(fullyQualifiedStructName));
     }
     CellI* unknownInstancePtr = nullptr;
     if (m_unknownInstances.hasKey(fullyQualifiedStructName)) {
@@ -1407,7 +1427,7 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
         Visitor::visitList(resolvedScope.items<Ast::Function>()[w.ids.list], [this](CellI& function, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(function[w.ids.value]);
             auto& compiledFunction     = compileFunction(astFunction);
-            m_compiledFunctions.add(getFullyQualifiedName(astFunction), compiledFunction);
+            compiledFunctions().add(getFullyQualifiedName(astFunction), compiledFunction);
         });
     }
     if (scope.has("structs")) {
@@ -1433,17 +1453,17 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
                     if (IS_LOG_ENABLED) {
                         TRACE(compileStruct, "{}: {}\n", aliasName.label(), value.label());
                     }
-                    m_compiledStructs.add(aliasName, value);
+                    compiledStructs().add(aliasName, value);
                 });
             }
-            m_compiledStructs.add(structFullName, compiledStruct);
+            compiledStructs().add(structFullName, compiledStruct);
         });
     }
     if (scope.has("enums")) {
         Visitor::visitList(resolvedScope.items<Ast::Enum>()[w.ids.list], [this](CellI& enum_, int i, bool& stop) {
             Ast::Enum& astEnum   = static_cast<Ast::Enum&>(enum_[w.ids.value]);
             auto& compiledStruct = compileEnum(astEnum);
-            m_compiledStructs.add(getFullyQualifiedName(astEnum), compiledStruct);
+            compiledStructs().add(getFullyQualifiedName(astEnum), compiledStruct);
         });
     }
     if (scope.has("variables")) {
@@ -1451,7 +1471,7 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
             Ast::Var& astVar       = static_cast<Ast::Var&>(var[w.ids.value]);
             auto& varName          = getFullyQualifiedName(astVar);
             auto& compiledVariable = *new Object(w, w.std.op.Var, fmt::format("var {}", astVar.label()));
-            m_compiledVariables.add(varName, compiledVariable);
+            compiledVariables().add(varName, compiledVariable);
         });
     }
     if (scope.has("scopes")) {
@@ -1559,13 +1579,13 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
                     auto& compiledValue = *new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
                     compiledValue.set("tag", valueName);
                     compiledValue.set(valueName, value[w.ids.value]);
-                    m_compiledVariables.add(fullName, compiledValue);
+                    compiledVariables().add(fullName, compiledValue);
                 } else {
                     compiledMembers.add(valueKey, compiledStruct);
                     auto& compiledValue = *new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
                     compiledValue.set("tag", valueName);
                     compiledValue.set(valueName, w.ids.emptyObject);
-                    m_compiledVariables.add(fullName, compiledValue);
+                    compiledVariables().add(fullName, compiledValue);
                 }
             } else if (&valueCell.struct_() == &w.std.ast.TypedEnumValue) {
                 auto& enumValue             = static_cast<Ast::TypedEnumValue&>(valueCell);
@@ -2127,7 +2147,7 @@ void Compiler::processDescriptionsInScope(Ast::Scope& scope)
         Visitor::visitList(scope.items<Ast::Struct>()[w.ids.list], [this](CellI& struct_, int i, bool& stop) {
             auto& tool = static_cast<Ast::Struct&>(struct_[w.ids.value]);
             if (tool.has(w.ids.description) && tool[w.ids.description].has(w.ids.asts)) {
-                auto& compiledAstStruct = m_compiledStructs.getValue(getFullyQualifiedName(tool));
+                auto& compiledAstStruct = compiledStructs().getValue(getFullyQualifiedName(tool));
                 m_toolFinder.add(tool, compiledAstStruct);
             }
         });
@@ -2141,71 +2161,5 @@ void Compiler::processDescriptionsInScope(Ast::Scope& scope)
     }
 }
 
-Library::Library(World& w) :
-    Object(w, w.std.Library, "library")
-{
-    set(w.ids.functions, *new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions"));
-    set(w.ids.structs, *new TrieMap(w, w.std.Cell, w.std.Struct, "Structs"));
-    set(w.ids.variables, *new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables"));
-}
-
-void Library::mergeTo(Library& target)
-{
-    Visitor::visitList(functions()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
-        CellI& key   = kvPair[w.ids.key];
-        CellI& value = kvPair[w.ids.value];
-        target.functions().add(key, value);
-    });
-    Visitor::visitList(structs()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
-        CellI& key   = kvPair[w.ids.key];
-        CellI& value = kvPair[w.ids.value];
-        target.structs().add(key, value);
-    });
-    Visitor::visitList(variables()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
-        CellI& key   = kvPair[w.ids.key];
-        CellI& value = kvPair[w.ids.value];
-        target.variables().add(key, value);
-    });
-}
-
-Ast::Scope& Library::scope()
-{
-    return static_cast<Ast::Scope&>(get(w.ids.scope));
-}
-
-TrieMap& Library::functions()
-{
-    return static_cast<TrieMap&>(get(w.ids.functions));
-}
-
-TrieMap& Library::structs()
-{
-    return static_cast<TrieMap&>(get(w.ids.structs));
-}
-
-TrieMap& Library::variables()
-{
-    return static_cast<TrieMap&>(get(w.ids.variables));
-}
-
-CellI& Library::getStruct(const std::string& nameStr)
-{
-    return getStruct(w.name(nameStr));
-}
-
-CellI& Library::getStruct(CellI& name)
-{
-    return static_cast<TrieMap&>(get(w.ids.structs)).getValue(name);
-}
-
-CellI& Library::getVariable(const std::string& nameStr)
-{
-    return getVariable(w.name(nameStr));
-}
-
-CellI& Library::getVariable(CellI& name)
-{
-    return static_cast<TrieMap&>(get(w.ids.variables)).getValue(name);
-}
 } // namespace cells
 } // namespace infocell

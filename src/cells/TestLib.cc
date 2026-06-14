@@ -3,16 +3,22 @@
 namespace infocell {
 namespace cells {
 
-TestLib::TestLib(World& w, Scope& scope) :
-    AstHelper(w),
-    testScope(scope.add<Scope>("test"))
+
+class TestLibAst : public AstHelper
 {
-    auto& testFunction = testScope.add<Function>("testFunction");
+public:
+    TestLibAst(World& w, Ast::Scope& scope);
+};
+
+TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
+    AstHelper(w)
+{
+    auto& testFunction = scope.add<Function>("testFunction");
     testFunction.instructions(
         var_("result") = new_(struct_("std::Index")));
 
-    auto& testVariable = testScope.add<Var>("testVariable");
-    auto& testStruct   = testScope.add<Struct>("TestStruct");
+    auto& testVariable = scope.add<Var>("testVariable");
+    auto& testStruct   = scope.add<Struct>("TestStruct");
 
     testStruct.addMethod("testCreateNewListOfNumbers")
         .instructions(
@@ -33,22 +39,22 @@ TestLib::TestLib(World& w, Scope& scope) :
                 .then_(return_(multiply(p_("input"), self()("factorial")("input", subtract(p_("input"), _(_1_))))))
                 .else_(return_(_(_1_))));
 
-    testScope.add<Enum>("TestEnum")
+    scope.add<Enum>("TestEnum")
         .values(
             ev_("value1"), // init with Void
             ev_("value2"));
 
-    testScope.add<Enum>("TestEnumWithValues")
+    scope.add<Enum>("TestEnumWithValues")
         .values(
             ev_("value1", _(_1_)), // init with a value
             ev_("value2", _(_2_)));
 
-    testScope.add<Enum>("TestEnumTyped")
+    scope.add<Enum>("TestEnumTyped")
         .values(
             tev_("value1", struct_("TestStruct")), // init with value
             tev_("value2", "TestStruct"));
 
-    testScope.add<Enum>("TestEnumTypedWithValues")
+    scope.add<Enum>("TestEnumTypedWithValues")
         .values(
             tev_("value1", "TestStruct", _(_1_)), // init with value
             tev_("value2", "TestStruct", _(_2_)));
@@ -61,6 +67,12 @@ TestLib::TestLib(World& w, Scope& scope) :
     // Iterators, range-based-for
     // Variable scopes
     //
+}
+
+TestLib::TestLib(World& w, Ast::Scope& parentScope) :
+    Library(w, parentScope)
+{
+    TestLibAst testLibAst(w, parentScope.add<Ast::Scope>("test"));
 }
 
 } // namespace cells

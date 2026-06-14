@@ -37,15 +37,12 @@ namespace hybridarc = infocell::cells::arc;
 TEST_F(CellTest, CompilerSmokeTest)
 {
     Ast::Scope rootScope(w, "root");
-    TestLib testLibAst(w, rootScope);
 
-    Library& testModule = *new Library(w);
+    TestLib testLib(w, rootScope);
+    testLib.include(w.stdLib());
 
-    w.stdLib().scope().mergeTo(rootScope, Ast::Scope::MergeMode::Link);
-    w.stdLib().mergeTo(testModule);
-
-    Compiler compiler(w, testModule);
-    auto& testLib = compiler.compile(rootScope);
+    Compiler compiler(w);
+    compiler.compile(testLib);
 
     testLib.mergeTo(w.stdLib());
 

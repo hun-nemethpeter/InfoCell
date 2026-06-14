@@ -1,25 +1,32 @@
 #pragma once
+
+#include "Library.h"
 #include "World.h"
 #include "ToolFinder.h"
 
 namespace infocell {
 namespace cells {
 
-class Library;
 class Compiler
 {
     Compiler(const Compiler&) = delete;
 
 public:
     Compiler(World& w);
-    Compiler(World& w, Library& library);
 
+    void compile(Library& library);
     Library& compile(Ast::Scope& scope);
+
     CellI& reigisterStructBeforeCompilation(CellI& id);
     void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
     ToolFinder& getToolFinder();
 
 protected:
+    Library& library();
+    TrieMap& compiledFunctions();
+    TrieMap& compiledStructs();
+    TrieMap& compiledVariables();
+
     void registerEarlyStructs();
     void resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
 
@@ -83,28 +90,10 @@ protected:
     TrieMap& m_unknownStructs;
     TrieMap& m_unknownInstances;
 
-    Library& m_library;
-    TrieMap& m_compiledFunctions;
-    TrieMap& m_compiledStructs;
-    TrieMap& m_compiledVariables;
-};
-
-class Library : public Object
-{
-public:
-    Library(World& w);
-
-    void mergeTo(Library& target);
-
-    Ast::Scope& scope();
-    TrieMap& functions();
-    TrieMap& structs();
-    TrieMap& variables();
-
-    CellI& getStruct(const std::string& nameStr);
-    CellI& getStruct(CellI& name);
-    CellI& getVariable(const std::string& nameStr);
-    CellI& getVariable(CellI& name);
+    Library* m_libraryPtr           = nullptr;
+    TrieMap* m_compiledFunctionsPtr = nullptr;
+    TrieMap* m_compiledStructsPtr   = nullptr;
+    TrieMap* m_compiledVariablesPtr = nullptr;
 };
 
 } // namespace cells

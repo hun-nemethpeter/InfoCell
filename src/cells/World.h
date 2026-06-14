@@ -13,9 +13,11 @@ class logger;
 namespace infocell {
 namespace cells {
 
-class World;
 class Compiler;
 class Library;
+class ArcLib;
+class StdLib;
+class World;
 
 class ID
 {
@@ -411,7 +413,6 @@ public:
 protected:
     InitPhase m_initPhase = InitPhase::Init;
     friend class Std;
-    Library* m_stdLibPtr = nullptr;
 
 public:
     Ast::Cell& _(CellI& cell);
@@ -447,9 +448,12 @@ public:
     CellI& _8_;
     CellI& _9_;
 
-    std::unique_ptr<Compiler> m_compiler;
+    std::unique_ptr<Compiler> m_stdCompiler;
+    std::unique_ptr<StdLib> m_stdLib;
+    std::unique_ptr<ArcLib> m_arcLib;
 
 public:
+    Library& arcLib();
     Library& stdLib();
     CellI& getStruct(const std::string& nameStr);
     CellI& getStruct(CellI& name);

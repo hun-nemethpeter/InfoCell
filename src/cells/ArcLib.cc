@@ -3,24 +3,29 @@
 namespace infocell {
 namespace cells {
 
-ArcLib::ArcLib(World& w, Scope& scope) :
-    AstHelper(w),
-    arcScope(scope.add<Scope>("arc"))
+class ArcLibAst : public AstHelper
+{
+public:
+    ArcLibAst(World& w, Ast::Scope& scope);
+};
+
+ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
+    AstHelper(w)
 {
     auto& exampleStruct
-        = arcScope.add<Struct>("Example")
+        = scope.add<Struct>("Example")
               .members(
                   member("input", _(std.Grid)),
                   member("output", _(std.Grid)));
 
     auto& taskStruct
-        = arcScope.add<Struct>("Task")
+        = scope.add<Struct>("Task")
               .members(
                   member("examples", tt_("std::List", "valueType", "Example")),
                   member("tests", tt_("std::List", "valueType", "Example")),
                   member("solution", _(std.Grid)));
 
-    arcScope.add<Enum>("Color")
+    scope.add<Enum>("Color")
         .values(
             ev_("black", _(_0_)),
             ev_("blue", _(_1_)),
@@ -33,7 +38,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
             ev_("teal", _(_8_)),
             ev_("brown", _(_9_)));
 
-    arcScope.add<Enum>("RotationDir")
+    scope.add<Enum>("RotationDir")
         .values(
             ev_("Degree_0"),   // 🡩
             ev_("Degree_45"),  // 🡭
@@ -45,7 +50,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
             ev_("Degree_315")  // 🡬
         );
 
-    arcScope.add<Enum>("Directions")
+    scope.add<Enum>("Directions")
         .values(
             ev_("up"),        // 🡩
             ev_("upRight"),   // 🡭
@@ -56,7 +61,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
             ev_("left"),      // 🡨
             ev_("upLeft"));   // 🡬
 
-    arcScope.add<Enum>("LineSymmetry")
+    scope.add<Enum>("LineSymmetry")
         .values(
             ev_("horizontal"),         // │
             ev_("vertical"),           // ──
@@ -64,7 +69,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
             ev_("diagonalUpperLeft")); // \
 
     auto& colorStruct
-        = arcScope.add<Struct>("Color")
+        = scope.add<Struct>("Color")
               .members(
                   member("red", _(std.Number)),
                   member("green", _(std.Number)),
@@ -72,7 +77,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct Pixel
     auto& pixelStruct
-        = arcScope.add<Struct>("Pixel")
+        = scope.add<Struct>("Pixel")
               .members(
                   member("x", _(std.Number)),
                   member("y", _(std.Number)));
@@ -87,7 +92,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct Vector
     auto& vectorStruct
-        = arcScope.add<Struct>("Vector")
+        = scope.add<Struct>("Vector")
               .members(
                   member("x", _(std.Number)),
                   member("y", _(std.Number)));
@@ -159,7 +164,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct VectorShape
     auto& vectorShapeStruct
-        = arcScope.add<Struct>("VectorShape")
+        = scope.add<Struct>("VectorShape")
               .members(
                   member("color", _(std.Color)),
                   member("vectors", tt_("std::List", "valueType", "Vector")),
@@ -254,14 +259,14 @@ ArcLib::ArcLib(World& w, Scope& scope) :
             return_(*var_("ret")));
 
     // struct ShapeEdgeKind
-    arcScope.add<Enum>("ShapeEdgeKind")
+    scope.add<Enum>("ShapeEdgeKind")
         .values(
             ev_("ExternalEdge"),
             ev_("InternalEdge"));
 
     // struct ShapeEdgeRotationCorners
     auto& ShapeEdgeRotationCornersStruct
-        = arcScope.add<Struct>("ShapeEdgeRotationCorners")
+        = scope.add<Struct>("ShapeEdgeRotationCorners")
               .members(
                   member("upLeftNode", "ShapeEdgeNode"),
                   member("upRightNode", "ShapeEdgeNode"),
@@ -270,14 +275,14 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct ShapeEdgeMirroringCorners
     auto& ShapeEdgeMirroringCornersStruct
-        = arcScope.add<Struct>("ShapeEdgeMirroringCorners")
+        = scope.add<Struct>("ShapeEdgeMirroringCorners")
               .members(
                   member("upRightNode", "ShapeEdgeNode"),
                   member("downLeftNode", "ShapeEdgeNode"));
 
     // struct ShapeEdge
     auto& ShapeEdgeStruct
-        = arcScope.add<Struct>("ShapeEdge")
+        = scope.add<Struct>("ShapeEdge")
               .members(
                   member("id", _(std.Number)),
                   member("shape", "Shape"),
@@ -296,7 +301,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct ShapeEdgeNode
     auto& ShapeEdgeNodeStruct
-        = arcScope.add<Struct>("ShapeEdgeNode")
+        = scope.add<Struct>("ShapeEdgeNode")
               .members(
                   member("edge", "ShapeEdge"),
                   member("from", "ShapePoint"),
@@ -307,7 +312,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct ShapeEdge
     auto& ShapeEdgeJointStruct
-        = arcScope.add<Struct>("ShapeEdgeJoint")
+        = scope.add<Struct>("ShapeEdgeJoint")
               .members(
                   member("upLeft", "ShapeEdgeNode"),
                   member("upRight", "ShapeEdgeNode"),
@@ -320,7 +325,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct ShapePoint
     auto& shapePointStruct
-        = arcScope.add<Struct>("ShapePoint")
+        = scope.add<Struct>("ShapePoint")
               .members(
                   member("edgeJoint", "ShapeEdgeJoint"),
                   member("up", "ShapePoint"),
@@ -336,7 +341,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct ShapePixel
     auto& shapePixelStruct
-        = arcScope.add<Struct>("ShapePixel")
+        = scope.add<Struct>("ShapePixel")
               .members(
                   member("shape", "Shape"),
                   member("up", "ShapePixel"),
@@ -359,7 +364,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct Shape
     auto& shapeStruct
-        = arcScope.add<Struct>("Shape")
+        = scope.add<Struct>("Shape")
               .subTypes(
                   parameter("InternalEdgeLookup", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"))))
               .members(
@@ -401,7 +406,7 @@ ArcLib::ArcLib(World& w, Scope& scope) :
 
     // struct Frame
     auto& frameStruct
-        = arcScope.add<Struct>("Frame")
+        = scope.add<Struct>("Frame")
               .subTypes(
                   parameter("tableType", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"))))
               .members(
@@ -525,6 +530,12 @@ ArcLib::ArcLib(World& w, Scope& scope) :
                                         .then_(return_()))))),
                     if_(same(*var_("pixel") / "color", p_("shape") / "color"))
                         .then_(p_("checkPixels")("add")("value", *var_("pixel"))))));
+}
+
+ArcLib::ArcLib(World& w, Ast::Scope& parentScope) :
+    Library(w, parentScope)
+{
+    ArcLibAst stdLibAst(w, parentScope.add<Ast::Scope>("arc"));
 }
 
 } // namespace cells

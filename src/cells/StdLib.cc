@@ -3,7 +3,19 @@
 namespace infocell {
 namespace cells {
 
-void StdLib::createOp()
+class StdLibAst : public AstHelper
+{
+public:
+    StdLibAst(World& w, Ast::Scope& scope);
+
+private:
+    void createOp();
+    void createAst();
+
+    Ast::Scope& stdScope;
+};
+
+void StdLibAst::createOp()
 {
     auto& opScope = stdScope.add<Scope>("op");
     opScope.add<Struct>("Base");
@@ -293,7 +305,7 @@ void StdLib::createOp()
             member("statement", "Base"));
 }
 
-void StdLib::createAst()
+void StdLibAst::createAst()
 {
     auto& astScope = stdScope.add<Scope>("ast");
     astScope.add<Struct>("Base");
@@ -454,6 +466,13 @@ void StdLib::createAst()
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
+
+    astScope.add<Struct>("Match")
+        .memberOf(
+            _(std.ast.Base))
+        .members(
+            member("cases", _(std.List)),
+            member("enum", _(std.ast.Base)));
 
     astScope.add<Struct>("Has")
         .memberOf(
@@ -758,9 +777,10 @@ void StdLib::createAst()
             member("statement", "Base"));
 }
 
-StdLib::StdLib(World& w, Scope& scope) :
+
+StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     AstHelper(w),
-    stdScope(scope.add<Scope>("std"))
+    stdScope(scope)
 {
     createOp();
     createAst();
@@ -1887,6 +1907,12 @@ StdLib::StdLib(World& w, Scope& scope) :
         .returnType(_(std.Boolean))
         .instructions(return_(equal(m_("size"), _(_0_))));
 #pragma endregion
+}
+
+StdLib::StdLib(World& w, Ast::Scope& parentScope) :
+    Library(w, parentScope)
+{
+    StdLibAst stdLibAst(w, parentScope.add<Ast::Scope>("std"));
 }
 
 } // namespace cells

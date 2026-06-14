@@ -11,6 +11,8 @@ add_library(cells-lib STATIC
     Cells.h
     Compiler.cc
     Compiler.h
+    Library.cc
+    Library.h
     NodeBase.cc
     NodeBase.h
     StdLib.cc

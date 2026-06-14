@@ -1,20 +1,15 @@
 #pragma once
 
+#include "Library.h"
 #include "World.h"
 
 namespace infocell {
 namespace cells {
 
-class StdLib : public AstHelper
+class StdLib : public Library
 {
 public:
-    StdLib(World& w, Scope& scope);
-
-    Scope& stdScope;
-
-private:
-    void createOp();
-    void createAst();
+    StdLib(World& w, Ast::Scope& parentScope);
 };
 
 } // namespace cells
