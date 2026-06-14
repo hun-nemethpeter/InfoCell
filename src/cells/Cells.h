@@ -112,6 +112,7 @@ public:
     CellI& smethod(CellI& key, Param param1, Param param2, Param param3, Param param4);
     void printIndent();
     void resetIndent();
+    void createSelfStack();
     static void clearStack(CellI& method);
 
 protected:

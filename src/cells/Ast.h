@@ -731,7 +731,7 @@ public:
     Throw& throw_(Base& value);
     Try& try_(Base& tryBranch, Base& catchBranch);
     Return& return_();
-    Return& return_(Base& value);
+    Return& return_(CellI& value);
     Parameter& parameter(CellI& key);
     Slot& slot(const std::string& key, CellI& type);
     Slot& slot(CellI& key, CellI& type);

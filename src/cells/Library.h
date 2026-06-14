@@ -19,6 +19,8 @@ public:
     TrieMap& structs();
     TrieMap& variables();
 
+    Object& getFunction(const std::string& nameStr);
+    Object& getFunction(CellI& name);
     CellI& getStruct(const std::string& nameStr);
     CellI& getStruct(CellI& name);
     CellI& getVariable(const std::string& nameStr);

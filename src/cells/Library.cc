@@ -64,6 +64,16 @@ TrieMap& Library::variables()
     return static_cast<TrieMap&>(get(w.ids.variables));
 }
 
+Object& Library::getFunction(const std::string& nameStr)
+{
+    return getFunction(w.name(nameStr));
+}
+
+Object& Library::getFunction(CellI& name)
+{
+    return static_cast<Object&>(functions().getValue(name));
+}
+
 CellI& Library::getStruct(const std::string& nameStr)
 {
     return getStruct(w.name(nameStr));
@@ -71,7 +81,7 @@ CellI& Library::getStruct(const std::string& nameStr)
 
 CellI& Library::getStruct(CellI& name)
 {
-    return static_cast<TrieMap&>(get(w.ids.structs)).getValue(name);
+    return structs().getValue(name);
 }
 
 CellI& Library::getVariable(const std::string& nameStr)
@@ -81,7 +91,7 @@ CellI& Library::getVariable(const std::string& nameStr)
 
 CellI& Library::getVariable(CellI& name)
 {
-    return static_cast<TrieMap&>(get(w.ids.variables)).getValue(name);
+    return variables().getValue(name);
 }
 } // namespace cells
 } // namespace infocell

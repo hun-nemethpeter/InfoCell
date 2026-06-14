@@ -273,9 +273,15 @@ void Object::printIndent()
         }
     }
 }
+
 void Object::resetIndent()
 {
     s_indent = 0;
+}
+
+void Object::createSelfStack()
+{
+    createStack(*this);
 }
 
 // core data handling

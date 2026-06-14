@@ -34,5 +34,6 @@ target_link_libraries(cells-lib
         fmt::fmt
         spdlog::spdlog
         utf8cpp
+        cells-printers
         util
 )

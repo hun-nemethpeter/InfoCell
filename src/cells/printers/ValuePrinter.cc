@@ -154,18 +154,20 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     std::stringstream iss;
     std::stringstream oss;
     CellI& subTypesIndex = cell.struct_()[w.ids.subTypes][w.ids.index];
-    CellI& inType        = subTypesIndex[w.ids.parameters][w.ids.value];
-    bool hasReturnValue = false;
-    if (inType.has(w.ids.slots)) {
-        Visitor::visitList(inType[w.ids.slots][w.ids.list], [this, &iss, &w](CellI& slot, int i, bool& stop) {
-            if (i > 0) {
-                iss << ", ";
-            }
-            if (&slot[w.ids.key] != &w.ids.self) {
-                iss << "p_";
-            }
-            iss << slot[w.ids.key].label() << ": " << slot[w.ids.type].label();
-        });
+    bool hasReturnValue  = false;
+    if (subTypesIndex.has(w.ids.parameters)) {
+        CellI& inType       = subTypesIndex[w.ids.parameters][w.ids.value];
+        if (inType.has(w.ids.slots)) {
+            Visitor::visitList(inType[w.ids.slots][w.ids.list], [this, &iss, &w](CellI& slot, int i, bool& stop) {
+                if (i > 0) {
+                    iss << ", ";
+                }
+                if (&slot[w.ids.key] != &w.ids.self) {
+                    iss << "p_";
+                }
+                iss << slot[w.ids.key].label() << ": " << slot[w.ids.type].label();
+            });
+        }
     }
     if (subTypesIndex.has(w.ids.returnType)) {
         CellI& outType = subTypesIndex[w.ids.returnType][w.ids.value];

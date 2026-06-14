@@ -1,6 +1,8 @@
 ﻿#include "ToolFinder.h"
 
+#include "Compiler.h"
 #include "World.h"
+#include "cells/printers/ValuePrinter.h"
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "util/Log.h"
@@ -613,17 +615,58 @@ void ToolFinder::printCb(Node* node)
     }
 }
 
-static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot)
+static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot, CellI& unknownX)
 {
     World& w = tool.w;
     CellI& slotList  = tool.struct_()[w.ids.slots][w.ids.list];
-    Visitor::visitList(slotList, [&w, &tool, &filledSlot](CellI& slot, int i, bool& stop) {
+    Visitor::visitList(slotList, [&w, &tool, &filledSlot, &unknownX](CellI& slot, int i, bool& stop) {
         CellI& slotType = slot[w.ids.type];
         CellI& slotKey = slot[w.ids.key];
         if (&slotKey != &filledSlot) {
-            tool.set(slotKey, w.ast.get(w.ast.cell(w.ast.var("x")), w.ast.cell(w.ids.value)));
+            tool.set(slotKey, w.ast.get(w.ast.cell(unknownX), w.ast.cell(w.ids.value)));
         }
     });
+}
+
+class SolverLib : public Library
+{
+public:
+    SolverLib(World& w, Ast::Scope& parentScope, CellI& solverAst, const std::string& conversionToolName, CellI& conversionToolAst, CellI& conversionToolReturnType);
+};
+class SolverLibAst : public AstHelper
+{
+public:
+    SolverLibAst(World& w, Ast::Scope& scope, CellI& solverAst, const std::string& conversionToolName, CellI& conversionToolAst, CellI& conversionToolReturnType);
+};
+
+SolverLibAst::SolverLibAst(World& w, Ast::Scope& parentScope, CellI& solverAst, const std::string& conversionToolName, CellI& conversionToolAst, CellI& conversionToolReturnType) :
+    AstHelper(w)
+{
+    auto& solverFunction = parentScope.add<Function>("solverFunction");
+    solverFunction.instructions(solverAst);
+    auto& conversionTool = parentScope.add<Function>(conversionToolName);
+    conversionTool.returnType(_(conversionToolReturnType));
+    conversionTool.instructions(
+        return_(conversionToolAst));
+}
+
+SolverLib::SolverLib(World& w, Ast::Scope& parentScope, CellI& solverAst, const std::string& conversionToolName, CellI& conversionToolAst, CellI& conversionToolReturnType) :
+    Library(w, parentScope)
+{
+    SolverLibAst solverLibAst(w, parentScope.add<Ast::Scope>("solver"), solverAst, conversionToolName, conversionToolAst, conversionToolReturnType);
+}
+
+
+static void PrintAsValue(CellI& cell, const std::string& label)
+{
+    CellValuePrinter valuePrinter;
+    cell.accept(valuePrinter);
+
+    if (!label.empty()) {
+        std::cout << label << ": ";
+    }
+
+    std::cout << valuePrinter.print() << std::endl;
 }
 
 CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint)
@@ -632,14 +675,34 @@ CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, Too
     CellI& tool = *new Object(w, *blueprint.m_compiledToolType);
     tool.set(*blueprint.m_slotId, w.ast.cell(from));
 
-    fillMissingSlotsWithUnknown(tool, *blueprint.m_slotId);
+    Object unknownX(w, w.std.op.Var, "unknownX");
+    fillMissingSlotsWithUnknown(tool, *blueprint.m_slotId, unknownX);
 
     CellI& missingSlotEquation = *new Object(w, w.std.ast.Equal, "tool(from, x) == to");
     missingSlotEquation.set(w.ids.lhs, tool);
     missingSlotEquation.set(w.ids.rhs, w.ast.cell(to));
 
     if (CellI* missingSlotSolver = findToolByEffectAst(missingSlotEquation)) {
-        std::cout << "";
+        CellI& conversionToolAst = *new Object(w, *blueprint.m_compiledToolType);
+        conversionToolAst.set(*blueprint.m_slotId, w.ast.var(fmt::format("input_{}", blueprint.m_slotId->label())));
+        fillMissingSlotsWithUnknown(conversionToolAst, *blueprint.m_slotId, unknownX);
+
+        Ast::Scope rootScope(w, "toolFinder");
+        Compiler compiler(w);
+        std::string conversionToolName = fmt::format("conversionToolFor{}", blueprint.m_tool->label());
+        SolverLib solverLib(w, rootScope, *missingSlotSolver, conversionToolName, conversionToolAst, to.struct_());
+        solverLib.include(w.arcLib());
+        compiler.compile(solverLib);
+        auto& solverFn = solverLib.getFunction("solver::solverFunction");
+        auto& conversionToolFn = solverLib.getFunction(fmt::format("solver::{}", conversionToolName));
+//        PrintAsValue(solverFn, "solverFn");
+        solverFn.createSelfStack();
+        solverFn();
+//        std::cout << blueprint << '\n';
+        std::cout << "unknownX.value = " << unknownX[w.ids.value].label() << std::endl;
+
+        PrintAsValue(conversionToolFn, "tool");
+        std::cout << "" << std::endl;
     }
 
     return w.ids.emptyObject; // TODO
@@ -659,7 +722,7 @@ CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
     }
     for (auto it = tools.first; it != tools.second; ++it) {
         ConversionToolBlueprint blueprint = it->second;
-        std::cout << "  " << blueprint << '\n';
+//        std::cout << "  " << blueprint << '\n';
         // ConversionToolKey [from: Number, to: Number]: ConversionToolBlueprint [tool: Add, input: lhs]
         CellI& conversionTool = createConversionToolFromBlueprint(from, to, blueprint);
     }

@@ -1177,7 +1177,7 @@ Ast::Return& Ast::return_()
     return Return::New(w);
 }
 
-Ast::Return& Ast::return_(Base& value)
+Ast::Return& Ast::return_(CellI& value)
 {
     return Return::New(w, value);
 }
