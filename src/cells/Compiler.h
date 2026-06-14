@@ -5,14 +5,16 @@
 namespace infocell {
 namespace cells {
 
+class Library;
 class Compiler
 {
     Compiler(const Compiler&) = delete;
 
 public:
     Compiler(World& w);
+    Compiler(World& w, Library& library);
 
-    CellI& compile(Ast::Scope& scope);
+    Library& compile(Ast::Scope& scope);
     CellI& reigisterStructBeforeCompilation(CellI& id);
     void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
     ToolFinder& getToolFinder();
@@ -45,13 +47,15 @@ protected:
     Ast::Enum* findEnumByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
     Ast::Struct* findStructByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
     Ast::StructT& findTemplateByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
-    Ast::Base* findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, CellI& id, std::function<bool(Ast::Scope& )> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb);
+    Ast::Base* findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, std::function<bool(Ast::Scope& )> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb);
     Ast::Base* findAstByNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope&)> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb);
 
     void instantiateTemplateInstances();
     Ast::Struct& instantiateStructT(Ast::StructT& structT, Ast::Struct& compiledStruct, List& inputParams);
     CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
     Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
+
+    void includeLibraryToScope(Ast::Scope & scope, Library & library);
 
     void compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
     CellI& compileStruct(Ast::Struct& struct_);
@@ -75,15 +79,32 @@ protected:
 
     TrieMap m_earlyStructs;
 
-    TrieMap& m_compiledFunctions;
-    TrieMap& m_compiledStructs;
-    TrieMap& m_compiledVariables;
-
     TrieMap& m_structs;
     TrieMap& m_unknownStructs;
     TrieMap& m_unknownInstances;
 
-    Object& m_programData;
+    Library& m_library;
+    TrieMap& m_compiledFunctions;
+    TrieMap& m_compiledStructs;
+    TrieMap& m_compiledVariables;
+};
+
+class Library : public Object
+{
+public:
+    Library(World& w);
+
+    void mergeTo(Library& target);
+
+    Ast::Scope& scope();
+    TrieMap& functions();
+    TrieMap& structs();
+    TrieMap& variables();
+
+    CellI& getStruct(const std::string& nameStr);
+    CellI& getStruct(CellI& name);
+    CellI& getVariable(const std::string& nameStr);
+    CellI& getVariable(CellI& name);
 };
 
 } // namespace cells

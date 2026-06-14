@@ -36,41 +36,41 @@ namespace hybridarc = infocell::cells::arc;
 
 TEST_F(CellTest, CompilerSmokeTest)
 {
-    Ast::Scope testScope(w, "test");
-    TestLib lestLib(w, testScope);
+    Ast::Scope rootScope(w, "root");
+    TestLib testLibAst(w, rootScope);
 
-    Compiler compiler(w);
+    Library& testModule = *new Library(w);
 
-#if 0
-    auto& compiledScope = compiler.compile(testScope);
+    w.stdLib().scope().mergeTo(rootScope, Ast::Scope::MergeMode::Link);
+    w.stdLib().mergeTo(testModule);
 
-    // Test should be removed from here
+    Compiler compiler(w, testModule);
+    auto& testLib = compiler.compile(rootScope);
+
+    testLib.mergeTo(w.stdLib());
+
     TRACE(compiledSymbols, "All compiled symbols:");
 
     TRACE(compiledSymbols, "  structs:");
-    auto& compiledStructs = static_cast<TrieMap&>(compiledScope[ids.structs]);
-    Visitor::visitList(compiledStructs[ids.list], [this](CellI& kv, int, bool&) {
+    Visitor::visitList(testLib.structs()[ids.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {}", kv[ids.key].label());
     });
 
     TRACE(compiledSymbols, "  functions:");
-    auto& compiledFunctions = static_cast<TrieMap&>(compiledScope[ids.functions]);
-    Visitor::visitList(compiledFunctions[ids.list], [this](CellI& kv, int, bool&) {
+    Visitor::visitList(testLib.functions()[ids.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
     });
 
     TRACE(compiledSymbols, "  variables:");
-    auto& compiledVariables = static_cast<TrieMap&>(compiledScope[ids.variables]);
-    Visitor::visitList(compiledVariables[ids.list], [this](CellI& kv, int, bool&) {
+    Visitor::visitList(testLib.variables()[ids.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
     });
 
     Object testStruct(w, w.getStruct("std::Struct"), w.name("constructor"), "testStruct");
-    Object testRecursiveStruct(w, w.getStruct("std::Struct"), w.name("constructorWithRecursiveStruct"), "testRecursiveStruct");
+    Object testRecursiveStruct(w, w.getStruct("std::Struct"), w.name("constructorWithRecursiveType"), "testRecursiveStruct");
 
     Object testIndex(w, w.getStruct("std::Index"), w.name("constructor"), "testIndex");
     testIndex.method(w.name("insert"), { "key", _1_ }, { "value", _2_ });
-#endif
 }
 
 TEST_F(CellTest, StringSplit)
@@ -415,17 +415,14 @@ TEST_F(CellTest, PrintStdCodes)
     printMethodInType(IndexStruct, "empty");
     printMethodInType(IndexStruct, "remove");
     printMethodInType(IndexStruct, "size");
-
 #endif
 }
 
 TEST_F(CellTest, PrintTestCodes)
 {
-#if 1
     auto& TestStruct = getStruct("test::TestStruct");
     printMethodInType(TestStruct, "factorial");
     printMethodInType(TestStruct, "testCreateNewListOfNumbers");
-#endif
 }
 
 TEST_F(CellTest, PrintArcCodes)

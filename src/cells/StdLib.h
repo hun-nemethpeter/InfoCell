@@ -10,11 +10,11 @@ class StdLib : public AstHelper
 public:
     StdLib(World& w, Scope& scope);
 
+    Scope& stdScope;
+
 private:
     void createOp();
     void createAst();
-
-    Scope& stdScope;
 };
 
 } // namespace cells

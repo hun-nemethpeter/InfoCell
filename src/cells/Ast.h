@@ -177,9 +177,18 @@ public:
     class Scope : public BaseT<Scope>
     {
     public:
+        enum class MergeMode
+        {
+            Link,
+            Copy
+        };
+
         Scope(World& w, const std::string& nameStr);
 
         Scope& getRootScope();
+        Scope& createLink();
+        Scope* getLinkedScope();
+        void mergeTo(Scope& targetScope, MergeMode mergeMode);
 
         template <typename TAst>
         bool hasItem(CellI& name)

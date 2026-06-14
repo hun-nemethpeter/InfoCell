@@ -249,6 +249,44 @@ Ast::Scope& Ast::Scope::getRootScope()
     return *currentScope;
 }
 
+Ast::Scope& Ast::Scope::createLink()
+{
+    Scope& ret = Scope::New(w, get(w.ids.name).label());
+    ret.set("link", *this);
+
+    return ret;
+}
+
+Ast::Scope* Ast::Scope::getLinkedScope()
+{
+    if (missing("link")) {
+        return nullptr;
+    }
+    return &static_cast<Scope&>(get("link"));
+}
+
+void Ast::Scope::mergeTo(Scope& targetScope, MergeMode mergeMode)
+{
+    Scope& from = *this;
+    Scope& to   = targetScope;
+
+    TrieMap& toScopeMap = to.items<Ast::Scope>();
+
+    Visitor::visitList(from.items<Ast::Scope>()[w.ids.list], [this, &mergeMode, &toScopeMap](CellI& kvPair, int i, bool& stop) {
+        auto& libScopeKey   = kvPair[w.ids.key];
+        auto& libScopeValue = static_cast<Ast::Scope&>(kvPair[w.ids.value]);
+        switch (mergeMode) {
+        case MergeMode::Copy:
+            toScopeMap.add(libScopeKey, libScopeValue);
+            break;
+        case MergeMode::Link:
+            auto& libScopeLink = libScopeValue.createLink();
+            toScopeMap.add(libScopeKey, libScopeLink);
+            break;
+        }
+    });
+}
+
 Ast::StructBase::StructBase(World& w, CellI& astType, CellI& name, const std::string& nameStr) :
     Base(w, astType, nameStr),
     methodsImpl(w, "methods", *this)

@@ -106,6 +106,7 @@ ID::ID(World& w) :
     structs(w, w.std.Char, "structs"),
     structType(w, w.std.Char, "structType"),
     subTypes(w, w.std.Char, "subTypes"),
+    tag(w, w.std.Char, "tag"),
     templateId(w, w.std.Char, "templateId"),
     templateParams(w, w.std.Char, "templateParams"),
     then(w, w.std.Char, "then"),
@@ -251,8 +252,7 @@ Std::Std(World& w) :
     Grid(w, w.std.Struct, "Grid"),
     Stack(w, w.std.Struct, "Stack"),
     StackFrame(w, w.std.Struct, "StackFrame"),
-    Program(w, w.std.Struct, "Program"),
-    ProgramData(w, w.std.Struct, "ProgramData"),
+    Library(w, w.std.Struct, "Library"),
     StructReference(w, w.std.Struct, "StructReference"),
     CompileState(w, w.std.Struct, "CompileState"),
     Directions(w, w.std.Enum, "Directions"),
@@ -496,6 +496,7 @@ Pools::Strings::Strings(World& w) :
         { "structs", w.ids.structs },
         { "structType", w.ids.structType },
         { "subTypes", w.ids.subTypes },
+        { "tag", w.ids.tag },
         { "templateId", w.ids.templateId },
         { "templateParams", w.ids.templateParams },
         { "then", w.ids.then },
@@ -570,13 +571,6 @@ Ast::StructName& World::struct_(const std::string& nameStr)
     return ast.structName(nameStr);
 }
 
-void World::createContent()
-{
-    StdLib stdLib(*this, globalScope);
-    ArcLib arcLib(*this, globalScope);
-    TestLib lestLib(*this, globalScope);
-}
-
 World::World(std::function<void()> loggerLevelInit) :
     m_initPhase(InitPhase::Init),
     logger(loggerLevelInit),
@@ -602,7 +596,8 @@ World::World(std::function<void()> loggerLevelInit) :
     _9_(pools.numbers.get(9)),
     m_compiler(std::make_unique<Compiler>(*this))
 {
-    createContent();
+    StdLib stdLib(*this, globalScope);
+    ArcLib arcLib(*this, globalScope);
 
     Compiler& compiler = *m_compiler;
     compiler.reigisterStructBeforeCompilation(tt_("std::List", "valueType", _(std.Char)));    // TODO instantiate on demand in getStruct
@@ -716,36 +711,34 @@ World::World(std::function<void()> loggerLevelInit) :
     compiler.registerBuiltInStruct("std::Grid", std.Grid);
     compiler.registerBuiltInStruct("std::Stack", std.Stack);
     compiler.registerBuiltInStruct("std::StackFrame", std.StackFrame);
-    compiler.registerBuiltInStruct("std::Program", std.Program);
-    compiler.registerBuiltInStruct("std::ProgramData", std.ProgramData);
+    compiler.registerBuiltInStruct("std::Library", std.Library);
     compiler.registerBuiltInStruct("std::StructReference", std.StructReference);
     compiler.registerBuiltInStruct("std::CompileState", std.CompileState);
     compiler.registerBuiltInStruct("std::Directions", std.Directions);
-    auto& compiledGlobalScope = compiler.compile(globalScope);
+
+    auto& compiledStdLib      = compiler.compile(globalScope);
     globalScope.m_toolFinder  = &compiler.getToolFinder();
-    compiledGlobalScopePtr    = &compiledGlobalScope;
+    m_stdLibPtr               = &compiledStdLib;
     m_initPhase               = InitPhase::FullyConstructed;
 
-    // Test should be removed from here
-    TRACE(compiledSymbols, "All compiled symbols:");
+    if (IS_LOG_ENABLED) {
+        TRACE(compiledSymbols, "All compiled symbols:");
 
-    TRACE(compiledSymbols, "  structs:");
-    auto& compiledStructs = static_cast<TrieMap&>(compiledGlobalScope[ids.structs]);
-    Visitor::visitList(compiledStructs[ids.list], [this](CellI& kv, int, bool&) {
-        TRACE(compiledSymbols, "    {}", kv[ids.key].label());
-    });
+        TRACE(compiledSymbols, "  structs:");
+        Visitor::visitList(compiledStdLib.structs()[ids.list], [this](CellI& kv, int, bool&) {
+            TRACE(compiledSymbols, "    {}", kv[ids.key].label());
+        });
 
-    TRACE(compiledSymbols, "  functions:");
-    auto& compiledFunctions = static_cast<TrieMap&>(compiledGlobalScope[ids.functions]);
-    Visitor::visitList(compiledFunctions[ids.list], [this](CellI& kv, int, bool&) {
-        TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
-    });
+        TRACE(compiledSymbols, "  functions:");
+        Visitor::visitList(compiledStdLib.functions()[ids.list], [this](CellI& kv, int, bool&) {
+            TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
+        });
 
-    TRACE(compiledSymbols, "  variables:");
-    auto& compiledVariables = static_cast<TrieMap&>(compiledGlobalScope[ids.variables]);
-    Visitor::visitList(compiledVariables[ids.list], [this](CellI& kv, int, bool&) {
-        TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
-    });
+        TRACE(compiledSymbols, "  variables:");
+        Visitor::visitList(compiledStdLib.variables()[ids.list], [this](CellI& kv, int, bool&) {
+            TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
+        });
+    }
 
     // TODO hack: std.List is a "baseclass" now so we just set its method to std.List<Cell>
     // we need to implement the trait system properly
@@ -755,19 +748,19 @@ World::World(std::function<void()> loggerLevelInit) :
     std.ListItem.set("methods", compiledListItemStruct[ids.methods]);
     std.List.set("methods", compiledListStruct[ids.methods]);
     std.Struct.set("methods", compiledStructStruct[ids.methods]);
-
-    // TODO: remove these tests from here
-    auto& compiledIndexStruct = getStruct("std::Index");
-    Object testType(*this, compiledStructStruct, name("constructor"), "testType");
-    Object testRecursiveType(*this, compiledStructStruct, name("constructorWithRecursiveType"), "testRecursiveType");
-
-    Object testIndex(*this, compiledIndexStruct, name("constructor"), "testIndex");
-    testIndex.method(name("insert"), { "key", _1_ }, { "value", _2_ });
 }
 
 World::~World()
 {
     m_initPhase = InitPhase::DestructBegin;
+}
+
+Library& World::stdLib()
+{
+    if (!m_stdLibPtr) {
+        throw "Get compiled stdlib before compilation is not possible";
+    }
+    return *m_stdLibPtr;
 }
 
 CellI& World::getStruct(const std::string& nameStr)
@@ -783,7 +776,7 @@ CellI& World::getStruct(CellI& name)
     case InitPhase::Compiling:
         throw "Get struct during compilation is not possible";
     case InitPhase::FullyConstructed:
-        return static_cast<TrieMap&>((*compiledGlobalScopePtr)[ids.structs]).getValue(name);
+        return stdLib().getStruct(name);
     case InitPhase::DestructBegin:
         return ids.emptyObject;
     }
@@ -803,7 +796,7 @@ CellI& World::getVariable(CellI& name)
     case InitPhase::Compiling:
         throw "Get variable during compilation is not possible";
     case InitPhase::FullyConstructed:
-        return static_cast<TrieMap&>((*compiledGlobalScopePtr)[ids.variables]).getValue(name);
+        return stdLib().getVariable(name);
     case InitPhase::DestructBegin:
         return ids.emptyObject;
     }

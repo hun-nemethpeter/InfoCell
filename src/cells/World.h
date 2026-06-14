@@ -15,6 +15,8 @@ namespace cells {
 
 class World;
 class Compiler;
+class Library;
+
 class ID
 {
     World& w;
@@ -115,6 +117,7 @@ public:
     List structs;
     List structType;
     List subTypes;
+    List tag;
     List templateId;
     List templateParams;
     List then;
@@ -282,8 +285,7 @@ public:
     Object Grid;
     Object Stack;
     Object StackFrame;
-    Object Program;
-    Object ProgramData;
+    Object Library;
     Object StructReference;
     Object CompileState;
     Object Directions;
@@ -409,8 +411,7 @@ public:
 protected:
     InitPhase m_initPhase = InitPhase::Init;
     friend class Std;
-    void createContent();
-    void createTests();
+    Library* m_stdLibPtr = nullptr;
 
 public:
     Ast::Cell& _(CellI& cell);
@@ -446,10 +447,10 @@ public:
     CellI& _8_;
     CellI& _9_;
 
-    CellI* compiledGlobalScopePtr = nullptr;
     std::unique_ptr<Compiler> m_compiler;
 
 public:
+    Library& stdLib();
     CellI& getStruct(const std::string& nameStr);
     CellI& getStruct(CellI& name);
     CellI& getVariable(const std::string& nameStr);

@@ -11,6 +11,8 @@ void StdLib::createOp()
         .members(
             member("ast", "ast::Base"),
             member("cell", "Base"),
+            member("next", "Base"),
+            member("parent", "Base"),
             member("previous", "std::Cell"),
             member("state", "std::Cell"));
 
@@ -370,6 +372,7 @@ void StdLib::createAst()
     astScope.add<Struct>("EnumValue")
         .members(
             member("name", "std::Cell"),
+            member("fullyQualifiedName", "std::Cell"),
             member("enum", "Enum"),
             member("value", "std::Cell"));
 
@@ -611,6 +614,7 @@ void StdLib::createAst()
 
     astScope.add<Struct>("Scope")
         .members(
+            member("link", "Scope"),
             member("name", "std::Cell"),
             member("fullyQualifiedName", "std::Cell"),
             member("scopes", "std::TrieMap"),
@@ -737,6 +741,7 @@ void StdLib::createAst()
     astScope.add<Struct>("TypedEnumValue")
         .members(
             member("name", "std::Cell"),
+            member("fullyQualifiedName", "std::Cell"),
             member("enum", "Enum"),
             member("enumType", "Struct"),
             member("value", "std::Cell"));
@@ -744,6 +749,7 @@ void StdLib::createAst()
     astScope.add<Struct>("Var")
         .members(
             member("name", "std::Cell"),
+            member("fullyQualifiedName", "std::Cell"),
             member("scope", "Scope"));
 
     astScope.add<Struct>("While")
@@ -820,14 +826,10 @@ StdLib::StdLib(World& w, Scope& scope) :
             member("input", "Index"),
             member("localVars", "Index"));
 
-    stdScope.add<Struct>("Program")
+    stdScope.add<Struct>("Library")
         .members(
-            member("data", "ProgramData"),
-            member("instructions", "op::Base"),
-            member("stack", "ListItem"));
-
-    stdScope.add<Struct>("ProgramData")
-        .members(
+            member("scope", "ast::Scope"),
+            member("resolvedScope", "ast::Scope"),
             member("functions", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Function")),
             member("structs", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
             member("variables", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Var")));
@@ -1114,13 +1116,15 @@ StdLib::StdLib(World& w, Scope& scope) :
         = stdScope.add<Struct>("Struct")
               .members(
                   member("name", tt_("List", "valueType", "Char")),
+                  member("fullyQualifiedName", "std::Cell"),
                   member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
                   member("enum", "Boolean"),
                   member("incomplete", "Boolean"),
                   member("sharedObject", "Slot"),
                   member("subTypes", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
                   member("memberOf", tt_("Map", "keyType", "Struct", "valueType", "Struct")),
-                  member("asts", tt_("Map", "keyType", "Cell", "valueType", "ast::Function")),
+                  member("ast", "std::ast::Struct"),
+//                  member("asts", tt_("Map", "keyType", "Cell", "valueType", "ast::Function")),
                   member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")));
 
     structStruct.addMethod("constructor")

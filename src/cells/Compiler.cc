@@ -9,20 +9,22 @@ namespace infocell {
 namespace cells {
 
 Compiler::Compiler(World& w) :
+    Compiler(w, *new Library(w))
+{
+}
+
+Compiler::Compiler(World& w, Library& library) :
     w(w),
     m_toolFinder(*new ToolFinder(w)),
     m_earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs"),
-    m_compiledFunctions(*new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions")),
-    m_compiledStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "Types")),
-    m_compiledVariables(*new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables")),
     m_structs(*new TrieMap(w, w.std.Cell, w.std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs")),
     m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances")),
-    m_programData(*new Object(w, w.std.ProgramData, "ProgramData"))
+    m_library(library),
+    m_compiledFunctions(library.functions()),
+    m_compiledStructs(library.structs()),
+    m_compiledVariables(library.variables())
 {
-    m_programData.set(w.ids.functions, m_compiledFunctions);
-    m_programData.set(w.ids.structs, m_compiledStructs);
-    m_programData.set(w.ids.variables, m_compiledVariables);
 }
 
 /*
@@ -36,7 +38,7 @@ Resolve template related references in normal functions or structs:
     instantiate structT with listed method
   - templates are instantied to a dedicated place
 */
-CellI& Compiler::compile(Ast::Scope& scope)
+Library& Compiler::compile(Ast::Scope& scope)
 {
     registerEarlyStructs();
 
@@ -54,7 +56,10 @@ CellI& Compiler::compile(Ast::Scope& scope)
     // Process the descriptions
     processDescriptionsInScope(scope);
 
-    return m_programData;
+    m_library.set(w.ids.scope, scope);
+    m_library.set(w.ids.resolvedScope, resolvedScope);
+
+    return m_library;
 }
 
 CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
@@ -241,6 +246,9 @@ Ast::Scope& Compiler::resolveTypesInScope(Ast::Scope& scope)
     if (scope.has("scopes")) {
         Visitor::visitList(scope.items<Ast::Scope>()[w.ids.list], [this, &scope, &resolvedScope](CellI& origAstScopeCell, int i, bool& stop) {
             Ast::Scope& origAstScope     = static_cast<Ast::Scope&>(origAstScopeCell[w.ids.value]);
+            if (origAstScope.has("link")) {
+                return;
+            }
             Ast::Scope& resolvedAstScope = resolveTypesInScope(origAstScope);
             resolvedScope.add<Ast::Scope>(resolvedAstScope);
             m_scope = &scope;
@@ -477,6 +485,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_)
     auto& compiledStruct = *compiledStructPtr;
     m_structs.add(fullyQualifiedName, compiledStruct);
     ret.set("compiledStruct", compiledStruct);
+    ret.set("fullyQualifiedName", fullyQualifiedName);
 
     m_currentStruct = &ret;
 
@@ -992,19 +1001,19 @@ Ast::Enum* Compiler::findEnumByNameInScopes(Ast::Scope& scope, CellI& scopeList,
         return &currentScope.getItem<Ast::Enum>(name);
     };
 
-    return static_cast<Ast::Enum*>(findAstByNameInAllScope(scope, scopeList, name, hasCb, getCb));
+    return static_cast<Ast::Enum*>(findAstByNameInAllScope(scope, scopeList, hasCb, getCb));
 }
 
-Ast::Struct* Compiler::findStructByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& id)
+Ast::Struct* Compiler::findStructByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name)
 {
-    const auto& hasCb = [&id](Ast::Scope& currentScope) -> bool {
-        return currentScope.hasItem<Ast::Struct>(id);
+    const auto& hasCb = [&name](Ast::Scope& currentScope) -> bool {
+        return currentScope.hasItem<Ast::Struct>(name);
     };
-    const auto& getCb = [&id](Ast::Scope& currentScope) -> Ast::Struct* {
-        return &currentScope.getItem<Ast::Struct>(id);
+    const auto& getCb = [&name](Ast::Scope& currentScope) -> Ast::Struct* {
+        return &currentScope.getItem<Ast::Struct>(name);
     };
 
-    return static_cast<Ast::Struct*>(findAstByNameInAllScope(scope, scopeList, id, hasCb, getCb));
+    return static_cast<Ast::Struct*>(findAstByNameInAllScope(scope, scopeList, hasCb, getCb));
 }
 
 Ast::StructT& Compiler::findTemplateByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name)
@@ -1015,7 +1024,7 @@ Ast::StructT& Compiler::findTemplateByNameInScopes(Ast::Scope& scope, CellI& sco
     const auto& getCb = [&name](Ast::Scope& currentScope) -> Ast::StructT* {
         return &currentScope.getItem<Ast::StructT>(name);
     };
-    Ast::Base* resolvedAst = findAstByNameInAllScope(scope, scopeList, name, hasCb, getCb);
+    Ast::Base* resolvedAst = findAstByNameInAllScope(scope, scopeList, hasCb, getCb);
     if (!resolvedAst) {
         throw "Unknown template name!";
     }
@@ -1023,9 +1032,12 @@ Ast::StructT& Compiler::findTemplateByNameInScopes(Ast::Scope& scope, CellI& sco
     return static_cast<Ast::StructT&>(*resolvedAst);
 }
 
-Ast::Base* Compiler::findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, CellI& id, std::function<bool(Ast::Scope&)> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb)
+Ast::Base* Compiler::findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, std::function<bool(Ast::Scope&)> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb)
 {
     Ast::Scope* currentScope = &scope;
+    if (Ast::Scope* linkedScope = currentScope->getLinkedScope()) {
+        currentScope = linkedScope;
+    }
 
     while (currentScope) {
         Ast::Base* ret = findAstByNameInOneScope(currentScope, scopeList, hasCb, getCb);
@@ -1035,6 +1047,9 @@ Ast::Base* Compiler::findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList
         // resolve in parent scope
         if (currentScope->has(w.ids.scope)) {
             currentScope = &static_cast<Ast::Scope&>(currentScope->get(w.ids.scope));
+            if (Ast::Scope* linkedScope = currentScope->getLinkedScope()) {
+                currentScope = linkedScope;
+            }
         } else {
             currentScope = nullptr;
         }
@@ -1049,6 +1064,9 @@ Ast::Base* Compiler::findAstByNameInOneScope(Ast::Scope* currentScope, CellI& sc
     Visitor::visitList(scopeList, [this, &currentScope](CellI& scopeId, int, bool& stop) {
         if (currentScope->hasItem<Ast::Scope>(scopeId)) {
             currentScope = &currentScope->getItem<Ast::Scope>(scopeId);
+            if (Ast::Scope* linkedScope = currentScope->getLinkedScope()) {
+                currentScope = linkedScope;
+            }
         } else {
             currentScope = nullptr;
             stop         = true;
@@ -1104,7 +1122,9 @@ void Compiler::instantiateTemplateInstances()
         ss << ">";
         TRACE(compileStruct, ss.str());
 
-        auto& resolvedIdScope  = static_cast<Ast::Scope&>(idScope[w.ids.resolvedScope]);
+        // we instantiate the template where we found it not where it belongs to
+        // so std::List<Test> will not be instantiated in the std:: resolved scope
+        auto& resolvedIdScope  = static_cast<Ast::Scope&>(unknownInstance[w.ids.resolvedScope]);
         auto& compiledStruct   = static_cast<Ast::Struct&>(unknownInstance[w.ids.value][w.ids.ast]);
         m_scope                = &idScope;
         auto& structT          = idScope.getItem<Ast::StructT>(templateId);
@@ -1437,6 +1457,9 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
     if (scope.has("scopes")) {
         Visitor::visitList(scope.items<Ast::Scope>()[w.ids.list], [this, &scope, &resolvedScope](CellI& scopeItem, int i, bool& stop) {
             Ast::Scope& nextScope = static_cast<Ast::Scope&>(scopeItem[w.ids.value]);
+            if (nextScope.has("link")) {
+                return;
+            }
             auto& nextResolvedScope = resolvedScope.getItem<Ast::Scope>(nextScope[w.ids.name]);
 
             compileScope(nextScope, nextResolvedScope);
@@ -1518,6 +1541,8 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
     // compile values
     if (enum_.has("values")) {
         Map& compiledMembers = *new Map(w, w.std.Cell, w.std.Slot, "members Map<Cell, Slot>(...)");
+        compiledMembers.add(w.ids.tag, w.std.Cell);
+        compiledStruct.set("slots", compiledMembers);
         Visitor::visitList(enum_.values()[w.ids.list], [this, &enum_, &compiledMembers, &compiledStruct](CellI& kvPair, int i, bool& stop) {
             CellI& valueKey  = kvPair[w.ids.key];
             CellI& valueCell = kvPair[w.ids.value];
@@ -1530,17 +1555,17 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
                     auto& resolvedValue = resolveTypeInEnumValue(value);
                     auto& valueType     = resolvedValue.struct_();
 
+                    compiledMembers.add(valueKey, valueType);
                     auto& compiledValue = *new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
                     compiledValue.set("tag", valueName);
                     compiledValue.set(valueName, value[w.ids.value]);
                     m_compiledVariables.add(fullName, compiledValue);
-                    compiledMembers.add(valueKey, valueType);
                 } else {
+                    compiledMembers.add(valueKey, compiledStruct);
                     auto& compiledValue = *new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
                     compiledValue.set("tag", valueName);
                     compiledValue.set(valueName, w.ids.emptyObject);
                     m_compiledVariables.add(fullName, compiledValue);
-                    compiledMembers.add(valueKey, compiledStruct);
                 }
             } else if (&valueCell.struct_() == &w.std.ast.TypedEnumValue) {
                 auto& enumValue             = static_cast<Ast::TypedEnumValue&>(valueCell);
@@ -1550,7 +1575,6 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
                 compiledMembers.add(valueKey, compiledEnumValueType);
             }
         });
-        compiledStruct.set("slots", compiledMembers);
     }
 
     return compiledStruct;
@@ -2117,5 +2141,71 @@ void Compiler::processDescriptionsInScope(Ast::Scope& scope)
     }
 }
 
+Library::Library(World& w) :
+    Object(w, w.std.Library, "library")
+{
+    set(w.ids.functions, *new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions"));
+    set(w.ids.structs, *new TrieMap(w, w.std.Cell, w.std.Struct, "Structs"));
+    set(w.ids.variables, *new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables"));
+}
+
+void Library::mergeTo(Library& target)
+{
+    Visitor::visitList(functions()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
+        CellI& key   = kvPair[w.ids.key];
+        CellI& value = kvPair[w.ids.value];
+        target.functions().add(key, value);
+    });
+    Visitor::visitList(structs()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
+        CellI& key   = kvPair[w.ids.key];
+        CellI& value = kvPair[w.ids.value];
+        target.structs().add(key, value);
+    });
+    Visitor::visitList(variables()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
+        CellI& key   = kvPair[w.ids.key];
+        CellI& value = kvPair[w.ids.value];
+        target.variables().add(key, value);
+    });
+}
+
+Ast::Scope& Library::scope()
+{
+    return static_cast<Ast::Scope&>(get(w.ids.scope));
+}
+
+TrieMap& Library::functions()
+{
+    return static_cast<TrieMap&>(get(w.ids.functions));
+}
+
+TrieMap& Library::structs()
+{
+    return static_cast<TrieMap&>(get(w.ids.structs));
+}
+
+TrieMap& Library::variables()
+{
+    return static_cast<TrieMap&>(get(w.ids.variables));
+}
+
+CellI& Library::getStruct(const std::string& nameStr)
+{
+    return getStruct(w.name(nameStr));
+}
+
+CellI& Library::getStruct(CellI& name)
+{
+    return static_cast<TrieMap&>(get(w.ids.structs)).getValue(name);
+}
+
+CellI& Library::getVariable(const std::string& nameStr)
+{
+    return getVariable(w.name(nameStr));
+}
+
+CellI& Library::getVariable(CellI& name)
+{
+    return static_cast<TrieMap&>(get(w.ids.variables)).getValue(name);
+}
 } // namespace cells
 } // namespace infocell
