@@ -62,8 +62,6 @@ protected:
     CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
     Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
 
-    void includeLibraryToScope(Ast::Scope & scope, Library & library);
-
     void compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
     CellI& compileStruct(Ast::Struct& struct_);
     CellI& compileEnum(Ast::Enum& enum_);

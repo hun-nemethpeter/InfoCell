@@ -3027,26 +3027,26 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
         {
         }
 
-        bool isEmpty() {
+        bool isContainerEmpty() {
             return m_list.missing(w.ids.first);
         }
 
-        void setFirstValue()
+        void goToFirstNode()
         {
             m_nodePtr = &m_list[w.ids.first];
         }
 
-        CellI& getCurrentValue()
+        CellI& getCurrentNodeValue()
         {
             return (*m_nodePtr)[w.ids.value];
         }
 
-        bool hasNextValue()
+        bool hasNextNode()
         {
             return (*m_nodePtr).has(w.ids.next);
         }
 
-        void setNextValue()
+        void goToNextNode()
         {
             m_nodePtr = &(*m_nodePtr)[w.ids.next];
         }
@@ -3059,21 +3059,21 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
 
     ListIterator iterator(list);
 
-    if (iterator.isEmpty()) {
+    if (iterator.isContainerEmpty()) {
         return;
     } else {
-        iterator.setFirstValue();
+        iterator.goToFirstNode();
     }
 
     int i = 0;
     do {
         bool stop = false;
-        visitFn(iterator.getCurrentValue(), i++, stop);
+        visitFn(iterator.getCurrentNodeValue(), i++, stop);
         if (stop) {
             return;
         }
-        if (iterator.hasNextValue()) {
-            iterator.setNextValue();
+        if (iterator.hasNextNode()) {
+            iterator.goToNextNode();
         } else {
             return;
         }

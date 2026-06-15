@@ -992,22 +992,22 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     {
         type ValueType;
 
-        bool isEmpty();
-        void setFirstValue();
-        ValueType getCurrentValue();
-        bool hasNextValue();
-        void setNextValue();
+        bool isContainerEmpty();
+        void goToFirstNode();
+        ValueType getCurrentNodeValue();
+        bool hasNextNode();
+        void goToNextNode();
     }
     */
     auto& iteratorTrait
         = stdScope.add<Trait>("Iterator")
               .associatedTypes(parameter("ValueType", _(std.Struct)));
 
-    iteratorTrait.addMethod("isEmpty").returnType(_(std.Boolean));
-    iteratorTrait.addMethod("setFirstValue");
-    iteratorTrait.addMethod("getCurrentValue").returnType(_(std.Boolean));
-    iteratorTrait.addMethod("hasNextValue").returnType(_(std.Boolean));
-    iteratorTrait.addMethod("setNextValue");
+    iteratorTrait.addMethod("isContainerEmpty").returnType(_(std.Boolean));
+    iteratorTrait.addMethod("goToFirstNode");
+    iteratorTrait.addMethod("getCurrentNodeValue").returnType(_(std.Boolean));
+    iteratorTrait.addMethod("hasNextNode").returnType(_(std.Boolean));
+    iteratorTrait.addMethod("goToNextNode");
 
     auto& implIteratorTraitForListT
         = stdScope.add<TraitImpl>("Iterator")
@@ -1019,26 +1019,26 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
               .members(
                   member("node", tp_("ValueType")));
 
-    implIteratorTraitForListT.addMethod("isEmpty")
+    implIteratorTraitForListT.addMethod("isContainerEmpty")
         .returnType(_(std.Boolean))
         .instructions(
             return_(equal(m_("size"), _(_0_))));
 
-    implIteratorTraitForListT.addMethod("setFirstValue")
+    implIteratorTraitForListT.addMethod("goToFirstNode")
         .instructions(
             set(m_("node"), _(ids.value), m_("first")));
 
-    implIteratorTraitForListT.addMethod("getCurrentValue")
+    implIteratorTraitForListT.addMethod("getCurrentNodeValue")
         .returnType(st_("NodeType"))
         .instructions(
             return_(m_("node")));
 
-    implIteratorTraitForListT.addMethod("hasNextValue")
+    implIteratorTraitForListT.addMethod("hasNextNode")
         .returnType(_(std.Boolean))
         .instructions(
             return_(has(m_("node"), "next")));
 
-    implIteratorTraitForListT.addMethod("setNextValue")
+    implIteratorTraitForListT.addMethod("goToNextNode")
         .instructions(
             m_("node") = m_("node") / "next");
 
