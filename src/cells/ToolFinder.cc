@@ -615,15 +615,19 @@ void ToolFinder::printCb(Node* node)
     }
 }
 
-static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot, CellI& unknownX)
+static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot, CellI& unknownX, bool forConversion = false)
 {
     World& w = tool.w;
     CellI& slotList  = tool.struct_()[w.ids.slots][w.ids.list];
-    Visitor::visitList(slotList, [&w, &tool, &filledSlot, &unknownX](CellI& slot, int i, bool& stop) {
+    Visitor::visitList(slotList, [&w, &tool, &filledSlot, &unknownX, forConversion](CellI& slot, int i, bool& stop) {
         CellI& slotType = slot[w.ids.type];
         CellI& slotKey = slot[w.ids.key];
         if (&slotKey != &filledSlot) {
-            tool.set(slotKey, w.ast.get(w.ast.cell(unknownX), w.ast.cell(w.ids.value)));
+            if (forConversion) {
+                tool.set(slotKey, w._(unknownX));
+            } else {
+                tool.set(slotKey, w.ast.get(w._(unknownX), w._(w.ids.value)));
+            }
         }
     });
 }
@@ -675,7 +679,7 @@ CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, Too
     CellI& tool = *new Object(w, *blueprint.m_compiledToolType);
     tool.set(*blueprint.m_slotId, w.ast.cell(from));
 
-    Object unknownX(w, w.std.op.Var, "unknownX");
+    Object unknownX(w, w.std.op.ConstVar, "unknownX");
     fillMissingSlotsWithUnknown(tool, *blueprint.m_slotId, unknownX);
 
     CellI& missingSlotEquation = *new Object(w, w.std.ast.Equal, "tool(from, x) == to");
@@ -699,9 +703,21 @@ CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, Too
         solverFn.createSelfStack();
         solverFn();
 //        std::cout << blueprint << '\n';
-        std::cout << "unknownX.value = " << unknownX[w.ids.value].label() << std::endl;
+//        std::cout << "unknownX.value = " << unknownX[w.ids.value].label() << std::endl;
 
-        PrintAsValue(conversionToolFn, "tool");
+        Ast::Scope rootScope2(w, "toolFinder");
+        Compiler compiler2(w);
+        CellI& conversionToolAst2 = *new Object(w, *blueprint.m_compiledToolType);
+        conversionToolAst2.set(*blueprint.m_slotId, w.ast.var(fmt::format("input_{}", blueprint.m_slotId->label())));
+        fillMissingSlotsWithUnknown(conversionToolAst2, *blueprint.m_slotId, unknownX.get(w.ids.value), true);
+        SolverLib solverLib2(w, rootScope2, *missingSlotSolver, conversionToolName, conversionToolAst2, to.struct_());
+        solverLib2.include(w.arcLib());
+        compiler2.compile(solverLib2);
+        auto& conversionToolFn2 = solverLib2.getFunction(fmt::format("solver::{}", conversionToolName));
+        //        PrintAsValue(solverFn, "solverFn");
+        //        std::cout << blueprint << '\n';
+
+        PrintAsValue(conversionToolFn2, "");
         std::cout << "" << std::endl;
     }
 
