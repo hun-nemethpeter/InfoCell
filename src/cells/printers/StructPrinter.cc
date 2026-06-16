@@ -84,7 +84,7 @@ void CellStructPrinter::printImpl(CellI& cell)
 {
     const bool needId = false;
     World& w = cell.w;
-    auto is           = [this, &cell, &w](CellI& type) -> bool { return &cell.__type__() == &type || (cell.__type__().has(w.ids.memberOf) && cell.__type__()[w.ids.memberOf][w.ids.index].has(type)); };
+    auto is           = [this, &cell, &w](CellI& type) -> bool { return &cell.__type__() == &type || (cell.__type__().has(w.id.memberOf) && cell.__type__()[w.id.memberOf][w.id.index].has(type)); };
 
     CellI& type   = cell.__type__();
     if (&type == &w.std.Struct) {
@@ -94,18 +94,18 @@ void CellStructPrinter::printImpl(CellI& cell)
     }
     if (&type == &w.std.Slot) {
         if (cell.label().empty()) {
-            m_ss << cell[w.ids.key].label() << ": ";
+            m_ss << cell[w.id.key].label() << ": ";
         } else {
             m_ss << cell.label() << ": ";
         }
     }
 
     if (is(w.std.List)) {
-        m_ss << "List<" << cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "List<" << cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label() << ">";
     } else if (is(w.std.ListItem)) {
-        m_ss << "ListItem<" << cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "ListItem<" << cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label() << ">";
     } else if (is(w.std.Map)) {
-        m_ss << "Map<" << cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.keyType][w.ids.value].label() << ", " << cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "Map<" << cell.__type__()[w.id.typeAliases][w.id.index][w.id.keyType][w.id.value].label() << ", " << cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label() << ">";
     } else {
         m_ss << "(" << type.label() << ")";
     }
@@ -119,15 +119,15 @@ void CellStructPrinter::printImpl(CellI& cell)
         m_ss << " ID" << &type;
     //     m_ss << " // " << typePrinter.print();
     m_ss << std::endl;
-    if (type.has(w.ids.slots)) {
-        CellI& slotList = type[w.ids.slots][w.ids.list];
+    if (type.has(w.id.slots)) {
+        CellI& slotList = type[w.id.slots][w.id.list];
         visitList(slotList, [this, &w, &cell, &needId](CellI& slot, int i, bool&) {
-            CellI& role = slot[w.ids.key];
+            CellI& role = slot[w.id.key];
             if (!cell.has(role)) {
                 return;
             }
             CellValuePrinter valuePrinter;
-            CellI& type          = slot[w.ids.type];
+            CellI& type          = slot[w.id.type];
             CellI& connectedCell = cell[role];
             connectedCell.accept(valuePrinter);
             m_ss << "    +-- " << role.label() << " --> " << type.label();

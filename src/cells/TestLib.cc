@@ -60,7 +60,7 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
             tev_("value2", "TestStruct", _(_2_)));
 
     // TODO
-    //    type.String.method(ids.addSlots, { ids.list, list(type.slot(ids.value, type.ListOf(type.Char))) });
+    //    type.String.method(id.addSlots, { id.list, list(type.slot(id.value, type.ListOf(type.Char))) });
     // try/catch: almost the same as break/continue/return it can go through function calls. We need an op::Catch node
     // output: we need some kind of output, maybe a console thing first. Maybe just a new hybrid cell is needed
     // Type should hold an std::Type which can be a std::Struct, std::Enum or similar

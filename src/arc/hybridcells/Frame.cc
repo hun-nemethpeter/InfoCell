@@ -40,13 +40,13 @@ bool Frame::has(CellI& role)
     static CellI& name_downLeftPoint  = w.name("downLeftPoint");
     static CellI& name_downRightPoint = w.name("downRightPoint");
 
-    if (&role == &w.ids.__type__) {
+    if (&role == &w.id.__type__) {
         return true;
     }
-    if (&role == &w.ids.width) {
+    if (&role == &w.id.width) {
         return true;
     }
-    if (&role == &w.ids.height) {
+    if (&role == &w.id.height) {
         return true;
     }
     if (&role == &name_grid) {
@@ -96,13 +96,13 @@ CellI& Frame::operator[](CellI& role)
     if (missing(role)) {
         throw "No such role!";
     }
-    if (&role == &w.ids.__type__) {
+    if (&role == &w.id.__type__) {
         return FrameStruct;
     }
-    if (&role == &w.ids.width) {
+    if (&role == &w.id.width) {
         return m_width;
     }
-    if (&role == &w.ids.height) {
+    if (&role == &w.id.height) {
         return m_height;
     }
     if (&role == &name_grid) {
@@ -198,8 +198,8 @@ void Frame::process()
             CellI& shapePixel = colX.getValue(w.pools.numbers.get(x));
             Shape& shape      = static_cast<Shape&>(shapePixel["shape"]);
             CellI& pixel      = shapePixel["pixel"];
-            if (!m_shapeMap.hasKey(shape[w.ids.id])) {
-                m_shapeMap.add(shape[w.ids.id], shape);
+            if (!m_shapeMap.hasKey(shape[w.id.id])) {
+                m_shapeMap.add(shape[w.id.id], shape);
                 m_shapes.add(shape);
             }
             x = x + 1;
@@ -212,7 +212,7 @@ void Frame::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
 {
     static CellI& ShapeStruct      = w.getStruct("arc::Shape");
     static CellI& ShapePixelStruct = w.getStruct("arc::ShapePixel");
-    static CellI& TableRowStruct   = w.getStruct(w.templateId("std::Map", w.ids.keyType, w.std.Number, w.ids.valueType, ShapeStruct));
+    static CellI& TableRowStruct   = w.getStruct(w.templateId("std::Map", w.id.keyType, w.std.Number, w.id.valueType, ShapeStruct));
 
     if (!m_shapePixels.hasKey(checkPixel["y"])) {
         m_shapePixels.add(checkPixel["y"], *new Map(w, w.std.Number, TableRowStruct));

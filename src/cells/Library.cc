@@ -6,15 +6,15 @@ namespace cells {
 Library::Library(World& w, Ast::Scope& scope) :
     Library(w)
 {
-    set(w.ids.scope, scope);
+    set(w.id.scope, scope);
 }
 
 Library::Library(World& w) :
     Object(w, w.std.Library, "library")
 {
-    set(w.ids.functions, *new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions"));
-    set(w.ids.structs, *new TrieMap(w, w.std.Cell, w.std.Struct, "Structs"));
-    set(w.ids.variables, *new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables"));
+    set(w.id.functions, *new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions"));
+    set(w.id.structs, *new TrieMap(w, w.std.Cell, w.std.Struct, "Structs"));
+    set(w.id.variables, *new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables"));
 }
 
 void Library::include(Library& library)
@@ -27,41 +27,41 @@ void Library::include(Library& library)
 
 void Library::mergeTo(Library& target)
 {
-    Visitor::visitList(functions()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
-        CellI& key   = kvPair[w.ids.key];
-        CellI& value = kvPair[w.ids.value];
+    Visitor::visitList(functions()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+        CellI& key   = kvPair[w.id.key];
+        CellI& value = kvPair[w.id.value];
         target.functions().add(key, value);
     });
-    Visitor::visitList(structs()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
-        CellI& key   = kvPair[w.ids.key];
-        CellI& value = kvPair[w.ids.value];
+    Visitor::visitList(structs()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+        CellI& key   = kvPair[w.id.key];
+        CellI& value = kvPair[w.id.value];
         target.structs().add(key, value);
     });
-    Visitor::visitList(variables()[w.ids.list], [this, &target](CellI& kvPair, int i, bool&) {
-        CellI& key   = kvPair[w.ids.key];
-        CellI& value = kvPair[w.ids.value];
+    Visitor::visitList(variables()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+        CellI& key   = kvPair[w.id.key];
+        CellI& value = kvPair[w.id.value];
         target.variables().add(key, value);
     });
 }
 
 Ast::Scope& Library::scope()
 {
-    return static_cast<Ast::Scope&>(get(w.ids.scope));
+    return static_cast<Ast::Scope&>(get(w.id.scope));
 }
 
 TrieMap& Library::functions()
 {
-    return static_cast<TrieMap&>(get(w.ids.functions));
+    return static_cast<TrieMap&>(get(w.id.functions));
 }
 
 TrieMap& Library::structs()
 {
-    return static_cast<TrieMap&>(get(w.ids.structs));
+    return static_cast<TrieMap&>(get(w.id.structs));
 }
 
 TrieMap& Library::variables()
 {
-    return static_cast<TrieMap&>(get(w.ids.variables));
+    return static_cast<TrieMap&>(get(w.id.variables));
 }
 
 Object& Library::getFunction(const std::string& nameStr)

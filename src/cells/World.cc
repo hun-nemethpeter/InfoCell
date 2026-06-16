@@ -122,9 +122,7 @@ ID::ID(World& w) :
 {
 }
 
-namespace type {
-
-Op::Op(World& w) :
+Std::Op::Op(World& w) :
     w(w),
     Activate(w, w.std.Struct, "op::Activate"),
     Add(w, w.std.Struct, "op::Add"),
@@ -162,7 +160,7 @@ Op::Op(World& w) :
 {
 }
 
-Ast::Ast(World& w) :
+Std::Ast::Ast(World& w) :
     w(w),
     Add(w, w.std.Struct, "ast::Add"),
     And(w, w.std.Struct, "ast::And"),
@@ -225,36 +223,34 @@ Ast::Ast(World& w) :
 {
 }
 
-} // namespace type
-
 Std::Std(World& w) :
     w(w),
+    Boolean(w, w.std.Struct, "Boolean"),
     Cell(w, w.std.Struct, "Cell"),
-    Slot(w, w.std.Struct, "Slot"),
-    Struct(w, w.std.Struct, "Struct"),
-    Enum(w, w.std.Struct, "Enum"),
-    OpState(w, w.std.Struct, "OpState"),
+    Char(w, w.std.Struct, "Char"),
+    Color(w, w.std.Struct, "Color"),
     Container(w, w.std.Struct, "Conatainer"),
+    Digit(w, w.std.Struct, "Digit"),
+    Directions(w, w.std.Enum, "Directions"),
+    Enum(w, w.std.Struct, "Enum"),
+    Grid(w, w.std.Struct, "Grid"),
+    Index(w, w.std.Struct, "Index"),
+    KVPair(w, w.std.Struct, "KVPair"),
+    Library(w, w.std.Struct, "Library"),
     List(w, w.std.Struct, "List"),
     ListItem(w, w.std.Struct, "ListItem"),
-    KVPair(w, w.std.Struct, "KVPair"),
     Map(w, w.std.Struct, "Map"),
-    Index(w, w.std.Struct, "Index"),
-    TrieMap(w, w.std.Struct, "TrieMap"),
-    TrieMapNode(w, w.std.Struct, "TrieMapNode"),
-    Boolean(w, w.std.Struct, "Boolean"),
-    Char(w, w.std.Struct, "Char"),
-    Digit(w, w.std.Struct, "Digit"),
     Number(w, w.std.Struct, "Number"),
-    String(w, w.std.Struct, "String"),
-    Color(w, w.std.Struct, "Color"),
+    OpState(w, w.std.Struct, "OpState"),
     Pixel(w, w.std.Struct, "Pixel"),
-    Grid(w, w.std.Struct, "Grid"),
+    Slot(w, w.std.Struct, "Slot"),
     Stack(w, w.std.Struct, "Stack"),
     StackFrame(w, w.std.Struct, "StackFrame"),
-    Library(w, w.std.Struct, "Library"),
+    String(w, w.std.Struct, "String"),
+    Struct(w, w.std.Struct, "Struct"),
     StructReference(w, w.std.Struct, "StructReference"),
-    Directions(w, w.std.Enum, "Directions"),
+    TrieMap(w, w.std.Struct, "TrieMap"),
+    TrieMapNode(w, w.std.Struct, "TrieMapNode"),
     op(w),
     ast(w)
 {
@@ -263,8 +259,8 @@ Std::Std(World& w) :
 cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
 {
     CellI& ret = *new Object(w, w.std.Slot);
-    ret.set(w.ids.key, key);
-    ret.set(w.ids.type, type);
+    ret.set(w.id.key, key);
+    ret.set(w.id.type, type);
 
     return ret;
 }
@@ -272,8 +268,8 @@ cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
 cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
 {
     CellI& ret = *new Object(w, w.std.Slot);
-    ret.set(w.ids.key, w.name(key));
-    ret.set(w.ids.type, type);
+    ret.set(w.id.key, w.name(key));
+    ret.set(w.id.type, type);
 
     return ret;
 }
@@ -281,8 +277,8 @@ cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
 cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
 {
     CellI& ret = *new Object(w, w.std.KVPair);
-    ret.set(w.ids.key, key);
-    ret.set(w.ids.value, value);
+    ret.set(w.id.key, key);
+    ret.set(w.id.value, value);
 
     return ret;
 }
@@ -406,108 +402,108 @@ Pools::Strings::Strings(World& w) :
     w(w)
 {
     StringInit reservedStrings[] = {
-        { "__type__", w.ids.__type__ },
-        { "argument", w.ids.argument },
-        { "ast", w.ids.ast },
-        { "asts", w.ids.asts },
-        { "blue", w.ids.blue },
-        { "cell", w.ids.cell },
-        { "children", w.ids.children },
-        { "color", w.ids.color },
-        { "compiled", w.ids.compiled },
-        { "condition", w.ids.condition },
-        { "constructor", w.ids.constructor },
-        { "container", w.ids.container },
-        { "continue_", w.ids.continue_ },
-        { "currentFn", w.ids.currentFn },
-        { "currentParam", w.ids.currentParam },
-        { "currentStruct", w.ids.currentStruct },
-        { "data", w.ids.data },
-        { "description", w.ids.description },
-        { "destructor", w.ids.destructor },
-        { "else_", w.ids.else_ },
-        { "emptyObject", w.ids.emptyObject },
-        { "first", w.ids.first },
-        { "functions", w.ids.functions },
-        { "globalScope", w.ids.globalScope },
-        { "green", w.ids.green },
-        { "height", w.ids.height },
-        { "id", w.ids.id },
-        { "index", w.ids.index },
-        { "input", w.ids.input },
-        { "instances", w.ids.instances },
-        { "instructions", w.ids.instructions },
-        { "item", w.ids.item },
-        { "itemType", w.ids.itemType },
-        { "key", w.ids.key },
-        { "keyType", w.ids.keyType },
-        { "last", w.ids.last },
-        { "lastOp", w.ids.lastOp },
-        { "lhs", w.ids.lhs },
-        { "list", w.ids.list },
-        { "listType", w.ids.listType },
-        { "localVars", w.ids.localVars },
-        { "memberOf", w.ids.memberOf },
-        { "members", w.ids.members },
-        { "method", w.ids.method },
-        { "methods", w.ids.methods },
-        { "name", w.ids.name },
-        { "next", w.ids.next },
-        { "objectType", w.ids.objectType },
-        { "op", w.ids.op },
-        { "ops", w.ids.ops },
-        { "output", w.ids.output },
-        { "parameters", w.ids.parameters },
-        { "parent", w.ids.parent },
-        { "pixels", w.ids.pixels },
-        { "pixelsMap", w.ids.pixelsMap },
-        { "previous", w.ids.previous },
-        { "red", w.ids.red },
-        { "resolvedScope", w.ids.resolvedScope },
-        { "result", w.ids.result },
-        { "returnType", w.ids.returnType },
-        { "rhs", w.ids.rhs },
-        { "key", w.ids.key },
-        { "rootNode", w.ids.rootNode },
-        { "scope", w.ids.scope },
-        { "scopes", w.ids.scopes },
-        { "self", w.ids.self },
-        { "size", w.ids.size },
-        { "key", w.ids.key },
-        { "slots", w.ids.slots },
-        { "stack", w.ids.stack },
-        { "state", w.ids.state },
-        { "stateCondition", w.ids.stateCondition },
-        { "stateElse", w.ids.stateElse },
-        { "stateLhs", w.ids.stateLhs },
-        { "statement", w.ids.statement },
-        { "stateParam1", w.ids.stateParam1 },
-        { "stateParam2", w.ids.stateParam2 },
-        { "stateParam3", w.ids.stateParam3 },
-        { "stateParamEval", w.ids.stateParamEval },
-        { "stateParamInit", w.ids.stateParamInit },
-        { "stateRhs", w.ids.stateRhs },
-        { "stateStackCall", w.ids.stateStackCall },
-        { "stateStatement", w.ids.stateStatement },
-        { "stateThen", w.ids.stateThen },
-        { "static_", w.ids.static_ },
-        { "status", w.ids.status },
-        { "structs", w.ids.structs },
-        { "structType", w.ids.structType },
-        { "typeAliases", w.ids.typeAliases },
-        { "tag", w.ids.tag },
-        { "templateId", w.ids.templateId },
-        { "templateParams", w.ids.templateParams },
-        { "then", w.ids.then },
-        { "throw", w.ids.throw_ },
-        { "type", w.ids.type },
-        { "unknownInstances", w.ids.unknownInstances },
-        { "unknownStructs", w.ids.unknownStructs },
-        { "value", w.ids.value },
-        { "valueType", w.ids.valueType },
-        { "variable", w.ids.variable },
-        { "variables", w.ids.variables },
-        { "width", w.ids.width },
+        { "__type__", w.id.__type__ },
+        { "argument", w.id.argument },
+        { "ast", w.id.ast },
+        { "asts", w.id.asts },
+        { "blue", w.id.blue },
+        { "cell", w.id.cell },
+        { "children", w.id.children },
+        { "color", w.id.color },
+        { "compiled", w.id.compiled },
+        { "condition", w.id.condition },
+        { "constructor", w.id.constructor },
+        { "container", w.id.container },
+        { "continue_", w.id.continue_ },
+        { "currentFn", w.id.currentFn },
+        { "currentParam", w.id.currentParam },
+        { "currentStruct", w.id.currentStruct },
+        { "data", w.id.data },
+        { "description", w.id.description },
+        { "destructor", w.id.destructor },
+        { "else_", w.id.else_ },
+        { "emptyObject", w.id.emptyObject },
+        { "first", w.id.first },
+        { "functions", w.id.functions },
+        { "globalScope", w.id.globalScope },
+        { "green", w.id.green },
+        { "height", w.id.height },
+        { "id", w.id.id },
+        { "index", w.id.index },
+        { "input", w.id.input },
+        { "instances", w.id.instances },
+        { "instructions", w.id.instructions },
+        { "item", w.id.item },
+        { "itemType", w.id.itemType },
+        { "key", w.id.key },
+        { "keyType", w.id.keyType },
+        { "last", w.id.last },
+        { "lastOp", w.id.lastOp },
+        { "lhs", w.id.lhs },
+        { "list", w.id.list },
+        { "listType", w.id.listType },
+        { "localVars", w.id.localVars },
+        { "memberOf", w.id.memberOf },
+        { "members", w.id.members },
+        { "method", w.id.method },
+        { "methods", w.id.methods },
+        { "name", w.id.name },
+        { "next", w.id.next },
+        { "objectType", w.id.objectType },
+        { "op", w.id.op },
+        { "ops", w.id.ops },
+        { "output", w.id.output },
+        { "parameters", w.id.parameters },
+        { "parent", w.id.parent },
+        { "pixels", w.id.pixels },
+        { "pixelsMap", w.id.pixelsMap },
+        { "previous", w.id.previous },
+        { "red", w.id.red },
+        { "resolvedScope", w.id.resolvedScope },
+        { "result", w.id.result },
+        { "returnType", w.id.returnType },
+        { "rhs", w.id.rhs },
+        { "key", w.id.key },
+        { "rootNode", w.id.rootNode },
+        { "scope", w.id.scope },
+        { "scopes", w.id.scopes },
+        { "self", w.id.self },
+        { "size", w.id.size },
+        { "key", w.id.key },
+        { "slots", w.id.slots },
+        { "stack", w.id.stack },
+        { "state", w.id.state },
+        { "stateCondition", w.id.stateCondition },
+        { "stateElse", w.id.stateElse },
+        { "stateLhs", w.id.stateLhs },
+        { "statement", w.id.statement },
+        { "stateParam1", w.id.stateParam1 },
+        { "stateParam2", w.id.stateParam2 },
+        { "stateParam3", w.id.stateParam3 },
+        { "stateParamEval", w.id.stateParamEval },
+        { "stateParamInit", w.id.stateParamInit },
+        { "stateRhs", w.id.stateRhs },
+        { "stateStackCall", w.id.stateStackCall },
+        { "stateStatement", w.id.stateStatement },
+        { "stateThen", w.id.stateThen },
+        { "static_", w.id.static_ },
+        { "status", w.id.status },
+        { "structs", w.id.structs },
+        { "structType", w.id.structType },
+        { "typeAliases", w.id.typeAliases },
+        { "tag", w.id.tag },
+        { "templateId", w.id.templateId },
+        { "templateParams", w.id.templateParams },
+        { "then", w.id.then },
+        { "throw", w.id.throw_ },
+        { "type", w.id.type },
+        { "unknownInstances", w.id.unknownInstances },
+        { "unknownStructs", w.id.unknownStructs },
+        { "value", w.id.value },
+        { "valueType", w.id.valueType },
+        { "variable", w.id.variable },
+        { "variables", w.id.variables },
+        { "width", w.id.width },
         { "up", w.directions.up },
         { "down", w.directions.down },
         { "left", w.directions.left },
@@ -542,7 +538,7 @@ String& Pools::Strings::get(const std::string& str)
 List& Pools::Strings::getCharList(const std::string& str)
 {
     auto& string = get(str);
-    auto& ret = static_cast<List&>(string[string.w.ids.value]);
+    auto& ret = static_cast<List&>(string[string.w.id.value]);
 
     return ret;
 }
@@ -574,7 +570,7 @@ World::World(std::function<void()> loggerLevelInit) :
     m_initPhase(InitPhase::Init),
     logger(loggerLevelInit),
     pools(*this),
-    ids(*this),
+    id(*this),
     globalScope(Ast::Scope(*this, "global")),
     std(*this),
     ast(*this),
@@ -727,29 +723,29 @@ World::World(std::function<void()> loggerLevelInit) :
         TRACE(compiledSymbols, "All compiled symbols:");
 
         TRACE(compiledSymbols, "  structs:");
-        Visitor::visitList(stdLib().structs()[ids.list], [this](CellI& kv, int, bool&) {
-            TRACE(compiledSymbols, "    {}", kv[ids.key].label());
+        Visitor::visitList(stdLib().structs()[id.list], [this](CellI& kv, int, bool&) {
+            TRACE(compiledSymbols, "    {}", kv[id.key].label());
         });
 
         TRACE(compiledSymbols, "  functions:");
-        Visitor::visitList(stdLib().functions()[ids.list], [this](CellI& kv, int, bool&) {
-            TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
+        Visitor::visitList(stdLib().functions()[id.list], [this](CellI& kv, int, bool&) {
+            TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
         });
 
         TRACE(compiledSymbols, "  variables:");
-        Visitor::visitList(stdLib().variables()[ids.list], [this](CellI& kv, int, bool&) {
-            TRACE(compiledSymbols, "    {} : {}", kv[ids.key].label(), kv[ids.value].label());
+        Visitor::visitList(stdLib().variables()[id.list], [this](CellI& kv, int, bool&) {
+            TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
         });
     }
 
     // TODO hack: std.List is a "baseclass" now so we just set its method to std.List<Cell>
     // we need to implement the trait system properly
-    auto& compiledListItemStruct = getStruct(templateId("std::ListItem", ids.valueType, std.Cell));
-    auto& compiledListStruct     = getStruct(templateId("std::List", ids.valueType, std.Cell));
+    auto& compiledListItemStruct = getStruct(templateId("std::ListItem", id.valueType, std.Cell));
+    auto& compiledListStruct     = getStruct(templateId("std::List", id.valueType, std.Cell));
     auto& compiledStructStruct   = getStruct("std::Struct");
-    std.ListItem.set("methods", compiledListItemStruct[ids.methods]);
-    std.List.set("methods", compiledListStruct[ids.methods]);
-    std.Struct.set("methods", compiledStructStruct[ids.methods]);
+    std.ListItem.set("methods", compiledListItemStruct[id.methods]);
+    std.List.set("methods", compiledListStruct[id.methods]);
+    std.Struct.set("methods", compiledStructStruct[id.methods]);
 }
 
 World::~World()
@@ -788,7 +784,7 @@ CellI& World::getStruct(CellI& name)
     case InitPhase::FullyConstructed:
         return stdLib().getStruct(name);
     case InitPhase::DestructBegin:
-        return ids.emptyObject;
+        return id.emptyObject;
     }
     throw "Unhandled state!";
 }
@@ -808,7 +804,7 @@ CellI& World::getVariable(CellI& name)
     case InitPhase::FullyConstructed:
         return stdLib().getVariable(name);
     case InitPhase::DestructBegin:
-        return ids.emptyObject;
+        return id.emptyObject;
     }
     throw "Unhandled state!";
 }
@@ -829,10 +825,10 @@ CellI& World::ListOf(CellI& valueType)
     case InitPhase::Compiling:
         throw "Get struct during compilation is not possible";
     case InitPhase::FullyConstructed: {
-        return getStruct(templateId("std::List", ids.valueType, valueType));
+        return getStruct(templateId("std::List", id.valueType, valueType));
     }
     case InitPhase::DestructBegin:
-        return ids.emptyObject;
+        return id.emptyObject;
     }
     throw "Unhandled state!";
 }
@@ -849,10 +845,10 @@ CellI& World::MapOf(CellI& keyType, CellI& valueType)
     case InitPhase::Compiling:
         throw "Get struct during compilation is not possible";
     case InitPhase::FullyConstructed: {
-        return getStruct(templateId("std::Map", ids.keyType, keyType, ids.valueType, valueType));
+        return getStruct(templateId("std::Map", id.keyType, keyType, id.valueType, valueType));
     }
     case InitPhase::DestructBegin:
-        return ids.emptyObject;
+        return id.emptyObject;
     }
     throw "Unhandled state!";
 }

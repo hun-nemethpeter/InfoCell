@@ -131,7 +131,7 @@ TAst& Ast::Items<MapType, TAst>::add(const std::string& nameStr)
 template <class MapType, class TAst>
 void Ast::Items<MapType, TAst>::add(TAst& obj)
 {
-    CellI& name = obj[w.ids.name];
+    CellI& name = obj[w.id.name];
 
     if (m_parent.missing(m_mapName)) {
         m_parent.set(m_mapName, *new TrieMap(w, w.std.Cell, w.std.ast.Base, "TrieMap<Cell, Type::Ast::Base>(...)"));

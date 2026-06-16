@@ -118,7 +118,7 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
         } else if (&transformation == &Rotate_degree_270) {
             firstCorner = "downLeftNode";
         }
-        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[w.ids.first][w.ids.value];
+        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[w.id.first][w.id.value];
         CellI* rhsEdgeNodePtr   = &rhs["rotationCorners"][firstCorner];
         CellI* firstNodePtr     = lhsEdgeNodePtr;
         bool found              = true;
@@ -132,8 +132,8 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
                 found = false;
                 break;
             }
-            lhsEdgeNodePtr = &lhsEdgeNode[w.ids.next];
-            rhsEdgeNodePtr = &rhsEdgeNode[w.ids.next];
+            lhsEdgeNodePtr = &lhsEdgeNode[w.id.next];
+            rhsEdgeNodePtr = &rhsEdgeNode[w.id.next];
         } while (lhsEdgeNodePtr != firstNodePtr);
 
         if (found) {
@@ -152,7 +152,7 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
         } else if (&transformation == &Mirror_vertical) {
             firstCorner = "upRightNode";
         }
-        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[w.ids.first][w.ids.value];
+        CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[w.id.first][w.id.value];
         CellI* rhsEdgeNodePtr   = &rhs["mirroringCorners"][firstCorner];
         CellI* firstNodePtr     = lhsEdgeNodePtr;
         bool found              = true;
@@ -166,8 +166,8 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
                 found = false;
                 break;
             }
-            lhsEdgeNodePtr = &lhsEdgeNode[w.ids.next];
-            rhsEdgeNodePtr = &rhsEdgeNode[w.ids.previous];
+            lhsEdgeNodePtr = &lhsEdgeNode[w.id.next];
+            rhsEdgeNodePtr = &rhsEdgeNode[w.id.previous];
         } while (lhsEdgeNodePtr != firstNodePtr);
 
         if (found) {

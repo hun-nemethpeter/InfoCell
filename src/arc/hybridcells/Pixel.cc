@@ -20,7 +20,7 @@ Pixel::Pixel(World& w, int x, int y, CellI& arcColor, Grid& grid) :
 
 bool Pixel::has(CellI& key)
 {
-    if (&key == &w.ids.__type__) {
+    if (&key == &w.id.__type__) {
         return true;
     }
     if (&key == &w.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
@@ -35,7 +35,7 @@ bool Pixel::has(CellI& key)
     if (&key == &w.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
         return true;
     }
-    if (&key == &w.ids.color) {
+    if (&key == &w.id.color) {
         return true;
     }
     if (&key == &w.coordinates.x) {
@@ -65,7 +65,7 @@ void Pixel::operator()()
 
 CellI& Pixel::operator[](CellI& key)
 {
-    if (&key == &w.ids.__type__) {
+    if (&key == &w.id.__type__) {
         return w.std.Pixel;
     }
     if (&key == &w.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
@@ -80,7 +80,7 @@ CellI& Pixel::operator[](CellI& key)
     if (&key == &w.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
         return m_grid.getPixel(m_x.value() + 1, m_y.value());
     }
-    if (&key == &w.ids.color) {
+    if (&key == &w.id.color) {
         return m_arcColor;
     }
     if (&key == &w.coordinates.x) {

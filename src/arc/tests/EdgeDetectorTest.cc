@@ -144,7 +144,7 @@ public:
             return static_cast<Map&>(shape["edges"]).getValue(edgeId);
         } else {
             Object& map = static_cast<Object&>(shape["edges"]);
-            return map.method(w.name("getValue"), { ids.key, edgeId });
+            return map.method(w.name("getValue"), { id.key, edgeId });
         }
     }
 
@@ -228,9 +228,9 @@ public:
 
         Object& shapePixels = static_cast<Object&>(frame()["shapePixels"]);
         for (int y = 0; y < inputHybridGrid().height(); ++y) {
-            Object& colX = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.ids.key, toCellNumber(y) }));
+            Object& colX = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.id.key, toCellNumber(y) }));
             for (int x = 0; x < inputHybridGrid().width(); ++x) {
-                CellI& shapePixel         = colX.method(w.name("getValue"), { w.ids.key, toCellNumber(x) });
+                CellI& shapePixel         = colX.method(w.name("getValue"), { w.id.key, toCellNumber(x) });
                 CellI& shape              = shapePixel["shape"];
                 hybridarc::Pixel& pixel = static_cast<hybridarc::Pixel&>(shapePixel["pixel"]);
                 EXPECT_EQ(x, pixel.m_x.value());
@@ -700,7 +700,7 @@ public:
         for (int y = 0; y < inputHybridGrid().height(); ++y) {
             ss << "  [";
             bool firstColumn = true;
-            Object& colX     = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.ids.key, toCellNumber(y) }));
+            Object& colX     = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.id.key, toCellNumber(y) }));
             for (int x = 0; x < inputHybridGrid().width(); ++x) {
                 if (firstColumn) {
                     firstColumn = false;
@@ -708,7 +708,7 @@ public:
                     ss << ", ";
                 }
                 firstColumn       = false;
-                CellI& shapePixel = colX.method(w.name("getValue"), { w.ids.key, toCellNumber(x) });
+                CellI& shapePixel = colX.method(w.name("getValue"), { w.id.key, toCellNumber(x) });
                 CellI& shape      = shapePixel["shape"];
                 ss << fmt::format("{:>{}}", shape["id"].label(), digits);
             }
@@ -911,8 +911,8 @@ public:
         for (auto inputRowIt = arcMatrix.begin(); inputRowIt != arcMatrix.end(); ++inputRowIt) {
             for (const int id : *inputRowIt) {
                 CellI& currentId  = w.pools.numbers.get(id);
-                Object& colX      = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(y) }));
-                CellI& shapePixel = colX.method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(x) });
+                Object& colX      = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.id.key, w.pools.numbers.get(y) }));
+                CellI& shapePixel = colX.method(w.name("getValue"), { w.id.key, w.pools.numbers.get(x) });
                 EXPECT_EQ(&shapePixel["shape"]["id"], &currentId);
                 x += 1;
             }
@@ -932,7 +932,7 @@ public:
         for (const auto& edgeCountPair : shapeEdgeCounts) {
             int shapeId     = edgeCountPair.first;
             int edgeCount   = edgeCountPair.second;
-            CellI& shape    = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(shapeId) });
+            CellI& shape    = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(shapeId) });
             EXPECT_EQ(edgeCount, getShapeEdgesSize(shape));
         }
     }
@@ -952,12 +952,12 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareExactMatch)
                                     [0,7,7,0,7],
                                     [0,0,7,7,7]])";
     detect(frame1);
-    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
     createResult();
 
     detect(frame2);
-    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& shape2_edge2 = getEdgeFromShape(shape2, _2_);
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
@@ -978,11 +978,11 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate90)
                                     [7,0,7],
                                     [7,7,7]])";
     detect(frame1);
-    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
 
     detect(frame2);
-    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& shape2_edge2 = getEdgeFromShape(shape2, _2_);
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
@@ -1004,11 +1004,11 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate180)
                                     [7,7,7],
                                     [0,7,0]])";
     detect(frame1);
-    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
 
     detect(frame2);
-    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& shape2_edge2 = getEdgeFromShape(shape2, _2_);
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
@@ -1028,11 +1028,11 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate270)
                                     [0,7,7,0,7],
                                     [0,0,7,7,7]])";
     detect(frame1);
-    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape1       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& shape1_edge2 = getEdgeFromShape(shape1, _2_);
 
     detect(frame2);
-    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape2       = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& shape2_edge2 = getEdgeFromShape(shape2, _2_);
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
@@ -1056,11 +1056,11 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompare_Mirror_Horizontal)
                                     [0,7,7,7,7,7]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _1_ });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _1_ });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1099,11 +1099,11 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompare_Mirror_Vertical)
                                     [0,0,0,0,7,7,7]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1140,11 +1140,11 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompare_Mirror_Horizontal_And_Vertical)
                                     [0,7,7]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _1_ });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _1_ });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1169,14 +1169,14 @@ TEST_F(EdgeDetectorTest, ShapeCompareExactMatch)
                                     [0,7,7,7,7],
                                     [0,0,7,7,7]])";
     detect(frame1);
-    CellI& shape1FirstPixel = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _1_ });
+    CellI& shape1FirstPixel = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _1_ });
     CellI& edge1FirstPixel  = getEdgeFromShape(shape1FirstPixel, _1_);
 
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, _2_ });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, _2_ });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     EXPECT_TRUE(edge1["rotationCorners"].has("upLeftNode"));
@@ -1202,11 +1202,11 @@ TEST_F(EdgeDetectorTest, ShapeCompareRotate90)
                                     [0,7,7,7,0]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(2) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(2) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1230,11 +1230,11 @@ TEST_F(EdgeDetectorTest, ShapeCompareRotate180)
                                     [7,7,0]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(1) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1257,11 +1257,11 @@ TEST_F(EdgeDetectorTest, ShapeCompareRotate270)
                                     [0,0,7,7,7]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(2) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(2) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1285,11 +1285,11 @@ TEST_F(EdgeDetectorTest, ShapeCompare_Mirror_Horizontal)
                                     [0,7,7]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(1) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1317,11 +1317,11 @@ TEST_F(EdgeDetectorTest, ShapeCompare_Mirror_Vertical)
                                     [7,7,0]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(1) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(1) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(1) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1349,11 +1349,11 @@ TEST_F(EdgeDetectorTest, ShapeCompare_Mirror_Horizontal_And_Vertical)
                                     [0,7,7]])";
 
     detect(frame1);
-    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(2) });
+    CellI& shape1 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(2) });
     CellI& edge1  = getEdgeFromShape(shape1, _1_);
 
     detect(frame2);
-    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(1) });
+    CellI& shape2 = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(1) });
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
@@ -1634,7 +1634,7 @@ TEST_F(EdgeDetectorTest, EdgeTestMinimal)
     detect(R"([[0, 7, 7],
                [7, 7, 7],
                [7, 7, 7]])");
-    CellI& shape        = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(2) });
+    CellI& shape        = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(2) });
     CellI& externalEdge = getEdgeFromShape(shape, _1_);
 
     CellI* firstColumnPointPtr   = &(*firstShapePixelPtr())["upLeftPoint"];
@@ -1893,7 +1893,7 @@ TEST_F(EdgeDetectorTest, EdgeTest)
                [0, 0, 2, 0, 0],
                [0, 4, 0, 4, 0],
                [0, 0, 0, 0, 0]])");
-    CellI& shape        = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.ids.key, w.pools.numbers.get(1) });
+    CellI& shape        = static_cast<Object&>(frame()["shapeMap"]).method(w.name("getValue"), { w.id.key, w.pools.numbers.get(1) });
     CellI& internalEdge = getEdgeFromShape(shape, _2_);
     List& edgeNodes     = static_cast<List&>(internalEdge["edgeNodes"]);
     expectedShapeIds(R"([

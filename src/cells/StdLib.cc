@@ -1015,7 +1015,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     implIteratorTraitForListT.addMethod("goToFirstNode")
         .instructions(
-            set(m_("node"), _(ids.value), m_("first")));
+            set(m_("node"), _(id.value), m_("first")));
 
     implIteratorTraitForListT.addMethod("getCurrentNodeValue")
         .returnType(st_("NodeType"))
@@ -1344,7 +1344,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     CellI& Map::getValue(CellI& key)
     {
         if (m_index.has(key)) {
-            return m_index[key][w.ids.value];
+            return m_index[key][w.id.value];
         }
         throw "No such key!";
     }
@@ -1362,7 +1362,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     void Map::add(CellI& key, CellI& value)
     {
         if (&key == &"__type__") {
-            throw "ids.type can not be stored in a map!";
+            throw "id.type can not be stored in a map!";
         }
         if (m_index.has(key)) {
             throw "A value already registered with this key";
@@ -1516,12 +1516,12 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
         Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(w.ids.children)) {
+            if (currentNode->missing(w.id.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.ids.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
             if (childrenIndex.has(keyItem)) {
                 children = &childrenIndex.get(keyItem);
             } else {
@@ -1532,7 +1532,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(w.ids.data)) {
+        if (!currentNode || currentNode->missing(w.id.data)) {
             return false;
         }
 
@@ -1545,13 +1545,13 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .returnType(_(std.Boolean))
         .instructions(
             var_("currentNode") = m_("rootNode"),
-            var_("keyItem")     = _(ids.emptyObject),
+            var_("keyItem")     = _(id.emptyObject),
             if_(has(p_("key"), "first"))
                 .then_(var_("keyItem") = p_("key") / "first"),
-            while_(notSame(*var_("keyItem"), _(ids.emptyObject)))
+            while_(notSame(*var_("keyItem"), _(id.emptyObject)))
                 .do_(block(
                     var_("keyItemObj") = *var_("keyItem") / "value",
-                    var_("child")      = _(ids.emptyObject),
+                    var_("child")      = _(id.emptyObject),
                     if_(missing(*var_("currentNode"), "children"))
                         .then_(return_(false_())),
                     var_("childrenIndex") = *var_("currentNode") / "children",
@@ -1561,7 +1561,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                     var_("currentNode") = *var_("child"),
                     if_(has(*var_("keyItem"), "next"))
                         .then_(var_("keyItem") = *var_("keyItem") / "next")
-                        .else_(var_("keyItem") = _(ids.emptyObject)))),
+                        .else_(var_("keyItem") = _(id.emptyObject)))),
             if_(missing(*var_("currentNode"), "data"))
                 .then_(return_(false_())),
             return_(true_()));
@@ -1577,12 +1577,12 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
         Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(w.ids.children)) {
+            if (currentNode->missing(w.id.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.ids.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
             if (childrenIndex.has(keyItem)) {
                 children = &childrenIndex.get(keyItem);
             } else {
@@ -1593,11 +1593,11 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(w.ids.data)) {
+        if (!currentNode || currentNode->missing(w.id.data)) {
             throw "No such key!";
         }
 
-        return (*currentNode)[w.ids.data][w.ids.value][w.ids.value];
+        return (*currentNode)[w.id.data][w.id.value][w.id.value];
     }
     */
     trieMapStructT.addMethod("getValue")
@@ -1606,25 +1606,25 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .returnType(tp_("valueType"))
         .instructions(
             var_("currentNode") = m_("rootNode"),
-            var_("keyItem")     = _(ids.emptyObject),
+            var_("keyItem")     = _(id.emptyObject),
             if_(has(p_("key"), "first"))
                 .then_(var_("keyItem") = p_("key") / "first"),
-            while_(notSame(*var_("keyItem"), _(ids.emptyObject)))
+            while_(notSame(*var_("keyItem"), _(id.emptyObject)))
                 .do_(block(
                     var_("keyItemObj") = *var_("keyItem") / "value",
-                    var_("child")      = _(ids.emptyObject),
+                    var_("child")      = _(id.emptyObject),
                     if_(missing(*var_("currentNode"), "children"))
-                        .then_(return_(_(ids.emptyObject))),
+                        .then_(return_(_(id.emptyObject))),
                     var_("childrenIndex") = *var_("currentNode") / "children",
                     if_(has(*var_("childrenIndex"), *var_("keyItemObj")))
                         .then_(var_("child") = *var_("childrenIndex") / *var_("keyItemObj"))
-                        .else_(return_(_(ids.emptyObject))),
+                        .else_(return_(_(id.emptyObject))),
                     var_("currentNode") = *var_("child"),
                     if_(has(*var_("keyItem"), "next"))
                         .then_(var_("keyItem") = *var_("keyItem") / "next")
-                        .else_(var_("keyItem") = _(ids.emptyObject)))),
+                        .else_(var_("keyItem") = _(id.emptyObject)))),
             if_(missing(*var_("currentNode"), "data"))
-                .then_(return_(_(ids.emptyObject))),
+                .then_(return_(_(id.emptyObject))),
             return_(*var_("currentNode") / "data" / "value" / "value"));
 
     /*
@@ -1638,22 +1638,22 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
         Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
             CellI* child = nullptr;
-            if (currentNode->missing(w.ids.children)) {
-                currentNode->set(w.ids.children, *new Index(w));
+            if (currentNode->missing(w.id.children)) {
+                currentNode->set(w.id.children, *new Index(w));
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.ids.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
             if (childrenIndex.has(keyItem)) {
                 child = &childrenIndex.get(keyItem);
             } else {
                 child = new Object(w, w.type.TrieMapNode);
-                child->set(w.ids.parent, *currentNode);
+                child->set(w.id.parent, *currentNode);
                 childrenIndex.insert(keyItem, *child);
             }
             currentNode = child;
         });
 
         List::Item& item = *m_list.add(w.type.kvPair(key, value));
-        currentNode->set(w.ids.data, item);
+        currentNode->set(w.id.data, item);
         ++m_size;
     }
     */
@@ -1663,13 +1663,13 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("value", tp_("valueType")))
         .instructions(
             var_("currentNode") = m_("rootNode"),
-            var_("keyItem")     = _(ids.emptyObject),
+            var_("keyItem")     = _(id.emptyObject),
             if_(has(p_("key"), "first"))
                 .then_(var_("keyItem") = p_("key") / "first"),
-            while_(notSame(*var_("keyItem"), _(ids.emptyObject)))
+            while_(notSame(*var_("keyItem"), _(id.emptyObject)))
                 .do_(block(
                     var_("keyItemObj") = *var_("keyItem") / "value",
-                    var_("child")      = _(ids.emptyObject),
+                    var_("child")      = _(id.emptyObject),
                     if_(missing(*var_("currentNode"), "children"))
                         .then_(set(*var_("currentNode"), "children", new_("Index", "constructor"))),
                     var_("childrenIndex") = *var_("currentNode") / "children",
@@ -1682,7 +1682,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                     var_("currentNode") = *var_("child"),
                     if_(has(*var_("keyItem"), "next"))
                         .then_(var_("keyItem") = *var_("keyItem") / "next")
-                        .else_(var_("keyItem") = _(ids.emptyObject)))),
+                        .else_(var_("keyItem") = _(id.emptyObject)))),
             var_("item") = m_("list")("add")("value", new_(st_("pairType"), "constructor")("key", p_("key"))("value", p_("value"))),
             set(*var_("currentNode"), "data", *var_("item")),
             m_("size") = add(m_("size"), _(_1_)));
@@ -1694,7 +1694,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             throw "Key is not a list!";
         }
 
-        if (&key[w.ids.size] == &w._0_) {
+        if (&key[w.id.size] == &w._0_) {
             return;
         }
 
@@ -1702,12 +1702,12 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
         Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(w.ids.children)) {
+            if (currentNode->missing(w.id.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.ids.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
             if (childrenIndex.has(keyItem)) {
                 children = &childrenIndex.get(keyItem);
             } else {
@@ -1718,26 +1718,26 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(w.ids.data)) {
+        if (!currentNode || currentNode->missing(w.id.data)) {
             return;
         }
-        List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[w.ids.data]);
-        currentNode->erase(w.ids.data);
+        List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[w.id.data]);
+        currentNode->erase(w.id.data);
 
-        CellI* keyItemPtr = &key[w.ids.last];
-        while (currentNode->has(w.ids.parent)) {
+        CellI* keyItemPtr = &key[w.id.last];
+        while (currentNode->has(w.id.parent)) {
             CellI& keyItem = *keyItemPtr;
-            CellI& parent = currentNode->get(w.ids.parent);
+            CellI& parent = currentNode->get(w.id.parent);
             CellI& child = *currentNode;
-            if (child.missing(w.ids.data)) {
-                if (child.missing(w.ids.children) || ( child.has(w.ids.children) && static_cast<Index&>(child[w.ids.children]).empty())) {
+            if (child.missing(w.id.data)) {
+                if (child.missing(w.id.children) || ( child.has(w.id.children) && static_cast<Index&>(child[w.id.children]).empty())) {
                     delete currentNode;
-                    parent[w.ids.children].erase(keyItem[w.ids.value]);
+                    parent[w.id.children].erase(keyItem[w.id.value]);
                 }
             }
             currentNode = &parent;
-            if (keyItem.has(w.ids.previous)) {
-                keyItemPtr = &keyItem[w.ids.previous];
+            if (keyItem.has(w.id.previous)) {
+                keyItemPtr = &keyItem[w.id.previous];
             } else {
                 break;
             }
@@ -1754,13 +1754,13 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("key", tp_("keyType")))
         .instructions(
             var_("currentNode") = m_("rootNode"),
-            var_("keyItem")     = _(ids.emptyObject),
+            var_("keyItem")     = _(id.emptyObject),
             if_(has(p_("key"), "first"))
                 .then_(var_("keyItem") = p_("key") / "first"),
-            while_(notSame(*var_("keyItem"), _(ids.emptyObject)))
+            while_(notSame(*var_("keyItem"), _(id.emptyObject)))
                 .do_(block(
                     var_("keyItemObj") = *var_("keyItem") / "value",
-                    var_("child")      = _(ids.emptyObject),
+                    var_("child")      = _(id.emptyObject),
                     if_(missing(*var_("currentNode"), "children"))
                         .then_(return_()),
                     var_("childrenIndex") = *var_("currentNode") / "children",
@@ -1770,7 +1770,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                     var_("currentNode") = *var_("child"),
                     if_(has(*var_("keyItem"), "next"))
                         .then_(var_("keyItem") = *var_("keyItem") / "next")
-                        .else_(var_("keyItem") = _(ids.emptyObject)))),
+                        .else_(var_("keyItem") = _(id.emptyObject)))),
             if_(missing(*var_("currentNode"), "data"))
                 .then_(return_()),
             var_("valueItem") = *var_("currentNode") / "data",

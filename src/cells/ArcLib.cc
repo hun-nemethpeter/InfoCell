@@ -203,24 +203,24 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             m_("firstPixel")     = p_("pixels") / "first" / "value",
             var_("prevPixel")    = m_("firstPixel"),
             var_("isFirstPixel") = true_(),
-            var_("pixel")        = _(ids.emptyObject),
+            var_("pixel")        = _(id.emptyObject),
             if_(has(p_("pixels"), "first"))
                 .then_(var_("pixel") = p_("pixels") / "first"),
-            while_(notSame(*var_("pixel"), _(ids.emptyObject)))
+            while_(notSame(*var_("pixel"), _(id.emptyObject)))
                 .do_(block(
                     if_(same(*var_("isFirstPixel"), true_()))
                         .then_(block(
                             var_("isFirstPixel") = false_(),
                             if_(has(*var_("pixel"), "next"))
                                 .then_(var_("pixel") = *var_("pixel") / "next")
-                                .else_(var_("pixel") = _(ids.emptyObject)),
+                                .else_(var_("pixel") = _(id.emptyObject)),
                             continue_())),
                     var_("vector") = new_("Vector", "constructor")("x", subtract(*var_("pixel") / "value" / "x", *var_("prevPixel") / "x"))("y", subtract(*var_("pixel") / "value" / "y", *var_("prevPixel") / "y")),
                     m_("vectors")("add")("value", *var_("vector")),
                     var_("prevPixel") = *var_("pixel") / "value",
                     if_(has(*var_("pixel"), "next"))
                         .then_(var_("pixel") = *var_("pixel") / "next")
-                        .else_(var_("pixel") = _(ids.emptyObject)))));
+                        .else_(var_("pixel") = _(id.emptyObject)))));
 
     /*
     VectorShape VectorShape::rotate(RotationDir rotationDir) const
@@ -246,16 +246,16 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             set(*var_("ret"), "color", m_("color")),
             set(*var_("ret"), "firstPixel", m_("firstPixel")),
             set(*var_("ret"), "vectors", *var_("rotatedVectors")),
-            var_("vector") = _(ids.emptyObject),
+            var_("vector") = _(id.emptyObject),
             if_(has(m_("vectors"), "first"))
                 .then_(var_("vector") = m_("vectors") / "first"),
-            while_(notSame(*var_("vector"), _(ids.emptyObject)))
+            while_(notSame(*var_("vector"), _(id.emptyObject)))
                 .do_(block(
                     var_("newVector") = ((*var_("vector") / "value")("rotate")("rotationDir", p_("rotationDir"))),
                     var_("rotatedVectors")("add")("value", *var_("newVector")),
                     if_(has(*var_("vector"), "next"))
                         .then_(var_("vector") = *var_("vector") / "next")
-                        .else_(var_("vector") = _(ids.emptyObject)))),
+                        .else_(var_("vector") = _(id.emptyObject)))),
             return_(*var_("ret")));
 
     // struct ShapeEdgeKind

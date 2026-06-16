@@ -847,7 +847,7 @@ protected:
     template <typename... Args>
     Map& map(CellI& key, CellI& value, Args&&... args);
 
-    ID& ids;
+    ID& id;
     Std& std;
     Directions& directions;
     Coordinates& coordinates;

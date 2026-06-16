@@ -62,7 +62,7 @@ World& CellTest::getWorld()
 
 void CellTest::printMethodInType(CellI& type, const std::string& method)
 {
-    printAs.value(type[ids.methods][ids.index][w.name(method)][ids.value]);
+    printAs.value(type[id.methods][id.index][w.name(method)][id.value]);
 }
 
 std::unique_ptr<World> CellTest::m_world;
@@ -94,7 +94,7 @@ void TestBase::createWorld(std::function<void()> loggerLevelInit)
 void TestBase::printMethodInType(CellI& type, const std::string& method)
 {
     World& w = getWorld();
-    printAs.value(type[w.ids.methods][w.ids.index][w.name(method)][w.ids.value]);
+    printAs.value(type[w.id.methods][w.id.index][w.name(method)][w.id.value]);
 }
 
 std::unique_ptr<World> TestBase::m_world;

@@ -26,19 +26,19 @@ bool Shape::has(CellI& role)
     static CellI& name_edges         = w.name("edges");
     static CellI& name_internalEdges = w.name("internalEdges");
 
-    if (&role == &w.ids.__type__) {
+    if (&role == &w.id.__type__) {
         return true;
     }
-    if (&role == &w.ids.id) {
+    if (&role == &w.id.id) {
         return true;
     }
-    if (&role == &w.ids.color) {
+    if (&role == &w.id.color) {
         return true;
     }
-    if (&role == &w.ids.width) {
+    if (&role == &w.id.width) {
         return true;
     }
-    if (&role == &w.ids.height) {
+    if (&role == &w.id.height) {
         return true;
     }
     if (&role == &name_lastEdgeId) {
@@ -118,19 +118,19 @@ CellI& Shape::operator[](CellI& role)
     static CellI& name_edges         = w.name("edges");
     static CellI& name_internalEdges = w.name("internalEdges");
 
-    if (&role == &w.ids.__type__) {
+    if (&role == &w.id.__type__) {
         return ShapeStruct;
     }
-    if (&role == &w.ids.id) {
+    if (&role == &w.id.id) {
         return m_id;
     }
-    if (&role == &w.ids.color) {
+    if (&role == &w.id.color) {
         return m_color;
     }
-    if (&role == &w.ids.width) {
+    if (&role == &w.id.width) {
         return m_width;
     }
-    if (&role == &w.ids.height) {
+    if (&role == &w.id.height) {
         return m_height;
     }
     if (&role == &name_lastEdgeId) {

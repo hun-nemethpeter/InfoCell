@@ -17,7 +17,9 @@ protected:
     CellI& toCellNumber(int number);
 
     World& w;
-    ID& ids       = w.ids;
+
+    ID& id       = w.id;
+
     CellI& _0_    = w._0_;
     CellI& _1_    = w._1_;
     CellI& _2_    = w._2_;
