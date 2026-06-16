@@ -293,7 +293,7 @@ void StdLibAst::createOp()
     opScope.add<Struct>("Var")
 #if 0 // TODO
         .description(
-            var_("x")("isA")("struct", m_("valueType")),
+            var_("x")("isA")("__type__", m_("valueType")),
             self()("hasA")("member", member("ast", "ast::Base")),
             self()("stores")("place", m_("value"))("value", var_("x")))
 #endif
@@ -878,7 +878,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 #pragma region ListItem
     stdScope.add<Struct>("ListItem")
         .typeAliases(
-            typeAlias("ValueType", struct_("Cell")))
+            typeAlias("ValueType", __type__("Cell")))
         .members(
             member("previous", "ListItem"),
             member("next", "ListItem"),
@@ -906,8 +906,8 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 #pragma region List
     stdScope.add<Struct>("List")
         .typeAliases(
-            typeAlias("itemType", struct_("ListItem")),
-            typeAlias("valueType", struct_("Cell")))
+            typeAlias("itemType", __type__("ListItem")),
+            typeAlias("valueType", __type__("Cell")))
         .members(
             member("first", "ListItem"),
             member("last", "ListItem"),
@@ -918,8 +918,8 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
               .templateParams(
                   parameter("valueType", _(std.Struct)))
               .memberOf(
-                  struct_("Container"),
-                  struct_("List"))
+                  __type__("Container"),
+                  __type__("List"))
               .typeAliases(
                   typeAlias("itemType", tt_("ListItem", "valueType", tp_("valueType"))),
                   typeAlias("valueType", tp_("valueType")))
@@ -1214,9 +1214,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     indexStruct.addMethod("constructor")
         .instructions(
-            set(self(), "struct", new_("Struct", "constructorWithRecursiveType")),
-            set(m_("struct"), "methods", get(struct_("Index"), _("methods"))),
-            set(m_("struct"), "memberOf", _(map(std.Struct, std.Struct, std.Index, std.Index))));
+            set(self(), "__type__", new_("Struct", "constructorWithRecursiveType")),
+            set(m_("__type__"), "methods", get(__type__("Index"), _("methods"))),
+            set(m_("__type__"), "memberOf", _(map(std.Struct, std.Struct, std.Index, std.Index))));
 
     indexStruct.addMethod("constructorWithSelfType")
         .parameters(
@@ -1225,14 +1225,14 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             if_(missing(p_("indexType"), _("sharedObject")))
                 .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.Slot))),
                                  set(p_("indexType") / "sharedObject", "key", self()),
-                                 set(p_("indexType") / "sharedObject", "type", struct_("Index")))),
-            set(p_("indexType"), "methods", m_("struct") / "methods"),
-            set(self(), "struct", p_("indexType")));
+                                 set(p_("indexType") / "sharedObject", "type", __type__("Index")))),
+            set(p_("indexType"), "methods", m_("__type__") / "methods"),
+            set(self(), "__type__", p_("indexType")));
 
     /*
     void Index::insert(CellI& key, CellI& value)
     {
-        if (&key == &"struct") {
+        if (&key == &"__type__") {
             throw "The type key can not be changed!";
         }
         m_slots[&key] = &value;
@@ -1250,17 +1250,17 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("key", _(std.Cell)),
             parameter("value", _(std.Cell)))
         .instructions(
-            if_(same(p_("key"), _("struct")))
+            if_(same(p_("key"), _("__type__")))
                 .then_(return_()),
             set(self(), p_("key"), p_("value")),
-            if_(and_(has(m_("struct"), "sharedObject"), same(m_("struct") / "sharedObject" / "key", self())))
+            if_(and_(has(m_("__type__"), "sharedObject"), same(m_("__type__") / "sharedObject" / "key", self())))
                 .then_(return_()),
-            m_("struct")("addSlot")("key", p_("key"))("type", _(std.Slot)));
+            m_("__type__")("addSlot")("key", p_("key"))("type", _(std.Slot)));
 
     indexStruct.addMethod("empty")
         .returnType(_(std.Boolean))
         .instructions(
-            return_((m_("struct") / "slots")("empty")));
+            return_((m_("__type__") / "slots")("empty")));
 
     /*
     void Index::erase(CellI& key)
@@ -1276,23 +1276,23 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("key", _(std.Cell)))
         .instructions(
-            if_(not_(m_("struct")("hasSlot")("key", p_("key"))))
+            if_(not_(m_("__type__")("hasSlot")("key", p_("key"))))
                 .then_(return_()),
             erase(self(), p_("key")),
-            m_("struct")("removeSlot")("key", p_("key")));
+            m_("__type__")("removeSlot")("key", p_("key")));
 
     indexStruct.addMethod("size")
         .returnType(_(std.Number))
         .instructions(
-            return_((m_("struct") / "slots")("size")));
+            return_((m_("__type__") / "slots")("size")));
 #pragma endregion
 #pragma region Map
     stdScope.add<Struct>("Map")
         .typeAliases(
-            typeAlias("keyType", struct_("Cell")),
-            typeAlias("valueType", struct_("Cell")),
-            typeAlias("listType", tt_("List", "valueType", struct_("Cell"))))
-        .memberOf(struct_("Container"))
+            typeAlias("keyType", __type__("Cell")),
+            typeAlias("valueType", __type__("Cell")),
+            typeAlias("listType", tt_("List", "valueType", __type__("Cell"))))
+        .memberOf(__type__("Container"))
         .members(
             member("list", st_("listType")),
             member("index", "Index"),
@@ -1307,7 +1307,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                   typeAlias("keyType", tp_("keyType")),
                   typeAlias("valueType", tp_("valueType")),
                   typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
-              .memberOf(struct_("Map"))
+              .memberOf(__type__("Map"))
               .members(
                   member("list", st_("listType")),
                   member("index", "Index"),
@@ -1361,7 +1361,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     /*
     void Map::add(CellI& key, CellI& value)
     {
-        if (&key == &"struct") {
+        if (&key == &"__type__") {
             throw "ids.type can not be stored in a map!";
         }
         if (m_index.has(key)) {
@@ -1377,7 +1377,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("key", tp_("keyType")),
             parameter("value", tp_("valueType")))
         .instructions(
-            if_(same(p_("key"), _("struct")))
+            if_(same(p_("key"), _("__type__")))
                 .then_(return_()),
             if_(has(m_("index"), p_("key")))
                 .then_(return_()),
@@ -1451,7 +1451,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
               .typeAliases(
                   typeAlias("keyType", tp_("keyType")),
                   typeAlias("valueType", tp_("valueType")))
-              .memberOf(struct_("KVPair"))
+              .memberOf(__type__("KVPair"))
               .members(
                   member("key", tp_("keyType")),
                   member("value", tp_("valueType")));
@@ -1473,14 +1473,14 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     stdScope.add<Struct>("TrieMap")
         .typeAliases(
-            typeAlias("keyType", struct_("Cell")),
-            typeAlias("valueType", struct_("Cell")),
-            typeAlias("pairType", tt_("KVPair", "keyType", struct_("Cell"), "valueType", struct_("Cell"))),
+            typeAlias("keyType", __type__("Cell")),
+            typeAlias("valueType", __type__("Cell")),
+            typeAlias("pairType", tt_("KVPair", "keyType", __type__("Cell"), "valueType", __type__("Cell"))),
             typeAlias("listType", tt_("List", "valueType", st_("pairType"))))
-        .memberOf(struct_("Container"))
+        .memberOf(__type__("Container"))
         .members(
             member("list", st_("listType")),
-            member("rootNode", struct_("TrieMapNode")),
+            member("rootNode", __type__("TrieMapNode")),
             member("size", _(std.Number)));
 
     auto& trieMapStructT
@@ -1834,13 +1834,13 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                   typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
               .memberOf(_(std.Container))
               .members(
-                  member("index", struct_("Index")),
+                  member("index", __type__("Index")),
                   member("size", _(std.Number)));
 
     setStructT.addMethod("constructor")
         .instructions(
             m_("size")  = _(_0_),
-            m_("index") = new_(struct_("Index"), "constructor"));
+            m_("index") = new_(__type__("Index"), "constructor"));
 
     setStructT.addMethod("add")
         .parameters(
@@ -1870,17 +1870,17 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     setStructT.addMethod("first")
         .returnType(tp_("valueType"))
         .instructions(
-            return_(m_("index") / "struct" / "slots" / "list" / "first" / "value" / "key"));
+            return_(m_("index") / "__type__" / "slots" / "list" / "first" / "value" / "key"));
 
     setStructT.addMethod("last")
         .returnType(tp_("valueType"))
         .instructions(
-            return_(m_("index") / "struct" / "slots" / "list" / "last" / "value" / "key"));
+            return_(m_("index") / "__type__" / "slots" / "list" / "last" / "value" / "key"));
 
     setStructT.addMethod("begin")
         .returnType(tt_("ListItem", "valueType", tp_("valueType")))
         .instructions(
-            return_(m_("index") / "struct" / "slots" / "list" / "last"));
+            return_(m_("index") / "__type__" / "slots" / "list" / "last"));
 
     setStructT.addMethod("end")
         .returnType(tt_("ListItem", "valueType", tp_("valueType")))

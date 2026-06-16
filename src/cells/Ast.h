@@ -838,7 +838,7 @@ protected:
     Ast::AssociatedType& at_(const std::string& name);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
-    Ast::StructName& struct_(const std::string& name);
+    Ast::StructName& __type__(const std::string& name);
     CellI& ListOf(CellI& type);
     CellI& MapOf(CellI& keyType, CellI& valueType);
     template <typename... Args>

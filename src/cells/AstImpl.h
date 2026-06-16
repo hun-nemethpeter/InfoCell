@@ -21,7 +21,7 @@ Ast::TemplatedType& AstHelper::tt_(const std::string& nameStr, Args&&... args)
 template <typename... Args>
 List& AstHelper::list(CellI& value, Args&&... args)
 {
-    List& ret = *new List(w, value.struct_());
+    List& ret = *new List(w, value.__type__());
     ret.add(value);
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
@@ -33,7 +33,7 @@ List& AstHelper::list(CellI& value, Args&&... args)
 template <typename... Args>
 Map& AstHelper::map(CellI& key, CellI& value, Args&&... args)
 {
-    Map& ret = *new Map(w, key.struct_(), value.struct_(), fmt::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
+    Map& ret = *new Map(w, key.__type__(), value.__type__(), fmt::format("Map<{}, {}>(...)", key.__type__().label(), value.__type__().label()));
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
     }

@@ -33,7 +33,7 @@ protected:
     Ast::Scope& resolveTypesInScope(Ast::Scope& scope);
     Ast::Function& resolveTypesInFunction(Ast::Function& function);
     Ast::Base& resolveTypesInFunctionCode(CellI& ast);
-    Ast::Struct& resolveTypesInStruct(Ast::Struct& struct_);
+    Ast::Struct& resolveTypesInStruct(Ast::Struct& astStruct);
     Ast::Enum& resolveTypesInEnum(Ast::Enum& enum_);
     CellI& resolveTypeInEnumValue(CellI& ast);
 
@@ -63,7 +63,7 @@ protected:
     Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
 
     void compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
-    CellI& compileStruct(Ast::Struct& struct_);
+    CellI& compileStruct(Ast::Struct& __type__);
     CellI& compileEnum(Ast::Enum& enum_);
     CellI& compileFunction(Ast::Function& function);
     void compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction);

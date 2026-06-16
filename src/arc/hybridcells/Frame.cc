@@ -40,7 +40,7 @@ bool Frame::has(CellI& role)
     static CellI& name_downLeftPoint  = w.name("downLeftPoint");
     static CellI& name_downRightPoint = w.name("downRightPoint");
 
-    if (&role == &w.ids.struct_) {
+    if (&role == &w.ids.__type__) {
         return true;
     }
     if (&role == &w.ids.width) {
@@ -96,7 +96,7 @@ CellI& Frame::operator[](CellI& role)
     if (missing(role)) {
         throw "No such role!";
     }
-    if (&role == &w.ids.struct_) {
+    if (&role == &w.ids.__type__) {
         return FrameStruct;
     }
     if (&role == &w.ids.width) {

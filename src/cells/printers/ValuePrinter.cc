@@ -55,26 +55,26 @@ void CellValuePrinter::printOpBlock(CellI& cell)
 {
     World& w = cell.w;
     CellI& ast       = cell[w.ids.ast];
-    if (&ast.struct_() == &w.std.ast.Call || &ast.struct_() == &w.std.ast.StaticCall) {
-        if (&ast[w.ids.cell].struct_() == &w.std.ast.Get && cell.label() != "New { call constructor; }") {
+    if (&ast.__type__() == &w.std.ast.Call || &ast.__type__() == &w.std.ast.StaticCall) {
+        if (&ast[w.ids.cell].__type__() == &w.std.ast.Get && cell.label() != "New { call constructor; }") {
             printImpl(ast[w.ids.cell]);
         }
-        if (&ast[w.ids.cell].struct_() == &w.std.ast.Self) {
+        if (&ast[w.ids.cell].__type__() == &w.std.ast.Self) {
             m_ss << "self";
         }
-        if (&ast[w.ids.cell].struct_() == &w.std.ast.Cell) {
+        if (&ast[w.ids.cell].__type__() == &w.std.ast.Cell) {
             m_ss << ast[w.ids.cell][w.ids.value].label();
         }
-        if (&ast[w.ids.cell].struct_() == &w.std.ast.Member) {
+        if (&ast[w.ids.cell].__type__() == &w.std.ast.Member) {
             m_ss << "m_" << ast[w.ids.cell][w.ids.key].label();
         }
-        if (&ast[w.ids.cell].struct_() == &w.std.ast.Parameter) {
+        if (&ast[w.ids.cell].__type__() == &w.std.ast.Parameter) {
             m_ss << "p_" << ast[w.ids.cell][w.ids.key].label();
         }
-        if (&cell.struct_() == &w.std.op.Call) {
+        if (&cell.__type__() == &w.std.op.Call) {
             printOpCall(cell);
             if (0) {
-                if (&ast.struct_() == &w.std.ast.Call) {
+                if (&ast.__type__() == &w.std.ast.Call) {
                     m_ss << ".";
                 } else {
                     m_ss << "::";
@@ -99,7 +99,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         }
         return;
     }
-    if (&ast.struct_() == &w.std.ast.New) {
+    if (&ast.__type__() == &w.std.ast.New) {
         m_ss << "new ";
         CellI* objectTypePtr = nullptr;
         if (ast[w.ids.objectType].isA(w.std.ast.Cell)) {
@@ -198,22 +198,22 @@ void CellValuePrinter::printOpCall(CellI& cell)
     World& w = cell.w;
     CellI& ast       = cell[w.ids.ast];
 
-    if (&ast[w.ids.cell].struct_() == &w.std.ast.Get && cell.label() != "New { call constructor; }") {
+    if (&ast[w.ids.cell].__type__() == &w.std.ast.Get && cell.label() != "New { call constructor; }") {
         printImpl(ast[w.ids.cell]);
     }
-    if (&ast[w.ids.cell].struct_() == &w.std.ast.Self) {
+    if (&ast[w.ids.cell].__type__() == &w.std.ast.Self) {
         m_ss << "self";
     }
-    if (&ast[w.ids.cell].struct_() == &w.std.ast.Cell) {
+    if (&ast[w.ids.cell].__type__() == &w.std.ast.Cell) {
         m_ss << ast[w.ids.cell][w.ids.value].label();
     }
-    if (&ast[w.ids.cell].struct_() == &w.std.ast.Member) {
+    if (&ast[w.ids.cell].__type__() == &w.std.ast.Member) {
         m_ss << "m_" << ast[w.ids.cell][w.ids.key].label();
     }
-    if (&ast[w.ids.cell].struct_() == &w.std.ast.Parameter) {
+    if (&ast[w.ids.cell].__type__() == &w.std.ast.Parameter) {
         m_ss << "p_" << ast[w.ids.cell][w.ids.key].label();
     }
-    if (&ast.struct_() == &w.std.ast.Call) {
+    if (&ast.__type__() == &w.std.ast.Call) {
         m_ss << ".";
     } else {
         m_ss << "::";
@@ -247,7 +247,7 @@ void CellValuePrinter::printOpDelete(CellI& cell)
 void CellValuePrinter::printOpSet(CellI& cell)
 {
     World& w = cell.w;
-    if ((&cell[w.ids.ast][w.ids.cell].struct_() == &w.std.ast.Self) && (&cell[w.ids.ast][w.ids.key].struct_() == &w.std.ast.Cell)) {
+    if ((&cell[w.ids.ast][w.ids.cell].__type__() == &w.std.ast.Self) && (&cell[w.ids.ast][w.ids.key].__type__() == &w.std.ast.Cell)) {
         m_ss << "m_";
     } else {
         printImpl(cell[w.ids.cell]);
@@ -272,8 +272,8 @@ void CellValuePrinter::printOpIf(CellI& cell)
     World& w = cell.w;
 
     auto isBlock = [this, &w, &cell](CellI& ast) -> bool {
-        if (&ast.struct_() == &w.std.op.Block) {
-            auto& astType = ast[w.ids.ast].struct_();
+        if (&ast.__type__() == &w.std.op.Block) {
+            auto& astType = ast[w.ids.ast].__type__();
             if (&astType == &w.std.ast.Call || &astType == &w.std.ast.StaticCall || &astType == &w.std.ast.New) {
                 return false;
             }
@@ -336,11 +336,11 @@ void CellValuePrinter::printOpConstVar(CellI& cell)
     World& w = cell.w;
     if (cell.has(w.ids.ast)) {
         CellI& ast = cell[w.ids.ast];
-        if (&ast.struct_() == &w.std.ast.Cell) {
+        if (&ast.__type__() == &w.std.ast.Cell) {
             m_ss << ast[w.ids.value].label();
             return;
         }
-        if (&ast.struct_() == &w.std.ast.Var) {
+        if (&ast.__type__() == &w.std.ast.Var) {
             m_ss << "var_" << ast[w.ids.key].label();
             return;
         }
@@ -416,19 +416,19 @@ void CellValuePrinter::printOpMissing(CellI& cell)
 void CellValuePrinter::printOpGet(CellI& cell)
 {
     World& w = cell.w;
-    if (&cell[w.ids.ast].struct_() == &w.std.ast.Member) {
+    if (&cell[w.ids.ast].__type__() == &w.std.ast.Member) {
         m_ss << "m_" << cell[w.ids.ast][w.ids.key].label();
         return;
     }
-    if (&cell[w.ids.ast].struct_() == &w.std.ast.Self) {
+    if (&cell[w.ids.ast].__type__() == &w.std.ast.Self) {
         m_ss << "self";
         return;
     }
-    if (&cell[w.ids.ast].struct_() == &w.std.ast.Parameter) {
+    if (&cell[w.ids.ast].__type__() == &w.std.ast.Parameter) {
         m_ss << "p_" << cell[w.ids.ast][w.ids.key].label();
         return;
     }
-    if (&cell[w.ids.ast].struct_() == &w.std.ast.Var) {
+    if (&cell[w.ids.ast].__type__() == &w.std.ast.Var) {
         m_ss << "var_" << cell[w.ids.ast][w.ids.name].label();
         return;
     }
@@ -534,19 +534,19 @@ void CellValuePrinter::printAstCell(CellI& cell)
 void CellValuePrinter::printAstGet(CellI& cell)
 {
     World& w = cell.w;
-    if (&cell.struct_() == &w.std.ast.Member) {
+    if (&cell.__type__() == &w.std.ast.Member) {
         m_ss << "m_" << cell[w.ids.ast][w.ids.key].label();
         return;
     }
-    if (&cell.struct_() == &w.std.ast.Self) {
+    if (&cell.__type__() == &w.std.ast.Self) {
         m_ss << "self";
         return;
     }
-    if (&cell.struct_() == &w.std.ast.Parameter) {
+    if (&cell.__type__() == &w.std.ast.Parameter) {
         m_ss << "p_" << cell[w.ids.ast][w.ids.key].label();
         return;
     }
-    if (&cell.struct_() == &w.std.ast.Var) {
+    if (&cell.__type__() == &w.std.ast.Var) {
         m_ss << "var_" << cell[w.ids.ast][w.ids.key].label();
         return;
     }
@@ -619,23 +619,23 @@ void CellValuePrinter::printTypeName(CellI& cell)
 void CellValuePrinter::printImpl(CellI& cell)
 {
     World& w = cell.w;
-    auto is          = [this, &cell, &w](CellI& type) -> bool { return &cell.struct_() == &type || (cell.struct_().has(w.ids.memberOf) && cell.struct_()[w.ids.memberOf][w.ids.index].has(type)); };
+    auto is          = [this, &cell, &w](CellI& type) -> bool { return &cell.__type__() == &type || (cell.__type__().has(w.ids.memberOf) && cell.__type__()[w.ids.memberOf][w.ids.index].has(type)); };
 
     if (is(w.std.Slot)) {
         CellI& cellType = cell[w.ids.type];
         m_ss << cell[w.ids.key].label() << ": ";
-        if (cellType.struct_().has(w.ids.memberOf) && cellType.struct_()[w.ids.memberOf][w.ids.index].has(w.std.ListItem)) {
-            m_ss << "ListItem<" << cellType.struct_()[w.ids.slots][w.ids.index][w.ids.value][w.ids.value][w.ids.type].label() << ">";
+        if (cellType.__type__().has(w.ids.memberOf) && cellType.__type__()[w.ids.memberOf][w.ids.index].has(w.std.ListItem)) {
+            m_ss << "ListItem<" << cellType.__type__()[w.ids.slots][w.ids.index][w.ids.value][w.ids.value][w.ids.type].label() << ">";
         } else {
             m_ss << cellType.label();
         }
         return;
     } else if (is(w.std.List)) {
-        if (&cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value] == &w.std.Char) {
+        if (&cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value] == &w.std.Char) {
             m_ss << cell.label();
             return;
         }
-        printTypeName(cell.struct_());
+        printTypeName(cell.__type__());
         m_ss << "[";
         visitList(cell, [this](CellI& value, int i, bool&) {
             if (i != 0) {
@@ -650,9 +650,9 @@ void CellValuePrinter::printImpl(CellI& cell)
             m_ss << "{}";
             return;
         }
-        printTypeName(cell.struct_());
+        printTypeName(cell.__type__());
         m_ss << "{";
-        visitList(cell[w.ids.index][w.ids.struct_][w.ids.slots][w.ids.list], [this, &w, &cell](CellI& value, int i, bool&) {
+        visitList(cell[w.ids.index][w.ids.__type__][w.ids.slots][w.ids.list], [this, &w, &cell](CellI& value, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }
@@ -811,9 +811,9 @@ void CellValuePrinter::printImpl(CellI& cell)
     if (!cell.label().empty()) {
         m_ss << cell.label() << ": ";
     }
-    m_ss << cell.struct_().label() << " { ";
+    m_ss << cell.__type__().label() << " { ";
 
-    if (cell.struct_().has(w.ids.slots)) {
+    if (cell.__type__().has(w.ids.slots)) {
         visitList(cell.slotList(), [this, &w](CellI& slot, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";

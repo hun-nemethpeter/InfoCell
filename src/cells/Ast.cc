@@ -447,11 +447,11 @@ Ast::StructT& Ast::StructT::templateParams(Slot& slot)
     }
     CellI& key  = slot[w.ids.key];
     CellI& type = slot[w.ids.type];
-    if (!(&type.struct_() == &w.std.ast.Cell || &type.struct_() == &w.std.ast.TemplatedType)) {
+    if (!(&type.__type__() == &w.std.ast.Cell || &type.__type__() == &w.std.ast.TemplatedType)) {
         throw "Invalid template param type!";
     }
     CellI* paramType = nullptr;
-    if (&type.struct_() == &w.std.ast.Cell) {
+    if (&type.__type__() == &w.std.ast.Cell) {
         paramType = &type[w.ids.value];
     } else {
         throw "TODO";
@@ -592,7 +592,7 @@ Ast::Enum& Ast::Enum::values(Base& value)
 }
 CellI& Ast::Enum::resolveEnumValue(CellI& ast)
 {
-    if (&ast.struct_() == &w.std.ast.Cell) {
+    if (&ast.__type__() == &w.std.ast.Cell) {
         return ast[w.ids.value];
     }
 
@@ -1562,7 +1562,7 @@ Ast::Var& AstHelper::var_(const std::string& nameStr)
 
 Ast::Slot& AstHelper::member(const std::string& nameStr, const std::string& type)
 {
-    return slot(name(nameStr), struct_(type));
+    return slot(name(nameStr), __type__(type));
 }
 
 Ast::Slot& AstHelper::member(const std::string& nameStr, CellI& type)
@@ -1572,7 +1572,7 @@ Ast::Slot& AstHelper::member(const std::string& nameStr, CellI& type)
 
 Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, const std::string& type)
 {
-    return slot(name(nameStr), struct_(type));
+    return slot(name(nameStr), __type__(type));
 }
 
 Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, CellI& type)
@@ -1597,7 +1597,7 @@ Ast::TypedEnumValue& AstHelper::tev_(const std::string& nameStr, CellI& type)
 
 Ast::TypedEnumValue& AstHelper::tev_(const std::string& nameStr, const std::string& typeStr)
 {
-    return typedEnumValue(nameStr, struct_(typeStr));
+    return typedEnumValue(nameStr, __type__(typeStr));
 }
 
 Ast::TypedEnumValue& AstHelper::tev_(const std::string& nameStr, CellI& type, CellI& value)
@@ -1612,12 +1612,12 @@ Ast::TypedEnumValue& AstHelper::tev_(const std::string& nameStr, CellI& type, co
 
 Ast::TypedEnumValue& AstHelper::tev_(const std::string& nameStr, const std::string& typeStr, CellI& value)
 {
-    return typedEnumValue(nameStr, struct_(typeStr), value);
+    return typedEnumValue(nameStr, __type__(typeStr), value);
 }
 
 Ast::TypedEnumValue& AstHelper::tev_(const std::string& nameStr, const std::string& typeStr, const std::string& valueStr)
 {
-    return typedEnumValue(nameStr, struct_(typeStr), w.ids.emptyObject); // TODO, we need a value_("name") thing with an Ast:: ValueName type
+    return typedEnumValue(nameStr, __type__(typeStr), w.ids.emptyObject); // TODO, we need a value_("name") thing with an Ast:: ValueName type
 }
 
 Ast::TemplateParam& AstHelper::tp_(const std::string& nameStr)
@@ -1630,7 +1630,7 @@ Ast::AssociatedType& AstHelper::at_(const std::string& nameStr)
     return associatedType(name(nameStr));
 }
 
-Ast::StructName& AstHelper::struct_(const std::string& nameStr)
+Ast::StructName& AstHelper::__type__(const std::string& nameStr)
 {
     return structName(nameStr);
 }

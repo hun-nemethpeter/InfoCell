@@ -108,8 +108,8 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     // Vector rotate(RotationDir rotationDir) const;
     vectorStruct.addMethod("rotate")
         .parameters(
-            parameter("rotationDir", struct_("RotationDir")))
-        .returnType(struct_("Vector"))
+            parameter("rotationDir", __type__("RotationDir")))
+        .returnType(__type__("Vector"))
         .instructions(
             var_("ret") = new_("Vector", "constructor")("x", m_("x"))("y", m_("y")),
             match_(p_("rotationDir"))
@@ -238,10 +238,10 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     */
     vectorShapeStruct.addMethod("rotate")
         .parameters(
-            parameter("rotationDir", struct_("RotationDir")))
-        .returnType(struct_("VectorShape"))
+            parameter("rotationDir", __type__("RotationDir")))
+        .returnType(__type__("VectorShape"))
         .instructions(
-            var_("ret")            = new_(struct_("VectorShape")),
+            var_("ret")            = new_(__type__("VectorShape")),
             var_("rotatedVectors") = new_(tt_("std::List", "valueType", "Vector"), "constructor"),
             set(*var_("ret"), "color", m_("color")),
             set(*var_("ret"), "firstPixel", m_("firstPixel")),
@@ -356,7 +356,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
 
     shapePixelStruct.addMethod("constructor")
         .parameters(
-            parameter("shape", struct_("Shape")),
+            parameter("shape", __type__("Shape")),
             parameter("pixel", _(std.Pixel)))
         .instructions(
             m_("shape") = p_("shape"),
@@ -386,7 +386,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     shapeStruct.addMethod("constructor")
         .parameters(
             parameter("id", _(std.Number)),
-            parameter("color", struct_("Color")),
+            parameter("color", __type__("Color")),
             parameter("width", _(std.Number)),
             parameter("height", _(std.Number)))
         .instructions(
@@ -398,7 +398,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             m_("edges")        = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"), "constructor"));
 
     shapeStruct.addMethod("toVectorShape")
-        .returnType(struct_("VectorShape"))
+        .returnType(__type__("VectorShape"))
         .instructions(
             var_("ret") = new_("VectorShape", "constructor")("color", m_("color")),
             var_("ret")("fromPixels")("pixels", m_("pixels")),
@@ -495,9 +495,9 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     // Frame::processPixel
     frameStruct.addMethod("processPixel")
         .parameters(
-            parameter("shape", struct_("Shape")),
+            parameter("shape", __type__("Shape")),
             parameter("checkPixels", tt_("std::Set", "valueType", "Pixel")),
-            parameter("checkPixel", struct_("Pixel")))
+            parameter("checkPixel", __type__("Pixel")))
         .instructions(
             if_(not_(m_("shapePixels")("hasKey")("key", p_("checkPixel") / _(coordinates.y))))
                 .then_(m_("shapePixels")("add")("key", p_("checkPixel") / _(coordinates.y))("value", new_(st_("tableType"), "constructor"))), // TODO just a TableRow, not a full TableType
@@ -513,7 +513,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     frameStruct.addMethod("processAdjacentPixel")
         .parameters(
             parameter("direction", _(std.Directions)),
-            parameter("shape", struct_("Shape")),
+            parameter("shape", __type__("Shape")),
             parameter("checkPixels", tt_("std::Set", "valueType", _(std.Pixel))),
             parameter("checkPixel", _(std.Pixel)))
         .instructions(

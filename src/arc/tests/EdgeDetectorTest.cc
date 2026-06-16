@@ -124,7 +124,7 @@ public:
                     if (&edge["kind"] == &InternalEdgeEV) {
                         if (edge.has("shapes")) {
                             std::stringstream ss;
-                            Visitor::visitList(edge["shapes"]["index"]["struct"]["slots"]["list"], [this, &ss](CellI& slot, int, bool&) {
+                            Visitor::visitList(edge["shapes"]["index"].slotList(), [this, &ss](CellI& slot, int, bool&) {
                                 CellI& shape = slot["key"];
                                 ss << fmt::format("shape({}) ", shape["id"].label());
                             });

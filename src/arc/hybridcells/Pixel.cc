@@ -20,7 +20,7 @@ Pixel::Pixel(World& w, int x, int y, CellI& arcColor, Grid& grid) :
 
 bool Pixel::has(CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return true;
     }
     if (&key == &w.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
@@ -65,7 +65,7 @@ void Pixel::operator()()
 
 CellI& Pixel::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return w.std.Pixel;
     }
     if (&key == &w.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {

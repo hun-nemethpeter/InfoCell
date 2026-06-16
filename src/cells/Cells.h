@@ -38,7 +38,7 @@ public:
 
     bool missing(CellI& key);
     CellI& get(CellI& key);
-    CellI& struct_();
+    CellI& __type__();
     CellI& slotList();
     void eval();
 
@@ -190,7 +190,7 @@ public:
 
     template <typename T>
     List(World& w, std::vector<T>& values, const std::string& label = "") :
-        List(w, util::ref(values.front()).struct_(), label)
+        List(w, util::ref(values.front()).__type__(), label)
     {
         for (auto& valueT : values) {
             add(util::ref(valueT));

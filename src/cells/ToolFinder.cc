@@ -56,31 +56,31 @@ CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
 
         if (first) {
             first = false;
-            ret.add(w.ids.struct_);
-            ret.add(current.struct_());
+            ret.add(w.ids.__type__);
+            ret.add(current.__type__());
         }
 
         if (current.has(key)) {
             CellI& value = current[key];
             ret.add(key);
-            if (&key == &w.ids.struct_) {
+            if (&key == &w.ids.__type__) {
                 ret.add(value);
                 if (&key == &w.ids.op) {
                     ret.add(value);
                 }
-            } else if (&value.struct_() == &w.std.ast.Cell) {
+            } else if (&value.__type__() == &w.std.ast.Cell) {
                 ret.add(value[w.ids.value]);
                 if (&value[w.ids.value] == &w.ids.op) {
                     ret.add(value[w.ids.value]);
                 }
-            } else if (&value.struct_() == &w.std.ast.Member || &value.struct_() == &w.std.ast.Return) {
+            } else if (&value.__type__() == &w.std.ast.Member || &value.__type__() == &w.std.ast.Return) {
                 ret.add(w.ids.op);
-                if (&value.struct_() == &w.std.ast.Member) {
+                if (&value.__type__() == &w.std.ast.Member) {
                     ret.add(w.ids.variable);
                 } else {
                     ret.add(w.ids.return_);
                 }
-            } else if ((&key != &w.ids.struct_) && value.struct_()[w.ids.memberOf][w.ids.index].has(w.std.ast.Base)) {
+            } else if ((&key != &w.ids.__type__) && value.__type__()[w.ids.memberOf][w.ids.index].has(w.std.ast.Base)) {
                 ret.add(w.ids.op);
                 ret.add(w.ids.push);
                 stack.push({ current, *slotItemPtr });
@@ -218,22 +218,22 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
 
         if (first) {
             first = false;
-            addValue(currentNode, w.ids.struct_);
-            addValue(currentNode, current.struct_());
+            addValue(currentNode, w.ids.__type__);
+            addValue(currentNode, current.__type__());
         }
 
         if (current.has(key)) {
             CellI& value = current[key];
             addValue(currentNode, key);
-            if (&value.struct_() == &w.std.ast.Cell) {
+            if (&value.__type__() == &w.std.ast.Cell) {
                 addValue(currentNode, value[w.ids.value]);
                 if (&value[w.ids.value] == &w.ids.op) {
                     addValue(currentNode, value[w.ids.value]);
                 }
-            } else if (&value.struct_() == &w.std.ast.Member || &value.struct_() == &w.std.ast.Return) {
+            } else if (&value.__type__() == &w.std.ast.Member || &value.__type__() == &w.std.ast.Return) {
                 addValue(currentNode, w.ids.op);
                 CellI* memberKeyPtr = nullptr;
-                if (&value.struct_() == &w.std.ast.Member) {
+                if (&value.__type__() == &w.std.ast.Member) {
                     addValue(currentNode, w.ids.variable);
                     memberKeyPtr = &value[w.ids.key];
                 } else {
@@ -245,7 +245,7 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
                 if (!memberIds.hasKey(memberKey)) {
                     List& path = *new List(w, w.std.Cell, fmt::format("path for {}", memberKey.label()));
                     for (auto& stackItem : stack) {
-                        if (&stackItem.ast.struct_() == &w.std.ast.Return) {
+                        if (&stackItem.ast.__type__() == &w.std.ast.Return) {
                             continue;
                         }
                         auto& key = stackItem.slotItem[w.ids.value][w.ids.key];
@@ -254,7 +254,7 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
                     path.add(slotItem[w.ids.value][w.ids.key]);
                     memberIds.add(memberKey, path);
                 }
-            } else if ((&key != &w.ids.struct_) && value.struct_()[w.ids.memberOf][w.ids.index].has(w.std.ast.Base)) {
+            } else if ((&key != &w.ids.__type__) && value.__type__()[w.ids.memberOf][w.ids.index].has(w.std.ast.Base)) {
                 addValue(currentNode, w.ids.op);
                 addValue(currentNode, w.ids.push);
                 stack.push_back({ current, *slotItemPtr });
@@ -304,7 +304,7 @@ CellI* ToolFinder::processToolAst(CellI& toolAst, Map& memberIds, CellI& compile
 
         if (first) {
             first = false;
-            builder.add(w.ast.cell(w.ids.struct_));
+            builder.add(w.ast.cell(w.ids.__type__));
             builder.add(w.ast.cell(compiledToolType));
             continue;
         }
@@ -415,7 +415,7 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
     } else {
         node = findIt->second;
     }
-    // the first slot is the w.ids.struct_ but it is not in the slot list
+    // the first slot is the w.ids.__type__ but it is not in the slot list
     if (slotKind == SlotKind::StructSlot) {
         slotKind = SlotKind::NormalSlot;
         return true;
@@ -455,7 +455,7 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
         while (findContext.slotItemPtr)
         {
             CellI& key = (*findContext.slotItemPtr)[w.ids.value][w.ids.key];
-            if (findContext.slotKind == SlotKind::StructSlot && !checkValue(findContext, w.ids.struct_, (*findContext.effectAstPtr).struct_())) {
+            if (findContext.slotKind == SlotKind::StructSlot && !checkValue(findContext, w.ids.__type__, (*findContext.effectAstPtr).__type__())) {
                 return nullptr;
             }
 
@@ -520,13 +520,13 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
             CellI& key = (*slotItemPtr)[w.ids.value];
 
             if (first) {
-                if (&key.struct_() != &w.std.ast.Cell && (&key[w.ids.value] != &w.ids.struct_)) {
+                if (&key.__type__() != &w.std.ast.Cell && (&key[w.ids.value] != &w.ids.__type__)) {
                     throw "Tool description without type!";
                 }
                 first               = false;
                 CellI& nextSlotItem = (*slotItemPtr)[w.ids.next];
                 CellI& valueCell    = nextSlotItem[w.ids.value];
-                if (&valueCell.struct_() != &w.std.ast.Cell) {
+                if (&valueCell.__type__() != &w.std.ast.Cell) {
                     throw "Tool description type is not constant value!";
                 }
                 CellI& type   = valueCell[w.ids.value];
@@ -535,15 +535,15 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
                 ret = newObj;
 
                 slotItemPtr = &nextSlotItem;
-            } else if (&key.struct_() == &w.std.ast.Cell) {
+            } else if (&key.__type__() == &w.std.ast.Cell) {
                 CellI& unwrappedKey         = key[w.ids.value];
                 CellI& nextSlotItem = (*slotItemPtr)[w.ids.next];
                 CellI& valueCell    = nextSlotItem[w.ids.value];
                 CellI* valuePtr     = nullptr;
-                if (&valueCell.struct_() == &w.std.ast.Cell) {
+                if (&valueCell.__type__() == &w.std.ast.Cell) {
                     valuePtr = &ast[unwrappedKey];
                     ret->set(unwrappedKey, *valuePtr);
-                } else if (&valueCell.struct_() == &ListOfCellStruct) {
+                } else if (&valueCell.__type__() == &ListOfCellStruct) {
                     valuePtr = &ast;
                     Visitor::visitList(valueCell, [&valuePtr, &w](CellI& pathItem, int, bool& stop) {
                         CellI& currentValue = *valuePtr;
@@ -553,7 +553,7 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
                 } else {
                     throw "Tool description value is not a constant value or List!";
                 }
-                if (&(*valuePtr).struct_() != &w.std.ast.Cell) {
+                if (&(*valuePtr).__type__() != &w.std.ast.Cell) {
                     CellI& retVal = *new Object(w, w.std.ast.Return); // TODO FIX memory leak
                     retVal.set(w.ids.value, *valuePtr);
                     subTools.add(w.ast.slot(*ret, unwrappedKey));
@@ -694,7 +694,7 @@ CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, Too
         Ast::Scope rootScope(w, "toolFinder");
         Compiler compiler(w);
         std::string conversionToolName = fmt::format("conversionToolFor{}", blueprint.m_tool->label());
-        SolverLib solverLib(w, rootScope, *missingSlotSolver, conversionToolName, conversionToolAst, to.struct_());
+        SolverLib solverLib(w, rootScope, *missingSlotSolver, conversionToolName, conversionToolAst, to.__type__());
         solverLib.include(w.arcLib());
         compiler.compile(solverLib);
         auto& solverFn = solverLib.getFunction("solver::solverFunction");
@@ -710,7 +710,7 @@ CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, Too
         CellI& conversionToolAst2 = *new Object(w, *blueprint.m_compiledToolType);
         conversionToolAst2.set(*blueprint.m_slotId, w.ast.var(fmt::format("input_{}", blueprint.m_slotId->label())));
         fillMissingSlotsWithUnknown(conversionToolAst2, *blueprint.m_slotId, unknownX.get(w.ids.value), true);
-        SolverLib solverLib2(w, rootScope2, *missingSlotSolver, conversionToolName, conversionToolAst2, to.struct_());
+        SolverLib solverLib2(w, rootScope2, *missingSlotSolver, conversionToolName, conversionToolAst2, to.__type__());
         solverLib2.include(w.arcLib());
         compiler2.compile(solverLib2);
         auto& conversionToolFn2 = solverLib2.getFunction(fmt::format("solver::{}", conversionToolName));
@@ -727,8 +727,8 @@ CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, Too
 // ============================================================================
 CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
 {
-    CellI& inputType = from.struct_();
-    CellI& outputType = to.struct_();
+    CellI& inputType = from.__type__();
+    CellI& outputType = to.__type__();
 
     ConversionToolKey conversionToolKey(inputType, outputType);
 

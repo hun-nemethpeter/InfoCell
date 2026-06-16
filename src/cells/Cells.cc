@@ -77,14 +77,14 @@ CellI& CellI::get(CellI& key)
     return (*this)[key];
 }
 
-CellI& CellI::struct_()
+CellI& CellI::__type__()
 {
-    return (*this)[w.ids.struct_];
+    return (*this)[w.ids.__type__];
 }
 
 CellI& CellI::slotList()
 {
-    return struct_()[w.ids.slots][w.ids.list];
+    return __type__()[w.ids.slots][w.ids.list];
 }
 
 void CellI::eval()
@@ -104,7 +104,7 @@ void CellI::label(const std::string& label)
 
 bool CellI::isA(CellI& ptype)
 {
-    return &struct_() == &ptype || (has(w.ids.memberOf) && (*this)[w.ids.memberOf][w.ids.index].has(ptype));
+    return &__type__() == &ptype || (has(w.ids.memberOf) && (*this)[w.ids.memberOf][w.ids.index].has(ptype));
 }
 
 bool CellI::isA(CellI& cell, CellI& type) const
@@ -117,7 +117,7 @@ bool CellI::operator==(CellI& rhs)
     if (this == &rhs) {
         return true;
     }
-    if (&struct_() != &rhs.struct_()) {
+    if (&__type__() != &rhs.__type__()) {
         return false;
     }
 
@@ -154,14 +154,14 @@ Object::Object(World& w, CellI& type, const std::string& label) :
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.ids.struct_] = &type;
+    m_slots[&w.ids.__type__] = &type;
 }
 
 Object::Object(World& w, CellI& type, CellI& constructor, const std::string& label) :
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.ids.struct_] = &type;
+    m_slots[&w.ids.__type__] = &type;
     getMethod(constructor)();
 }
 
@@ -169,7 +169,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, const st
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.ids.struct_] = &type;
+    m_slots[&w.ids.__type__] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -180,7 +180,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param pa
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.ids.struct_] = &type;
+    m_slots[&w.ids.__type__] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -192,7 +192,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param pa
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.ids.struct_] = &type;
+    m_slots[&w.ids.__type__] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -207,7 +207,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param pa
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.ids.struct_] = &type;
+    m_slots[&w.ids.__type__] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -230,7 +230,7 @@ Object::~Object()
 
 bool Object::has(CellI& key)
 {
-    if (&key == &w.ids.struct_)
+    if (&key == &w.ids.__type__)
         return true;
 
     return m_slots.find(&key) != m_slots.end();
@@ -238,15 +238,15 @@ bool Object::has(CellI& key)
 
 void Object::set(CellI& key, CellI& value)
 {
-    if ((&key == &w.ids.struct_) && !((&struct_() == &w.std.Index))) {
+    if ((&key == &w.ids.__type__) && !((&__type__() == &w.std.Index))) {
         throw "Type change not allowed.";
     }
     if (w.initPhase() == InitPhase::Init) {
         m_slots[&key] = &value;
         return;
     }
-    auto is = [this](CellI& rhsType) -> bool { return &struct_() == &rhsType || (struct_().has(w.ids.memberOf) && struct_()[w.ids.memberOf][w.ids.index].has(rhsType)); };
-    if (is(w.std.Index) || struct_()[w.ids.slots][w.ids.index].has(key)) {
+    auto is = [this](CellI& rhsType) -> bool { return &__type__() == &rhsType || (__type__().has(w.ids.memberOf) && __type__()[w.ids.memberOf][w.ids.index].has(rhsType)); };
+    if (is(w.std.Index) || __type__()[w.ids.slots][w.ids.index].has(key)) {
         m_slots[&key] = &value;
     } else {
         throw "The type doesn't contains this key.";
@@ -255,7 +255,7 @@ void Object::set(CellI& key, CellI& value)
 
 void Object::erase(CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         throw "Type change not allowed.";
     }
 
@@ -514,7 +514,7 @@ static void evalOpActivate(CellI& self, CellI*& currentCell, CellI*& previousCel
 
         if (self.has(w.ids.parent)) {
             CellI& parent = self[w.ids.parent];
-            if (&inputCell.struct_() == &w.std.op.Return || (inputCell.has(w.ids.status) && (&inputCell[w.ids.status] == &w.ids.return_))) {
+            if (&inputCell.__type__() == &w.std.op.Return || (inputCell.has(w.ids.status) && (&inputCell[w.ids.status] == &w.ids.return_))) {
                 parent.set(w.ids.status, w.ids.return_);
                 status = &w.ids.return_;
             } else if (&parent[w.ids.status] == &w.ids.continue_ || &parent[w.ids.status] == &w.ids.break_) {
@@ -547,7 +547,7 @@ static void saveOpState(List& opStates, CellI& op)
     if (&op == &w.ids.emptyObject) {
         return;
     }
-    CellI& type      = op.struct_();
+    CellI& type      = op.__type__();
     Object& opState  = *new Object(w, w.std.OpState);
 
     opState.set(w.ids.op, op);
@@ -635,7 +635,7 @@ static void loadOpState(CellI& opState)
 {
     World& w = opState.w;
     CellI& op        = opState[w.ids.op];
-    CellI& type      = op.struct_();
+    CellI& type      = op.__type__();
     CellI& state     = opState[w.ids.state];
     CellI& value     = opState[w.ids.value];
 
@@ -661,7 +661,7 @@ static void loadOpState(CellI& opState)
     } else {
         op.set(state, value);
     }
-//    std::cout << "         set (" << &op << ")" << op.struct_().label() << "[" << state.label() << ":" << value.label() << "]" << std::endl;
+//    std::cout << "         set (" << &op << ")" << op.__type__().label() << "[" << state.label() << ":" << value.label() << "]" << std::endl;
 }
 
 static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
@@ -719,8 +719,8 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& stack      = self[w.ids.stack][w.ids.value];
 
         CellI* methodPtr = nullptr;
-        if (&self[w.ids.ast].struct_() == &w.std.ast.Call) {
-            methodPtr = &cell[w.ids.struct_][w.ids.methods];
+        if (&self[w.ids.ast].__type__() == &w.std.ast.Call) {
+            methodPtr = &cell[w.ids.__type__][w.ids.methods];
         } else {
             methodPtr = &cell[w.ids.methods];
         }
@@ -742,7 +742,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
 
         if (method.has(w.ids.localVars)) {
             CellI& localVarsList  = method[w.ids.localVars].slotList();
-            auto& localVarsIndex = *new Object(w, method[w.ids.localVars].struct_(), "StackLocalVarsIndex");
+            auto& localVarsIndex = *new Object(w, method[w.ids.localVars].__type__(), "StackLocalVarsIndex");
             Visitor::visitList(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
                 localVarsIndex.set(slot[w.ids.key], *new Object(w, w.std.op.Var));
             });
@@ -763,12 +763,12 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         previousMethod.set(w.ids.lastOp, self);
 
         if (method.has(w.ids.state) && (&method[w.ids.state] != &w.ids.stateParamInit)) {
-//            std::cout << "recursive call for " << method.struct_().label() << std::endl;
+//            std::cout << "recursive call for " << method.__type__().label() << std::endl;
             List& cellPath = *new List(w, w.std.op.Base);
             CellI& lastOp  = method[w.ids.lastOp];
             for (CellI* currentOp = &lastOp; currentOp != &method; currentOp = (*currentOp).has(w.ids.parent) ? &(*currentOp)[w.ids.parent] : &(*currentOp)[w.ids.previous]) {
                 CellI& op = *currentOp;
-//                std::cout << "         [" << op.struct_().label() << ":" << op[w.ids.state].label() << "]" << std::endl;
+//                std::cout << "         [" << op.__type__().label() << ":" << op[w.ids.state].label() << "]" << std::endl;
                 saveOpState(cellPath, op);
             }
             saveOpState(cellPath, method);
@@ -783,8 +783,8 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& methodName = self[w.ids.method][w.ids.value];
 
         CellI* methodPtr = nullptr;
-        if (&self[w.ids.ast].struct_() == &w.std.ast.Call) {
-            methodPtr = &cell[w.ids.struct_][w.ids.methods];
+        if (&self[w.ids.ast].__type__() == &w.std.ast.Call) {
+            methodPtr = &cell[w.ids.__type__][w.ids.methods];
         } else {
             methodPtr = &cell[w.ids.methods];
         }
@@ -902,7 +902,7 @@ static void evalOpIf(CellI& self, CellI*& currentCell, CellI*& previousCell)
     }
  else if (&state == &w.ids.stateThen || &state == &w.ids.stateElse) {
      CellI& branch = &state == &w.ids.stateThen ? self[w.ids.then] : self[w.ids.else_];
-     if (&branch.struct_() == &w.std.op.Return) {
+     if (&branch.__type__() == &w.std.op.Return) {
          self.set(w.ids.status, w.ids.return_);
      }
      else if (branch.has(w.ids.status)) {
@@ -931,7 +931,7 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
         self.set(w.ids.state, w.ids.stateStatement);
     } else if (&state == &w.ids.stateStatement) {
         CellI& statement = self[w.ids.statement];
-        if (&statement.struct_() == &w.std.op.Return) {
+        if (&statement.__type__() == &w.std.op.Return) {
             self.set(w.ids.status, w.ids.return_);
         }
         else if (statement.has(w.ids.status)) {
@@ -976,7 +976,7 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
         self.set(w.ids.state, w.ids.stateCondition);
     } else if (&state == &w.ids.stateStatement) {
         CellI& statement = self[w.ids.statement];
-        if (&statement.struct_() == &w.std.op.Return) {
+        if (&statement.__type__() == &w.std.op.Return) {
             self.set(w.ids.status, w.ids.return_);
         }
         else if (statement.has(w.ids.status)) {
@@ -1499,14 +1499,11 @@ void Object::operator()()
     w.ap.m_currentCell  = currentCell;
     w.ap.m_previousCell = previousCell;
     int tick = 0;
-    //    std::cout << "Object::operator()()" << std::endl;
 
     do {
         CellI& self = *currentCell;
-        CellI& type = self.struct_();
-        if (!(&type == &w.std.op.Function || (type.has(w.ids.memberOf) && type[w.ids.memberOf][w.ids.index].has(w.std.op.Function)))) {
-//            std::cout << self.struct_().label() << ":" << (self.has(w.ids.state) ? self[w.ids.state].label() : "(empty)") << std::endl;
-        }
+        CellI& type = self.__type__();
+
         if (&type == &w.std.op.Get) {
             evalOpGet(self, currentCell, previousCell);
         } else if (&type == &w.std.op.Set) {
@@ -1712,14 +1709,14 @@ CellI& Object::smethod(CellI& key, Param param1, Param param2, Param param3, Par
 
 bool Object::hasMethod(CellI& key)
 {
-    return struct_().has(w.ids.methods) && struct_()[w.ids.methods].has(w.ids.index) && struct_()[w.ids.methods][w.ids.index].has(key);
+    return __type__().has(w.ids.methods) && __type__()[w.ids.methods].has(w.ids.index) && __type__()[w.ids.methods][w.ids.index].has(key);
 }
 
 CellI& Object::getMethod(CellI& key)
 {
     resetIndent();
-    if (struct_().has(w.ids.methods)) {
-        CellI& methodsIndex = struct_()[w.ids.methods][w.ids.index];
+    if (__type__().has(w.ids.methods)) {
+        CellI& methodsIndex = __type__()[w.ids.methods][w.ids.index];
         if (methodsIndex.has(key)) {
             CellI& method = methodsIndex[key][w.ids.value];
             createStack(method);
@@ -1788,7 +1785,7 @@ void Object::initLocalVars(CellI& method)
     }
 
     CellI& localVarsList   = method[w.ids.localVars].slotList();
-    Object& localVarsIndex = *new Object(w, method[w.ids.localVars].struct_(), "LocalVarsIndex");
+    Object& localVarsIndex = *new Object(w, method[w.ids.localVars].__type__(), "LocalVarsIndex");
     CellI& stackFrame      = method[w.ids.stack][w.ids.value];
     stackFrame.set(w.ids.localVars, localVarsIndex);
     Visitor::visitList(localVarsList, [this, &localVarsIndex](CellI& slot, int i, bool&) {
@@ -1837,7 +1834,7 @@ List::Item::Item(World& w, List& list, CellI& value) :
 
 bool List::Item::has(CellI& key)
 {
-    if (&key == &w.ids.struct_ || &key == &w.ids.value) {
+    if (&key == &w.ids.__type__ || &key == &w.ids.value) {
         return true;
     }
     if (&key == &w.ids.previous && m_previous) {
@@ -1873,7 +1870,7 @@ void List::Item::operator()()
 
 CellI& List::Item::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         if (!m_selfType) {
             m_selfType = &w.getStruct(w.templateId("std::ListItem", w.ids.valueType, m_list.m_valueType));
         }
@@ -1913,7 +1910,7 @@ List::List(World& w, CellI& valueType, const std::string& label) :
 
 bool List::has(CellI& key)
 {
-    if (&key == &w.ids.struct_ || &key == &w.ids.size) {
+    if (&key == &w.ids.__type__ || &key == &w.ids.size) {
         return true;
     }
     if (&key == &w.ids.first && m_firstItem) {
@@ -1943,7 +1940,7 @@ void List::operator()()
 
 CellI& List::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         if (!m_selfType) {
             m_selfType = &w.getStruct(w.templateId("std::List", w.ids.valueType, m_valueType));
         }
@@ -2060,7 +2057,7 @@ Struct::Struct(World& w, WithRecursiveType recursiveType, const std::string& lab
 
 bool Struct::has(CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return true;
     }
     if (&key == &w.ids.name) {
@@ -2102,7 +2099,7 @@ void Struct::operator()()
 
 CellI& Struct::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return w.std.Struct;
     }
     if (&key == &w.ids.name) {
@@ -2169,7 +2166,7 @@ Index::Index(World& w, Struct& indexType, const std::string& label) :
 
 bool Index::has(CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return true;
     }
     if (m_slots.find(&key) != m_slots.end()) {
@@ -2181,7 +2178,7 @@ bool Index::has(CellI& key)
 
 void Index::set(CellI& key, CellI& value)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         throw "The type key can not be changed!";
     }
     m_slots[&key] = &value;
@@ -2203,7 +2200,7 @@ void Index::operator()()
 
 CellI& Index::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return *m_type;
     }
     auto slotIt = m_slots.find(&key);
@@ -2216,7 +2213,7 @@ CellI& Index::operator[](CellI& key)
 
 void Index::insert(CellI& key, CellI& value)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         throw "The type key can not be changed!";
     }
     m_slots[&key] = &value;
@@ -2266,7 +2263,7 @@ Map::Map(World& w, CellI& keyType, CellI& valueType, Struct& indexType, const st
 
 bool Map::has(CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return true;
     }
     if (&key == &w.ids.list) {
@@ -2299,7 +2296,7 @@ void Map::operator()()
 
 CellI& Map::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         if (!m_selfType) {
             m_selfType = &w.getStruct(w.templateId("std::Map", w.ids.keyType, m_keyType, w.ids.valueType, m_valueType));
         }
@@ -2333,7 +2330,7 @@ CellI& Map::getValue(CellI& key)
 
 void Map::add(CellI& key, CellI& value)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         throw "id.type can not be stored in a map!";
     }
     if (m_index.has(key)) {
@@ -2383,7 +2380,7 @@ TrieMap::TrieMap(World& w, CellI& keyType, CellI& valueType, const std::string& 
 
 bool TrieMap::has(CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return true;
     }
     if (&key == &w.ids.list) {
@@ -2416,7 +2413,7 @@ void TrieMap::operator()()
 
 CellI& TrieMap::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         if (!m_selfType) {
             m_selfType = &w.getStruct(w.templateId("std::TrieMap", w.ids.keyType, m_keyType, w.ids.valueType, m_valueType));
         }
@@ -2673,7 +2670,7 @@ Set::Set(World& w, CellI& valueType, const std::string& label) :
 
 bool Set::has(CellI& key)
 {
-    if (&key == &w.ids.struct_ || &key == &w.ids.size) {
+    if (&key == &w.ids.__type__ || &key == &w.ids.size) {
         return true;
     }
     if (&key == &w.ids.index) {
@@ -2700,7 +2697,7 @@ void Set::operator()()
 
 CellI& Set::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         if (!m_selfType) {
             m_selfType = &w.getStruct(w.templateId("std::Set", w.ids.valueType, m_valueType));
         }
@@ -2754,7 +2751,7 @@ int Set::size()
 
 CellI& Set::first()
 {
-    return m_index["struct"]["slots"]["list"]["first"]["value"]["key"];
+    return m_index.slotList()["first"]["value"]["key"];
 }
 
 void Set::accept(Visitor& visitor)
@@ -2772,7 +2769,7 @@ Number::Number(World& w, int value) :
 
 bool Number::has(CellI& key)
 {
-    if (&key == &w.ids.struct_ || &key == &w.ids.value) {
+    if (&key == &w.ids.__type__ || &key == &w.ids.value) {
         return true;
     }
     if (&key == &w.numbers.sign) {
@@ -2799,7 +2796,7 @@ void Number::operator()()
 
 CellI& Number::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return w.std.Number;
     }
 
@@ -2872,7 +2869,7 @@ String::String(World& w, List& list, const std::string& str) :
 
 bool String::has(CellI& key)
 {
-    if (&key == &w.ids.struct_ || &key == &w.ids.value) {
+    if (&key == &w.ids.__type__ || &key == &w.ids.value) {
         return true;
     }
     return false;
@@ -2895,7 +2892,7 @@ void String::operator()()
 
 CellI& String::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return w.std.String;
     } else if (&key == &w.ids.value) {
         if (m_characters.empty()) {
@@ -2946,7 +2943,7 @@ ActivationPointer::ActivationPointer(World& w) :
 
 bool ActivationPointer::has(CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return true;
     }
     if (&key == &w.ids.cell || &key == &w.ids.previous) {
@@ -2973,7 +2970,7 @@ void ActivationPointer::operator()()
 
 CellI& ActivationPointer::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return w.std.Color; // TODO
     }
     if (&key == &w.ids.cell) {
@@ -3109,11 +3106,11 @@ bool tryVisitWith(CellI& cell, Visitor& visitor)
 {
     World& w = cell.w;
 
-    if (&cell.struct_() == &w.std.Number) {
+    if (&cell.__type__() == &w.std.Number) {
         visitor.visit(static_cast<Number&>(cell));
         return true;
     }
-    if (&cell.struct_() == &w.std.String) {
+    if (&cell.__type__() == &w.std.String) {
         visitor.visit(static_cast<String&>(cell));
         return true;
     }

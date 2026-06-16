@@ -15,14 +15,14 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
 {
     auto& testFunction = scope.add<Function>("testFunction");
     testFunction.instructions(
-        var_("result") = new_(struct_("std::Index")));
+        var_("result") = new_(__type__("std::Index")));
 
     auto& testVariable = scope.add<Var>("testVariable");
     auto& testStruct   = scope.add<Struct>("TestStruct");
 
     testStruct.addMethod("testCreateNewListOfNumbers")
         .instructions(
-            var_("result") = new_(struct_("std::Index")),
+            var_("result") = new_(__type__("std::Index")),
             var_("result") = new_(tt_("std::List", "valueType", _(std.Number))),
             var_("result") = new_(tt_("std::List", "valueType", _(std.Cell))),
             var_("result") = new_(tt_("std::List", "valueType", _(std.Pixel))),
@@ -51,7 +51,7 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
 
     scope.add<Enum>("TestEnumTyped")
         .values(
-            tev_("value1", struct_("TestStruct")), // init with value
+            tev_("value1", __type__("TestStruct")), // init with value
             tev_("value2", "TestStruct"));
 
     scope.add<Enum>("TestEnumTypedWithValues")

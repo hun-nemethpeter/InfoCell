@@ -1772,7 +1772,7 @@ public:
 
     bool has(CellI& key) override
     {
-        if (&key == &w.ids.struct_) {
+        if (&key == &w.ids.__type__) {
             return true;
         }
         if (&key == &w.coordinates.x) {
@@ -1802,7 +1802,7 @@ public:
 
     CellI& operator[](CellI& key) override
     {
-        if (&key == &w.ids.struct_) {
+        if (&key == &w.ids.__type__) {
             static CellI& VectorStruct = w.getStruct("arc::Vector");
 
             return VectorStruct;
@@ -1844,7 +1844,7 @@ public:
 
     bool has(CellI& key) override
     {
-        if (&key == &w.ids.struct_) {
+        if (&key == &w.ids.__type__) {
             return true;
         }
         if (&key == &w.name("externalEdgeLine")) {
@@ -1877,7 +1877,7 @@ public:
 
     CellI& operator[](CellI& key) override
     {
-        if (&key == &w.ids.struct_) {
+        if (&key == &w.ids.__type__) {
             return w.std.Cell; // TODO
         }
         if (&key == &w.name("externalEdgeLine")) {
@@ -1928,7 +1928,7 @@ public:
 
     bool has(CellI& key) override
     {
-        if (&key == &w.ids.struct_) {
+        if (&key == &w.ids.__type__) {
             return true;
         }
         if (&key == &w.ids.width) {
@@ -1961,7 +1961,7 @@ public:
 
     CellI& operator[](CellI& key) override
     {
-        if (&key == &w.ids.struct_) {
+        if (&key == &w.ids.__type__) {
             return w.std.Cell; // TODO
         }
         if (&key == &w.ids.width) {

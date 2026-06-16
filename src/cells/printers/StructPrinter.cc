@@ -84,9 +84,9 @@ void CellStructPrinter::printImpl(CellI& cell)
 {
     const bool needId = false;
     World& w = cell.w;
-    auto is           = [this, &cell, &w](CellI& type) -> bool { return &cell.struct_() == &type || (cell.struct_().has(w.ids.memberOf) && cell.struct_()[w.ids.memberOf][w.ids.index].has(type)); };
+    auto is           = [this, &cell, &w](CellI& type) -> bool { return &cell.__type__() == &type || (cell.__type__().has(w.ids.memberOf) && cell.__type__()[w.ids.memberOf][w.ids.index].has(type)); };
 
-    CellI& type   = cell.struct_();
+    CellI& type   = cell.__type__();
     if (&type == &w.std.Struct) {
         if (!cell.label().empty()) {
             m_ss << cell.label() << ": ";
@@ -101,11 +101,11 @@ void CellStructPrinter::printImpl(CellI& cell)
     }
 
     if (is(w.std.List)) {
-        m_ss << "List<" << cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "List<" << cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
     } else if (is(w.std.ListItem)) {
-        m_ss << "ListItem<" << cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "ListItem<" << cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
     } else if (is(w.std.Map)) {
-        m_ss << "Map<" << cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.keyType][w.ids.value].label() << ", " << cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "Map<" << cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.keyType][w.ids.value].label() << ", " << cell.__type__()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
     } else {
         m_ss << "(" << type.label() << ")";
     }

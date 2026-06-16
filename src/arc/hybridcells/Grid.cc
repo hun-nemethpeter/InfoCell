@@ -71,7 +71,7 @@ Grid::Grid(World& w, nativearc::Grid& grid) :
 
 bool Grid::has(CellI& key)
 {
-    if (&key == &w.ids.struct_ || &key == &w.ids.width || &key == &w.ids.height || &key == &w.ids.pixels || &key == &w.ids.pixelsMap) {
+    if (&key == &w.ids.__type__ || &key == &w.ids.width || &key == &w.ids.height || &key == &w.ids.pixels || &key == &w.ids.pixelsMap) {
         return true;
     }
 
@@ -94,7 +94,7 @@ void Grid::operator()()
 
 CellI& Grid::operator[](CellI& key)
 {
-    if (&key == &w.ids.struct_) {
+    if (&key == &w.ids.__type__) {
         return w.std.Grid;
     }
     if (&key == &w.ids.width) {

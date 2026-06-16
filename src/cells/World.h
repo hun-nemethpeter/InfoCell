@@ -26,6 +26,7 @@ class ID
 public:
     ID(World& w);
 
+    List __type__;
     List argument;
     List ast;
     List asts;
@@ -115,7 +116,6 @@ public:
     List stateThen;
     List static_;
     List status;
-    List struct_;
     List structs;
     List structType;
     List typeAliases;
@@ -418,7 +418,7 @@ public:
     Ast::Cell& _(const std::string& id);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
-    Ast::StructName& struct_(const std::string& name);
+    Ast::StructName& __type__(const std::string& name);
 
 public:
     World(std::function<void()> loggerLevelInit = []() {});
@@ -525,7 +525,7 @@ List& World::list(CellI& value, Args&&... args)
 template <typename... Args>
 Map& World::map(CellI& key, CellI& value, Args&&... args)
 {
-    Map& ret = *new Map(*this, key.struct_(), value.struct_(), fmt::format("Map<{}, {}>(...)", key.struct_().label(), value.struct_().label()));
+    Map& ret = *new Map(*this, key.__type__(), value.__type__(), fmt::format("Map<{}, {}>(...)", key.__type__().label(), value.__type__().label()));
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
     }
@@ -536,7 +536,7 @@ Map& World::map(CellI& key, CellI& value, Args&&... args)
 template <typename... Args>
 Set& World::set(CellI& value, Args&&... args)
 {
-    Set& ret = *new Set(*this, value.struct_(), fmt::format("Map<{}, {}>(...)", value.struct_().label()));
+    Set& ret = *new Set(*this, value.__type__(), fmt::format("Map<{}, {}>(...)", value.__type__().label()));
     if constexpr (sizeof...(Args) > 0) {
         ret.add(std::forward<Args>(args)...);
     }

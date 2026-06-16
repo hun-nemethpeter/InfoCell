@@ -26,7 +26,7 @@ bool Shape::has(CellI& role)
     static CellI& name_edges         = w.name("edges");
     static CellI& name_internalEdges = w.name("internalEdges");
 
-    if (&role == &w.ids.struct_) {
+    if (&role == &w.ids.__type__) {
         return true;
     }
     if (&role == &w.ids.id) {
@@ -118,7 +118,7 @@ CellI& Shape::operator[](CellI& role)
     static CellI& name_edges         = w.name("edges");
     static CellI& name_internalEdges = w.name("internalEdges");
 
-    if (&role == &w.ids.struct_) {
+    if (&role == &w.ids.__type__) {
         return ShapeStruct;
     }
     if (&role == &w.ids.id) {

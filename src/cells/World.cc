@@ -13,6 +13,7 @@ namespace cells {
 
 ID::ID(World& w) :
     w(w),
+    __type__(w, w.std.Char, "__type__"),
     argument(w, w.std.Char, "argument"),
     ast(w, w.std.Char, "ast"),
     asts(w, w.std.Char, "asts"),
@@ -102,7 +103,6 @@ ID::ID(World& w) :
     stateThen(w, w.std.Char, "stateThen"),
     static_(w, w.std.Char, "static_"),
     status(w, w.std.Char, "status"),
-    struct_(w, w.std.Char, "struct"),
     structs(w, w.std.Char, "structs"),
     structType(w, w.std.Char, "structType"),
     typeAliases(w, w.std.Char, "typeAliases"),
@@ -406,6 +406,7 @@ Pools::Strings::Strings(World& w) :
     w(w)
 {
     StringInit reservedStrings[] = {
+        { "__type__", w.ids.__type__ },
         { "argument", w.ids.argument },
         { "ast", w.ids.ast },
         { "asts", w.ids.asts },
@@ -491,7 +492,6 @@ Pools::Strings::Strings(World& w) :
         { "stateThen", w.ids.stateThen },
         { "static_", w.ids.static_ },
         { "status", w.ids.status },
-        { "struct", w.ids.struct_ },
         { "structs", w.ids.structs },
         { "structType", w.ids.structType },
         { "typeAliases", w.ids.typeAliases },
@@ -565,7 +565,7 @@ Ast::Cell& World::_(const std::string& nameStr)
     return ast.cell(name(nameStr));
 }
 
-Ast::StructName& World::struct_(const std::string& nameStr)
+Ast::StructName& World::__type__(const std::string& nameStr)
 {
     return ast.structName(nameStr);
 }
