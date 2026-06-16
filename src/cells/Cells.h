@@ -36,12 +36,10 @@ public:
     bool missing(const std::string& key);
     CellI& get(const std::string& key);
 
-    CellI& call(CellI& method);
-    CellI& call(CellI& method, CellI& param1Role, CellI& param1Value);
-
     bool missing(CellI& key);
     CellI& get(CellI& key);
     CellI& struct_();
+    CellI& slotList();
     void eval();
 
     std::string label() const;

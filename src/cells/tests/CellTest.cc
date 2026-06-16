@@ -842,8 +842,8 @@ TEST_F(CellTest, FunctionTypes)
 {
     CellI& function = w.std.Struct[ids.methods][ids.index][w.name("addSlot")][ids.value];
     printAs.cell(function.struct_(), "function");
-    printAs.cell(function.struct_()[ids.typeAliases][ids.index][ids.localVars][ids.value], "function[ids.typeAliases][ids.localVars][ids.value]");
-    printAs.value(function.struct_()[ids.typeAliases][ids.index][ids.localVars][ids.value], "function[ids.typeAliases][ids.localVars][ids.value]");
+    printAs.cell(function[ids.localVars], "function[ids.localVars]");
+    printAs.value(function[ids.localVars], "function[ids.localVars]");
 }
 
 TEST_F(CellTest, HybridGrid)

@@ -118,11 +118,18 @@ void StdLibAst::createOp()
     opScope.add<Struct>("Function")
         .members(
             member("ast", "ast::Base"),
-            member("stack", "Stack"),
+            member("name", "std::Cell"),
+            member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "std::Slot")),
+            member("localVars", "std::Index"),
+            member("returnType", "std::Cell"),
+            member("objectType", "std::Cell"),
+            member("lastOp", tt_("std::List", "valueType", "Base")),
             member("op", tt_("std::List", "valueType", "Base")),
-            member("state", "std::Cell"),
             member("previous", "std::Cell"),
-            member("static_", "std::Boolean"));
+            member("stack", "Stack"),
+            member("state", "std::Cell"),
+            member("static_", "std::Boolean"),
+            member("value", "std::Cell"));
 
     opScope.add<Struct>("Get")
         .members(

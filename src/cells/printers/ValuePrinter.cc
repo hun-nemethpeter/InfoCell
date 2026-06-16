@@ -153,33 +153,32 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     World& w = cell.w;
     std::stringstream iss;
     std::stringstream oss;
-    CellI& inputOutputTypesIndex = cell.struct_()[w.ids.typeAliases][w.ids.index];
-    bool hasReturnValue  = false;
-    if (inputOutputTypesIndex.has(w.ids.parameters)) {
-        CellI& inType       = inputOutputTypesIndex[w.ids.parameters][w.ids.value];
-        if (inType.has(w.ids.slots)) {
-            Visitor::visitList(inType[w.ids.slots][w.ids.list], [this, &iss, &w](CellI& slot, int i, bool& stop) {
-                if (i > 0) {
-                    iss << ", ";
-                }
-                if (&slot[w.ids.key] != &w.ids.self) {
-                    iss << "p_";
-                }
-                iss << slot[w.ids.key].label() << ": " << slot[w.ids.type].label();
-            });
-        }
+
+    if (cell.has(w.ids.parameters)) {
+        CellI& parametersList = cell[w.ids.parameters][w.ids.list];
+        Visitor::visitList(parametersList, [this, &iss, &w](CellI& slot, int i, bool& stop) {
+            if (i > 0) {
+                iss << ", ";
+            }
+            if (&slot[w.ids.key] != &w.ids.self) {
+                iss << "p_";
+            }
+            iss << slot[w.ids.key].label() << ": " << slot[w.ids.type].label();
+        });
     }
-    if (inputOutputTypesIndex.has(w.ids.returnType)) {
-        CellI& outType = inputOutputTypesIndex[w.ids.returnType][w.ids.value];
-        hasReturnValue      = true;
+    bool hasReturnValue = false;
+    if (cell.has(w.ids.returnType)) {
+        CellI& outType = cell[w.ids.returnType];
+        hasReturnValue = true;
         oss << outType.label();
     }
-    const std::string& className = inputOutputTypesIndex.has(w.ids.objectType) ? inputOutputTypesIndex[w.ids.objectType][w.ids.value].label() : "";
+    const std::string& className = cell.has(w.ids.objectType) ? cell[w.ids.objectType].label() : "";
     std::string label            = className;
     if (!className.empty()) {
         label += "::";
     }
-    label += inputOutputTypesIndex[w.ids.name][w.ids.value].label();
+    label += cell[w.ids.name].label();
+
     bool isStatic = cell.has(w.ids.static_);
     std::string staticStr = isStatic ? "static " : "";
     std::string newLabel;
@@ -815,7 +814,7 @@ void CellValuePrinter::printImpl(CellI& cell)
     m_ss << cell.struct_().label() << " { ";
 
     if (cell.struct_().has(w.ids.slots)) {
-        visitList(cell.struct_()[w.ids.slots][w.ids.list], [this, &w](CellI& slot, int i, bool&) {
+        visitList(cell.slotList(), [this, &w](CellI& slot, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }

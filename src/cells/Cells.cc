@@ -6,7 +6,6 @@
 #pragma warning(disable : 4996)
 #include <utf8.h>
 
-
 namespace infocell {
 namespace cells {
 using InitPhase = World::InitPhase;
@@ -83,6 +82,11 @@ CellI& CellI::struct_()
     return (*this)[w.ids.struct_];
 }
 
+CellI& CellI::slotList()
+{
+    return struct_()[w.ids.slots][w.ids.list];
+}
+
 void CellI::eval()
 {
     return (*this)();
@@ -116,25 +120,23 @@ bool CellI::operator==(CellI& rhs)
     if (&struct_() != &rhs.struct_()) {
         return false;
     }
-    CellI& slotList    = struct_()[w.ids.slots][w.ids.list];
-    CellI* slotItemPtr = slotList.has(w.ids.first) ? &slotList[w.ids.first] : nullptr;
-    while (slotItemPtr) {
-        CellI& slotItem = *slotItemPtr;
-        CellI& slot     = slotItem[w.ids.value];
-        CellI& key      = slot[w.ids.key];
+
+    bool ret = true;
+    Visitor::visitList(slotList(), [this, &rhs, &ret](CellI& slot, int i, bool& stop) {
+        CellI& key = slot[w.ids.key];
 
         bool hasLeftSlot = has(key);
         if (hasLeftSlot != rhs.has(key)) {
-            return false;
+            ret = false;
+            return;
         }
         if (hasLeftSlot && (&(*this)[key] != &rhs[key])) {
-            return false;
+            ret = false;
+            return;
         }
+    });
 
-        slotItemPtr = slotItem.has(w.ids.next) ? &slotItem[w.ids.next] : nullptr;
-    }
-
-    return true;
+    return ret;
 }
 
 bool CellI::operator!=(CellI& rhs)
@@ -738,16 +740,15 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         }
         stackFrame.set(w.ids.input, inputIndex);
 
-        if (method.struct_()[w.ids.typeAliases][w.ids.index].has(w.ids.localVars)) {
-            CellI& localVarsList  = method.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value][w.ids.slots][w.ids.list];
-            Index& localVarsIndex = *new Index(w /*, method.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value] */);
-            if (method.struct_()[w.ids.typeAliases][w.ids.index].has(w.ids.localVars)) {
-                Visitor::visitList(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
-                    localVarsIndex.set(slot[w.ids.key], *new Object(w, w.std.op.Var));
-                });
-                stackFrame.set(w.ids.localVars, localVarsIndex);
-            }
+        if (method.has(w.ids.localVars)) {
+            CellI& localVarsList  = method[w.ids.localVars].slotList();
+            auto& localVarsIndex = *new Object(w, method[w.ids.localVars].struct_(), "StackLocalVarsIndex");
+            Visitor::visitList(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
+                localVarsIndex.set(slot[w.ids.key], *new Object(w, w.std.op.Var));
+            });
+            stackFrame.set(w.ids.localVars, localVarsIndex);
         }
+
         CellI& newStackListItem = *new Object(w, w.std.ListItem);
         newStackListItem.set(w.ids.value, stackFrame);
         newStackListItem.set(w.ids.previous, stack);
@@ -847,7 +848,7 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
             previousStackNode.erase(w.ids.next);
             delete &inputIndex;
             if (stackFrame.has(w.ids.localVars)) {
-                CellI& localVarsList  = self.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value][w.ids.slots][w.ids.list];
+                CellI& localVarsList  = self[w.ids.localVars].slotList();
                 CellI& localVarsIndex = stackFrame[w.ids.localVars];
                 Visitor::visitList(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
                     delete &localVarsIndex[slot[w.ids.key]];
@@ -1524,7 +1525,7 @@ void Object::operator()()
             evalOpActivate(self, currentCell, previousCell);
         } else if (&type == &w.std.op.Call) {
             evalOpCall(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Function || (type.has(w.ids.memberOf) && type[w.ids.memberOf][w.ids.index].has(w.std.op.Function))) {
+        } else if (&type == &w.std.op.Function) {
             if (s_debugFunctionCalls && (self.missing(w.ids.state) || (&self[w.ids.state] == &w.ids.stateParamInit))) {
                 printIndent();
                 s_indent++;
@@ -1768,7 +1769,7 @@ void Object::clearStack(CellI& method)
     CellI* stackListItem0 = &(*stackListItem1)["previous"];
     CellI* stackFrame     = &(*stackListItem1)["value"];
     CellI* inputIndex     = &(*stackFrame)["input"];
-    if (method.struct_()["typeAliases"]["index"].has("localVars")) {
+    if (method.has("localVars")) {
         CellI* localVarsIndex = &(*stackFrame)["localVars"];
         delete localVarsIndex;
         // TODO
@@ -1782,14 +1783,15 @@ void Object::clearStack(CellI& method)
 
 void Object::initLocalVars(CellI& method)
 {
-    if (method.struct_()[w.ids.typeAliases][w.ids.index].missing(w.ids.localVars)) {
+    if (method.missing(w.ids.localVars)) {
         return;
     }
-    CellI& localVarsType   = method.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value];
-    Object& localVarsIndex = *new Object(w, localVarsType, "LocalVarsIndex");
+
+    CellI& localVarsList   = method[w.ids.localVars].slotList();
+    Object& localVarsIndex = *new Object(w, method[w.ids.localVars].struct_(), "LocalVarsIndex");
     CellI& stackFrame      = method[w.ids.stack][w.ids.value];
     stackFrame.set(w.ids.localVars, localVarsIndex);
-    Visitor::visitList(localVarsType[w.ids.slots][w.ids.list], [this, &localVarsIndex](CellI& slot, int i, bool&) {
+    Visitor::visitList(localVarsList, [this, &localVarsIndex](CellI& slot, int i, bool&) {
         auto& key        = slot[w.ids.key];
         Object& localVar = *new Object(w, w.std.op.Var, fmt::format("var {}", key.label()));
         localVar.set(w.ids.valueType, slot[w.ids.type]);
@@ -1799,7 +1801,7 @@ void Object::initLocalVars(CellI& method)
 
 CellI& Object::getFnValue(CellI& method)
 {
-    if (method.struct_()[w.ids.typeAliases][w.ids.index].has(w.ids.returnType)) {
+    if (method.has(w.ids.returnType)) {
         return method[w.ids.value];
     }
 
@@ -1813,8 +1815,8 @@ void Object::setSelf(CellI& method)
 
 void Object::setFnParam(CellI& fn, Param param)
 {
-    if (fn.struct_()[w.ids.typeAliases][w.ids.index][w.ids.parameters][w.ids.value].has(w.ids.slots)) {
-        CellI& inputsIndex = fn.struct_()[w.ids.typeAliases][w.ids.index][w.ids.parameters][w.ids.value][w.ids.slots][w.ids.index];
+    if (fn.has(w.ids.parameters)) {
+        CellI& inputsIndex = fn[w.ids.parameters][w.ids.index];
         if (inputsIndex.has(param.key)) {
             fn[w.ids.stack][w.ids.value][w.ids.input].set(param.key, param.value);
         } else {
@@ -2503,8 +2505,7 @@ CellI& TrieMap::getValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    CellI& test = key.struct_();
-    Visitor::visitList(key.struct_()[w.ids.slots][w.ids.list], [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+    Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
         CellI& keyItem  = key[slot[w.ids.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.ids.children)) {
@@ -2534,7 +2535,7 @@ void TrieMap::addWithDataKey(CellI& key, CellI& value)
 {
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key.struct_()[w.ids.slots][w.ids.list], [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+    Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
         CellI& keyItem = key[slot[w.ids.key]];
         CellI* child = nullptr;
         if (currentNode->missing(w.ids.children)) {

@@ -1426,7 +1426,7 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
     if (scope.has("functions")) {
         Visitor::visitList(resolvedScope.items<Ast::Function>()[w.ids.list], [this](CellI& function, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(function[w.ids.value]);
-            auto& compiledFunction     = compileFunction(astFunction);
+            auto& compiledFunction = compileFunction(astFunction);
             compiledFunctions().add(getFullyQualifiedName(astFunction), compiledFunction);
         });
     }
@@ -1602,32 +1602,17 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
 
 CellI& Compiler::compileFunction(Ast::Function& astFunction)
 {
-    // TODO hack!
-    // find a better way to create type during compilation
-    cells::Object& functionType = *new cells::Object(w, w.std.Struct);
-    functionType.set("memberOf", w.map(w.std.Struct, w.std.Struct, w.std.op.Function, w.std.op.Function));
-    cells::Map& inputOutputTypes = w.map(w.std.Cell, w.std.Struct,
-                                    w.ids.name, astFunction.get("name"));
-    if (astFunction.has("structType")) {
-        Ast::Struct& currentStruct = static_cast<Ast::Struct&>(*m_currentStruct);
-        auto& structType           = astFunction.get("structType");
-        inputOutputTypes.add(w.ids.objectType, structType["compiledStruct"]);
+    cells::Object& compiledFunction = *new cells::Object(w, w.std.op.Function);
+    compiledFunction.set(w.ids.name, astFunction.get(w.ids.name));
+
+    // is this function a method?
+    if (astFunction.has(w.ids.structType)) {
+        auto& currentStruct = static_cast<Ast::Struct&>(*m_currentStruct);
+        auto& structType    = astFunction.get(w.ids.structType);
+        compiledFunction.set(w.ids.objectType, structType["compiledStruct"]);
     }
-    functionType.set(w.ids.typeAliases, inputOutputTypes);
+    compileFunctionParams(astFunction, compiledFunction);
 
-    Map& functionSlots = w.slots(
-        w.std.slot(w.ids.ast, w.std.ast.Base),
-        w.std.slot(w.ids.state, w.std.Cell),
-        w.std.slot(w.ids.previous, w.std.Cell),
-        w.std.slot(w.ids.stack, w.std.Stack),
-        w.std.slot(w.ids.lastOp, w.std.op.Base),
-        w.std.slot(w.ids.op, w.ListOf(w.std.op.Base)),
-        w.std.slot(w.ids.static_, w.std.Boolean));
-    functionType.set(w.ids.slots, functionSlots);
-
-    cells::Object& compiledFunction = *new cells::Object(w, functionType);
-    compileFunctionParams(astFunction, compiledFunction, functionSlots, inputOutputTypes);
-    functionType.label(fmt::format("Type for {}", compiledFunction.label()));
     compiledFunction.set(w.ids.ast, astFunction);
     compiledFunction.set(w.ids.op, compileFunctionAst(astFunction, astFunction.instructions(), compiledFunction));
     if (astFunction.has(w.ids.static_)) {
@@ -1635,6 +1620,47 @@ CellI& Compiler::compileFunction(Ast::Function& astFunction)
     }
 
     return compiledFunction;
+}
+
+void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction)
+{
+    std::stringstream iss;
+    std::stringstream oss;
+    std::string structTypeStr;
+    if (astFunction.has("parameters") || astFunction.has("structType")) {
+        Map& parameters = *new Map(w, w.std.Cell, w.std.Slot);
+        if (astFunction.has("structType")) {
+            CellI& type = astFunction.get("structType");
+            Object& var = *new Object(w, w.std.op.Var, "self");
+            var.set("valueType", type);
+            parameters.add(w.ids.self, w.std.slot("self", type));
+            structTypeStr = fmt::format("{}::", type.label());
+        }
+        if (astFunction.has(w.ids.parameters)) {
+            Visitor::visitList(astFunction.parameters(), [this, &parameters, &iss](CellI& slot, int i, bool& stop) {
+                if (i > 0) {
+                    iss << ", ";
+                }
+                auto& key          = slot[w.ids.key];
+                auto& type         = slot[w.ids.type];
+                auto& compiledType = getCompiledTypeFromResolvedType(type);
+                iss << "p_" << key.label() << ": " << compiledType.label();
+                parameters.add(key, w.std.slot(key, compiledType));
+            });
+        }
+        compiledFunction.set(w.ids.parameters, parameters);
+    }
+    if (astFunction.has(w.ids.returnType)) {
+        auto& astReturnType      = astFunction.returnType();
+        auto& compiledReturnType = getCompiledTypeFromResolvedType(astReturnType);
+        oss << compiledReturnType.label();
+        compiledFunction.set(w.ids.returnType, compiledReturnType);
+    }
+    if (astFunction.has(w.ids.returnType)) {
+        compiledFunction.label(fmt::format("fn {}{}({}) -> {}", structTypeStr, astFunction.get(w.ids.name).label(), iss.str(), oss.str()));
+    } else {
+        compiledFunction.label(fmt::format("fn {}{}({})", structTypeStr, astFunction.get(w.ids.name).label(), iss.str()));
+    }
 }
 
 std::string Compiler::shortFunctionName(Ast::Function& function)
@@ -1658,50 +1684,6 @@ std::string Compiler::shortFunctionName(Ast::Function& function)
         return fmt::format("fn {}({}) -> {}", function.get(w.ids.name).label(), iss.str(), oss.str());
     } else {
         return fmt::format("fn {}({})", function.get(w.ids.name).label(), iss.str());
-    }
-}
-
-void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction, cells::Map& functionSlots, cells::Map& inputOutputTypes)
-{
-    std::stringstream iss;
-    std::stringstream oss;
-    std::string structTypeStr;
-    if (astFunction.has("parameters") || astFunction.has("structType")) {
-        cells::Object& parametersType = *new cells::Object(w, w.std.Struct);
-        Map& slots                    = *new Map(w, w.std.Cell, w.std.Slot);
-        if (astFunction.has("structType")) {
-            CellI& type = astFunction.get("structType");
-            Object& var = *new Object(w, w.std.op.Var, "self");
-            var.set("valueType", type);
-            slots.add(w.ids.self, w.std.slot("self", type));
-            structTypeStr = fmt::format("{}::", type.label());
-        }
-        if (astFunction.has(w.ids.parameters)) {
-            Visitor::visitList(astFunction.parameters(), [this, &slots, &iss](CellI& slot, int i, bool& stop) {
-                if (i > 0) {
-                    iss << ", ";
-                }
-                auto& key              = slot[w.ids.key];
-                auto& type             = slot[w.ids.type];
-                auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
-                iss << "p_" << key.label() << ": " << compiledSlotType.label();
-                slots.add(key, w.std.slot(key, compiledSlotType));
-            });
-        }
-        parametersType.set(w.ids.slots, slots);
-        inputOutputTypes.add(w.ids.parameters, parametersType);
-    }
-    if (astFunction.has(w.ids.returnType)) {
-        auto& astReturnType      = astFunction.returnType();
-        auto& compiledReturnType = getCompiledTypeFromResolvedType(astReturnType);
-        oss << compiledReturnType.label();
-        inputOutputTypes.add(w.ids.returnType, compiledReturnType);
-        functionSlots.add(w.ids.value, compiledReturnType);
-    }
-    if (astFunction.has(w.ids.returnType)) {
-        compiledFunction.label(fmt::format("fn {}{}({}) -> {}", structTypeStr, astFunction.get(w.ids.name).label(), iss.str(), oss.str()));
-    } else {
-        compiledFunction.label(fmt::format("fn {}{}({})", structTypeStr, astFunction.get(w.ids.name).label(), iss.str()));
     }
 }
 
@@ -1804,19 +1786,19 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         }
         return retOp;
     } else if (&ast.struct_() == &w.std.ast.Var) {
-        if (function.struct_()[w.ids.typeAliases][w.ids.index].missing(w.ids.localVars)) {
-            cells::Object& functionLocalVarsType = *new cells::Object(w, w.std.Struct, fmt::format("LocalVarsType of {}", function.label()));
-            functionLocalVarsType.set(w.ids.memberOf, w.map(w.std.Struct, w.std.Struct, w.std.Index, w.std.Index));
-            static_cast<Map&>(function.struct_()[w.ids.typeAliases]).add(w.ids.localVars, functionLocalVarsType);
+        Index* localVarsIndexPtr = nullptr;
+        if (function.missing(w.ids.localVars)) {
+            localVarsIndexPtr = new Index(w, fmt::format("LocalVarsIndex of {}", function.label()));
+            function.set(w.ids.localVars, *localVarsIndexPtr);
+        } else {
+            localVarsIndexPtr = &static_cast<Index&>(function[w.ids.localVars]);
         }
-        CellI& localVarsType = function.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value];
-        if (localVarsType.missing(w.ids.slots)) {
-            localVarsType.set(w.ids.slots, *new Map(w, w.std.Cell, w.std.Slot));
+
+        Index &localVarsIndex = *localVarsIndexPtr;
+        if (!localVarsIndex.has(ast[w.ids.name])) {
+            localVarsIndex.insert(ast[w.ids.name], w.std.slot(ast[w.ids.name], w.std.op.Var));
         }
-        auto& slotsMap = static_cast<Map&>(localVarsType[w.ids.slots]);
-        if (!slotsMap.hasKey(ast[w.ids.name])) {
-            slotsMap.add(ast[w.ids.name], w.std.slot(ast[w.ids.name], w.std.op.Var));
-        }
+
         CellI& retOp = compile(w.ast.get(_(function), _(w.ids.stack)) / _(w.ids.value) / _(w.ids.localVars) / _(ast[w.ids.name]));
         retOp.set(w.ids.ast, ast);
         return retOp;

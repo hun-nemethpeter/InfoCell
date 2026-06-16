@@ -36,7 +36,7 @@ bool ToolFinder::empty()
 // ============================================================================
 CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
 {
-    CellI& slotList    = effectAst.struct_()[w.ids.slots][w.ids.list];
+    CellI& slotList    = effectAst.slotList();
     CellI* slotItemPtr = slotList.has(w.ids.first) ? &slotList[w.ids.first] : nullptr;
     List& ret          = *new List(w, w.std.Cell);
     ret.label(effectAst.label());
@@ -86,7 +86,7 @@ CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
                 stack.push({ current, *slotItemPtr });
                 first       = true;
                 currentPtr  = &value;
-                slotItemPtr = &value.struct_()[w.ids.slots][w.ids.list][w.ids.first];
+                slotItemPtr = &value.slotList()[w.ids.first];
                 continue;
             }
         }
@@ -204,7 +204,7 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
     std::deque<Context> stack;
 
     Node* currentNode  = m_root.get();
-    CellI& slotList    = effect.struct_()[w.ids.slots][w.ids.list];
+    CellI& slotList    = effect.slotList();
     CellI* slotItemPtr = slotList.has(w.ids.first) ? &slotList[w.ids.first] : nullptr;
     bool first         = true;
     CellI* currentPtr  = &effect;
@@ -260,7 +260,7 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
                 stack.push_back({ current, *slotItemPtr });
                 first       = true;
                 currentPtr  = &value;
-                slotItemPtr = &value.struct_()[w.ids.slots][w.ids.list][w.ids.first];
+                slotItemPtr = &value.slotList()[w.ids.first];
                 continue;
             }
         }
@@ -391,7 +391,7 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
                 if (opKey == &w.ids.push) {
                     stack.push({ .effectAst = *effectAstPtr, .slotItem = *slotItemPtr });
                     effectAstPtr = &(*effectAstPtr)[key];
-                    slotItemPtr  = &value.struct_()[w.ids.slots][w.ids.list][w.ids.first];
+                    slotItemPtr  = &value.slotList()[w.ids.first];
                     node         = nextNode;
                     slotKind     = SlotKind::StructSlot;
                     return true;
@@ -441,7 +441,7 @@ CellI* ToolFinder::findToolByEffectAst(CellI& effectAst)
 // ============================================================================
 CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& outputEffectAst)
 {
-    CellI& slotList         = inputEffectAst.struct_()[w.ids.slots][w.ids.list];
+    CellI& slotList         = inputEffectAst.slotList();
     FindContext findContext = {
         .trieNode     = m_root.get(),
         .slotList     = &slotList,
@@ -472,7 +472,7 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
             newEffectAst.set(w.ids.lhs, *findContext.expressionToolPtr);
             createTool(newEffectAst, w.ids.rhs, inputEffectAst, *findContext.trieNode->m_data);
 
-            CellI& newSlotList = newEffectAst.struct_()[w.ids.slots][w.ids.list];
+            CellI& newSlotList = newEffectAst.slotList();
 
             findContext.trieNode     = m_root.get();
             findContext.slotList     = &newSlotList;
@@ -618,7 +618,7 @@ void ToolFinder::printCb(Node* node)
 static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot, CellI& unknownX, bool forConversion = false)
 {
     World& w = tool.w;
-    CellI& slotList  = tool.struct_()[w.ids.slots][w.ids.list];
+    CellI& slotList  = tool.slotList();
     Visitor::visitList(slotList, [&w, &tool, &filledSlot, &unknownX, forConversion](CellI& slot, int i, bool& stop) {
         CellI& slotType = slot[w.ids.type];
         CellI& slotKey = slot[w.ids.key];
