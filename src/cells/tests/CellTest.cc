@@ -117,14 +117,14 @@ TEST_F(CellTest, ToolFinderTestForSet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     // test the pixel.set(green, 5)
-    Object& pixel           = *new Object(w, w.std.Color, "pixel");
-    CellI& requestForSetGet = *new Object(w, w.std.ast.Get);
-    requestForSetGet.set(w.id.cell, w.ast.cell(pixel));
-    requestForSetGet.set(w.id.key, w.ast.cell(w.id.green));
+    Object& pixel           = *new Object(w, std.Color, "pixel");
+    CellI& requestForSetGet = *new Object(w, std.ast.Get);
+    requestForSetGet.set(id.cell, w.ast.cell(pixel));
+    requestForSetGet.set(id.key, w.ast.cell(id.green));
 
-    CellI& requestForSet = *new Object(w, w.std.ast.Equal, "pixel.get(green) == 5");
-    requestForSet.set(w.id.lhs, requestForSetGet);
-    requestForSet.set(w.id.rhs, w.ast.cell(w._5_));
+    CellI& requestForSet = *new Object(w, std.ast.Equal, "pixel.get(green) == 5");
+    requestForSet.set(id.lhs, requestForSetGet);
+    requestForSet.set(id.rhs, w.ast.cell(w._5_));
 
     CellI& requestForSetAstList = toolFinder.serializeEffectAst(requestForSet);
     {
@@ -137,27 +137,27 @@ TEST_F(CellTest, ToolFinderTestForSet)
 
     CellI& resultToolAst = *toolFinder.findToolByEffectAst(requestForSet);
 
-    EXPECT_EQ(&resultToolAst.__type__(), &w.std.ast.Set);
-    EXPECT_EQ(&resultToolAst[w.id.cell].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.cell][w.id.value], &pixel);
-    EXPECT_EQ(&resultToolAst[w.id.key].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.key][w.id.value], &w.id.green);
-    EXPECT_EQ(&resultToolAst[w.id.value].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.value][w.id.value], &w._5_);
+    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
+    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.cell][id.value], &pixel);
+    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.green);
+    EXPECT_EQ(&resultToolAst[id.value].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.value][id.value], &w._5_);
 }
 
 TEST_F(CellTest, ToolFinderTestForGet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
-    Object& pixel                 = *new Object(w, w.std.Color, "pixel");
+    Object& pixel                 = *new Object(w, std.Color, "pixel");
 
     // test the return get(x, y)
-    CellI& requestForGetGet = *new Object(w, w.std.ast.Get);
-    requestForGetGet.set(w.id.cell, w.ast.cell(pixel));
-    requestForGetGet.set(w.id.key, w.ast.cell(w.id.green));
+    CellI& requestForGetGet = *new Object(w, std.ast.Get);
+    requestForGetGet.set(id.cell, w.ast.cell(pixel));
+    requestForGetGet.set(id.key, w.ast.cell(id.green));
 
-    CellI& requestForGet = *new Object(w, w.std.ast.Return, "return pixel.get(green)");
-    requestForGet.set(w.id.value, requestForGetGet);
+    CellI& requestForGet = *new Object(w, std.ast.Return, "return pixel.get(green)");
+    requestForGet.set(id.value, requestForGetGet);
 
     CellI& requestForGetAstList = toolFinder.serializeEffectAst(requestForGet);
     {
@@ -175,10 +175,10 @@ TEST_F(CellTest, ToolFinderTestForGet)
 #if 0 // TODO
     CellI& resultToolAst    = *toolFinder.findToolByAst(requestForGet);
 
-    EXPECT_EQ(&resultToolAst.struct_(), &w.std.ast.Get);
-    EXPECT_EQ(&resultToolAst[w.ids.cell].struct_(), &w.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst.struct_(), &std.ast.Get);
+    EXPECT_EQ(&resultToolAst[w.ids.cell].struct_(), &std.ast.Cell);
     EXPECT_EQ(&resultToolAst[w.ids.cell][w.ids.value], &pixel);
-    EXPECT_EQ(&resultToolAst[w.ids.key].struct_(), &w.std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[w.ids.key].struct_(), &std.ast.Cell);
     EXPECT_EQ(&resultToolAst[w.ids.key][w.ids.value], &w.ids.green);
 #endif
 }
@@ -190,20 +190,20 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     // currentTheme is a test structure to be able to test a nested get. So instead of pixel.get(green) we can replace the "green" node with "currentTheme / std.Color" so we can write
     // currentTheme.get(std.Color).get(green) == 5
     Index currentTheme(w, "currentTheme");
-    currentTheme.set(w.std.Color, w.id.green);
+    currentTheme.set(std.Color, id.green);
 
     // test the return currentTheme.get(std.Color).get(green) == 5
-    CellI& requestForSetWithGetGetGet = *new Object(w, w.std.ast.Get, "currentTheme.get(std.Color)");
-    requestForSetWithGetGetGet.set(w.id.cell, w.ast.cell(currentTheme));
-    requestForSetWithGetGetGet.set(w.id.key, w.ast.cell(w.std.Color));
+    CellI& requestForSetWithGetGetGet = *new Object(w, std.ast.Get, "currentTheme.get(std.Color)");
+    requestForSetWithGetGetGet.set(id.cell, w.ast.cell(currentTheme));
+    requestForSetWithGetGetGet.set(id.key, w.ast.cell(std.Color));
 
-    CellI& requestForSetWithGetGet = *new Object(w, w.std.ast.Get, "currentTheme.get(std.Color).get(green)");
-    requestForSetWithGetGet.set(w.id.cell, requestForSetWithGetGetGet);
-    requestForSetWithGetGet.set(w.id.key, w.ast.cell(w.id.green));
+    CellI& requestForSetWithGetGet = *new Object(w, std.ast.Get, "currentTheme.get(std.Color).get(green)");
+    requestForSetWithGetGet.set(id.cell, requestForSetWithGetGetGet);
+    requestForSetWithGetGet.set(id.key, w.ast.cell(id.green));
 
-    CellI& requestForSetWithGet = *new Object(w, w.std.ast.Equal, "currentTheme.get(std.Color).get(green) == 5");
-    requestForSetWithGet.set(w.id.lhs, requestForSetWithGetGet);
-    requestForSetWithGet.set(w.id.rhs, w.ast.cell(w._5_));
+    CellI& requestForSetWithGet = *new Object(w, std.ast.Equal, "currentTheme.get(std.Color).get(green) == 5");
+    requestForSetWithGet.set(id.lhs, requestForSetWithGetGet);
+    requestForSetWithGet.set(id.rhs, w.ast.cell(w._5_));
 
     CellI& requestForSetWithGetAstList = toolFinder.serializeEffectAst(requestForSetWithGet);
     {
@@ -216,16 +216,16 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
 
     CellI& resultToolAst = *toolFinder.findToolByEffectAst(requestForSetWithGet);
 
-    EXPECT_EQ(&resultToolAst.__type__(), &w.std.ast.Set);
-    EXPECT_EQ(&resultToolAst[w.id.cell].__type__(), &w.std.ast.Get);
-    EXPECT_EQ(&resultToolAst[w.id.cell][w.id.cell].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.cell][w.id.cell][w.id.value], &currentTheme);
-    EXPECT_EQ(&resultToolAst[w.id.cell][w.id.key].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.cell][w.id.key][w.id.value], &w.std.Color);
-    EXPECT_EQ(&resultToolAst[w.id.key].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.key][w.id.value], &w.id.green);
-    EXPECT_EQ(&resultToolAst[w.id.value].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.value][w.id.value], &w._5_);
+    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
+    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Get);
+    EXPECT_EQ(&resultToolAst[id.cell][id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.cell][id.cell][id.value], &currentTheme);
+    EXPECT_EQ(&resultToolAst[id.cell][id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.cell][id.key][id.value], &std.Color);
+    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.green);
+    EXPECT_EQ(&resultToolAst[id.value].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.value][id.value], &w._5_);
     std::cout << "";
 }
 
@@ -273,7 +273,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
 
 #if 1 // TODO
             // test x + 2 = 4 => equal(add(get(x, value), 2)), 4)
-            Base& ast = equal(add(_(x) / _(w.id.value), _(_2_)), _(_4_));
+            Base& ast = equal(add(_(x) / _(id.value), _(_2_)), _(_4_));
 #else
             // test 2 + x = 4 => equal(add(2, get(x, value))), 4)
             Base& ast = equal(add(_(_2_), _(x) / _(w.ids.value)), _(_4_));
@@ -297,17 +297,17 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
 
     CellI& resultToolAst = *toolFinder.findToolByEffectAst(request);
 
-    // set(_(x), _(w.id.value), subtract(_(4), _(2)))
-    EXPECT_EQ(&resultToolAst.__type__(), &w.std.ast.Set);
-    EXPECT_EQ(&resultToolAst[w.id.cell].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.cell][w.id.value], &varX);
-    EXPECT_EQ(&resultToolAst[w.id.key].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.key][w.id.value], &w.id.value);
-    EXPECT_EQ(&resultToolAst[w.id.value].__type__(), &w.std.ast.Subtract);
-    EXPECT_EQ(&resultToolAst[w.id.value][w.id.lhs].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.value][w.id.lhs][w.id.value], &_4_);
-    EXPECT_EQ(&resultToolAst[w.id.value][w.id.rhs].__type__(), &w.std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.id.value][w.id.rhs][w.id.value], &_2_);
+    // set(_(x), _(id.value), subtract(_(4), _(2)))
+    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
+    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.cell][id.value], &varX);
+    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.value);
+    EXPECT_EQ(&resultToolAst[id.value].__type__(), &std.ast.Subtract);
+    EXPECT_EQ(&resultToolAst[id.value][id.lhs].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.value][id.lhs][id.value], &_4_);
+    EXPECT_EQ(&resultToolAst[id.value][id.rhs].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.value][id.rhs][id.value], &_2_);
 }
 
 TEST_F(CellTest, Numbers)
@@ -325,7 +325,7 @@ TEST_F(CellTest, Numbers)
 
     CellI& number_123 = toCellNumber(1234567890);
     EXPECT_EQ(&number_123[w.numbers.sign], &w.numbers.positive);
-    List& number_123_digits = static_cast<List&>(number_123[w.id.value]);
+    List& number_123_digits = static_cast<List&>(number_123[id.value]);
     EXPECT_EQ(number_123_digits.size(), 10);
     EXPECT_EQ(&number_123_digits["first"]["value"], &digit_1);
     EXPECT_EQ(&number_123_digits["first"]["next"]["value"], &digit_2);
@@ -340,22 +340,22 @@ TEST_F(CellTest, Numbers)
 
     CellI& number_minus_123 = toCellNumber(-123);
     EXPECT_EQ(&number_minus_123[w.numbers.sign], &w.numbers.negative);
-    List& number_minus_123_digits = static_cast<List&>(number_123[w.id.value]);
+    List& number_minus_123_digits = static_cast<List&>(number_123[id.value]);
     // TODO
 }
 
 TEST_F(CellTest, PrintStdCodes)
 {
 #if 1
-    auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, w.std.Number));
-    auto& ListStruct     = getStruct(w.templateId("std::List", id.valueType, w.std.Number));
-    auto& MapStruct      = getStruct(w.templateId("std::Map", id.keyType, w.std.Cell, id.valueType, w.std.Slot));
-    auto& TrieMapStruct  = getStruct(w.templateId("std::TrieMap", id.keyType, w.std.Number, id.valueType, w.std.Color));
-    auto& SetStruct      = getStruct(w.templateId("std::Set", id.valueType, w.std.Number));
+    auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, std.Number));
+    auto& ListStruct     = getStruct(w.templateId("std::List", id.valueType, std.Number));
+    auto& MapStruct      = getStruct(w.templateId("std::Map", id.keyType, std.Cell, id.valueType, std.Slot));
+    auto& TrieMapStruct  = getStruct(w.templateId("std::TrieMap", id.keyType, std.Number, id.valueType, std.Color));
+    auto& SetStruct      = getStruct(w.templateId("std::Set", id.valueType, std.Number));
     auto& IndexStruct    = getStruct("std::Index");
     auto& Struct         = getStruct("std::Struct");
 
-    EXPECT_EQ(&Struct, &w.std.Struct);
+    EXPECT_EQ(&Struct, &std.Struct);
 
     printAs.value(ListItemStruct);
     printMethodInType(ListItemStruct, "constructor");
@@ -445,8 +445,8 @@ TEST_F(CellTest, RecursiveCall)
 {
     auto& TestStruct = getStruct("test::TestStruct");
     Object testNumber(w, TestStruct, "testNumber");
-    CellI& TestStructMethodsIndex = testNumber.__type__()[w.id.methods][w.id.index];
-    CellI& factorialMethod        = TestStructMethodsIndex[w.name("factorial")][w.id.value];
+    CellI& TestStructMethodsIndex = testNumber.__type__()[id.methods][id.index];
+    CellI& factorialMethod        = TestStructMethodsIndex[w.name("factorial")][id.value];
 
     EXPECT_EQ(&testNumber.method(w.name("factorial"), { id.input, _0_ }), &_1_);
     EXPECT_EQ(&testNumber.method(w.name("factorial"), { id.input, _1_ }), &_1_);
@@ -468,7 +468,7 @@ TEST_F(CellTest, RecursiveCall)
 
 TEST_F(CellTest, List)
 {
-    auto& ListStruct = getStruct(w.templateId("std::List", id.valueType, w.std.Number));
+    auto& ListStruct = getStruct(w.templateId("std::List", id.valueType, std.Number));
     Object list(w, ListStruct, w.name("constructor"));
 
     printAs.value(list);
@@ -477,7 +477,7 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list.method(w.name("size")), &_0_);
     auto& aaaa = list.method(w.name("empty"));
     EXPECT_EQ(&list.method(w.name("empty")), &true_);
-    EXPECT_EQ(&list.__type__()[id.typeAliases][w.id.index][id.valueType][w.id.value], &w.std.Number);
+    EXPECT_EQ(&list.__type__()[id.typeAliases][id.index][id.valueType][id.value], &std.Number);
     EXPECT_FALSE(list.has(id.first));
     EXPECT_FALSE(list.has(id.last));
 
@@ -571,7 +571,7 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list[id.size], &_0_);
     EXPECT_EQ(&list.method(w.name("size")), &_0_);
     EXPECT_EQ(&list.method(w.name("empty")), &true_);
-    EXPECT_EQ(&list.__type__()[id.typeAliases][w.id.index][id.valueType][w.id.value], &w.std.Number);
+    EXPECT_EQ(&list.__type__()[id.typeAliases][id.index][id.valueType][id.value], &std.Number);
     EXPECT_FALSE(list.has(id.first));
     EXPECT_FALSE(list.has(id.last));
     printAs.value(list);
@@ -582,7 +582,7 @@ TEST_F(CellTest, List)
 
 TEST_F(CellTest, Map)
 {
-    auto& MapStruct = getStruct(w.templateId("std::Map", id.keyType, w.std.Cell, id.valueType, w.std.Slot));
+    auto& MapStruct = getStruct(w.templateId("std::Map", id.keyType, std.Cell, id.valueType, std.Slot));
     Object map(w, MapStruct, w.name("constructor"));
 
     printAs.value(map);
@@ -590,41 +590,41 @@ TEST_F(CellTest, Map)
     EXPECT_EQ(&map[id.size], &_0_);
     EXPECT_EQ(&map.method(w.name("size")), &_0_);
     EXPECT_EQ(&map.method(w.name("empty")), &true_);
-    EXPECT_EQ(&map.__type__()[id.typeAliases][w.id.index][id.keyType][w.id.value], &w.std.Cell);
-    EXPECT_EQ(&map.__type__()[id.typeAliases][w.id.index][id.valueType][w.id.value], &w.std.Slot);
+    EXPECT_EQ(&map.__type__()[id.typeAliases][id.index][id.keyType][id.value], &std.Cell);
+    EXPECT_EQ(&map.__type__()[id.typeAliases][id.index][id.valueType][id.value], &std.Slot);
 
-    map.method(w.name("add"), { id.key, _1_ }, { id.value, w.id.red });
+    map.method(w.name("add"), { id.key, _1_ }, { id.value, id.red });
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[id.size], &_1_);
     EXPECT_EQ(&map.method(w.name("size")), &_1_);
     EXPECT_EQ(&map[id.list][id.size], &_1_);
-    EXPECT_EQ(&map[id.list][id.first][id.value], &w.id.red);
+    EXPECT_EQ(&map[id.list][id.first][id.value], &id.red);
     EXPECT_EQ(&map[id.list][id.first], &map[id.list][id.last]);
     EXPECT_TRUE(map[id.index].has(_1_));
-    EXPECT_EQ(&map[id.index][_1_][id.value], &w.id.red);
+    EXPECT_EQ(&map[id.index][_1_][id.value], &id.red);
     EXPECT_EQ(&map.method(w.name("empty")), &false_);
-    EXPECT_TRUE(map[id.index][id.__type__][id.memberOf][id.index].has(w.std.Index));
+    EXPECT_TRUE(map[id.index][id.__type__][id.memberOf][id.index].has(std.Index));
 
-    map.method(w.name("add"), { id.key, _2_ }, { id.value, w.id.green });
-    map.method(w.name("add"), { id.key, _3_ }, { id.value, w.id.blue });
-    EXPECT_EQ(&map[id.index][_1_][id.value], &w.id.red);
-    EXPECT_EQ(&map[id.index][_2_][id.value], &w.id.green);
-    EXPECT_EQ(&map[id.index][_3_][id.value], &w.id.blue);
+    map.method(w.name("add"), { id.key, _2_ }, { id.value, id.green });
+    map.method(w.name("add"), { id.key, _3_ }, { id.value, id.blue });
+    EXPECT_EQ(&map[id.index][_1_][id.value], &id.red);
+    EXPECT_EQ(&map[id.index][_2_][id.value], &id.green);
+    EXPECT_EQ(&map[id.index][_3_][id.value], &id.blue);
     printAs.value(map);
     printAs.cell(map);
 }
 
 TEST_F(CellTest, MapTypes)
 {
-    auto& MapStruct = getStruct(w.templateId("std::Map", id.keyType, w.std.Cell, id.valueType, w.std.Slot));
+    auto& MapStruct = getStruct(w.templateId("std::Map", id.keyType, std.Cell, id.valueType, std.Slot));
     Object map(w, MapStruct, w.name("constructor"));
 
     printAs.value(map.__type__());
     printAs.value(map[id.list].__type__());
     printAs.value(map[id.index], "map[ids.index]");
     printAs.value(map[id.index].__type__(), "map[ids.index].struct_()");
-    map.method(w.name("add"), { id.key, _1_ }, { id.value, w.id.red });
+    map.method(w.name("add"), { id.key, _1_ }, { id.value, id.red });
     printAs.value(map[id.index], "map[ids.index]");
     printAs.value(map[id.index].__type__(), "map[ids.index].struct_()");
     printAs.cell(map[id.index].__type__()[id.slots], "map[ids.index].struct_()[ids.slots]");
@@ -637,21 +637,21 @@ TEST_F(CellTest, BuiltInType)
     std::string testTypeName = "Test1234";
     Struct type(w, testTypeName);
 
-    EXPECT_EQ(&type[id.__type__], &w.std.Struct);
+    EXPECT_EQ(&type[id.__type__], &std.Struct);
     EXPECT_EQ(&type[id.name], &w.name(testTypeName));
     EXPECT_EQ(&type[id.name], &w.name(testTypeName)); // query twice to trigger cache
 }
 
 TEST_F(CellTest, BuiltInMap)
 {
-    Map map(w, w.std.Number, w.std.Color);
+    Map map(w, std.Number, std.Color);
 
     printAs.value(map.__type__());
     printAs.value(map[id.list].__type__());
     printAs.cell(map[id.index], "map[ids.index]");
     printAs.value(map[id.index], "map[ids.index]");
     printAs.value(map[id.index].__type__(), "map[ids.index].struct_()");
-    map.add(_1_, w.id.red);
+    map.add(_1_, id.red);
     printAs.value(map, "map");
     printAs.cell(map[id.index], "map[ids.index]");
     printAs.value(map[id.index], "map[ids.index]");
@@ -661,7 +661,7 @@ TEST_F(CellTest, BuiltInMap)
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.size], &_1_);
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.list][id.size], &_1_);
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index][_1_][id.value][id.key], &_1_);
-    EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index][_1_][id.value][id.type], &w.std.Slot);
+    EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index][_1_][id.value][id.type], &std.Slot);
 
     EXPECT_TRUE(map[id.index].__type__().has(id.slots));
     EXPECT_TRUE(map[id.index].__type__()[id.slots].has(id.index));
@@ -676,7 +676,7 @@ TEST_F(CellTest, BuiltInMap)
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.size], &_1_);
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index][_1_][id.value][id.key], &_1_);
     CellI& debug = map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index][_1_][id.value][id.type];
-    EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index][_1_][id.value][id.type], &w.std.Slot);
+    EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index][_1_][id.value][id.type], &std.Slot);
     printAs.value(map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index]");
     printAs.value(map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index].__type__(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_()");
 
@@ -686,7 +686,7 @@ TEST_F(CellTest, BuiltInMap)
 
 TEST_F(CellTest, MapTemplateTypes)
 {
-    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, w.std.Number, id.valueType, w.std.Color));
+    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, std.Color));
     Object map(w, MapNumberToColor, w.name("constructor"));
 
     printAs.value(map.__type__());
@@ -694,7 +694,7 @@ TEST_F(CellTest, MapTemplateTypes)
     printAs.cell(map[id.index], "map[ids.index]");
     printAs.value(map[id.index], "map[ids.index]");
     printAs.value(map[id.index].__type__(), "map[ids.index].struct_()");
-    map.method(w.name("add"), { id.key, _1_ }, { id.value, w.id.red });
+    map.method(w.name("add"), { id.key, _1_ }, { id.value, id.red });
     printAs.value(map, "map");
     printAs.cell(map[id.index], "map[ids.index]");
     printAs.value(map[id.index], "map[ids.index]");
@@ -705,7 +705,7 @@ TEST_F(CellTest, MapTemplateTypes)
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.list][id.size], &_1_);
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index][_1_][id.value][id.key], &_1_);
     CellI& debug2 = map[id.index].__type__()[id.slots][id.index][_1_][id.value][id.type];
-    EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index][_1_][id.value][id.type], &w.std.Slot);
+    EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index][_1_][id.value][id.type], &std.Slot);
 
     EXPECT_TRUE(map[id.index].__type__().has(id.slots));
     EXPECT_TRUE(map[id.index].__type__()[id.slots].has(id.index));
@@ -720,18 +720,18 @@ TEST_F(CellTest, MapTemplateTypes)
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.size], &_1_);
     EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index][_1_][id.value][id.key], &_1_);
     CellI& debug = map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index][_1_][id.value][id.type];
-    EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index][_1_][id.value][id.type], &w.std.Slot);
+    EXPECT_EQ(&map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index][_1_][id.value][id.type], &std.Slot);
     printAs.value(map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index], "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index]");
     printAs.value(map[id.index].__type__()[id.slots][id.index].__type__()[id.slots][id.index].__type__(), "map[ids.index].struct_()[ids.slots][ids.index].struct_()[ids.slots][ids.index].struct_()");
 }
 
 TEST_F(CellTest, MapNumberToColor)
 {
-    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, w.std.Number, id.valueType, w.std.Color));
+    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, std.Color));
     Object map(w, MapNumberToColor, w.name("constructor"));
 
-    EXPECT_EQ(&map.__type__()[id.typeAliases][w.id.index][id.keyType][w.id.value], &w.std.Number);
-    EXPECT_EQ(&map.__type__()[id.typeAliases][w.id.index][id.valueType][w.id.value], &w.std.Color);
+    EXPECT_EQ(&map.__type__()[id.typeAliases][id.index][id.keyType][id.value], &std.Number);
+    EXPECT_EQ(&map.__type__()[id.typeAliases][id.index][id.valueType][id.value], &std.Color);
 
     printAs.value(map);
     printAs.cell(map);
@@ -739,37 +739,37 @@ TEST_F(CellTest, MapNumberToColor)
     EXPECT_EQ(&map.method(w.name("size")), &_0_);
     EXPECT_EQ(&map.method(w.name("empty")), &true_);
 
-    map.method(w.name("add"), { id.key, _1_}, { id.value, w.id.red });
+    map.method(w.name("add"), { id.key, _1_}, { id.value, id.red });
     printAs.value(map);
     printAs.cell(map);
     EXPECT_EQ(&map[id.size], &_1_);
     EXPECT_EQ(&map.method(w.name("size")), &_1_);
     EXPECT_EQ(&map[id.list][id.size], &_1_);
-    EXPECT_EQ(&map[id.list][id.first][id.value], &w.id.red);
+    EXPECT_EQ(&map[id.list][id.first][id.value], &id.red);
     EXPECT_EQ(&map[id.list][id.first], &map[id.list][id.last]);
     EXPECT_TRUE(map[id.index].has(_1_));
-    EXPECT_EQ(&map[id.index][_1_][id.value], &w.id.red);
+    EXPECT_EQ(&map[id.index][_1_][id.value], &id.red);
     EXPECT_EQ(&map.method(w.name("empty")), &false_);
-    EXPECT_TRUE(map[id.index][id.__type__][id.memberOf][id.index].has(w.std.Index));
+    EXPECT_TRUE(map[id.index][id.__type__][id.memberOf][id.index].has(std.Index));
 
-    map.method(w.name("add"), { id.key, _2_ }, { id.value, w.id.green });
-    map.method(w.name("add"), { id.key, _3_ }, { id.value, w.id.blue });
-    EXPECT_EQ(&map[id.index][_1_][id.value], &w.id.red);
-    EXPECT_EQ(&map[id.index][_2_][id.value], &w.id.green);
-    EXPECT_EQ(&map[id.index][_3_][id.value], &w.id.blue);
+    map.method(w.name("add"), { id.key, _2_ }, { id.value, id.green });
+    map.method(w.name("add"), { id.key, _3_ }, { id.value, id.blue });
+    EXPECT_EQ(&map[id.index][_1_][id.value], &id.red);
+    EXPECT_EQ(&map[id.index][_2_][id.value], &id.green);
+    EXPECT_EQ(&map[id.index][_3_][id.value], &id.blue);
     printAs.value(map);
     printAs.cell(map);
 }
 
 TEST_F(CellTest, ListItem)
 {
-    auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, w.std.Color));
-    Object listItem(w, ListItemStruct, w.name("constructor"), { id.value, w.id.green });
+    auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, std.Color));
+    Object listItem(w, ListItemStruct, w.name("constructor"), { id.value, id.green });
 
-    EXPECT_EQ(&listItem[id.value], &w.id.green);
+    EXPECT_EQ(&listItem[id.value], &id.green);
 
     EXPECT_EQ(&listItem.__type__()[id.memberOf][id.size], &_1_);
-    EXPECT_TRUE(listItem.__type__()[id.memberOf][id.index].has(w.std.ListItem));
+    EXPECT_TRUE(listItem.__type__()[id.memberOf][id.index].has(std.ListItem));
 
     EXPECT_EQ(&listItem.__type__()[id.slots][id.size], &_3_);
     EXPECT_TRUE(listItem.__type__()[id.slots][id.index].has(id.previous));
@@ -781,18 +781,18 @@ TEST_F(CellTest, ListItem)
 
 TEST_F(CellTest, ListItemTemplate)
 {
-    auto& ListItemNumber  = getStruct(w.templateId("std::ListItem", id.valueType, w.std.Number));
+    auto& ListItemNumber  = getStruct(w.templateId("std::ListItem", id.valueType, std.Number));
     Object listItemNumber(w, ListItemNumber, w.name("constructor"), { id.value, _1_ });
 
     EXPECT_EQ(&listItemNumber[id.value], &_1_);
 
-    printAs.value(w.std.ListItem, "type.ListItem");
+    printAs.value(std.ListItem, "type.ListItem");
     printAs.value(ListItemNumber, "listItemNumber");
-    printAs.value(w.std.ListItem[id.slots][id.list], "type.ListItem[slots]");
+    printAs.value(std.ListItem[id.slots][id.list], "type.ListItem[slots]");
     printAs.value(ListItemNumber[id.slots][id.list], "listItemNumber[slots]");
 
     EXPECT_EQ(&ListItemNumber[id.memberOf][id.size], &_1_);
-    EXPECT_TRUE(ListItemNumber[id.memberOf][id.index].has(w.std.ListItem));
+    EXPECT_TRUE(ListItemNumber[id.memberOf][id.index].has(std.ListItem));
 
     EXPECT_EQ(&ListItemNumber[id.slots][id.size], &_3_);
     EXPECT_TRUE(ListItemNumber[id.slots][id.index].has(id.previous));
@@ -804,17 +804,17 @@ TEST_F(CellTest, ListItemTemplate)
 
 TEST_F(CellTest, ListTemplate)
 {
-    auto& ListOfNumbers = getStruct(w.templateId("std::List", id.valueType, w.std.Number));
+    auto& ListOfNumbers = getStruct(w.templateId("std::List", id.valueType, std.Number));
 
     EXPECT_EQ(&ListOfNumbers[id.typeAliases][id.size], &_2_);
     EXPECT_TRUE(ListOfNumbers[id.typeAliases][id.index].has(id.valueType));
-    EXPECT_EQ(&ListOfNumbers[id.typeAliases][id.index][id.valueType][id.value], &w.std.Number);
+    EXPECT_EQ(&ListOfNumbers[id.typeAliases][id.index][id.valueType][id.value], &std.Number);
     EXPECT_TRUE(ListOfNumbers[id.typeAliases][id.index].has(id.itemType));
     CellI& ListItemType = ListOfNumbers[id.typeAliases][id.index][id.itemType][id.value];
-    EXPECT_EQ(&ListItemType[id.slots][id.index][id.value][id.value][id.type], &w.std.Number);
-    EXPECT_NE(&ListItemType, &w.std.ListItem);
+    EXPECT_EQ(&ListItemType[id.slots][id.index][id.value][id.value][id.type], &std.Number);
+    EXPECT_NE(&ListItemType, &std.ListItem);
     EXPECT_EQ(&ListItemType[id.memberOf][id.size], &_1_);
-    EXPECT_TRUE(ListItemType[id.memberOf][id.index].has(w.std.ListItem));
+    EXPECT_TRUE(ListItemType[id.memberOf][id.index].has(std.ListItem));
 
     EXPECT_EQ(&ListItemType[id.slots][id.size], &_3_);
     EXPECT_TRUE(ListItemType[id.slots][id.index].has(id.previous));
@@ -829,18 +829,18 @@ TEST_F(CellTest, ListTemplate)
     EXPECT_EQ(&ListOfNumbers[id.slots][id.index][id.last][id.value][id.type], &ListItemType);
 
     EXPECT_TRUE(ListOfNumbers[id.slots][id.index].has(id.size));
-    EXPECT_EQ(&ListOfNumbers[id.slots][id.index][id.size][id.value][id.type], &w.std.Number);
+    EXPECT_EQ(&ListOfNumbers[id.slots][id.index][id.size][id.value][id.type], &std.Number);
 
-    EXPECT_TRUE(ListOfNumbers[id.memberOf][id.index].has(w.std.List));
+    EXPECT_TRUE(ListOfNumbers[id.memberOf][id.index].has(std.List));
     EXPECT_EQ(&ListOfNumbers[id.memberOf][id.size], &_2_);
 
-    printAs.value(w.std.List, "type.List");
+    printAs.value(std.List, "type.List");
     printAs.value(ListOfNumbers, "ListOfNumbers");
 }
 
 TEST_F(CellTest, FunctionTypes)
 {
-    CellI& function = w.std.Struct[id.methods][id.index][w.name("addSlot")][id.value];
+    CellI& function = std.Struct[id.methods][id.index][w.name("addSlot")][id.value];
     printAs.cell(function.__type__(), "function");
     printAs.cell(function[id.localVars], "function[ids.localVars]");
     printAs.value(function[id.localVars], "function[ids.localVars]");
@@ -854,12 +854,12 @@ TEST_F(CellTest, HybridGrid)
 
     printAs.value(grid[id.pixels]);
 
-    EXPECT_EQ(&grid[id.__type__], &w.std.Grid);
+    EXPECT_EQ(&grid[id.__type__], &std.Grid);
     EXPECT_EQ(&grid[id.width], &w.pools.numbers.get(3));
     EXPECT_EQ(&grid[id.height], &w.pools.numbers.get(3));
-    EXPECT_EQ(&grid[id.pixels][id.__type__], &w.ListOf(w.std.Pixel));
+    EXPECT_EQ(&grid[id.pixels][id.__type__], &w.ListOf(std.Pixel));
 
-    auto& ListOfPixels  = getStruct(w.templateId("std::List", id.valueType, w.std.Pixel));
+    auto& ListOfPixels  = getStruct(w.templateId("std::List", id.valueType, std.Pixel));
     Object listOfPixels(w, ListOfPixels, w.name("constructor"), "listOfPixels");
     listOfPixels.method(w.name("add"), { id.value, grid[id.pixels][id.first][id.value] });
     listOfPixels.method(w.name("add"), { id.value, grid[id.pixels][id.first][id.next][id.value] });
@@ -869,15 +869,15 @@ TEST_F(CellTest, HybridGrid)
 TEST_F(CellTest, BasicObjectTest)
 {
     auto& Type_ = getStruct("std::Struct");
-    auto& List = getStruct(w.templateId("std::List", id.valueType, w.std.Cell));
+    auto& List = getStruct(w.templateId("std::List", id.valueType, std.Cell));
     Object testType(w, Type_, "Test");
     Object emptyList(w, List, w.name("constructor"));
 
     testType.method(w.name("addSlots"), { id.list, emptyList });
 
     testType.method(w.name("addSlots"), { id.list, w.list(
-        w.std.slot(id.result, w.std.Digit),
-        w.std.slot(id.value, w.std.Number))}); // TODO implement type checking
+        std.slot(id.result, std.Digit),
+        std.slot(id.value, std.Number))}); // TODO implement type checking
 
     Object object(w, testType, "testObject");
 
@@ -892,17 +892,17 @@ TEST_F(CellTest, BasicObjectTest)
 
 TEST_F(CellTest, BasicControlOpTest)
 {
-    Object testValue1(w, w.std.op.ConstVar);
-    testValue1.set(id.value, w.std.Char);
+    Object testValue1(w, std.op.ConstVar);
+    testValue1.set(id.value, std.Char);
 
-    Object testValue2(w, w.std.op.ConstVar);
-    testValue2.set(id.value, w.std.Color);
+    Object testValue2(w, std.op.ConstVar);
+    testValue2.set(id.value, std.Color);
 
-    Object sameOpEq(w, w.std.op.Same, "sameOpEq");
+    Object sameOpEq(w, std.op.Same, "sameOpEq");
     sameOpEq.set(id.lhs, testValue1);
     sameOpEq.set(id.rhs, testValue1);
 
-    Object sameOpNe(w, w.std.op.Same, "sameOpNe");
+    Object sameOpNe(w, std.op.Same, "sameOpNe");
     sameOpNe.set(id.lhs, testValue1);
     sameOpNe.set(id.rhs, testValue2);
 
@@ -918,13 +918,13 @@ TEST_F(CellTest, BasicControlOpTest)
 
 TEST_F(CellTest, BasicControlAddTest)
 {
-    Object start(w, w.std.op.ConstVar);
+    Object start(w, std.op.ConstVar);
     start.set(id.value, w.pools.numbers.get(42));
 
-    Object value10(w, w.std.op.ConstVar);
+    Object value10(w, std.op.ConstVar);
     value10.set(id.value, w.pools.numbers.get(10));
 
-    Object add10(w, w.std.op.Add, "add10");
+    Object add10(w, std.op.Add, "add10");
     add10.set(id.lhs, start);
     add10.set(id.rhs, value10);
     add10();
@@ -936,18 +936,18 @@ TEST_F(CellTest, BasicControlAddTest)
 
 TEST_F(CellTest, CreatingCustomType)
 {
-    Object colorRed(w, w.std.Cell, "red");
-    Object colorGreen(w, w.std.Cell, "green");
-    Object colorBlue(w, w.std.Cell, "blue");
+    Object colorRed(w, std.Cell, "red");
+    Object colorGreen(w, std.Cell, "green");
+    Object colorBlue(w, std.Cell, "blue");
 
-    Object colorClass(w, w.std.Struct, "Color");
+    Object colorClass(w, std.Struct, "Color");
 #if 1 // TODO
-    auto& MapCellToSlot = getStruct(w.templateId("std::Map", id.keyType, w.std.Cell, id.valueType, w.std.Slot));
+    auto& MapCellToSlot = getStruct(w.templateId("std::Map", id.keyType, std.Cell, id.valueType, std.Slot));
     Object* slotMapPtr  = new Object(w, MapCellToSlot, w.name("constructor"));
     colorClass.set(id.slots, *slotMapPtr);
 #endif
 
-    colorClass.method(w.name("addSlots"), { id.list, w.list(w.std.slot(colorRed, w.std.Number), w.std.slot(colorGreen, w.std.Number), w.std.slot(colorBlue, w.std.Number)) });
+    colorClass.method(w.name("addSlots"), { id.list, w.list(std.slot(colorRed, std.Number), std.slot(colorGreen, std.Number), std.slot(colorBlue, std.Number)) });
 
     Object redColor(w, colorClass, "redColor");
     redColor.set(colorRed, w.pools.numbers.get(255));
@@ -961,10 +961,10 @@ TEST_F(CellTest, CreatingCustomType)
     EXPECT_TRUE(colorClass[id.slots][id.index].has(colorGreen));
     EXPECT_TRUE(colorClass[id.slots][id.index].has(colorBlue));
     printAs.value(colorClass[id.slots][id.index][colorRed][id.__type__], "colorClass slot of colorRed");
-    EXPECT_EQ(&colorClass[id.slots][id.index][colorRed][id.value][id.__type__], &w.std.Slot);
-    EXPECT_EQ(&colorClass[id.slots][id.index][colorRed][id.value][id.__type__], &w.std.Slot);
-    EXPECT_EQ(&colorClass[id.slots][id.index][colorGreen][id.value][id.__type__], &w.std.Slot);
-    EXPECT_EQ(&colorClass[id.slots][id.index][colorBlue][id.value][id.__type__], &w.std.Slot);
+    EXPECT_EQ(&colorClass[id.slots][id.index][colorRed][id.value][id.__type__], &std.Slot);
+    EXPECT_EQ(&colorClass[id.slots][id.index][colorRed][id.value][id.__type__], &std.Slot);
+    EXPECT_EQ(&colorClass[id.slots][id.index][colorGreen][id.value][id.__type__], &std.Slot);
+    EXPECT_EQ(&colorClass[id.slots][id.index][colorBlue][id.value][id.__type__], &std.Slot);
     printAs.value(redColor);
 
     printAs.cell(redColor);
@@ -997,7 +997,7 @@ TEST_F(CellTest, CreatingNumber)
 
 TEST_F(CellTest, NextgenList)
 {
-    List list(w, w.std.Number);
+    List list(w, std.Number);
     EXPECT_FALSE(list.has(id.first));
     EXPECT_FALSE(list.has(id.last));
     EXPECT_EQ(&list[id.size], &_0_);
@@ -1065,8 +1065,8 @@ TEST_F(CellTest, NextgenList)
 
 TEST_F(CellTest, NextgenType)
 {
-    Map map(w, w.std.Number, w.std.Color);
-    map.add(_1_, w.id.blue);
+    Map map(w, std.Number, std.Color);
+    map.add(_1_, id.blue);
     printAs.value(map, "Map<Number, Color>");
 
     printAs.value(map[id.index][id.__type__][id.slots][id.list], "map[ids.index][ids.type][ids.slots][ids.list]");
@@ -1076,14 +1076,14 @@ TEST_F(CellTest, NextgenType)
     EXPECT_EQ(&map[id.index][id.__type__], &map[id.index][id.__type__][id.slots][id.index][id.__type__]);
 
     Index index(w);
-    index.set(w.std.Number, w.std.Color);
+    index.set(std.Number, std.Color);
     printAs.value(index, "Index");
 
     Struct __type__(w, "__type__");
-    __type__.addSlot(_1_, w.std.slot(_1_, w.std.Number));
+    __type__.addSlot(_1_, std.slot(_1_, std.Number));
     printAs.value(__type__);
 
-    Set set(w, w.std.Number);
+    Set set(w, std.Number);
     EXPECT_EQ(&set[id.size], &_0_);
     set.add(_1_);
     EXPECT_EQ(&set[id.size], &_1_);
@@ -1101,7 +1101,7 @@ TEST_F(CellTest, NextgenType)
 
 TEST_F(CellTest, NextgenBrainType)
 {
-    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, w.std.Number, id.valueType, w.std.Color));
+    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, std.Color));
     Object map(w, MapNumberToColor, w.name("constructor"));
 
     EXPECT_EQ(&map[id.size], &_0_);
@@ -1112,7 +1112,7 @@ TEST_F(CellTest, NextgenBrainType)
     printAs.value(map[id.index], "map[ids.index]");
     printAs.value(map[id.index].__type__(), "map[ids.index].struct_()");
 
-    map.method(w.name("add"), { id.key, _1_ }, { id.value, w.id.red });
+    map.method(w.name("add"), { id.key, _1_ }, { id.value, id.red });
     printAs.value(map[id.index], "map[ids.index]");
     printAs.value(map[id.index].__type__(), "map[ids.index].struct_()");
     printAs.cell(map[id.index].__type__()[id.slots], "map[ids.index].struct_()[ids.slots]");
@@ -1121,18 +1121,18 @@ TEST_F(CellTest, NextgenBrainType)
     EXPECT_EQ(&map[id.size], &_1_);
     EXPECT_EQ(&map.method(w.name("size")), &_1_);
     EXPECT_EQ(&map[id.list][id.size], &_1_);
-    EXPECT_EQ(&map[id.list][id.first][id.value], &w.id.red);
+    EXPECT_EQ(&map[id.list][id.first][id.value], &id.red);
     EXPECT_EQ(&map[id.list][id.first], &map[id.list][id.last]);
     EXPECT_TRUE(map[id.index].has(_1_));
-    EXPECT_EQ(&map[id.index][_1_][id.value], &w.id.red);
+    EXPECT_EQ(&map[id.index][_1_][id.value], &id.red);
     EXPECT_EQ(&map.method(w.name("empty")), &false_);
-    EXPECT_TRUE(map[id.index][id.__type__][id.memberOf][id.index].has(w.std.Index));
+    EXPECT_TRUE(map[id.index][id.__type__][id.memberOf][id.index].has(std.Index));
 
-    map.method(w.name("add"), { id.key, _2_ }, { id.value, w.id.green });
-    map.method(w.name("add"), { id.key, _3_ }, { id.value, w.id.blue });
-    EXPECT_EQ(&map[id.index][_1_][id.value], &w.id.red);
-    EXPECT_EQ(&map[id.index][_2_][id.value], &w.id.green);
-    EXPECT_EQ(&map[id.index][_3_][id.value], &w.id.blue);
+    map.method(w.name("add"), { id.key, _2_ }, { id.value, id.green });
+    map.method(w.name("add"), { id.key, _3_ }, { id.value, id.blue });
+    EXPECT_EQ(&map[id.index][_1_][id.value], &id.red);
+    EXPECT_EQ(&map[id.index][_2_][id.value], &id.green);
+    EXPECT_EQ(&map[id.index][_3_][id.value], &id.blue);
     printAs.value(map);
     printAs.cell(map);
 
@@ -1142,18 +1142,18 @@ TEST_F(CellTest, NextgenBrainType)
     EXPECT_EQ(&map[id.size], &_1_);
     EXPECT_EQ(&map.method(w.name("size")), &_1_);
     EXPECT_EQ(&map[id.list][id.size], &_1_);
-    EXPECT_EQ(&map[id.list][id.first][id.value], &w.id.red);
+    EXPECT_EQ(&map[id.list][id.first][id.value], &id.red);
     EXPECT_EQ(&map[id.list][id.first], &map[id.list][id.last]);
     EXPECT_TRUE(map[id.index].has(_1_));
-    EXPECT_EQ(&map[id.index][_1_][id.value], &w.id.red);
+    EXPECT_EQ(&map[id.index][_1_][id.value], &id.red);
     EXPECT_EQ(&map.method(w.name("empty")), &false_);
-    EXPECT_TRUE(map[id.index][id.__type__][id.memberOf][id.index].has(w.std.Index));
+    EXPECT_TRUE(map[id.index][id.__type__][id.memberOf][id.index].has(std.Index));
 }
 
 
 TEST_F(CellTest, TrieMap)
 {
-    auto& MapNumberToColor = getStruct(w.templateId("std::TrieMap", id.keyType, w.std.Number, id.valueType, w.std.Color));
+    auto& MapNumberToColor = getStruct(w.templateId("std::TrieMap", id.keyType, std.Number, id.valueType, std.Color));
     Object trieMap(w, MapNumberToColor, w.name("constructor"));
 
     EXPECT_EQ(&trieMap[id.size], &_0_);
@@ -1163,20 +1163,20 @@ TEST_F(CellTest, TrieMap)
     printAs.value(trieMap[id.list].__type__());
 
     EXPECT_EQ(&trieMap.method(w.name("hasKey"), { id.key, w.list(_1_, _1_, _1_, _1_) }), &false_);
-    trieMap.method(w.name("add"), { id.key, w.list(_1_, _1_, _1_, _1_) }, { id.value, w.id.red });
+    trieMap.method(w.name("add"), { id.key, w.list(_1_, _1_, _1_, _1_) }, { id.value, id.red });
     EXPECT_EQ(&trieMap[id.size], &_1_);
     EXPECT_EQ(&trieMap.method(w.name("size")), &_1_);
     EXPECT_EQ(&trieMap[id.list][id.size], &_1_);
     EXPECT_EQ(&trieMap.method(w.name("empty")), &false_);
     CellI& test = trieMap.method(w.name("hasKey"), { id.key, w.list(_1_, _1_, _1_, _1_) });
     EXPECT_EQ(&trieMap.method(w.name("hasKey"), { id.key, w.list(_1_, _1_, _1_, _1_) }), &true_);
-    EXPECT_EQ(&trieMap.method(w.name("getValue"), { id.key, w.list(_1_, _1_, _1_, _1_) }), &w.id.red);
+    EXPECT_EQ(&trieMap.method(w.name("getValue"), { id.key, w.list(_1_, _1_, _1_, _1_) }), &id.red);
 
     EXPECT_EQ(&trieMap.method(w.name("hasKey"), { id.key, w.list(_2_, _2_, _2_, _2_) }), &false_);
-    trieMap.method(w.name("add"), { id.key, w.list(_2_, _2_, _2_, _2_) }, { id.value, w.id.green });
+    trieMap.method(w.name("add"), { id.key, w.list(_2_, _2_, _2_, _2_) }, { id.value, id.green });
     EXPECT_EQ(&trieMap.method(w.name("hasKey"), { id.key, w.list(_2_, _2_, _2_, _2_) }), &true_);
 
-    trieMap.method(w.name("add"), { id.key, w.list(_3_, _3_, _3_, _3_) }, { id.value, w.id.blue });
+    trieMap.method(w.name("add"), { id.key, w.list(_3_, _3_, _3_, _3_) }, { id.value, id.blue });
     EXPECT_EQ(&trieMap.method(w.name("hasKey"), { id.key, w.list(_3_, _3_, _3_, _3_) }), &true_);
     printAs.value(trieMap);
     printAs.cell(trieMap);
@@ -1205,7 +1205,7 @@ TEST_F(CellTest, TrieMap)
 
 TEST_F(CellTest, Set)
 {
-    auto& SetOfNumbers = getStruct(w.templateId("std::Set", id.valueType, w.std.Number));
+    auto& SetOfNumbers = getStruct(w.templateId("std::Set", id.valueType, std.Number));
     Object set(w, SetOfNumbers, w.name("constructor"));
 
     EXPECT_EQ(&set[id.size], &_0_);
@@ -1227,7 +1227,7 @@ TEST_F(CellTest, Set)
     EXPECT_EQ(&set[id.index][_1_], &_1_);
     EXPECT_EQ(&set.method(w.name("empty")), &false_);
     EXPECT_EQ(&set.method(w.name("contains"), { "value", _1_ }), &true_);
-    EXPECT_TRUE(set[id.index][id.__type__][id.memberOf][id.index].has(w.std.Index));
+    EXPECT_TRUE(set[id.index][id.__type__][id.memberOf][id.index].has(std.Index));
 
     set.method(w.name("add"), { id.value, _2_ });
     set.method(w.name("add"), { id.value, _3_ });
@@ -1245,7 +1245,7 @@ TEST_F(CellTest, Set)
     EXPECT_TRUE(set[id.index].has(_1_));
     EXPECT_EQ(&set[id.index][_1_], &_1_);
     EXPECT_EQ(&set.method(w.name("empty")), &false_);
-    EXPECT_TRUE(set[id.index][id.__type__][id.memberOf][id.index].has(w.std.Index));
+    EXPECT_TRUE(set[id.index][id.__type__][id.memberOf][id.index].has(std.Index));
 }
 
 ////////////
@@ -1414,7 +1414,7 @@ TEST_F(CellTest, TrieTest)
 
 TEST_F(CellTest, TrieMapTest)
 {
-    TrieMap trieMap(w, w.std.Number, w.std.Number, "testTrieMap");
+    TrieMap trieMap(w, std.Number, std.Number, "testTrieMap");
     EXPECT_EQ(&trieMap[id.size], &_0_);
     auto& key1   = w.list(_0_, _1_, _2_, _3_, _4_);
     auto& value1 = w.directions.down;
@@ -1432,12 +1432,12 @@ TEST_F(CellTest, StringTest)
     String& testStr1 = w.pools.strings.get("test");
     String& testStr2 = w.pools.strings.get("test");
     EXPECT_EQ(&testStr1, &testStr2);
-    EXPECT_EQ(&testStr1.__type__(), &w.std.String);
-    EXPECT_EQ(&testStr1[w.id.value].__type__(), &w.ListOf(w.std.Char));
-    EXPECT_EQ(&testStr1[w.id.value], &testStr1[w.id.value]);
-    EXPECT_EQ(&testStr1[w.id.value], &testStr2[w.id.value]);
-    printAs.value(testStr1[w.id.value]);
-    printAs.cell(testStr1[w.id.value]);
+    EXPECT_EQ(&testStr1.__type__(), &std.String);
+    EXPECT_EQ(&testStr1[id.value].__type__(), &w.ListOf(std.Char));
+    EXPECT_EQ(&testStr1[id.value], &testStr1[id.value]);
+    EXPECT_EQ(&testStr1[id.value], &testStr2[id.value]);
+    printAs.value(testStr1[id.value]);
+    printAs.cell(testStr1[id.value]);
 }
 
 static ftxui::Color ftxAlphaColor(255, 255, 255);
@@ -1637,6 +1637,8 @@ static void printTask(const nlohmann::json& jsonTask)
 static void debugShapePixels(CellI& frame)
 {
     World& w = frame.w;
+    ID& id   = w.id;
+
     static CellI& ShapePixelStruct = w.getStruct("arc::ShapePixel");
 
     Object& shapePixels    = static_cast<Object&>(frame["shapePixels"]);
@@ -1648,9 +1650,9 @@ static void debugShapePixels(CellI& frame)
     const int width        = static_cast<Number&>(frame["width"]).value();
 
     for (int y = 0; y < height; ++y) {
-        Object& colX = static_cast<Object&>(shapePixels.method(w.name("getValue"), { w.id.key, w.pools.numbers.get(y) }));
+        Object& colX = static_cast<Object&>(shapePixels.method(w.name("getValue"), { id.key, w.pools.numbers.get(y) }));
         for (int x = 0; x < width; ++x) {
-            CellI& shapePixel = colX.method(w.name("getValue"), { w.id.key, w.pools.numbers.get(x) });
+            CellI& shapePixel = colX.method(w.name("getValue"), { id.key, w.pools.numbers.get(x) });
             if (!firstShapePixel) {
                 firstShapePixel = &shapePixel;
             }
@@ -1931,12 +1933,12 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
         CellI& inputShapes   = *inputShapesPtr;
         CellI& outputGrid    = *outputGridPtr;
         CellI& outputShapes  = *outputShapesPtr;
-        int inputGridWidth   = static_cast<Number&>(inputGrid[w.id.width]).value();
-        int outputGridWidth  = static_cast<Number&>(outputGrid[w.id.width]).value();
-        int inputGridHeight  = static_cast<Number&>(inputGrid[w.id.height]).value();
-        int outputGridHeight = static_cast<Number&>(outputGrid[w.id.height]).value();
-        int inputShapesNum   = static_cast<Number&>(inputShapes[w.id.size]).value();
-        int outputShapesNum  = static_cast<Number&>(outputShapes[w.id.size]).value();
+        int inputGridWidth   = static_cast<Number&>(inputGrid[id.width]).value();
+        int outputGridWidth  = static_cast<Number&>(outputGrid[id.width]).value();
+        int inputGridHeight  = static_cast<Number&>(inputGrid[id.height]).value();
+        int outputGridHeight = static_cast<Number&>(outputGrid[id.height]).value();
+        int inputShapesNum   = static_cast<Number&>(inputShapes[id.size]).value();
+        int outputShapesNum  = static_cast<Number&>(outputShapes[id.size]).value();
         if (inputGridWidth == outputGridWidth && inputGridHeight == outputGridHeight && outputShapesNum > inputShapesNum) {
             Visitor::visitList(inputShapes, [](CellI& shape, int i, bool&) {
                 std::cout << "DDDD input shape color: " << getArcColorName(shape["color"]) << ", size: " << static_cast<Number&>(shape["pixels"]["size"]).value() << std::endl;
@@ -2058,7 +2060,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
         Visitor::visitList(inputGrid["pixels"], [this, &outputGrid](CellI& arcPixel, int, bool&) {
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
-            List pixelContent(w, w.std.Pixel);
+            List pixelContent(w, std.Pixel);
             pixelContent.add(arcPixel[w.coordinates.x]);
             pixelContent.add(arcPixel[w.coordinates.y]);
 
@@ -2071,7 +2073,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
         Visitor::visitList(outputGrid["pixels"], [this, &inputGrid](CellI& arcPixel, int, bool&) {
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
-            List pixelContent(w, w.std.Pixel);
+            List pixelContent(w, std.Pixel);
             pixelContent.add(arcPixel[w.coordinates.x]);
             pixelContent.add(arcPixel[w.coordinates.y]);
 
@@ -2212,7 +2214,7 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
             }
             CellI& inputGrid  = *inputGridPtr;
             CellI& outputGrid = *outputGridPtr;
-            if (&inputGrid[w.id.width] == &outputGrid[w.id.width] && &inputGrid[w.id.height] == &outputGrid[w.id.height]) {
+            if (&inputGrid[id.width] == &outputGrid[id.width] && &inputGrid[id.height] == &outputGrid[id.height]) {
                 std::cout << i << " " << it.key() << std::endl;
             }
             ++i;
