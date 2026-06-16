@@ -1,10 +1,11 @@
 #pragma once
-#include "World.h"
-#include "ToolFinder.h"
+#include "Ast.h"
+#include "Cells.h"
 
 namespace infocell {
 namespace cells {
 
+class World;
 class Library : public Object
 {
 public:

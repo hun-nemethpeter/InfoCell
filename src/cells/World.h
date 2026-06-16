@@ -4,6 +4,7 @@
 
 #include "Ast.h"
 #include "Cells.h"
+#include "StdLib.h"
 #include "ToolFinder.h"
 
 namespace spdlog {
@@ -132,163 +133,6 @@ public:
     List variable;
     List variables;
     List width;
-};
-
-class Std
-{
-public:
-    class Op
-    {
-    public:
-        Op(World& w);
-
-    protected:
-        World& w;
-
-    public:
-        Object Activate;
-        Object Add;
-        Object And;
-        Object Base;
-        Object Block;
-        Object Call;
-        Object ConstVar;
-        Object Delete;
-        Object Divide;
-        Object Do;
-        Object Equal;
-        Object Erase;
-        Object Function;
-        Object Get;
-        Object GreaterThan;
-        Object GreaterThanOrEqual;
-        Object Has;
-        Object If;
-        Object LessThan;
-        Object LessThanOrEqual;
-        Object Missing;
-        Object Multiply;
-        Object New;
-        Object Not;
-        Object NotEqual;
-        Object NotSame;
-        Object Or;
-        Object Return;
-        Object Same;
-        Object Set;
-        Object Subtract;
-        Object Var;
-        Object While;
-    };
-
-    class Ast
-    {
-    public:
-        Ast(World& w);
-
-    protected:
-        World& w;
-
-    public:
-        Object Add;
-        Object And;
-        Object Base;
-        Object Block;
-        Object Break;
-        Object Call;
-        Object Cell;
-        Object Continue;
-        Object Delete;
-        Object Divide;
-        Object Do;
-        Object Enum;
-        Object EnumValue;
-        Object Equal;
-        Object Erase;
-        Object For;
-        Object Function;
-        Object FunctionT;
-        Object Get;
-        Object GreaterThan;
-        Object GreaterThanOrEqual;
-        Object Has;
-        Object If;
-        Object LessThan;
-        Object LessThanOrEqual;
-        Object Match;
-        Object Member;
-        Object Missing;
-        Object Multiply;
-        Object New;
-        Object Not;
-        Object NotEqual;
-        Object NotSame;
-        Object Or;
-        Object Parameter;
-        Object ResolvedType;
-        Object Return;
-        Object Same;
-        Object Scope;
-        Object Self;
-        Object SelfFn;
-        Object Set;
-        Object Slot;
-        Object StaticCall;
-        Object Struct;
-        Object StructName;
-        Object StructT;
-        Object Subtract;
-        Object TypeAlias;
-        Object TemplatedType;
-        Object TemplateParam;
-        Object Throw;
-        Object Trait;
-        Object TraitImpl;
-        Object Try;
-        Object TypedEnumValue;
-        Object Var;
-        Object While;
-    };
-
-    Std(World& w);
-
-    cells::CellI& slot(const std::string& key, cells::CellI& type);
-    cells::CellI& slot(cells::CellI& key, cells::CellI& type);
-    cells::CellI& kvPair(cells::CellI& key, cells::CellI& value);
-
-protected:
-    World& w;
-
-public:
-    Object Boolean;
-    Object Cell;
-    Object Char;
-    Object Color;
-    Object Container;
-    Object Digit;
-    Object Directions;
-    Object Enum;
-    Object Grid;
-    Object Index;
-    Object KVPair;
-    Object Library;
-    Object List;
-    Object ListItem;
-    Object Map;
-    Object Number;
-    Object OpState;
-    Object Pixel;
-    Object Slot;
-    Object Stack;
-    Object StackFrame;
-    Object String;
-    Object Struct;
-    Object StructReference;
-    Object TrieMap;
-    Object TrieMapNode;
-
-    Op op;
-    Ast ast;
 };
 
 class Directions
@@ -443,6 +287,7 @@ public:
     CellI& _8_;
     CellI& _9_;
 
+private:
     std::unique_ptr<Compiler> m_stdCompiler;
     std::unique_ptr<StdLib> m_stdLib;
     std::unique_ptr<ArcLib> m_arcLib;
@@ -450,6 +295,7 @@ public:
 public:
     Library& arcLib();
     Library& stdLib();
+
     CellI& getStruct(const std::string& nameStr);
     CellI& getStruct(CellI& name);
     CellI& getVariable(const std::string& nameStr);
@@ -464,23 +310,6 @@ public:
 
     template <typename... Args>
     List& list(CellI& value, Args&&... args);
-
-    template <typename... Args>
-    Map& map(CellI& key, CellI& value, Args&&... args);
-
-    template <typename... Args>
-    Set& set(CellI& value, Args&&... args);
-
-    void addSlots(Map&)
-    {
-        // Do nothing
-    }
-
-    template <typename... Args>
-    void addSlots(Map& map, CellI& value, Args&&... args);
-
-    template <typename... Args>
-    Map& slots(CellI& value, Args&&... args);
 
     InitPhase initPhase();
 };
@@ -518,43 +347,6 @@ List& World::list(CellI& value, Args&&... args)
     return ret;
 }
 
-template <typename... Args>
-Map& World::map(CellI& key, CellI& value, Args&&... args)
-{
-    Map& ret = *new Map(*this, key.__type__(), value.__type__(), fmt::format("Map<{}, {}>(...)", key.__type__().label(), value.__type__().label()));
-    if constexpr (sizeof...(Args) > 0) {
-        ret.add(std::forward<Args>(args)...);
-    }
-
-    return ret;
-}
-
-template <typename... Args>
-Set& World::set(CellI& value, Args&&... args)
-{
-    Set& ret = *new Set(*this, value.__type__(), fmt::format("Map<{}, {}>(...)", value.__type__().label()));
-    if constexpr (sizeof...(Args) > 0) {
-        ret.add(std::forward<Args>(args)...);
-    }
-
-    return ret;
-}
-
-template <typename... Args>
-void World::addSlots(Map& map, CellI& value, Args&&... args)
-{
-    map.add(value["key"], value);
-    addSlots(map, std::forward<Args>(args)...);
-}
-
-template <typename... Args>
-Map& World::slots(CellI& value, Args&&... args)
-{
-    Map& ret = *new Map(*this, std.Cell, std.Slot, "Map<Cell, Slot>(...)");
-    addSlots(ret, value, std::forward<Args>(args)...);
-
-    return ret;
-}
 #pragma endregion
 
 } // namespace cells

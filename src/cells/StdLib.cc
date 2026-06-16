@@ -1,7 +1,169 @@
 ﻿#include "StdLib.h"
+#include "World.h"
 
 namespace infocell {
 namespace cells {
+
+Std::Op::Op(World& w) :
+    w(w),
+    Activate(w, w.std.Struct, "op::Activate"),
+    Add(w, w.std.Struct, "op::Add"),
+    And(w, w.std.Struct, "op::And"),
+    Base(w, w.std.Struct, "op::Base"),
+    Block(w, w.std.Struct, "op::Block"),
+    Call(w, w.std.Struct, "op::Call"),
+    ConstVar(w, w.std.Struct, "op::ConstVar"),
+    Delete(w, w.std.Struct, "op::Delete"),
+    Divide(w, w.std.Struct, "op::Divide"),
+    Do(w, w.std.Struct, "op::Do"),
+    Equal(w, w.std.Struct, "op::Equal"),
+    Erase(w, w.std.Struct, "op::Erase"),
+    Function(w, w.std.Struct, "op::Function"),
+    Get(w, w.std.Struct, "op::Get"),
+    GreaterThan(w, w.std.Struct, "op::GreaterThan"),
+    GreaterThanOrEqual(w, w.std.Struct, "op::GreaterThanOrEqual"),
+    Has(w, w.std.Struct, "op::Has"),
+    If(w, w.std.Struct, "op::If"),
+    LessThan(w, w.std.Struct, "op::LessThan"),
+    LessThanOrEqual(w, w.std.Struct, "op::LessThanOrEqual"),
+    Missing(w, w.std.Struct, "op::Missing"),
+    Multiply(w, w.std.Struct, "op::Multiply"),
+    New(w, w.std.Struct, "op::New"),
+    Not(w, w.std.Struct, "op::Not"),
+    NotEqual(w, w.std.Struct, "op::NotEqual"),
+    NotSame(w, w.std.Struct, "op::NotSame"),
+    Or(w, w.std.Struct, "op::Or"),
+    Return(w, w.std.Struct, "op::Return"),
+    Same(w, w.std.Struct, "op::Same"),
+    Set(w, w.std.Struct, "op::Set"),
+    Subtract(w, w.std.Struct, "op::Subtract"),
+    Var(w, w.std.Struct, "op::Var"),
+    While(w, w.std.Struct, "op::While")
+{
+}
+
+Std::Ast::Ast(World& w) :
+    w(w),
+    Add(w, w.std.Struct, "ast::Add"),
+    And(w, w.std.Struct, "ast::And"),
+    Base(w, w.std.Struct, "ast::Base"),
+    Block(w, w.std.Struct, "ast::Block"),
+    Break(w, w.std.Struct, "ast::Break"),
+    Call(w, w.std.Struct, "ast::Call"),
+    Cell(w, w.std.Struct, "ast::Cell"),
+    Continue(w, w.std.Struct, "ast::Continue"),
+    Delete(w, w.std.Struct, "ast::Delete"),
+    Divide(w, w.std.Struct, "ast::Divide"),
+    Do(w, w.std.Struct, "ast::Do"),
+    Enum(w, w.std.Struct, "ast::Enum"),
+    EnumValue(w, w.std.Struct, "ast::EnumValue"),
+    Equal(w, w.std.Struct, "ast::Equal"),
+    Erase(w, w.std.Struct, "ast::Erase"),
+    For(w, w.std.Struct, "ast::For"),
+    Function(w, w.std.Struct, "ast::Function"),
+    FunctionT(w, w.std.Struct, "ast::FunctionT"),
+    Get(w, w.std.Struct, "ast::Get"),
+    GreaterThan(w, w.std.Struct, "ast::GreaterThan"),
+    GreaterThanOrEqual(w, w.std.Struct, "ast::GreaterThanOrEqual"),
+    Has(w, w.std.Struct, "ast::Has"),
+    If(w, w.std.Struct, "ast::If"),
+    LessThan(w, w.std.Struct, "ast::LessThan"),
+    LessThanOrEqual(w, w.std.Struct, "ast::LessThanOrEqual"),
+    Match(w, w.std.Struct, "ast::Match"),
+    Member(w, w.std.Struct, "ast::Member"),
+    Missing(w, w.std.Struct, "ast::Missing"),
+    Multiply(w, w.std.Struct, "ast::Multiply"),
+    New(w, w.std.Struct, "ast::New"),
+    Not(w, w.std.Struct, "ast::Not"),
+    NotEqual(w, w.std.Struct, "ast::NotEqual"),
+    NotSame(w, w.std.Struct, "ast::NotSame"),
+    Or(w, w.std.Struct, "ast::Or"),
+    Parameter(w, w.std.Struct, "ast::Parameter"),
+    ResolvedType(w, w.std.Struct, "ast::ResolvedType"),
+    Return(w, w.std.Struct, "ast::Return"),
+    Same(w, w.std.Struct, "ast::Same"),
+    Scope(w, w.std.Struct, "ast::Scope"),
+    Self(w, w.std.Struct, "ast::Self"),
+    SelfFn(w, w.std.Struct, "ast::SelfFn"),
+    Set(w, w.std.Struct, "ast::Set"),
+    Slot(w, w.std.Struct, "ast::Slot"),
+    StaticCall(w, w.std.Struct, "ast::StaticCall"),
+    Struct(w, w.std.Struct, "ast::Struct"),
+    StructName(w, w.std.Struct, "ast::StructName"),
+    StructT(w, w.std.Struct, "ast::StructT"),
+    TypeAlias(w, w.std.Struct, "ast::TypeAlias"),
+    Subtract(w, w.std.Struct, "ast::Subtract"),
+    TemplatedType(w, w.std.Struct, "ast::TemplatedType"),
+    TemplateParam(w, w.std.Struct, "ast::TemplateParam"),
+    Throw(w, w.std.Struct, "ast::Throw"),
+    Trait(w, w.std.Struct, "ast::Trait"),
+    TraitImpl(w, w.std.Struct, "ast::TraitImpl"),
+    Try(w, w.std.Struct, "ast::Try"),
+    TypedEnumValue(w, w.std.Struct, "ast::TypedEnumValue"),
+    Var(w, w.std.Struct, "ast::Var"),
+    While(w, w.std.Struct, "ast::While")
+{
+}
+
+Std::Std(World& w) :
+    w(w),
+    Boolean(w, w.std.Struct, "Boolean"),
+    Cell(w, w.std.Struct, "Cell"),
+    Char(w, w.std.Struct, "Char"),
+    Color(w, w.std.Struct, "Color"),
+    Container(w, w.std.Struct, "Conatainer"),
+    Digit(w, w.std.Struct, "Digit"),
+    Directions(w, w.std.Enum, "Directions"),
+    Enum(w, w.std.Struct, "Enum"),
+    Grid(w, w.std.Struct, "Grid"),
+    Index(w, w.std.Struct, "Index"),
+    KVPair(w, w.std.Struct, "KVPair"),
+    Library(w, w.std.Struct, "Library"),
+    List(w, w.std.Struct, "List"),
+    ListItem(w, w.std.Struct, "ListItem"),
+    Map(w, w.std.Struct, "Map"),
+    Number(w, w.std.Struct, "Number"),
+    OpState(w, w.std.Struct, "OpState"),
+    Pixel(w, w.std.Struct, "Pixel"),
+    Slot(w, w.std.Struct, "Slot"),
+    Stack(w, w.std.Struct, "Stack"),
+    StackFrame(w, w.std.Struct, "StackFrame"),
+    String(w, w.std.Struct, "String"),
+    Struct(w, w.std.Struct, "Struct"),
+    StructReference(w, w.std.Struct, "StructReference"),
+    TrieMap(w, w.std.Struct, "TrieMap"),
+    TrieMapNode(w, w.std.Struct, "TrieMapNode"),
+    op(w),
+    ast(w)
+{
+}
+
+cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
+{
+    CellI& ret = *new Object(w, w.std.Slot);
+    ret.set(w.id.key, key);
+    ret.set(w.id.type, type);
+
+    return ret;
+}
+
+cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
+{
+    CellI& ret = *new Object(w, w.std.Slot);
+    ret.set(w.id.key, w.name(key));
+    ret.set(w.id.type, type);
+
+    return ret;
+}
+
+cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
+{
+    CellI& ret = *new Object(w, w.std.KVPair);
+    ret.set(w.id.key, key);
+    ret.set(w.id.value, value);
+
+    return ret;
+}
 
 class StdLibAst : public AstHelper
 {
