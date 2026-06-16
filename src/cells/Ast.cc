@@ -346,15 +346,15 @@ Ast::StructBase& Ast::StructBase::members(Slot& slot)
     return *this;
 }
 
-Ast::StructBase& Ast::StructBase::subTypes(Slot& slot)
+Ast::StructBase& Ast::StructBase::typeAliases(Slot& slot)
 {
-    if (missing("subTypes")) {
-        set("subTypes", *new Map(w, w.std.Cell, w.std.ast.Base));
+    if (missing("typeAliases")) {
+        set("typeAliases", *new Map(w, w.std.Cell, w.std.ast.Base));
     }
     CellI& key = slot[w.ids.key];
     CellI& type = slot[w.ids.type];
 
-    subTypes().add(key, slot);
+    typeAliases().add(key, slot);
 
     return *this;
 }
@@ -387,12 +387,12 @@ Map& Ast::StructBase::members()
     }
 }
 
-Map& Ast::StructBase::subTypes()
+Map& Ast::StructBase::typeAliases()
 {
-    if (missing("subTypes")) {
-        throw "No subTypes!";
+    if (missing("typeAliases")) {
+        throw "No typeAliases!";
     } else {
-        return static_cast<Map&>(get("subTypes"));
+        return static_cast<Map&>(get("typeAliases"));
     }
 }
 
@@ -410,9 +410,9 @@ CellI& Ast::StructBase::name()
     return get("name");
 }
 
-Ast::Base& Ast::StructBase::getSubType(CellI& name)
+Ast::Base& Ast::StructBase::getTypeAlias(CellI& name)
 {
-    return static_cast<Ast::Base&>(subTypes().getValue(name)[w.ids.type]);
+    return static_cast<Ast::Base&>(typeAliases().getValue(name)[w.ids.type]);
 }
 
 void Ast::StructBase::addBlock(Block& block)
@@ -912,8 +912,8 @@ Ast::Call& Ast::Member::operator()(const std::string& method)
     return w.ast.call(*this, method);
 }
 
-Ast::SubType::SubType(World& w, CellI& name) :
-    BaseT<SubType>(w, w.std.ast.SubTypeName, "ast.subTypeName")
+Ast::TypeAlias::TypeAlias(World& w, CellI& name) :
+    BaseT<TypeAlias>(w, w.std.ast.TypeAlias, "ast.typeAlias")
 {
     set(w.ids.name, name);
 }
@@ -1303,9 +1303,9 @@ Ast::Member& Ast::member(CellI& key)
     return Member::New(w, key);
 }
 
-Ast::SubType& Ast::subType(CellI& key)
+Ast::TypeAlias& Ast::typeAlias(CellI& key)
 {
-    return SubType::New(w, key);
+    return TypeAlias::New(w, key);
 }
 
 Ast::TemplatedType& Ast::templatedType(const std::string& idStr, CellI& type)
@@ -1566,6 +1566,16 @@ Ast::Slot& AstHelper::member(const std::string& nameStr, const std::string& type
 }
 
 Ast::Slot& AstHelper::member(const std::string& nameStr, CellI& type)
+{
+    return slot(name(nameStr), type);
+}
+
+Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, const std::string& type)
+{
+    return slot(name(nameStr), struct_(type));
+}
+
+Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, CellI& type)
 {
     return slot(name(nameStr), type);
 }

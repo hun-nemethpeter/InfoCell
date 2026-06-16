@@ -738,10 +738,10 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         }
         stackFrame.set(w.ids.input, inputIndex);
 
-        if (method.struct_()[w.ids.subTypes][w.ids.index].has(w.ids.localVars)) {
-            CellI& localVarsList  = method.struct_()[w.ids.subTypes][w.ids.index][w.ids.localVars][w.ids.value][w.ids.slots][w.ids.list];
-            Index& localVarsIndex = *new Index(w /*, method.struct_()[w.ids.subTypes][w.ids.index][w.ids.localVars][w.ids.value] */);
-            if (method.struct_()[w.ids.subTypes][w.ids.index].has(w.ids.localVars)) {
+        if (method.struct_()[w.ids.typeAliases][w.ids.index].has(w.ids.localVars)) {
+            CellI& localVarsList  = method.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value][w.ids.slots][w.ids.list];
+            Index& localVarsIndex = *new Index(w /*, method.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value] */);
+            if (method.struct_()[w.ids.typeAliases][w.ids.index].has(w.ids.localVars)) {
                 Visitor::visitList(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
                     localVarsIndex.set(slot[w.ids.key], *new Object(w, w.std.op.Var));
                 });
@@ -847,7 +847,7 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
             previousStackNode.erase(w.ids.next);
             delete &inputIndex;
             if (stackFrame.has(w.ids.localVars)) {
-                CellI& localVarsList  = self.struct_()[w.ids.subTypes][w.ids.index][w.ids.localVars][w.ids.value][w.ids.slots][w.ids.list];
+                CellI& localVarsList  = self.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value][w.ids.slots][w.ids.list];
                 CellI& localVarsIndex = stackFrame[w.ids.localVars];
                 Visitor::visitList(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
                     delete &localVarsIndex[slot[w.ids.key]];
@@ -1768,7 +1768,7 @@ void Object::clearStack(CellI& method)
     CellI* stackListItem0 = &(*stackListItem1)["previous"];
     CellI* stackFrame     = &(*stackListItem1)["value"];
     CellI* inputIndex     = &(*stackFrame)["input"];
-    if (method.struct_()["subTypes"]["index"].has("localVars")) {
+    if (method.struct_()["typeAliases"]["index"].has("localVars")) {
         CellI* localVarsIndex = &(*stackFrame)["localVars"];
         delete localVarsIndex;
         // TODO
@@ -1782,10 +1782,10 @@ void Object::clearStack(CellI& method)
 
 void Object::initLocalVars(CellI& method)
 {
-    if (method.struct_()[w.ids.subTypes][w.ids.index].missing(w.ids.localVars)) {
+    if (method.struct_()[w.ids.typeAliases][w.ids.index].missing(w.ids.localVars)) {
         return;
     }
-    CellI& localVarsType   = method.struct_()[w.ids.subTypes][w.ids.index][w.ids.localVars][w.ids.value];
+    CellI& localVarsType   = method.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value];
     Object& localVarsIndex = *new Object(w, localVarsType, "LocalVarsIndex");
     CellI& stackFrame      = method[w.ids.stack][w.ids.value];
     stackFrame.set(w.ids.localVars, localVarsIndex);
@@ -1799,7 +1799,7 @@ void Object::initLocalVars(CellI& method)
 
 CellI& Object::getFnValue(CellI& method)
 {
-    if (method.struct_()[w.ids.subTypes][w.ids.index].has(w.ids.returnType)) {
+    if (method.struct_()[w.ids.typeAliases][w.ids.index].has(w.ids.returnType)) {
         return method[w.ids.value];
     }
 
@@ -1813,8 +1813,8 @@ void Object::setSelf(CellI& method)
 
 void Object::setFnParam(CellI& fn, Param param)
 {
-    if (fn.struct_()[w.ids.subTypes][w.ids.index][w.ids.parameters][w.ids.value].has(w.ids.slots)) {
-        CellI& inputsIndex = fn.struct_()[w.ids.subTypes][w.ids.index][w.ids.parameters][w.ids.value][w.ids.slots][w.ids.index];
+    if (fn.struct_()[w.ids.typeAliases][w.ids.index][w.ids.parameters][w.ids.value].has(w.ids.slots)) {
+        CellI& inputsIndex = fn.struct_()[w.ids.typeAliases][w.ids.index][w.ids.parameters][w.ids.value][w.ids.slots][w.ids.index];
         if (inputsIndex.has(param.key)) {
             fn[w.ids.stack][w.ids.value][w.ids.input].set(param.key, param.value);
         } else {
@@ -2067,8 +2067,8 @@ bool Struct::has(CellI& key)
     if (&key == &w.ids.slots) {
         return true;
     }
-    if (&key == &w.ids.subTypes) {
-        return m_subTypes;
+    if (&key == &w.ids.typeAliases) {
+        return m_typeAliases;
     }
     if (&key == &w.ids.memberOf) {
         return m_memberOf;
@@ -2114,8 +2114,8 @@ CellI& Struct::operator[](CellI& key)
     if (&key == &w.ids.slots) {
         return m_slots;
     }
-    if (&key == &w.ids.subTypes) {
-        return *m_subTypes;
+    if (&key == &w.ids.typeAliases) {
+        return *m_typeAliases;
     }
     if (&key == &w.ids.memberOf) {
         return *m_memberOf;

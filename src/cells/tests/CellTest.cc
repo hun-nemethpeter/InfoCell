@@ -401,7 +401,7 @@ TEST_F(CellTest, PrintStdCodes)
     printMethodInType(Struct, "addMembership");
     printMethodInType(Struct, "addSlot");
     printMethodInType(Struct, "addSlots");
-    printMethodInType(Struct, "addSubType");
+    printMethodInType(Struct, "addTypeAlias");
     printMethodInType(Struct, "hasSlot");
     printMethodInType(Struct, "removeSlot");
 
@@ -477,7 +477,7 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list.method(w.name("size")), &_0_);
     auto& aaaa = list.method(w.name("empty"));
     EXPECT_EQ(&list.method(w.name("empty")), &true_);
-    EXPECT_EQ(&list.struct_()[ids.subTypes][w.ids.index][ids.valueType][w.ids.value], &w.std.Number);
+    EXPECT_EQ(&list.struct_()[ids.typeAliases][w.ids.index][ids.valueType][w.ids.value], &w.std.Number);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
 
@@ -571,7 +571,7 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list[ids.size], &_0_);
     EXPECT_EQ(&list.method(w.name("size")), &_0_);
     EXPECT_EQ(&list.method(w.name("empty")), &true_);
-    EXPECT_EQ(&list.struct_()[ids.subTypes][w.ids.index][ids.valueType][w.ids.value], &w.std.Number);
+    EXPECT_EQ(&list.struct_()[ids.typeAliases][w.ids.index][ids.valueType][w.ids.value], &w.std.Number);
     EXPECT_FALSE(list.has(ids.first));
     EXPECT_FALSE(list.has(ids.last));
     printAs.value(list);
@@ -590,8 +590,8 @@ TEST_F(CellTest, Map)
     EXPECT_EQ(&map[ids.size], &_0_);
     EXPECT_EQ(&map.method(w.name("size")), &_0_);
     EXPECT_EQ(&map.method(w.name("empty")), &true_);
-    EXPECT_EQ(&map.struct_()[ids.subTypes][w.ids.index][ids.keyType][w.ids.value], &w.std.Cell);
-    EXPECT_EQ(&map.struct_()[ids.subTypes][w.ids.index][ids.valueType][w.ids.value], &w.std.Slot);
+    EXPECT_EQ(&map.struct_()[ids.typeAliases][w.ids.index][ids.keyType][w.ids.value], &w.std.Cell);
+    EXPECT_EQ(&map.struct_()[ids.typeAliases][w.ids.index][ids.valueType][w.ids.value], &w.std.Slot);
 
     map.method(w.name("add"), { ids.key, _1_ }, { ids.value, w.ids.red });
     printAs.value(map);
@@ -730,8 +730,8 @@ TEST_F(CellTest, MapNumberToColor)
     auto& MapNumberToColor = getStruct(w.templateId("std::Map", ids.keyType, w.std.Number, ids.valueType, w.std.Color));
     Object map(w, MapNumberToColor, w.name("constructor"));
 
-    EXPECT_EQ(&map.struct_()[ids.subTypes][w.ids.index][ids.keyType][w.ids.value], &w.std.Number);
-    EXPECT_EQ(&map.struct_()[ids.subTypes][w.ids.index][ids.valueType][w.ids.value], &w.std.Color);
+    EXPECT_EQ(&map.struct_()[ids.typeAliases][w.ids.index][ids.keyType][w.ids.value], &w.std.Number);
+    EXPECT_EQ(&map.struct_()[ids.typeAliases][w.ids.index][ids.valueType][w.ids.value], &w.std.Color);
 
     printAs.value(map);
     printAs.cell(map);
@@ -806,11 +806,11 @@ TEST_F(CellTest, ListTemplate)
 {
     auto& ListOfNumbers = getStruct(w.templateId("std::List", ids.valueType, w.std.Number));
 
-    EXPECT_EQ(&ListOfNumbers[ids.subTypes][ids.size], &_2_);
-    EXPECT_TRUE(ListOfNumbers[ids.subTypes][ids.index].has(ids.valueType));
-    EXPECT_EQ(&ListOfNumbers[ids.subTypes][ids.index][ids.valueType][ids.value], &w.std.Number);
-    EXPECT_TRUE(ListOfNumbers[ids.subTypes][ids.index].has(ids.itemType));
-    CellI& ListItemType = ListOfNumbers[ids.subTypes][ids.index][ids.itemType][ids.value];
+    EXPECT_EQ(&ListOfNumbers[ids.typeAliases][ids.size], &_2_);
+    EXPECT_TRUE(ListOfNumbers[ids.typeAliases][ids.index].has(ids.valueType));
+    EXPECT_EQ(&ListOfNumbers[ids.typeAliases][ids.index][ids.valueType][ids.value], &w.std.Number);
+    EXPECT_TRUE(ListOfNumbers[ids.typeAliases][ids.index].has(ids.itemType));
+    CellI& ListItemType = ListOfNumbers[ids.typeAliases][ids.index][ids.itemType][ids.value];
     EXPECT_EQ(&ListItemType[ids.slots][ids.index][ids.value][ids.value][ids.type], &w.std.Number);
     EXPECT_NE(&ListItemType, &w.std.ListItem);
     EXPECT_EQ(&ListItemType[ids.memberOf][ids.size], &_1_);
@@ -842,8 +842,8 @@ TEST_F(CellTest, FunctionTypes)
 {
     CellI& function = w.std.Struct[ids.methods][ids.index][w.name("addSlot")][ids.value];
     printAs.cell(function.struct_(), "function");
-    printAs.cell(function.struct_()[ids.subTypes][ids.index][ids.localVars][ids.value], "function[ids.subTypes][ids.localVars][ids.value]");
-    printAs.value(function.struct_()[ids.subTypes][ids.index][ids.localVars][ids.value], "function[ids.subTypes][ids.localVars][ids.value]");
+    printAs.cell(function.struct_()[ids.typeAliases][ids.index][ids.localVars][ids.value], "function[ids.typeAliases][ids.localVars][ids.value]");
+    printAs.value(function.struct_()[ids.typeAliases][ids.index][ids.localVars][ids.value], "function[ids.typeAliases][ids.localVars][ids.value]");
 }
 
 TEST_F(CellTest, HybridGrid)

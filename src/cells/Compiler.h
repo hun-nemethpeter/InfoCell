@@ -67,7 +67,7 @@ protected:
     CellI& compileEnum(Ast::Enum& enum_);
     CellI& compileFunction(Ast::Function& function);
     std::string shortFunctionName(Ast::Function& function);
-    void compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction, cells::Map& functionSlots, cells::Map& subTypesMap);
+    void compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction, cells::Map& functionSlots, cells::Map& inputOutputTypes);
     CellI& compileFunctionAst(Ast::Function& astFunction, CellI& ast, cells::Object& function);
     void checkMethodCall(CellI& astType, CellI& astMethodId);
 

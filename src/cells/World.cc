@@ -105,7 +105,7 @@ ID::ID(World& w) :
     struct_(w, w.std.Char, "struct"),
     structs(w, w.std.Char, "structs"),
     structType(w, w.std.Char, "structType"),
-    subTypes(w, w.std.Char, "subTypes"),
+    typeAliases(w, w.std.Char, "typeAliases"),
     tag(w, w.std.Char, "tag"),
     templateId(w, w.std.Char, "templateId"),
     templateParams(w, w.std.Char, "templateParams"),
@@ -211,7 +211,7 @@ Ast::Ast(World& w) :
     Struct(w, w.std.Struct, "ast::Struct"),
     StructName(w, w.std.Struct, "ast::StructName"),
     StructT(w, w.std.Struct, "ast::StructT"),
-    SubTypeName(w, w.std.Struct, "ast::SubTypeName"),
+    TypeAlias(w, w.std.Struct, "ast::TypeAlias"),
     Subtract(w, w.std.Struct, "ast::Subtract"),
     TemplatedType(w, w.std.Struct, "ast::TemplatedType"),
     TemplateParam(w, w.std.Struct, "ast::TemplateParam"),
@@ -254,7 +254,6 @@ Std::Std(World& w) :
     StackFrame(w, w.std.Struct, "StackFrame"),
     Library(w, w.std.Struct, "Library"),
     StructReference(w, w.std.Struct, "StructReference"),
-    CompileState(w, w.std.Struct, "CompileState"),
     Directions(w, w.std.Enum, "Directions"),
     op(w),
     ast(w)
@@ -495,7 +494,7 @@ Pools::Strings::Strings(World& w) :
         { "struct", w.ids.struct_ },
         { "structs", w.ids.structs },
         { "structType", w.ids.structType },
-        { "subTypes", w.ids.subTypes },
+        { "typeAliases", w.ids.typeAliases },
         { "tag", w.ids.tag },
         { "templateId", w.ids.templateId },
         { "templateParams", w.ids.templateParams },
@@ -680,7 +679,7 @@ World::World(std::function<void()> loggerLevelInit) :
     compiler.registerBuiltInStruct("std::ast::StructName", std.ast.StructName);
     compiler.registerBuiltInStruct("std::ast::StructT", std.ast.StructT);
     compiler.registerBuiltInStruct("std::ast::Subtract", std.ast.Subtract);
-    compiler.registerBuiltInStruct("std::ast::SubTypeName", std.ast.SubTypeName);
+    compiler.registerBuiltInStruct("std::ast::TypeAlias", std.ast.TypeAlias);
     compiler.registerBuiltInStruct("std::ast::TemplatedType", std.ast.TemplatedType);
     compiler.registerBuiltInStruct("std::ast::TemplateParam", std.ast.TemplateParam);
     compiler.registerBuiltInStruct("std::ast::Trait", std.ast.Trait);
@@ -713,7 +712,6 @@ World::World(std::function<void()> loggerLevelInit) :
     compiler.registerBuiltInStruct("std::StackFrame", std.StackFrame);
     compiler.registerBuiltInStruct("std::Library", std.Library);
     compiler.registerBuiltInStruct("std::StructReference", std.StructReference);
-    compiler.registerBuiltInStruct("std::CompileState", std.CompileState);
     compiler.registerBuiltInStruct("std::Directions", std.Directions);
 
     compiler.compile(stdLib());

@@ -118,7 +118,7 @@ public:
     List struct_;
     List structs;
     List structType;
-    List subTypes;
+    List typeAliases;
     List tag;
     List templateId;
     List templateParams;
@@ -237,7 +237,7 @@ public:
     Object StructName;
     Object StructT;
     Object Subtract;
-    Object SubTypeName;
+    Object TypeAlias;
     Object TemplatedType;
     Object TemplateParam;
     Object Throw;
@@ -289,7 +289,6 @@ public:
     Object StackFrame;
     Object Library;
     Object StructReference;
-    Object CompileState;
     Object Directions;
 
     type::Op op;

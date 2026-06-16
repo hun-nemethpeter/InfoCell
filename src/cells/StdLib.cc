@@ -684,7 +684,7 @@ void StdLibAst::createAst()
             member("returnType", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("members", MapOf(std.Cell, std.ast.Slot)),
-            member("subTypes", ListOf(std.ast.Slot)),
+            member("typeAliases", ListOf(std.ast.Slot)),
             member("memberOf", ListOf(std.Struct)));
 
     astScope.add<Struct>("StructName")
@@ -698,11 +698,11 @@ void StdLibAst::createAst()
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("members", ListOf(std.ast.Slot)),
-            member("subTypes", ListOf(std.ast.Slot)),
+            member("typeAliases", ListOf(std.ast.Slot)),
             member("memberOf", ListOf(std.Struct)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
 
-    astScope.add<Struct>("SubTypeName")
+    astScope.add<Struct>("TypeAlias")
         .members(
             member("name", "std::Cell"));
 
@@ -740,7 +740,7 @@ void StdLibAst::createAst()
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("associatedTypes", ListOf(std.ast.Slot)),
-            member("subTypes", ListOf(std.ast.Slot)),
+            member("typeAliases", ListOf(std.ast.Slot)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
 
     astScope.add<Struct>("TraitImpl")
@@ -749,7 +749,7 @@ void StdLibAst::createAst()
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("associatedTypes", ListOf(std.ast.Slot)),
-            member("subTypes", ListOf(std.ast.Slot)),
+            member("typeAliases", ListOf(std.ast.Slot)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
 
     astScope.add<Struct>("Try")
@@ -866,30 +866,12 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             member("templateParams", tt_("List", "valueType", "ast::Base")),
             member("value", "Struct"));
 
-    stdScope.add<Struct>("CompileState")
-        .members(
-            member("currentFn", "ast::Function"),
-            member("currentStruct", "ast::Struct"),
-            member("lastBlock", "ast::Block"),
-            member("scope", "ast::Scope"),
-            member("resolvedScope", "ast::Scope"),
-            member("globalScope", "ast::Scope"),
-            member("globalResolvedScope", "ast::Scope"),
-            member("functions", tt_("List", "valueType", "op::Function")),
-            member("structs", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
-            member("unknownStructs", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
-            member("instances", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
-            member("unknownInstances", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
-            member("instanceAsts", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
-            member("unknownInstanceAsts", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
-            member("variables", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Var")));
-
     stdScope.add<Struct>("Directions");
 
 #pragma region ListItem
     stdScope.add<Struct>("ListItem")
-        .subTypes(
-            p_("ValueType", struct_("Cell")))
+        .typeAliases(
+            typeAlias("ValueType", struct_("Cell")))
         .members(
             member("previous", "ListItem"),
             member("next", "ListItem"),
@@ -901,8 +883,8 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                   parameter("valueType", _(std.Struct)))
               .memberOf(
                   _(std.ListItem))
-              .subTypes(
-                  parameter("valueType", tp_("valueType")))
+              .typeAliases(
+                  typeAlias("valueType", tp_("valueType")))
               .members(
                   member("previous", tt_("ListItem", "valueType", tp_("valueType"))),
                   member("next", tt_("ListItem", "valueType", tp_("valueType"))),
@@ -916,9 +898,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 #pragma endregion
 #pragma region List
     stdScope.add<Struct>("List")
-        .subTypes(
-            parameter("itemType", struct_("ListItem")),
-            parameter("valueType", struct_("Cell")))
+        .typeAliases(
+            typeAlias("itemType", struct_("ListItem")),
+            typeAlias("valueType", struct_("Cell")))
         .members(
             member("first", "ListItem"),
             member("last", "ListItem"),
@@ -931,9 +913,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
               .memberOf(
                   struct_("Container"),
                   struct_("List"))
-              .subTypes(
-                  parameter("itemType", tt_("ListItem", "valueType", tp_("valueType"))),
-                  parameter("valueType", tp_("valueType")))
+              .typeAliases(
+                  typeAlias("itemType", tt_("ListItem", "valueType", tp_("valueType"))),
+                  typeAlias("valueType", tp_("valueType")))
               .members(
                   member("first", st_("itemType")),
                   member("last", st_("itemType")),
@@ -970,7 +952,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         type Iterator = ListIterator<T>;
 
         fn iterator() -> Self::Iterator {
-            return new Self::Iterator(list=self())
+            return new Self::Iterator(list: self())
         }
     }
     */
@@ -983,7 +965,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                   parameter("Iterator", tt_("ListIterator", tp_("valueType"))));
 
     implIterableTraitForListT.addMethod("iterator")
-        .returnType(at_("ValueType"))
+        .returnType(at_("Iterator"))
         .instructions(
             return_(new_(at_("Iterator"), "constructor")("list", self())));
 
@@ -1141,7 +1123,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                   member("enum", "Boolean"),
                   member("incomplete", "Boolean"),
                   member("sharedObject", "Slot"),
-                  member("subTypes", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
+                  member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
                   member("memberOf", tt_("Map", "keyType", "Struct", "valueType", "Struct")),
                   member("ast", "std::ast::Struct"),
 //                  member("asts", tt_("Map", "keyType", "Cell", "valueType", "ast::Function")),
@@ -1155,14 +1137,14 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .instructions(
             m_("slots") = new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructorWithIndexType")("indexType", self()));
 
-    structStruct.addMethod("addSubType")
+    structStruct.addMethod("addTypeAlias")
         .parameters(
-            parameter("key", _(std.Cell)),
+            parameter("alias", _(std.Cell)),
             parameter("type", _(std.Struct)))
         .instructions(
-            if_(m_("subTypes").missing())
-                .then_(m_("subTypes") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", "Struct"), "constructor")),
-            m_("subTypes")("add")("key", p_("key"))("value", p_("type")));
+            if_(m_("typeAliases").missing())
+                .then_(m_("typeAliases") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", "Struct"), "constructor")),
+            m_("typeAliases")("add")("key", p_("alias"))("value", p_("type")));
 
     structStruct.addMethod("addMembership")
         .parameters(
@@ -1299,10 +1281,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 #pragma endregion
 #pragma region Map
     stdScope.add<Struct>("Map")
-        .subTypes(
-            parameter("keyType", struct_("Cell")),
-            parameter("valueType", struct_("Cell")),
-            parameter("listType", tt_("List", "valueType", struct_("Cell"))))
+        .typeAliases(
+            typeAlias("keyType", struct_("Cell")),
+            typeAlias("valueType", struct_("Cell")),
+            typeAlias("listType", tt_("List", "valueType", struct_("Cell"))))
         .memberOf(struct_("Container"))
         .members(
             member("list", st_("listType")),
@@ -1314,10 +1296,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
               .templateParams(
                   parameter("keyType", _(std.Struct)),
                   parameter("valueType", _(std.Struct)))
-              .subTypes(
-                  parameter("keyType", tp_("keyType")),
-                  parameter("valueType", tp_("valueType")),
-                  parameter("listType", tt_("List", "valueType", tp_("valueType"))))
+              .typeAliases(
+                  typeAlias("keyType", tp_("keyType")),
+                  typeAlias("valueType", tp_("valueType")),
+                  typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
               .memberOf(struct_("Map"))
               .members(
                   member("list", st_("listType")),
@@ -1459,9 +1441,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
               .templateParams(
                   parameter("keyType", _(std.Struct)),
                   parameter("valueType", _(std.Struct)))
-              .subTypes(
-                  parameter("keyType", tp_("keyType")),
-                  parameter("valueType", tp_("valueType")))
+              .typeAliases(
+                  typeAlias("keyType", tp_("keyType")),
+                  typeAlias("valueType", tp_("valueType")))
               .memberOf(struct_("KVPair"))
               .members(
                   member("key", tp_("keyType")),
@@ -1483,11 +1465,11 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             member("parent", "TrieMapNode"));
 
     stdScope.add<Struct>("TrieMap")
-        .subTypes(
-            parameter("keyType", struct_("Cell")),
-            parameter("valueType", struct_("Cell")),
-            parameter("pairType", tt_("KVPair", "keyType", struct_("Cell"), "valueType", struct_("Cell"))),
-            parameter("listType", tt_("List", "valueType", st_("pairType"))))
+        .typeAliases(
+            typeAlias("keyType", struct_("Cell")),
+            typeAlias("valueType", struct_("Cell")),
+            typeAlias("pairType", tt_("KVPair", "keyType", struct_("Cell"), "valueType", struct_("Cell"))),
+            typeAlias("listType", tt_("List", "valueType", st_("pairType"))))
         .memberOf(struct_("Container"))
         .members(
             member("list", st_("listType")),
@@ -1499,11 +1481,11 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
               .templateParams(
                   parameter("keyType", _(std.Struct)),
                   parameter("valueType", _(std.Struct)))
-              .subTypes(
-                  parameter("keyType", tp_("keyType")),
-                  parameter("valueType", tp_("valueType")),
-                  parameter("pairType", tt_("KVPair", "keyType", tp_("keyType"), "valueType", tp_("valueType"))),
-                  parameter("listType", tt_("List", "valueType", st_("pairType"))))
+              .typeAliases(
+                  typeAlias("keyType", tp_("keyType")),
+                  typeAlias("valueType", tp_("valueType")),
+                  typeAlias("pairType", tt_("KVPair", "keyType", tp_("keyType"), "valueType", tp_("valueType"))),
+                  typeAlias("listType", tt_("List", "valueType", st_("pairType"))))
               .memberOf(_(std.Container), _(std.TrieMap))
               .members(
                   member("list", st_("listType")),
@@ -1840,9 +1822,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
               .templateParams(
                   parameter("keyType", _(std.Struct)),
                   parameter("valueType", _(std.Struct)))
-              .subTypes(
-                  parameter("valueType", tp_("valueType")),
-                  parameter("listType", tt_("List", "valueType", tp_("valueType"))))
+              .typeAliases(
+                  typeAlias("valueType", tp_("valueType")),
+                  typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
               .memberOf(_(std.Container))
               .members(
                   member("index", struct_("Index")),

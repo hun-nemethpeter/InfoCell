@@ -101,11 +101,11 @@ void CellStructPrinter::printImpl(CellI& cell)
     }
 
     if (is(w.std.List)) {
-        m_ss << "List<" << cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "List<" << cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
     } else if (is(w.std.ListItem)) {
-        m_ss << "ListItem<" << cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "ListItem<" << cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
     } else if (is(w.std.Map)) {
-        m_ss << "Map<" << cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.keyType][w.ids.value].label() << ", " << cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
+        m_ss << "Map<" << cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.keyType][w.ids.value].label() << ", " << cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label() << ">";
     } else {
         m_ss << "(" << type.label() << ")";
     }

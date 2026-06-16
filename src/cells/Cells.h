@@ -267,10 +267,10 @@ public:
 
     CellI* m_name = nullptr;
     Map& m_slots;
-    Map* m_subTypes = nullptr;
-    Map* m_memberOf = nullptr;
-    Map* m_asts     = nullptr;
-    Map* m_methods  = nullptr;
+    Map* m_typeAliases = nullptr;
+    Map* m_memberOf    = nullptr;
+    Map* m_asts        = nullptr;
+    Map* m_methods     = nullptr;
 };
 
 // ============================================================================

@@ -153,10 +153,10 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     World& w = cell.w;
     std::stringstream iss;
     std::stringstream oss;
-    CellI& subTypesIndex = cell.struct_()[w.ids.subTypes][w.ids.index];
+    CellI& inputOutputTypesIndex = cell.struct_()[w.ids.typeAliases][w.ids.index];
     bool hasReturnValue  = false;
-    if (subTypesIndex.has(w.ids.parameters)) {
-        CellI& inType       = subTypesIndex[w.ids.parameters][w.ids.value];
+    if (inputOutputTypesIndex.has(w.ids.parameters)) {
+        CellI& inType       = inputOutputTypesIndex[w.ids.parameters][w.ids.value];
         if (inType.has(w.ids.slots)) {
             Visitor::visitList(inType[w.ids.slots][w.ids.list], [this, &iss, &w](CellI& slot, int i, bool& stop) {
                 if (i > 0) {
@@ -169,17 +169,17 @@ void CellValuePrinter::printOpFunction(CellI& cell)
             });
         }
     }
-    if (subTypesIndex.has(w.ids.returnType)) {
-        CellI& outType = subTypesIndex[w.ids.returnType][w.ids.value];
+    if (inputOutputTypesIndex.has(w.ids.returnType)) {
+        CellI& outType = inputOutputTypesIndex[w.ids.returnType][w.ids.value];
         hasReturnValue      = true;
         oss << outType.label();
     }
-    const std::string& className = subTypesIndex.has(w.ids.objectType) ? subTypesIndex[w.ids.objectType][w.ids.value].label() : "";
+    const std::string& className = inputOutputTypesIndex.has(w.ids.objectType) ? inputOutputTypesIndex[w.ids.objectType][w.ids.value].label() : "";
     std::string label            = className;
     if (!className.empty()) {
         label += "::";
     }
-    label += subTypesIndex[w.ids.name][w.ids.value].label();
+    label += inputOutputTypesIndex[w.ids.name][w.ids.value].label();
     bool isStatic = cell.has(w.ids.static_);
     std::string staticStr = isStatic ? "static " : "";
     std::string newLabel;
@@ -597,21 +597,21 @@ void CellValuePrinter::printTypeName(CellI& cell)
     World& w = cell.w;
     auto isA          = [this, &cell, &w](CellI& type) -> bool { return &cell == &type || (cell.has(w.ids.memberOf) && cell[w.ids.memberOf][w.ids.index].has(type)); };
     if (isA(w.std.Map)) {
-        m_ss << fmt::format("Map<{}, {}>", cell[w.ids.subTypes][w.ids.index][w.ids.keyType][w.ids.value].label(), cell[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label());
+        m_ss << fmt::format("Map<{}, {}>", cell[w.ids.typeAliases][w.ids.index][w.ids.keyType][w.ids.value].label(), cell[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label());
         return;
     } else if (isA(w.std.ListItem)) {
         if (&cell == &w.std.ListItem) {
             m_ss << "ListItem";
             return;
         }
-        m_ss << fmt::format("ListItem<{}>", cell[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label());
+        m_ss << fmt::format("ListItem<{}>", cell[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label());
         return;
     } else if (isA(w.std.List)) {
         if (&cell == &w.std.List) {
             m_ss << "List";
             return;
         }
-        m_ss << fmt::format("List<{}>", cell[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value].label());
+        m_ss << fmt::format("List<{}>", cell[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value].label());
         return;
     }
     m_ss << cell.label();
@@ -632,7 +632,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         return;
     } else if (is(w.std.List)) {
-        if (&cell.struct_()[w.ids.subTypes][w.ids.index][w.ids.valueType][w.ids.value] == &w.std.Char) {
+        if (&cell.struct_()[w.ids.typeAliases][w.ids.index][w.ids.valueType][w.ids.value] == &w.std.Char) {
             m_ss << cell.label();
             return;
         }

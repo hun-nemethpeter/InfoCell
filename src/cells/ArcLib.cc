@@ -365,8 +365,8 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     // struct Shape
     auto& shapeStruct
         = scope.add<Struct>("Shape")
-              .subTypes(
-                  parameter("InternalEdgeLookup", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"))))
+              .typeAliases(
+                  typeAlias("InternalEdgeLookup", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"))))
               .members(
                   member("id", _(std.Number)),
                   member("color", "Color"),
@@ -407,8 +407,8 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     // struct Frame
     auto& frameStruct
         = scope.add<Struct>("Frame")
-              .subTypes(
-                  parameter("tableType", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"))))
+              .typeAliases(
+                  typeAlias("tableType", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"))))
               .members(
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),

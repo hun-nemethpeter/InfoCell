@@ -269,12 +269,12 @@ public:
             return *this;
         }
 
-        StructBase& subTypes(Slot& param);
+        StructBase& typeAliases(Slot& param);
         template <typename... Args>
-        StructBase& subTypes(Slot& param, Args&&... args)
+        StructBase& typeAliases(Slot& param, Args&&... args)
         {
-            subTypes(param);
-            subTypes(std::forward<Args>(args)...);
+            typeAliases(param);
+            typeAliases(std::forward<Args>(args)...);
             return *this;
         }
 
@@ -289,10 +289,10 @@ public:
 
         CellI& name();
 
-        Base& getSubType(CellI& name);
+        Base& getTypeAlias(CellI& name);
         Map& methods();
         Map& members();
-        Map& subTypes();
+        Map& typeAliases();
         List& memberOf();
 
     protected:
@@ -576,11 +576,11 @@ public:
         Missing& missing();
         Call& operator()(const std::string& method);
     };
-    class SubType : public BaseT<SubType>
+    class TypeAlias : public BaseT<TypeAlias>
     {
     public:
-        SubType(const SubType&) = delete;
-        SubType(World& w, CellI& name);
+        TypeAlias(const TypeAlias&) = delete;
+        TypeAlias(World& w, CellI& name);
     };
     class TemplatedType : public BaseT<TemplatedType>
     {
@@ -759,7 +759,7 @@ public:
     Var& var(CellI& name);
     Var& var(const std::string& nameStr);
     Member& member(CellI& key);
-    SubType& subType(CellI& key);
+    TypeAlias& typeAlias(CellI& key);
     TemplatedType& templatedType(const std::string& id, CellI& type);
     template <typename... Args>
     TemplatedType& templatedType(const std::string& id, const std::string& key, CellI& type, Args&&... args);
@@ -822,6 +822,8 @@ protected:
     Ast::Var& var_(const std::string& nameStr);
     Ast::Slot& member(const std::string& nameStr, const std::string& type);
     Ast::Slot& member(const std::string& nameStr, CellI& type);
+    Ast::Slot& typeAlias(const std::string& nameStr, const std::string& type);
+    Ast::Slot& typeAlias(const std::string& nameStr, CellI& type);
     Ast::EnumValue& ev_(const std::string& nameStr);
     Ast::EnumValue& ev_(const std::string& nameStr, CellI& value);
     Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type);
@@ -831,7 +833,7 @@ protected:
     Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type, const std::string& valueStr);
     Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, const std::string& valueStr);
     template <typename... Args>
-    Ast::SubType& st_(const std::string& nameStr, Args&&... args);
+    Ast::TypeAlias& st_(const std::string& nameStr, Args&&... args);
     Ast::TemplateParam& tp_(const std::string& name);
     Ast::AssociatedType& at_(const std::string& name);
     template <typename... Args>

@@ -510,20 +510,20 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_)
     m_currentStruct = &ret;
 
     std::stringstream ss;
-    std::vector<std::string> subTypesStrs;
+    std::vector<std::string> typeAliasesStrs;
 
     if (IS_LOG_ENABLED) {
     }
 
     // resolve sub types
-    if (struct_.has("subTypes")) {
-        Visitor::visitList(struct_.subTypes()[w.ids.list], [this, &ret, &subTypesStrs](CellI& subTypeCell, int i, bool& stop) {
-            CellI& subTypeId           = subTypeCell[w.ids.key];
-            CellI& subTypeType         = subTypeCell[w.ids.type];
-            CellI& resolvedSubTypeType = resolveType(subTypeType);
-            ret.subTypes(w.ast.slot(subTypeId, resolvedSubTypeType));
+    if (struct_.has("typeAliases")) {
+        Visitor::visitList(struct_.typeAliases()[w.ids.list], [this, &ret, &typeAliasesStrs](CellI& typeAliasSlot, int i, bool& stop) {
+            CellI& alias        = typeAliasSlot[w.ids.key];
+            CellI& type         = typeAliasSlot[w.ids.type];
+            CellI& resolvedType = resolveType(type);
+            ret.typeAliases(w.ast.slot(alias, resolvedType));
             if (IS_LOG_ENABLED) {
-                subTypesStrs.push_back(fmt::format("    type {} = {};", subTypeId.label(), getCompiledTypeFromResolvedType(resolvedSubTypeType).label()));
+                typeAliasesStrs.push_back(fmt::format("    type {} = {};", alias.label(), getCompiledTypeFromResolvedType(resolvedType).label()));
             }
         });
     }
@@ -543,10 +543,10 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& struct_)
     if (IS_LOG_ENABLED) {
         TRACE(compileStruct, "struct {}{}", struct_.label(), ss.str());
         TRACE(compileStruct, "{");
-        for (const auto& subTypeStr : subTypesStrs) {
-            TRACE(compileStruct, subTypeStr);
+        for (const auto& typeAliasStr : typeAliasesStrs) {
+            TRACE(compileStruct, typeAliasStr);
         }
-        if (!subTypesStrs.empty() && (struct_.has("methods") || struct_.has("members"))) {
+        if (!typeAliasesStrs.empty() && (struct_.has("methods") || struct_.has("members"))) {
             TRACE(compileStruct, "");
         }
     }
@@ -850,8 +850,8 @@ Ast::Base& Compiler::resolveType(CellI& typeAst)
 
         return reslvedTypeNode;
     }
-    if (&typeAst.struct_() == &w.std.ast.SubTypeName) {
-        auto& resolveAstStruct = static_cast<Ast::Struct&>(*m_currentStruct).getSubType(typeAst[w.ids.name]);
+    if (&typeAst.struct_() == &w.std.ast.TypeAlias) {
+        auto& resolveAstStruct = static_cast<Ast::Struct&>(*m_currentStruct).getTypeAlias(typeAst[w.ids.name]);
         return resolveAstStruct;
     }
     if (&typeAst.struct_() == &w.std.ast.TemplatedType) {
@@ -1179,16 +1179,16 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     ret.set("templateParams", inputParams);
     ret.set("scope", static_cast<Ast::Scope&>(structT.get("scope")));
 
-    // instantiate sub types
-    if (structT.has("subTypes")) {
-        Map& instantiatedSubTypes = *new Map(w, w.std.Cell, w.std.ast.Base);
-        Visitor::visitList(structT.subTypes()[w.ids.list], [this, &inputParameters, &instantiatedSubTypes, &ret](CellI& slot, int i, bool& stop) {
+    // instantiate type aliases
+    if (structT.has("typeAliases")) {
+        Map& instantiatedTypeAliases = *new Map(w, w.std.Cell, w.std.ast.Base);
+        Visitor::visitList(structT.typeAliases()[w.ids.list], [this, &inputParameters, &instantiatedTypeAliases, &ret](CellI& slot, int i, bool& stop) {
             CellI& key               = slot[w.ids.key];
             CellI& type              = slot[w.ids.type];
             CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters);
-            instantiatedSubTypes.add(key, w.ast.slot(key, instantiatedParam));
+            instantiatedTypeAliases.add(key, w.ast.slot(key, instantiatedParam));
         });
-        ret.set("subTypes", instantiatedSubTypes);
+        ret.set("typeAliases", instantiatedTypeAliases);
     }
 
     // instantiate methods
@@ -1269,7 +1269,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
 
         return ret;
     }
-    if (&param.struct_() == &w.std.ast.Cell || &param.struct_() == &w.std.ast.StructName || &param.struct_() == &w.std.ast.SubTypeName) {
+    if (&param.struct_() == &w.std.ast.Cell || &param.struct_() == &w.std.ast.StructName || &param.struct_() == &w.std.ast.TypeAlias) {
         return param;
     }
 
@@ -1435,11 +1435,11 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
             Ast::Struct& astStruct = static_cast<Ast::Struct&>(struct_[w.ids.value]);
             auto& compiledStruct   = compileStruct(astStruct);
             CellI& structFullName  = getFullyQualifiedName(astStruct);
-            if (compiledStruct.has("subTypes")) {
-                CellI& subTypesIndex = compiledStruct["subTypes"][w.ids.index];
-                Visitor::visitList(subTypesIndex[w.ids.struct_][w.ids.slots][w.ids.list], [this, &structFullName, &subTypesIndex](CellI& subType, int i, bool& stop) {
-                    CellI& key      = subType["key"];
-                    CellI& value    = subTypesIndex[key][w.ids.value];
+            if (compiledStruct.has("typeAliases")) {
+                CellI& typeAliasesIndex = compiledStruct["typeAliases"][w.ids.index];
+                Visitor::visitList(typeAliasesIndex[w.ids.struct_][w.ids.slots][w.ids.list], [this, &structFullName, &typeAliasesIndex](CellI& typeAlias, int i, bool& stop) {
+                    CellI& key      = typeAlias["key"];
+                    CellI& value    = typeAliasesIndex[key][w.ids.value];
                     List& aliasName = *new List(w, w.std.Char);
                     Visitor::visitList(structFullName, [&aliasName](CellI& character, int i, bool& stop) {
                         aliasName.add(character);
@@ -1495,15 +1495,15 @@ CellI& Compiler::compileStruct(Ast::Struct& struct_)
     compiledStruct.erase("incomplete");
 
     // compile sub types
-    if (struct_.has("subTypes")) {
-        Map& compiledSubTypes = *new Map(w, w.std.Cell, w.std.Struct, "subTypes Map<Cell, Type>(...)");
-        Visitor::visitList(struct_.subTypes()[w.ids.list], [this, &compiledSubTypes](CellI& slot, int i, bool& stop) {
+    if (struct_.has("typeAliases")) {
+        Map& compiledTypeAliases = *new Map(w, w.std.Cell, w.std.Struct, "typeAliases Map<Cell, Type>(...)");
+        Visitor::visitList(struct_.typeAliases()[w.ids.list], [this, &compiledTypeAliases](CellI& slot, int i, bool& stop) {
             CellI& key             = slot[w.ids.key];
             CellI& type            = slot[w.ids.type];
             auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
-            compiledSubTypes.add(key, compiledSlotType);
+            compiledTypeAliases.add(key, compiledSlotType);
         });
-        compiledStruct.set("subTypes", compiledSubTypes);
+        compiledStruct.set("typeAliases", compiledTypeAliases);
     }
 
     // compile methods
@@ -1606,14 +1606,14 @@ CellI& Compiler::compileFunction(Ast::Function& astFunction)
     // find a better way to create type during compilation
     cells::Object& functionType = *new cells::Object(w, w.std.Struct);
     functionType.set("memberOf", w.map(w.std.Struct, w.std.Struct, w.std.op.Function, w.std.op.Function));
-    cells::Map& subTypesMap = w.map(w.std.Cell, w.std.Struct,
-                                     w.ids.name, astFunction.get("name"));
+    cells::Map& inputOutputTypes = w.map(w.std.Cell, w.std.Struct,
+                                    w.ids.name, astFunction.get("name"));
     if (astFunction.has("structType")) {
         Ast::Struct& currentStruct = static_cast<Ast::Struct&>(*m_currentStruct);
-        auto& structType      = astFunction.get("structType");
-        subTypesMap.add(w.ids.objectType, structType["compiledStruct"]);
+        auto& structType           = astFunction.get("structType");
+        inputOutputTypes.add(w.ids.objectType, structType["compiledStruct"]);
     }
-    functionType.set("subTypes", subTypesMap);
+    functionType.set(w.ids.typeAliases, inputOutputTypes);
 
     Map& functionSlots = w.slots(
         w.std.slot(w.ids.ast, w.std.ast.Base),
@@ -1626,7 +1626,7 @@ CellI& Compiler::compileFunction(Ast::Function& astFunction)
     functionType.set(w.ids.slots, functionSlots);
 
     cells::Object& compiledFunction = *new cells::Object(w, functionType);
-    compileFunctionParams(astFunction, compiledFunction, functionSlots, subTypesMap);
+    compileFunctionParams(astFunction, compiledFunction, functionSlots, inputOutputTypes);
     functionType.label(fmt::format("Type for {}", compiledFunction.label()));
     compiledFunction.set(w.ids.ast, astFunction);
     compiledFunction.set(w.ids.op, compileFunctionAst(astFunction, astFunction.instructions(), compiledFunction));
@@ -1661,7 +1661,7 @@ std::string Compiler::shortFunctionName(Ast::Function& function)
     }
 }
 
-void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction, cells::Map& functionSlots, cells::Map& subTypesMap)
+void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction, cells::Map& functionSlots, cells::Map& inputOutputTypes)
 {
     std::stringstream iss;
     std::stringstream oss;
@@ -1689,13 +1689,13 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& 
             });
         }
         parametersType.set(w.ids.slots, slots);
-        subTypesMap.add(w.ids.parameters, parametersType);
+        inputOutputTypes.add(w.ids.parameters, parametersType);
     }
     if (astFunction.has(w.ids.returnType)) {
         auto& astReturnType      = astFunction.returnType();
         auto& compiledReturnType = getCompiledTypeFromResolvedType(astReturnType);
         oss << compiledReturnType.label();
-        subTypesMap.add(w.ids.returnType, compiledReturnType);
+        inputOutputTypes.add(w.ids.returnType, compiledReturnType);
         functionSlots.add(w.ids.value, compiledReturnType);
     }
     if (astFunction.has(w.ids.returnType)) {
@@ -1804,12 +1804,12 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         }
         return retOp;
     } else if (&ast.struct_() == &w.std.ast.Var) {
-        if (function.struct_()[w.ids.subTypes][w.ids.index].missing(w.ids.localVars)) {
+        if (function.struct_()[w.ids.typeAliases][w.ids.index].missing(w.ids.localVars)) {
             cells::Object& functionLocalVarsType = *new cells::Object(w, w.std.Struct, fmt::format("LocalVarsType of {}", function.label()));
             functionLocalVarsType.set(w.ids.memberOf, w.map(w.std.Struct, w.std.Struct, w.std.Index, w.std.Index));
-            static_cast<Map&>(function.struct_()[w.ids.subTypes]).add(w.ids.localVars, functionLocalVarsType);
+            static_cast<Map&>(function.struct_()[w.ids.typeAliases]).add(w.ids.localVars, functionLocalVarsType);
         }
-        CellI& localVarsType = function.struct_()[w.ids.subTypes][w.ids.index][w.ids.localVars][w.ids.value];
+        CellI& localVarsType = function.struct_()[w.ids.typeAliases][w.ids.index][w.ids.localVars][w.ids.value];
         if (localVarsType.missing(w.ids.slots)) {
             localVarsType.set(w.ids.slots, *new Map(w, w.std.Cell, w.std.Slot));
         }
