@@ -87,6 +87,7 @@ protected:
     TrieMap& m_structs;
     TrieMap& m_unknownStructs;
     TrieMap& m_unknownInstances;
+    List& m_traitsToInstantiate;
 
     Library* m_libraryPtr           = nullptr;
     TrieMap* m_compiledFunctionsPtr = nullptr;

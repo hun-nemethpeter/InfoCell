@@ -915,6 +915,7 @@ void StdLibAst::createAst()
     astScope.add<Struct>("TraitImpl")
         .members(
             member("name", "std::Cell"),
+            member("structType", "std::Struct"),
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("associatedTypes", ListOf(std.ast.Slot)),
@@ -1126,10 +1127,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     }
     */
     auto& implIterableTraitForListT
-        = stdScope.add<TraitImpl>("Iterable")
-              .templateParams(
-                  parameter("valueType", _(std.Struct)))
-              .implementedFor(tt_("List", "valueType", tp_("valueType")))
+        = listStructT.addTraitImpl("Iterable")
               .associatedTypes(
                   parameter("Iterator", tt_("ListIterator", tp_("valueType"))));
 
@@ -1161,10 +1159,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     iteratorTrait.addMethod("goToNextNode");
 
     auto& implIteratorTraitForListT
-        = stdScope.add<TraitImpl>("Iterator")
+        = listIteratorStructT.addTraitImpl("Iterator")
               .templateParams(
                   parameter("ValueType", _(std.Struct)))
-              .implementedFor(tt_("ListIterator", "valueType", tp_("ValueType")))
               .associatedTypes(
                   parameter("NodeType", tp_("ValueType")))
               .members(

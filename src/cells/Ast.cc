@@ -211,12 +211,6 @@ Ast::Items<TrieMap, Ast::Trait>& Ast::Scope::getItemMember()
 }
 
 template <>
-Ast::Items<TrieMap, Ast::TraitImpl>& Ast::Scope::getItemMember()
-{
-    return traitImplsImpl;
-}
-
-template <>
 Ast::Items<TrieMap, Ast::Enum>& Ast::Scope::getItemMember()
 {
     return enumsImpl;
@@ -231,7 +225,6 @@ Ast::Scope::Scope(World& w, const std::string& nameStr) :
     structsImpl(w, "structs", *this),
     structTsImpl(w, "structTs", *this),
     traitsImpl(w, "traits", *this),
-    traitImplsImpl(w, "traitImpls", *this),
     enumsImpl(w, "enums", *this),
     earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs")
 {
@@ -288,9 +281,7 @@ void Ast::Scope::mergeTo(Scope& targetScope, MergeMode mergeMode)
 }
 
 Ast::StructBase::StructBase(World& w, CellI& astType, CellI& name, const std::string& nameStr) :
-    Base(w, astType, nameStr),
-    methodsImpl(w, "methods", *this)
-
+    Base(w, astType, nameStr)
 {
     set("name", name);
 }
@@ -315,6 +306,28 @@ void Ast::StructBase::addMethod(Function& method)
     }
     method.set("structType", *this);
     methods().add(name, method);
+}
+
+Ast::TraitImpl& Ast::StructBase::addTraitImpl(const std::string& nameStr)
+{
+    Ast::TraitImpl& traitImpl = *new Ast::TraitImpl(w, nameStr);
+    addTraitImpl(traitImpl);
+
+    return traitImpl;
+}
+
+void Ast::StructBase::addTraitImpl(Ast::TraitImpl& traitImpl)
+{
+    auto& name = traitImpl[w.id.name];
+
+    if (missing("traitImpls")) {
+        set("traitImpls", *new Map(w, w.std.Cell, w.std.ast.TraitImpl, "Map<Cell, Type::Ast::TraitImpl>(...)"));
+    }
+    if (traitImpls().hasKey(name)) {
+        throw "Already registered!";
+    }
+    traitImpl.set("structType", *this);
+    traitImpls().add(name, traitImpl);
 }
 
 Ast::StructBase& Ast::StructBase::primitiveTool()
@@ -375,6 +388,15 @@ Map& Ast::StructBase::methods()
         throw "No methods!";
     } else {
         return static_cast<Map&>(get("methods"));
+    }
+}
+
+Map& Ast::StructBase::traitImpls()
+{
+    if (missing("traitImpls")) {
+        throw "No traitImpls!";
+    } else {
+        return static_cast<Map&>(get("traitImpls"));
     }
 }
 
@@ -506,13 +528,6 @@ Ast::TraitImpl::TraitImpl(World& w, const std::string& nameStr) :
 }
 
 Ast::TraitImpl& Ast::TraitImpl::templateParams(Slot& slot)
-{
-    // TODO
-
-    return *this;
-}
-
-Ast::TraitImpl& Ast::TraitImpl::implementedFor(CellI& structType)
 {
     // TODO
 

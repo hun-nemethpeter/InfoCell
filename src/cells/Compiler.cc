@@ -5,6 +5,11 @@
 
 #include <sstream>
 
+struct Line {
+    int left;
+    int right;
+};
+
 namespace infocell {
 namespace cells {
 
@@ -14,7 +19,8 @@ Compiler::Compiler(World& w) :
     m_earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs"),
     m_structs(*new TrieMap(w, w.std.Cell, w.std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs")),
-    m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances"))
+    m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances")),
+    m_traitsToInstantiate(*new List(w, w.std.ast.TraitImpl))
 {
 }
 
@@ -565,6 +571,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
             }
         }
     }
+
     // resolve members
     if (astStruct.has("members")) {
         CellI& membersList = astStruct.members()[w.id.list];
@@ -576,6 +583,16 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
             TRACE(compileStruct, "    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label());
         });
     }
+
+    // trait implementations
+    if (astStruct.has("traitImpls")) {
+        CellI& traitImplsList = astStruct.traitImpls()[w.id.list];
+        Visitor::visitList(traitImplsList, [this, &astStruct, &ret](CellI& traitImpl, int i, bool& stop) {
+            std::cout << "";
+//            m_traitsToInstantiate
+        });
+    }
+
 
     TRACE(compileStruct, "}");
     TRACE(compileStruct, "");
@@ -1239,6 +1256,21 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
             instantiatedMemberOfs.add(instantiatedParam);
         });
         ret.set("memberOf", instantiatedMemberOfs);
+    }
+
+    // trait implementations
+    if (structT.has("traitImpls")) {
+        CellI& traitImplsList = structT.traitImpls()[w.id.list];
+        Visitor::visitList(traitImplsList, [this, &structT, &ret](CellI& traitImpl, int i, bool& stop) {
+            Line line { 100, 600 };
+            std::map<int, int> testMap;
+            testMap[1] = 2;
+            Object testObject(w, w.std.KVPair, "");
+            testObject.set(w.id.key, w._0_);
+            testObject.set(w.id.value, w._2_);
+            std::cout << "";
+            //            m_traitsToInstantiate
+        });
     }
 
     return ret;

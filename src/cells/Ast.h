@@ -241,7 +241,6 @@ public:
         Items<TrieMap, Struct> structsImpl;
         Items<TrieMap, StructT> structTsImpl;
         Items<TrieMap, Trait> traitsImpl;
-        Items<TrieMap, TraitImpl> traitImplsImpl;
         Items<TrieMap, Enum> enumsImpl;
     };
 
@@ -252,6 +251,9 @@ public:
 
         Function& addMethod(const std::string& nameStr);
         void addMethod(Function& method);
+
+        TraitImpl& addTraitImpl(const std::string& nameStr);
+        void addTraitImpl(TraitImpl& traitImpl);
 
     public:
         StructBase& primitiveTool();
@@ -291,14 +293,13 @@ public:
 
         Base& getTypeAlias(CellI& name);
         Map& methods();
+        Map& traitImpls();
         Map& members();
         Map& typeAliases();
         List& memberOf();
 
     protected:
         void addBlock(Block& block);
-
-        Items<Map, Function> methodsImpl;
     };
 
     class Struct : public StructBase,
@@ -378,8 +379,6 @@ public:
 
             return *this;
         }
-
-        TraitImpl& implementedFor(CellI& structType);
 
         TraitImpl& associatedTypes(Slot& param);
 
