@@ -23,6 +23,7 @@ add_library(cells-lib STATIC
     ToolFinder.h
     World.cc
     World.h
+    Cells.natvis
 )
 target_include_directories(cells-lib
     PUBLIC

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="infocell::cells::Object">
+    <DisplayString>({m_type.m_label,sb}){m_label, sb} [{m_slots._Mypair._Myval2._Myval2._Mysize}]</DisplayString>
+    <Expand>
+      <TreeItems>
+        <Size>m_slots._Mypair._Myval2._Myval2._Mysize</Size>
+        <HeadPointer>m_slots._Mypair._Myval2._Myval2._Myhead-&gt;_Parent</HeadPointer>
+        <LeftPointer>_Left</LeftPointer>
+        <RightPointer>_Right</RightPointer>
+        <ValueNode Condition="_Isnil == 0" Name="[{_Myval.first}]">_Myval,view(MapHelper)</ValueNode>
+      </TreeItems>
+    </Expand>
+  </Type>
+  <Type Name="infocell::cells::List">
+    <DisplayString>{m_label, sb}: ({m_valueType.m_label,sb})[{m_size}]</DisplayString>
+  </Type>
+  <Type Name="aastd::map&lt;*&gt;" ExcludeView="ShowElementsByIndex" Priority="MediumHigh">
+    <DisplayString>DDDD{{ size={_Mypair._Myval2._Myval2._Mysize} }}</DisplayString>
+    <Expand>
+      <Item Name="[comparator]" ExcludeView="simple">_Mypair</Item>
+      <Item Name="[allocator]" ExcludeView="simple">_Mypair._Myval2</Item>
+      <TreeItems>
+        <Size>_Mypair._Myval2._Myval2._Mysize</Size>
+        <HeadPointer>_Mypair._Myval2._Myval2._Myhead-&gt;_Parent</HeadPointer>
+        <LeftPointer>_Left</LeftPointer>
+        <RightPointer>_Right</RightPointer>
+        <ValueNode Condition="_Isnil == 0" Name="[{_Myval.first}]">_Myval.label(),view(MapHelper)</ValueNode>
+      </TreeItems>
+    </Expand>
+  </Type>
+<Type Name="Line">
+  <DisplayString>{{{left}, {right}}}</DisplayString>
+  <Expand>
+    <Item Name="[length]">right - left</Item>
+  </Expand>
+</Type>
+</AutoVisualizer>
