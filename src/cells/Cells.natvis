@@ -3,9 +3,11 @@
   <Type Name="infocell::cells::Object">
   <Intrinsic Name="isList" Expression="&amp;m_type == &amp;w.std.List">
   </Intrinsic>
-  <Intrinsic Name="rbHead" Expression="m_slots._Mypair._Myval2._Myval2._Myhead">
+  <Intrinsic Name="rbHead" Expression="obj-&gt;m_slots._Mypair._Myval2._Myval2._Myhead">
+    <Parameter Name="obj" Type="infocell::cells::Object*" />
   </Intrinsic>
-  <Intrinsic Name="rbHeadParent" Expression="m_slots._Mypair._Myval2._Myval2._Myhead-&gt;_Parent">
+  <Intrinsic Name="rbHeadParent" Expression="obj-&gt;m_slots._Mypair._Myval2._Myval2._Myhead-&gt;_Parent">
+    <Parameter Name="obj" Type="infocell::cells::Object*" />
   </Intrinsic>
   <DisplayString>({m_type.m_label,sb}){m_label, sb} [{m_slots._Mypair._Myval2._Myval2._Mysize}]</DisplayString>
     <Expand>
@@ -24,19 +26,29 @@
 <!--
         Get the first element if exist
 -->
-        <Variable Name="varKey" InitialValue="&amp;w.id.first" />
-        <Variable Name="varListSize" InitialValue="0" />
-        <Variable Name="varTryNode" InitialValue="rbHeadParent()" />
+        <Variable Name="idFirst" InitialValue="&amp;w.id.first" />
+        <Variable Name="idValue" InitialValue="&amp;w.id.value" />
+        <Variable Name="idNext" InitialValue="&amp;w.id.next" />
+
+        <Variable Name="varTryNode" InitialValue="rbHeadParent(this)" />
         <Variable Name="varResultChild" InitialValue="0" />
-        <Variable Name="varResultParent" InitialValue="rbHeadParent()" />
-        <Variable Name="varResultBound" InitialValue="rbHead()" />
-        <Variable Name="varResultNode" InitialValue="rbHead()" />
-        <Variable Name="varResult" InitialValue="(infocell::cells::CellI*)0" />
+        <Variable Name="varResultParent" InitialValue="rbHeadParent(this)" />
+        <Variable Name="varResultBound" InitialValue="rbHead(this)" />
+        <Variable Name="varResultNode" InitialValue="rbHead(this)" />
+
+        <Variable Name="next_varTryNode" InitialValue="rbHeadParent(this)" />
+        <Variable Name="next_varResultChild" InitialValue="0" />
+        <Variable Name="next_varResultParent" InitialValue="rbHeadParent(this)" />
+        <Variable Name="next_varResultBound" InitialValue="rbHead(this)" />
+        <Variable Name="next_varResultNode" InitialValue="rbHead(this)" />
+
+        <Variable Name="valueItem" InitialValue="(infocell::cells::CellI*)0" />
+        <Variable Name="nextItem" InitialValue="(infocell::cells::CellI*)0" />
 
         <Loop>
           <Break Condition="varTryNode-&gt;_Isnil == 1" />
           <Exec>varResultParent = varTryNode</Exec>
-          <If Condition="(void*)varTryNode-&gt;_Myval.first &lt; (void*)varKey">
+          <If Condition="(void*)varTryNode-&gt;_Myval.first &lt; idFirst">
             <Exec>varResultChild = 0</Exec>
             <Exec>varTryNode = varTryNode-&gt;_Right</Exec>
           </If>
@@ -52,13 +64,81 @@
         <Else>
           <Exec>varResultNode = varResultParent-&gt;_Left</Exec>
         </Else>
-        <If Condition="(varResultBound-&gt;_Isnil == 0) &amp;&amp; !((void*)varKey &lt; (void*)varResultBound-&gt;_Myval.first)">
-          <Exec>varResult = varResultBound-&gt;_Myval.second</Exec>
-          <Item>varResult</Item>
+        <If Condition="(varResultBound-&gt;_Isnil == 0) &amp;&amp; !((void*)idFirst &lt; (void*)varResultBound-&gt;_Myval.first)">
+          <Exec>nextItem = varResultBound-&gt;_Myval.second</Exec>
         </If>
         <Else>
           <Item>"[Empty]"</Item>
         </Else>
+
+        <Loop>
+          <Break Condition="nextItem == 0" />
+
+          <Exec>varTryNode = rbHeadParent((infocell::cells::Object*)nextItem)</Exec>
+          <Exec>varResultChild = 0</Exec>
+          <Exec>varResultParent = rbHeadParent((infocell::cells::Object*)nextItem)</Exec>
+          <Exec>varResultBound = rbHead((infocell::cells::Object*)nextItem)</Exec>
+          <Exec>varResultNode = rbHead((infocell::cells::Object*)nextItem)</Exec>
+
+          <Loop>
+            <Break Condition="varTryNode-&gt;_Isnil == 1" />
+            <Exec>varResultParent = varTryNode</Exec>
+            <If Condition="(void*)varTryNode-&gt;_Myval.first &lt; (void*)idValue">
+              <Exec>varResultChild = 0</Exec>
+              <Exec>varTryNode = varTryNode-&gt;_Right</Exec>
+            </If>
+            <Else>
+              <Exec>varResultChild = 1</Exec>
+              <Exec>varResultBound = varTryNode</Exec>
+              <Exec>varTryNode = varTryNode-&gt;_Left</Exec>
+            </Else>
+          </Loop>
+
+          <If Condition="varResultChild == 0">
+            <Exec>varResultNode = varResultParent-&gt;_Right</Exec>
+          </If>
+          <Else>
+            <Exec>varResultNode = varResultParent-&gt;_Left</Exec>
+          </Else>
+          <If Condition="(varResultBound-&gt;_Isnil == 0) &amp;&amp; !((void*)idValue &lt; (void*)varResultBound-&gt;_Myval.first)">
+            <Exec>valueItem = varResultBound-&gt;_Myval.second</Exec>
+
+            <Item>valueItem</Item>
+
+            <Exec>next_varTryNode = rbHeadParent((infocell::cells::Object*)nextItem)</Exec>
+            <Exec>next_varResultChild = 0</Exec>
+            <Exec>next_varResultParent = rbHeadParent((infocell::cells::Object*)nextItem)</Exec>
+            <Exec>next_varResultBound = rbHead((infocell::cells::Object*)nextItem)</Exec>
+            <Exec>next_varResultNode = rbHead((infocell::cells::Object*)nextItem)</Exec>
+
+            <Loop>
+              <Break Condition="next_varTryNode-&gt;_Isnil == 1" />
+              <Exec>varResultParent = next_varTryNode</Exec>
+              <If Condition="(void*)next_varTryNode-&gt;_Myval.first &lt; (void*)&amp;w.id.next">
+                <Exec>next_varResultChild = 0</Exec>
+                <Exec>next_varTryNode = next_varTryNode-&gt;_Right</Exec>
+              </If>
+              <Else>
+                <Exec>next_varResultChild = 1</Exec>
+                <Exec>next_varResultBound = next_varTryNode</Exec>
+                <Exec>next_varTryNode = next_varTryNode-&gt;_Left</Exec>
+              </Else>
+            </Loop>
+            <If Condition="next_varResultChild == 0">
+              <Exec>next_varResultNode = next_varResultParent-&gt;_Right</Exec>
+            </If>
+            <Else>
+              <Exec>next_varResultNode = next_varResultParent-&gt;_Left</Exec>
+            </Else>
+
+            <If Condition="(next_varResultBound-&gt;_Isnil == 0) &amp;&amp; !((void*)&amp;w.id.next &lt; (void*)next_varResultBound-&gt;_Myval.first)">
+              <Exec>nextItem = next_varResultBound-&gt;_Myval.second</Exec>
+            </If>
+            <Else>
+              <Exec>nextItem = 0</Exec>
+            </Else>
+          </If>
+        </Loop>
       </CustomListItems>
     </Expand>
   </Type>
