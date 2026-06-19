@@ -1,19 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="infocell::cells::Object">
-    <DisplayString>({m_type.m_label,sb}){m_label, sb} [{m_slots._Mypair._Myval2._Myval2._Mysize}]</DisplayString>
+  <Intrinsic Name="isList" Expression="&amp;m_type == &amp;w.std.List">
+  </Intrinsic>
+  <Intrinsic Name="rbHead" Expression="m_slots._Mypair._Myval2._Myval2._Myhead">
+  </Intrinsic>
+  <Intrinsic Name="rbHeadParent" Expression="m_slots._Mypair._Myval2._Myval2._Myhead-&gt;_Parent">
+  </Intrinsic>
+  <DisplayString>({m_type.m_label,sb}){m_label, sb} [{m_slots._Mypair._Myval2._Myval2._Mysize}]</DisplayString>
     <Expand>
-      <TreeItems>
+      <TreeItems Condition="!isList()">
         <Size>m_slots._Mypair._Myval2._Myval2._Mysize</Size>
         <HeadPointer>m_slots._Mypair._Myval2._Myval2._Myhead-&gt;_Parent</HeadPointer>
         <LeftPointer>_Left</LeftPointer>
         <RightPointer>_Right</RightPointer>
         <ValueNode Condition="_Isnil == 0" Name="[{_Myval.first}]">_Myval,view(MapHelper)</ValueNode>
       </TreeItems>
+      <Synthetic Name="std::List" Condition="isList()">
+        <DisplayString>Its a std::List</DisplayString>
+      </Synthetic>
+      <CustomListItems Condition="isList()" MaxItemsPerView="5000" ExcludeView="Test">
+
+<!--
+        Get the first element if exist
+-->
+        <Variable Name="varKey" InitialValue="&amp;w.id.first" />
+        <Variable Name="varListSize" InitialValue="0" />
+        <Variable Name="varTryNode" InitialValue="rbHeadParent()" />
+        <Variable Name="varResultChild" InitialValue="0" />
+        <Variable Name="varResultParent" InitialValue="rbHeadParent()" />
+        <Variable Name="varResultBound" InitialValue="rbHead()" />
+        <Variable Name="varResultNode" InitialValue="rbHead()" />
+        <Variable Name="varResult" InitialValue="(infocell::cells::CellI*)0" />
+
+        <Loop>
+          <Break Condition="varTryNode-&gt;_Isnil == 1" />
+          <Exec>varResultParent = varTryNode</Exec>
+          <If Condition="(void*)varTryNode-&gt;_Myval.first &lt; (void*)varKey">
+            <Exec>varResultChild = 0</Exec>
+            <Exec>varTryNode = varTryNode-&gt;_Right</Exec>
+          </If>
+          <Else>
+            <Exec>varResultChild = 1</Exec>
+            <Exec>varResultBound = varTryNode</Exec>
+            <Exec>varTryNode = varTryNode-&gt;_Left</Exec>
+          </Else>
+        </Loop>
+        <If Condition="varResultChild == 0">
+          <Exec>varResultNode = varResultParent-&gt;_Right</Exec>
+        </If>
+        <Else>
+          <Exec>varResultNode = varResultParent-&gt;_Left</Exec>
+        </Else>
+        <If Condition="(varResultBound-&gt;_Isnil == 0) &amp;&amp; !((void*)varKey &lt; (void*)varResultBound-&gt;_Myval.first)">
+          <Exec>varResult = varResultBound-&gt;_Myval.second</Exec>
+          <Item>varResult</Item>
+        </If>
+        <Else>
+          <Item>"[Empty]"</Item>
+        </Else>
+      </CustomListItems>
     </Expand>
   </Type>
   <Type Name="infocell::cells::List">
     <DisplayString>{m_label, sb}: ({m_valueType.m_label,sb})[{m_size}]</DisplayString>
+  </Type>
+  <Type Name="infocell::cells::Number">
+    <DisplayString>{m_value}</DisplayString>
   </Type>
   <Type Name="aastd::map&lt;*&gt;" ExcludeView="ShowElementsByIndex" Priority="MediumHigh">
     <DisplayString>DDDD{{ size={_Mypair._Myval2._Myval2._Mysize} }}</DisplayString>
@@ -29,10 +82,4 @@
       </TreeItems>
     </Expand>
   </Type>
-<Type Name="Line">
-  <DisplayString>{{{left}, {right}}}</DisplayString>
-  <Expand>
-    <Item Name="[length]">right - left</Item>
-  </Expand>
-</Type>
 </AutoVisualizer>
