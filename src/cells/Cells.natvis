@@ -144,7 +144,15 @@
   </Type>
   <Type Name="infocell::cells::List">
     <DisplayString>{m_label, sb}: ({m_valueType.m_label,sb})[{m_size}]</DisplayString>
-  </Type>
+    <Expand>
+    <LinkedListItems>
+      <Size>m_size</Size>
+      <HeadPointer>m_firstItem</HeadPointer>
+      <NextPointer>m_next</NextPointer>
+      <ValueNode>m_value</ValueNode>
+    </LinkedListItems>
+    </Expand>
+    </Type>
   <Type Name="infocell::cells::Number">
     <DisplayString>{m_value}</DisplayString>
   </Type>
