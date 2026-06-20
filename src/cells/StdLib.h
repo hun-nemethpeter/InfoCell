@@ -139,7 +139,7 @@ public:
     Object Color;
     Object Container;
     Object Digit;
-    Object Directions;
+    Object Direction;
     Object Enum;
     Object Grid;
     Object Index;
@@ -170,6 +170,54 @@ public:
     Op op;
     Ast ast;
 };
+
+class StdEnumValues
+{
+public:
+    class EBoolean
+    {
+        EBoolean(World& w);
+        friend class StdEnumValues;
+
+    public:
+        Object false_;
+        Object true_;
+    };
+
+    class EDirection
+    {
+        EDirection(World& w);
+        friend class StdEnumValues;
+
+    public:
+        Object up;
+        Object down;
+        Object left;
+        Object right;
+    };
+
+    class ENumberSign
+    {
+        ENumberSign(World& w);
+        friend class StdEnumValues;
+
+    public:
+        Object positive;
+        Object negative;
+    };
+
+    StdEnumValues(World& w);
+
+protected:
+    World& w;
+
+public:
+    EBoolean Boolean;
+    EDirection Direction;
+    ENumberSign NumberSign;
+};
+
+
 class Compiler;
 class StdLib : public Library
 {

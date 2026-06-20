@@ -14,10 +14,10 @@ class ID
     friend class Pools;
 
 public:
-    class Directions
+    class Direction
     {
     public:
-        Directions(World& w);
+        Direction(World& w);
         List up;
         List down;
         List left;
@@ -34,7 +34,7 @@ public:
 
     ID(World& w);
 
-    Directions directions;
+    Direction directions;
     Coordinates coordinates;
 
     List __type__;

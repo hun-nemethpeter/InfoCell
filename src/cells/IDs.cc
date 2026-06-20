@@ -4,7 +4,7 @@
 namespace infocell {
 namespace cells {
 
-ID::Directions::Directions(World& w) :
+ID::Direction::Direction(World& w) :
     up(w, w.std.Char, "up"),
     down(w, w.std.Char, "down"),
     left(w, w.std.Char, "left"),

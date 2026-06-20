@@ -5,6 +5,7 @@
 namespace infocell {
 namespace cells {
 
+// ============================================================================
 Std::Op::Op(World& w) :
     w(w),
     Activate(w, w.std.Struct, "op::Activate"),
@@ -43,6 +44,7 @@ Std::Op::Op(World& w) :
 {
 }
 
+// ============================================================================
 Std::Ast::Ast(World& w) :
     w(w),
     Add(w, w.std.Struct, "ast::Add"),
@@ -107,6 +109,7 @@ Std::Ast::Ast(World& w) :
 {
 }
 
+// ============================================================================
 Std::Std(World& w) :
     w(w),
     Boolean(w, w.std.Enum, "Boolean"),
@@ -115,7 +118,7 @@ Std::Std(World& w) :
     Color(w, w.std.Struct, "Color"),
     Container(w, w.std.Struct, "Conatainer"),
     Digit(w, w.std.Struct, "Digit"),
-    Directions(w, w.std.Enum, "Directions"),
+    Direction(w, w.std.Enum, "Directions"),
     Enum(w, w.std.Struct, "Enum"),
     Grid(w, w.std.Struct, "Grid"),
     Index(w, w.std.Struct, "Index"),
@@ -172,18 +175,112 @@ cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
     return ret;
 }
 
+// ============================================================================
+StdEnumValues::EBoolean::EBoolean(World& w) :
+    true_(w, w.std.Boolean, "true"),
+    false_(w, w.std.Boolean, "false")
+{
+}
+
+StdEnumValues::EDirection::EDirection(World& w) :
+    up(w, w.std.Direction, "up"),
+    down(w, w.std.Direction, "down"),
+    left(w, w.std.Direction, "left"),
+    right(w, w.std.Direction, "right")
+{
+}
+
+StdEnumValues::ENumberSign::ENumberSign(World& w) :
+    positive(w, w.std.NumberSign, "positive"),
+    negative(w, w.std.NumberSign, "negative")
+{
+}
+
+StdEnumValues::StdEnumValues(World& w) :
+    w(w),
+    Boolean(w),
+    Direction(w),
+    NumberSign(w)
+{
+}
+
+// ============================================================================
 class StdLibAst : public AstHelper
 {
 public:
+    class Traits : public AstHelper
+    {
+        Traits(World& w, Ast::Scope& std);
+        friend class StdLibAst;
+
+    public:
+        Ast::Trait& Iterable;
+        Ast::Trait& Iterator;
+    };
+
     StdLibAst(World& w, Ast::Scope& scope);
 
 private:
     void createOp();
     void createAst();
+    void createEnums();
+
+    void createIndex();
+    void createKVPair();
+    void createList();
+    void createListItem();
+    void createMap();
+    void createSet();
+    void createStruct();
+    void createTrieMap();
 
     Ast::Scope& stdScope;
+    Traits traits;
 };
 
+// ============================================================================
+StdLibAst::Traits::Traits(World& w, Ast::Scope& stdScope) :
+    AstHelper(w),
+    Iterable(stdScope.add<Trait>("Iterable")),
+    Iterator(stdScope.add<Trait>("Iterator"))
+{
+    /*
+    trait Iterable {
+        type Iterator: std::Iterator;
+
+        fn iterator() -> Self::Iterator;
+    }
+    */
+    Iterable.
+        associatedTypes(
+                parameter("Iterator", _("Iterator")))
+        .addMethod("iterator")
+        .returnType(at_("Iterator"));
+
+    /*
+    trait Iterator
+    {
+        type ValueType;
+
+        bool isContainerEmpty();
+        void goToFirstNode();
+        ValueType getCurrentNodeValue();
+        bool hasNextNode();
+        void goToNextNode();
+    }
+    */
+    Iterator.
+        associatedTypes(
+        parameter("ValueType", _(std.Struct)));
+
+    Iterator.addMethod("isContainerEmpty").returnType(_(std.Boolean));
+    Iterator.addMethod("goToFirstNode");
+    Iterator.addMethod("getCurrentNodeValue").returnType(at_("ValueType"));
+    Iterator.addMethod("hasNextNode").returnType(_(std.Boolean));
+    Iterator.addMethod("goToNextNode");
+}
+
+// ============================================================================
 void StdLibAst::createOp()
 {
     auto& opScope = stdScope.add<Scope>("op");
@@ -481,6 +578,7 @@ void StdLibAst::createOp()
             member("statement", "Base"));
 }
 
+// ============================================================================
 void StdLibAst::createAst()
 {
     auto& astScope = stdScope.add<Scope>("ast");
@@ -958,125 +1056,144 @@ void StdLibAst::createAst()
             member("statement", "Base"));
 }
 
-
-StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
-    AstHelper(w),
-    stdScope(scope)
+// ============================================================================
+void StdLibAst::createEnums()
 {
-    createOp();
-    createAst();
-
-        /*
-     * enum type
-     *   tag: roleId
-     *   roleId: value
-     */
     stdScope.add<Enum>("Boolean")
         .values(
-            ev_("true"),
-            ev_("false"));
+            ev_("false"),
+            ev_("true"));
 
-    stdScope.add<Struct>("Cell");
-    stdScope.add<Struct>("Void");
-    stdScope.add<Struct>("Slot")
-        .members(
-            member("key", "Cell"),
-            member("type", "Struct"));
-
-    stdScope.add<Struct>("Enum")
-        .members(
-            member("values", tt_("Map", "keyType", "Cell", "valueType", "Struct")));
-
-    stdScope.add<Struct>("OpState")
-        .members(
-            member("op", "op::Base"),
-            member("state", "Cell"),
-            member("value", "Cell"));
-
-    stdScope.add<Struct>("Container");
-    stdScope.add<Struct>("Boolean");
-    stdScope.add<Struct>("Char");
-    stdScope.add<Struct>("Digit");
+    stdScope.add<Enum>("Direction")
+        .values(
+            ev_("up"),
+            ev_("down"),
+            ev_("left"),
+            ev_("right"));
 
     stdScope.add<Enum>("NumberSign")
         .values(
             ev_("positive"),
             ev_("negative"));
+}
 
-    stdScope.add<Struct>("Number")
+// ============================================================================
+void StdLibAst::createIndex()
+{
+#pragma region Index
+    auto& indexStruct
+        = stdScope.add<Struct>("Index")
+              .memberOf(_(std.Struct));
+
+    indexStruct.addMethod("constructor")
+        .instructions(
+            set(self(), "__type__", new_("Struct", "constructorWithRecursiveType")),
+            set(m_("__type__"), "methods", get(__type__("Index"), _("methods"))),
+            set(m_("__type__"), "memberOf", _(map(std.Struct, std.Struct, std.Index, std.Index))));
+
+    indexStruct.addMethod("constructorWithSelfType")
+        .parameters(
+            parameter("indexType", _(std.Struct)))
+        .instructions(
+            if_(missing(p_("indexType"), _("sharedObject")))
+                .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.Slot))),
+                             set(p_("indexType") / "sharedObject", "key", self()),
+                             set(p_("indexType") / "sharedObject", "type", __type__("Index")))),
+            set(p_("indexType"), "methods", m_("__type__") / "methods"),
+            set(self(), "__type__", p_("indexType")));
+
+    /*
+    void Index::insert(CellI& key, CellI& value)
+    {
+        if (&key == &"__type__") {
+            throw "The type key can not be changed!";
+        }
+        m_slots[&key] = &value;
+        if (m_recursiveType) {
+            return;
+        }
+        Object& slot = *new Object(w, w.type.Slot);
+        slot.set("key", key);
+        slot.set("type", w.type.Slot);
+        m_type->addSlot(key, slot);
+    }
+    */
+    indexStruct.addMethod("insert")
+        .parameters(
+            parameter("key", _(std.Cell)),
+            parameter("value", _(std.Cell)))
+        .instructions(
+            if_(same(p_("key"), _("__type__")))
+                .then_(return_()),
+            set(self(), p_("key"), p_("value")),
+            if_(and_(has(m_("__type__"), "sharedObject"), same(m_("__type__") / "sharedObject" / "key", self())))
+                .then_(return_()),
+            m_("__type__")("addSlot")("key", p_("key"))("type", _(std.Slot)));
+
+    indexStruct.addMethod("empty")
+        .returnType(_(std.Boolean))
+        .instructions(
+            return_((m_("__type__") / "slots")("empty")));
+
+    /*
+    void Index::erase(CellI& key)
+    {
+        if (!m_type->hasSlot(key)) {
+            return;
+        }
+        m_slots.erase(&key);
+        m_type->removeSlot(key);
+    }
+    */
+    indexStruct.addMethod("remove")
+        .parameters(
+            parameter("key", _(std.Cell)))
+        .instructions(
+            if_(not_(m_("__type__")("hasSlot")("key", p_("key"))))
+                .then_(return_()),
+            erase(self(), p_("key")),
+            m_("__type__")("removeSlot")("key", p_("key")));
+
+    indexStruct.addMethod("size")
+        .returnType(_(std.Number))
+        .instructions(
+            return_((m_("__type__") / "slots")("size")));
+#pragma endregion
+}
+
+// ============================================================================
+void StdLibAst::createKVPair()
+{
+    stdScope.add<Struct>("KVPair")
         .members(
-            member("value", ListOf(std.Digit)),
-            member("sign", "NumberSign"));
+            member("key", "Cell"),
+            member("value", "Cell"));
 
-    stdScope.add<Struct>("String");
-
-    stdScope.add<Struct>("Color")
-        .members(
-            member("red", "Number"),
-            member("green", "Number"),
-            member("blue", "Number"));
-
-    stdScope.add<Struct>("Pixel");
-    stdScope.add<Struct>("Grid");
-    stdScope.add<Struct>("Stack");
-
-    stdScope.add<Struct>("StackFrame")
-        .members(
-            member("method", "op::Function"),
-            member("ops", "List"),
-            member("input", "Index"),
-            member("localVars", "Index"));
-
-    stdScope.add<Struct>("Library")
-        .members(
-            member("scope", "ast::Scope"),
-            member("resolvedScope", "ast::Scope"),
-            member("functions", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Function")),
-            member("structs", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
-            member("variables", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Var")));
-
-    stdScope.add<Struct>("StructReference")
-        .members(
-            member("id", tt_("List", "valueType", "Char")),
-            member("idScope", "ast::Scope"),
-            member("scope", "ast::Scope"),
-            member("resolvedScope", "ast::Scope"),
-            member("currentFn", "ast::Function"),
-            member("currentStruct", "ast::Struct"),
-            member("templateId", tt_("List", "valueType", "Cell")),
-            member("templateParams", tt_("List", "valueType", "ast::Base")),
-            member("value", "Struct"));
-
-    stdScope.add<Struct>("Directions");
-
-#pragma region ListItem
-    stdScope.add<Struct>("ListItem")
-        .typeAliases(
-            typeAlias("ValueType", __type__("Cell")))
-        .members(
-            member("previous", "ListItem"),
-            member("next", "ListItem"),
-            member("value", ta_("ValueType")));
-
-    auto& listItemStructT
-        = stdScope.add<StructT>("ListItem")
+    auto& kvPairT
+        = stdScope.add<StructT>("KVPair")
               .templateParams(
+                  parameter("keyType", _(std.Struct)),
                   parameter("valueType", _(std.Struct)))
-              .memberOf(
-                  _(std.ListItem))
               .typeAliases(
+                  typeAlias("keyType", tp_("keyType")),
                   typeAlias("valueType", tp_("valueType")))
+              .memberOf(__type__("KVPair"))
               .members(
-                  member("previous", tt_("ListItem", "valueType", tp_("valueType"))),
-                  member("next", tt_("ListItem", "valueType", tp_("valueType"))),
+                  member("key", tp_("keyType")),
                   member("value", tp_("valueType")));
 
-    listItemStructT.addMethod("constructor")
+    kvPairT.addMethod("constructor")
         .parameters(
+            parameter("key", tp_("keyType")),
             parameter("value", tp_("valueType")))
         .instructions(
+            m_("key")   = p_("key"),
             m_("value") = p_("value"));
-#pragma endregion
+}
+
+// ============================================================================
+void StdLibAst::createList()
+{
 #pragma region List
     stdScope.add<Struct>("List")
         .typeAliases(
@@ -1115,18 +1232,6 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("list", tt_("List", "valueType", tp_("valueType"))))
         .instructions(
             m_("list") = p_("list"));
-    /*
-    trait Iterable {
-        type Iterator: std::Iterator;
-
-        fn iterator() -> Self::Iterator;
-    }
-    */
-    auto& iterableTrait
-        = stdScope.add<Trait>("Iterable")
-              .associatedTypes(
-                  parameter("Iterator", _("Iterator")))
-              .addMethod("iterator").returnType(at_("Iterator"));
 
     /*
     impl<T> trait Iterable for List<T> {
@@ -1146,28 +1251,6 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .returnType(at_("Iterator"))
         .instructions(
             return_(new_(at_("Iterator"), "constructor")("list", self())));
-
-    /*
-    trait Iterator
-    {
-        type ValueType;
-
-        bool isContainerEmpty();
-        void goToFirstNode();
-        ValueType getCurrentNodeValue();
-        bool hasNextNode();
-        void goToNextNode();
-    }
-    */
-    auto& iteratorTrait
-        = stdScope.add<Trait>("Iterator")
-              .associatedTypes(parameter("ValueType", _(std.Struct)));
-
-    iteratorTrait.addMethod("isContainerEmpty").returnType(_(std.Boolean));
-    iteratorTrait.addMethod("goToFirstNode");
-    iteratorTrait.addMethod("getCurrentNodeValue").returnType(at_("ValueType"));
-    iteratorTrait.addMethod("hasNextNode").returnType(_(std.Boolean));
-    iteratorTrait.addMethod("goToNextNode");
 
     // impl Iterator for ListItem<T>
     auto& implIteratorTraitForListT
@@ -1287,172 +1370,44 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .instructions(
             return_(m_("last")));
 #pragma endregion
-#pragma region Struct
-    auto& structStruct
-        = stdScope.add<Struct>("Struct")
+}
+
+// ============================================================================
+void StdLibAst::createListItem()
+{
+#pragma region ListItem
+    stdScope.add<Struct>("ListItem")
+        .typeAliases(
+            typeAlias("ValueType", __type__("Cell")))
+        .members(
+            member("previous", "ListItem"),
+            member("next", "ListItem"),
+            member("value", ta_("ValueType")));
+
+    auto& listItemStructT
+        = stdScope.add<StructT>("ListItem")
+              .templateParams(
+                  parameter("valueType", _(std.Struct)))
+              .memberOf(
+                  _(std.ListItem))
+              .typeAliases(
+                  typeAlias("valueType", tp_("valueType")))
               .members(
-                  member("name", tt_("List", "valueType", "Char")),
-                  member("fullyQualifiedName", "std::Cell"),
-                  member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
-                  member("enum", "Boolean"),
-                  member("incomplete", "Boolean"),
-                  member("sharedObject", "Slot"),
-                  member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
-                  member("memberOf", tt_("Map", "keyType", "Struct", "valueType", "Struct")),
-                  member("ast", "std::ast::Struct"),
-//                  member("asts", tt_("Map", "keyType", "Cell", "valueType", "ast::Function")),
-                  member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")));
+                  member("previous", tt_("ListItem", "valueType", tp_("valueType"))),
+                  member("next", tt_("ListItem", "valueType", tp_("valueType"))),
+                  member("value", tp_("valueType")));
 
-    structStruct.addMethod("constructor")
-        .instructions(
-            m_("slots") = new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructor"));
-
-    structStruct.addMethod("constructorWithRecursiveType")
-        .instructions(
-            m_("slots") = new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructorWithIndexType")("indexType", self()));
-
-    structStruct.addMethod("addTypeAlias")
+    listItemStructT.addMethod("constructor")
         .parameters(
-            parameter("alias", _(std.Cell)),
-            parameter("type", _(std.Struct)))
+            parameter("value", tp_("valueType")))
         .instructions(
-            if_(m_("typeAliases").missing())
-                .then_(m_("typeAliases") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", "Struct"), "constructor")),
-            m_("typeAliases")("add")("key", p_("alias"))("value", p_("type")));
-
-    structStruct.addMethod("addMembership")
-        .parameters(
-            parameter("cell", _(std.Struct)))
-        .instructions(
-            if_(m_("memberOf").missing())
-                .then_(m_("memberOf") = new_(tt_("Map", "keyType", "Struct", "valueType", "Struct"), "constructor")),
-            m_("memberOf")("add")("key", p_("cell"))("value", p_("cell")));
-
-    structStruct.addMethod("addSlot")
-        .parameters(
-            parameter("key", _(std.Cell)),
-            parameter("type", _(std.Slot)))
-        .instructions(
-            if_(m_("slots").missing())
-                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
-            var_("slot") = new_(_(std.Slot)),
-            set(*var_("slot"), "key", p_("key")),
-            set(*var_("slot"), "type", p_("type")),
-            m_("slots")("add")("key", p_("key"))("value", *var_("slot")));
-
-    structStruct.addMethod("addSlots")
-        .parameters(
-            parameter("list", tt_("List", "valueType", _(std.Slot))))
-        .instructions(
-            if_(equal(p_("list") / "size", _(_0_)))
-                .then_(return_()),
-            var_("item") = p_("list") / "first",
-            if_(m_("slots").missing())
-                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
-            do_(block(
-                        var_("next") = true_(),
-                        m_("slots")("add")("key", *var_("item") / "value" / "key")("value", *var_("item") / "value"),
-                        if_(has(*var_("item"), "next"))
-                            .then_(var_("item") = *var_("item") / "next")
-                            .else_(var_("next") = false_())))
-                .while_(same(*var_("next"), true_())));
-
-    structStruct.addMethod("hasSlot")
-        .parameters(
-            parameter("key", _(std.Cell)))
-        .returnType(_(std.Boolean))
-        .instructions(
-            if_(m_("slots").missing())
-                .then_(return_(false_())),
-            return_(m_("slots")("hasKey")("key", p_("key"))));
-
-    structStruct.addMethod("removeSlot")
-        .parameters(
-            parameter("key", _(std.Cell)))
-        .instructions(
-            if_(m_("slots").missing())
-                .then_(return_()),
-            m_("slots")("remove")("key", p_("key")));
+            m_("value") = p_("value"));
 #pragma endregion
-#pragma region Index
-    auto& indexStruct
-        = stdScope.add<Struct>("Index")
-              .memberOf(_(std.Struct));
+}
 
-    indexStruct.addMethod("constructor")
-        .instructions(
-            set(self(), "__type__", new_("Struct", "constructorWithRecursiveType")),
-            set(m_("__type__"), "methods", get(__type__("Index"), _("methods"))),
-            set(m_("__type__"), "memberOf", _(map(std.Struct, std.Struct, std.Index, std.Index))));
-
-    indexStruct.addMethod("constructorWithSelfType")
-        .parameters(
-            parameter("indexType", _(std.Struct)))
-        .instructions(
-            if_(missing(p_("indexType"), _("sharedObject")))
-                .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.Slot))),
-                                 set(p_("indexType") / "sharedObject", "key", self()),
-                                 set(p_("indexType") / "sharedObject", "type", __type__("Index")))),
-            set(p_("indexType"), "methods", m_("__type__") / "methods"),
-            set(self(), "__type__", p_("indexType")));
-
-    /*
-    void Index::insert(CellI& key, CellI& value)
-    {
-        if (&key == &"__type__") {
-            throw "The type key can not be changed!";
-        }
-        m_slots[&key] = &value;
-        if (m_recursiveType) {
-            return;
-        }
-        Object& slot = *new Object(w, w.type.Slot);
-        slot.set("key", key);
-        slot.set("type", w.type.Slot);
-        m_type->addSlot(key, slot);
-    }
-    */
-    indexStruct.addMethod("insert")
-        .parameters(
-            parameter("key", _(std.Cell)),
-            parameter("value", _(std.Cell)))
-        .instructions(
-            if_(same(p_("key"), _("__type__")))
-                .then_(return_()),
-            set(self(), p_("key"), p_("value")),
-            if_(and_(has(m_("__type__"), "sharedObject"), same(m_("__type__") / "sharedObject" / "key", self())))
-                .then_(return_()),
-            m_("__type__")("addSlot")("key", p_("key"))("type", _(std.Slot)));
-
-    indexStruct.addMethod("empty")
-        .returnType(_(std.Boolean))
-        .instructions(
-            return_((m_("__type__") / "slots")("empty")));
-
-    /*
-    void Index::erase(CellI& key)
-    {
-        if (!m_type->hasSlot(key)) {
-            return;
-        }
-        m_slots.erase(&key);
-        m_type->removeSlot(key);
-    }
-    */
-    indexStruct.addMethod("remove")
-        .parameters(
-            parameter("key", _(std.Cell)))
-        .instructions(
-            if_(not_(m_("__type__")("hasSlot")("key", p_("key"))))
-                .then_(return_()),
-            erase(self(), p_("key")),
-            m_("__type__")("removeSlot")("key", p_("key")));
-
-    indexStruct.addMethod("size")
-        .returnType(_(std.Number))
-        .instructions(
-            return_((m_("__type__") / "slots")("size")));
-#pragma endregion
+// ============================================================================
+void StdLibAst::createMap()
+{
 #pragma region Map
     stdScope.add<Struct>("Map")
         .typeAliases(
@@ -1604,39 +1559,182 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .instructions(
             return_(m_("list") / "last"));
 #pragma endregion
-#pragma region TrieMap
-    stdScope.add<Struct>("KVPair")
-        .members(
-            member("key", "Cell"),
-            member("value", "Cell"));
+}
 
-    auto& kvPairT
-        = stdScope.add<StructT>("KVPair")
+// ============================================================================
+void StdLibAst::createSet()
+{
+#pragma region Set
+    auto& setStructT
+        = stdScope.add<StructT>("Set")
               .templateParams(
                   parameter("keyType", _(std.Struct)),
                   parameter("valueType", _(std.Struct)))
               .typeAliases(
-                  typeAlias("keyType", tp_("keyType")),
-                  typeAlias("valueType", tp_("valueType")))
-              .memberOf(__type__("KVPair"))
+                  typeAlias("valueType", tp_("valueType")),
+                  typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
+              .memberOf(_(std.Container))
               .members(
-                  member("key", tp_("keyType")),
-                  member("value", tp_("valueType")));
+                  member("index", __type__("Index")),
+                  member("size", _(std.Number)));
 
-    kvPairT.addMethod("constructor")
+    setStructT.addMethod("constructor")
+        .instructions(
+            m_("size")  = _(_0_),
+            m_("index") = new_(__type__("Index"), "constructor"));
+
+    setStructT.addMethod("add")
         .parameters(
-            parameter("key", tp_("keyType")),
             parameter("value", tp_("valueType")))
         .instructions(
-            m_("key")   = p_("key"),
-            m_("value") = p_("value"));
+            if_(has(m_("index"), p_("value")))
+                .then_(return_()),
+            m_("index")("insert")("key", p_("value"))("value", p_("value")),
+            m_("size") = add(m_("size"), _(_1_)));
 
+    setStructT.addMethod("contains")
+        .parameters(
+            parameter("value", tp_("valueType")))
+        .returnType(_(std.Boolean))
+        .instructions(
+            return_(has(m_("index"), p_("value"))));
+
+    setStructT.addMethod("remove")
+        .parameters(
+            parameter("value", tp_("valueType")))
+        .instructions(
+            if_(missing(m_("index"), p_("value")))
+                .then_(return_()),
+            m_("index")("remove")("key", p_("value")),
+            m_("size") = subtract(m_("size"), _(_1_)));
+
+    setStructT.addMethod("first")
+        .returnType(tp_("valueType"))
+        .instructions(
+            return_(m_("index") / "__type__" / "slots" / "list" / "first" / "value" / "key"));
+
+    setStructT.addMethod("last")
+        .returnType(tp_("valueType"))
+        .instructions(
+            return_(m_("index") / "__type__" / "slots" / "list" / "last" / "value" / "key"));
+
+    setStructT.addMethod("begin")
+        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .instructions(
+            return_(m_("index") / "__type__" / "slots" / "list" / "last"));
+
+    setStructT.addMethod("end")
+        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .instructions(
+            return_(m_("list") / "last"));
+
+    setStructT.addMethod("size")
+        .returnType(_(std.Number))
+        .instructions(
+            return_(m_("size")));
+
+    setStructT.addMethod("empty")
+        .returnType(_(std.Boolean))
+        .instructions(return_(equal(m_("size"), _(_0_))));
+#pragma endregion
+}
+
+// ============================================================================
+void StdLibAst::createStruct()
+{
+#pragma region Struct
+    auto& structStruct
+        = stdScope.add<Struct>("Struct")
+              .members(
+                  member("name", tt_("List", "valueType", "Char")),
+                  member("fullyQualifiedName", "std::Cell"),
+                  member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
+                  member("enum", "Boolean"),
+                  member("incomplete", "Boolean"),
+                  member("sharedObject", "Slot"),
+                  member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
+                  member("memberOf", tt_("Map", "keyType", "Struct", "valueType", "Struct")),
+                  member("ast", "std::ast::Struct"),
+                  member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")));
+
+    structStruct.addMethod("constructor")
+        .instructions(
+            m_("slots") = new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructor"));
+
+    structStruct.addMethod("constructorWithRecursiveType")
+        .instructions(
+            m_("slots") = new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructorWithIndexType")("indexType", self()));
+
+    structStruct.addMethod("addTypeAlias")
+        .parameters(
+            parameter("alias", _(std.Cell)),
+            parameter("type", _(std.Struct)))
+        .instructions(
+            if_(m_("typeAliases").missing())
+                .then_(m_("typeAliases") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", "Struct"), "constructor")),
+            m_("typeAliases")("add")("key", p_("alias"))("value", p_("type")));
+
+    structStruct.addMethod("addMembership")
+        .parameters(
+            parameter("cell", _(std.Struct)))
+        .instructions(
+            if_(m_("memberOf").missing())
+                .then_(m_("memberOf") = new_(tt_("Map", "keyType", "Struct", "valueType", "Struct"), "constructor")),
+            m_("memberOf")("add")("key", p_("cell"))("value", p_("cell")));
+
+    structStruct.addMethod("addSlot")
+        .parameters(
+            parameter("key", _(std.Cell)),
+            parameter("type", _(std.Slot)))
+        .instructions(
+            if_(m_("slots").missing())
+                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
+            var_("slot") = new_(_(std.Slot)),
+            set(*var_("slot"), "key", p_("key")),
+            set(*var_("slot"), "type", p_("type")),
+            m_("slots")("add")("key", p_("key"))("value", *var_("slot")));
+
+    structStruct.addMethod("addSlots")
+        .parameters(
+            parameter("list", tt_("List", "valueType", _(std.Slot))))
+        .instructions(
+            if_(equal(p_("list") / "size", _(_0_)))
+                .then_(return_()),
+            var_("item") = p_("list") / "first",
+            if_(m_("slots").missing())
+                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
+            do_(block(
+                    var_("next") = true_(),
+                    m_("slots")("add")("key", *var_("item") / "value" / "key")("value", *var_("item") / "value"),
+                    if_(has(*var_("item"), "next"))
+                        .then_(var_("item") = *var_("item") / "next")
+                        .else_(var_("next") = false_())))
+                .while_(same(*var_("next"), true_())));
+
+    structStruct.addMethod("hasSlot")
+        .parameters(
+            parameter("key", _(std.Cell)))
+        .returnType(_(std.Boolean))
+        .instructions(
+            if_(m_("slots").missing())
+                .then_(return_(false_())),
+            return_(m_("slots")("hasKey")("key", p_("key"))));
+
+    structStruct.addMethod("removeSlot")
+        .parameters(
+            parameter("key", _(std.Cell)))
+        .instructions(
+            if_(m_("slots").missing())
+                .then_(return_()),
+            m_("slots")("remove")("key", p_("key")));
+#pragma endregion
+}
+
+// ============================================================================
+void StdLibAst::createTrieMap()
+{
+#pragma region TrieMap
     // TODO This can be a template but nevermind ...
-    stdScope.add<Struct>("TrieMapNode")
-        .members(
-            member("children", "Index"),
-            member("data", "ListItem"),
-            member("parent", "TrieMapNode"));
 
     stdScope.add<Struct>("TrieMap")
         .typeAliases(
@@ -1990,85 +2088,116 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .instructions(
             return_(m_("list") / "last"));
 #pragma endregion
-#pragma region Set
-    auto& setStructT
-        = stdScope.add<StructT>("Set")
-              .templateParams(
-                  parameter("keyType", _(std.Struct)),
-                  parameter("valueType", _(std.Struct)))
-              .typeAliases(
-                  typeAlias("valueType", tp_("valueType")),
-                  typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
-              .memberOf(_(std.Container))
-              .members(
-                  member("index", __type__("Index")),
-                  member("size", _(std.Number)));
+}
 
-    setStructT.addMethod("constructor")
-        .instructions(
-            m_("size")  = _(_0_),
-            m_("index") = new_(__type__("Index"), "constructor"));
+// ============================================================================
+StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
+    AstHelper(w),
+    stdScope(scope),
+    traits(w, scope)
+{
+    createOp();
+    createAst();
+    createEnums();
 
-    setStructT.addMethod("add")
-        .parameters(
-            parameter("value", tp_("valueType")))
-        .instructions(
-            if_(has(m_("index"), p_("value")))
-                .then_(return_()),
-            m_("index")("insert")("key", p_("value"))("value", p_("value")),
-            m_("size") = add(m_("size"), _(_1_)));
+    stdScope.add<Struct>("Cell");
 
-    setStructT.addMethod("contains")
-        .parameters(
-            parameter("value", tp_("valueType")))
-        .returnType(_(std.Boolean))
-        .instructions(
-            return_(has(m_("index"), p_("value"))));
+    stdScope.add<Struct>("Char");
 
-    setStructT.addMethod("remove")
-        .parameters(
-            parameter("value", tp_("valueType")))
-        .instructions(
-            if_(missing(m_("index"), p_("value")))
-                .then_(return_()),
-            m_("index")("remove")("key", p_("value")),
-            m_("size") = subtract(m_("size"), _(_1_)));
+    stdScope.add<Struct>("Color")
+        .members(
+            member("red", "Number"),
+            member("green", "Number"),
+            member("blue", "Number"));
 
-    setStructT.addMethod("first")
-        .returnType(tp_("valueType"))
-        .instructions(
-            return_(m_("index") / "__type__" / "slots" / "list" / "first" / "value" / "key"));
+    stdScope.add<Struct>("Container");
 
-    setStructT.addMethod("last")
-        .returnType(tp_("valueType"))
-        .instructions(
-            return_(m_("index") / "__type__" / "slots" / "list" / "last" / "value" / "key"));
+    stdScope.add<Struct>("Digit");
 
-    setStructT.addMethod("begin")
-        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
-        .instructions(
-            return_(m_("index") / "__type__" / "slots" / "list" / "last"));
+    stdScope.add<Struct>("Enum")
+        .members(
+            member("values", tt_("Map", "keyType", "Cell", "valueType", "Struct")));
 
-    setStructT.addMethod("end")
-        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
-        .instructions(
-            return_(m_("list") / "last"));
+    stdScope.add<Struct>("Grid");
 
-    setStructT.addMethod("size")
-        .returnType(_(std.Number))
-        .instructions(
-            return_(m_("size")));
+    createIndex();
 
-    setStructT.addMethod("empty")
-        .returnType(_(std.Boolean))
-        .instructions(return_(equal(m_("size"), _(_0_))));
-#pragma endregion
+    createKVPair();
+
+    stdScope.add<Struct>("Library")
+        .members(
+            member("scope", "ast::Scope"),
+            member("resolvedScope", "ast::Scope"),
+            member("functions", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Function")),
+            member("structs", tt_("TrieMap", "keyType", "Cell", "valueType", "Struct")),
+            member("variables", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Var")));
+
+    createList();
+    createListItem();
+    createMap();
+
+    stdScope.add<Struct>("Number")
+        .members(
+            member("value", ListOf(std.Digit)),
+            member("sign", "NumberSign"));
+
+    stdScope.add<Struct>("OpState")
+        .members(
+            member("op", "op::Base"),
+            member("state", "Cell"),
+            member("value", "Cell"));
+
+    stdScope.add<Struct>("Pixel");
+
+    createSet();
+
+    stdScope.add<Struct>("Slot")
+        .members(
+            member("key", "Cell"),
+            member("type", "Struct"));
+
+    stdScope.add<Struct>("Stack");
+
+    stdScope.add<Struct>("StackFrame")
+        .members(
+            member("method", "op::Function"),
+            member("ops", "List"),
+            member("input", "Index"),
+            member("localVars", "Index"));
+
+    stdScope.add<Struct>("String");
+
+    createStruct();
+
+    stdScope.add<Struct>("StructReference")
+        .members(
+            member("id", tt_("List", "valueType", "Char")),
+            member("idScope", "ast::Scope"),
+            member("scope", "ast::Scope"),
+            member("resolvedScope", "ast::Scope"),
+            member("currentFn", "ast::Function"),
+            member("currentStruct", "ast::Struct"),
+            member("templateId", tt_("List", "valueType", "Cell")),
+            member("templateParams", tt_("List", "valueType", "ast::Base")),
+            member("value", "Struct"));
+
+    createTrieMap();
+
+    stdScope.add<Struct>("TrieMapNode")
+        .members(
+            member("children", "Index"),
+            member("data", "ListItem"),
+            member("parent", "TrieMapNode"));
+
+    stdScope.add<Struct>("Void");
 }
 
 StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     Library(w, parentScope)
 {
     Std& std = w.std;
+    EnumValues& ev = w.ev;
+
     StdLibAst stdLibAst(w, parentScope.add<Ast::Scope>("std"));
     compiler.reigisterStructBeforeCompilation(w.tt_("std::List", "valueType", w._(std.Char))); // TODO instantiate on demand in getStruct
     compiler.registerBuiltInStruct("std::op::Activate", std.op.Activate);
@@ -2160,13 +2289,18 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::TypedEnumValue", std.ast.TypedEnumValue);
     compiler.registerBuiltInStruct("std::ast::Var", std.ast.Var);
     compiler.registerBuiltInStruct("std::ast::While", std.ast.While);
+
+    // enums
     compiler.registerBuiltInStruct("std::Boolean", std.Boolean);
+    compiler.registerBuiltInStruct("std::Direction", std.Direction);
+    compiler.registerBuiltInStruct("std::NumberSign", std.NumberSign);
+
+    // structs
     compiler.registerBuiltInStruct("std::Cell", std.Cell);
     compiler.registerBuiltInStruct("std::Char", std.Char);
     compiler.registerBuiltInStruct("std::Color", std.Color);
     compiler.registerBuiltInStruct("std::Container", std.Container);
     compiler.registerBuiltInStruct("std::Digit", std.Digit);
-    compiler.registerBuiltInStruct("std::Directions", std.Directions);
     compiler.registerBuiltInStruct("std::Enum", std.Enum);
     compiler.registerBuiltInStruct("std::Grid", std.Grid);
     compiler.registerBuiltInStruct("std::Index", std.Index);
@@ -2186,10 +2320,17 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::StructReference", std.StructReference);
     compiler.registerBuiltInStruct("std::TrieMap", std.TrieMap);
     compiler.registerBuiltInStruct("std::TrieMapNode", std.TrieMapNode);
-    compiler.registerBuiltInEnumValue("std::Boolean::true", std.true_);
-    compiler.registerBuiltInEnumValue("std::Boolean::false", std.false_);
-    compiler.registerBuiltInEnumValue("std::NumberSign::positive", std.positive);
-    compiler.registerBuiltInEnumValue("std::NumberSign::negative", std.negative);
+
+    compiler.registerBuiltInEnumValue("std::Boolean::true", ev.std.Boolean.true_);
+    compiler.registerBuiltInEnumValue("std::Boolean::false", ev.std.Boolean.false_);
+
+    compiler.registerBuiltInEnumValue("std::Direction::up", ev.std.Direction.up);
+    compiler.registerBuiltInEnumValue("std::Direction::down", ev.std.Direction.down);
+    compiler.registerBuiltInEnumValue("std::Direction::left", ev.std.Direction.left);
+    compiler.registerBuiltInEnumValue("std::Direction::right", ev.std.Direction.right);
+
+    compiler.registerBuiltInEnumValue("std::NumberSign::positive", ev.std.NumberSign.positive);
+    compiler.registerBuiltInEnumValue("std::NumberSign::negative", ev.std.NumberSign.negative);
 }
 
 } // namespace cells

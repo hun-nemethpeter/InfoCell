@@ -149,8 +149,19 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
             ss << "::";
         }
     }
-    Ast::Struct& structAst = currentScope->getItem<Ast::Struct>(structName);
-    Visitor::visitList(structAst[w.id.name], [this, &idCell, &ss](CellI& character, int, bool&) {
+    Ast::StructBase* structBaseAstPtr = nullptr;
+    if (&compiledStruct[w.id.__type__] == &w.std.Struct) {
+        Ast::Struct& structAst = currentScope->getItem<Ast::Struct>(structName);
+        structBaseAstPtr       = &structAst;
+    } else if (&compiledStruct[w.id.__type__] == &w.std.Enum) {
+        Ast::Enum& enumAst = currentScope->getItem<Ast::Enum>(structName);
+        structBaseAstPtr   = &enumAst;
+    } else {
+        throw "The compiled type not a struct or enum!";
+    }
+    Ast::StructBase& structBaseAst = *structBaseAstPtr;
+
+    Visitor::visitList(structBaseAst[w.id.name], [this, &idCell, &ss](CellI& character, int, bool&) {
         idCell.add(character);
         ss << character.label();
     });
@@ -1641,7 +1652,7 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
     // compile values
     if (enum_.has("values")) {
         Map& compiledMembers = *new Map(w, w.std.Cell, w.std.Slot, "members Map<Cell, Slot>(...)");
-        compiledMembers.add(w.id.tag, w.std.Cell);
+        compiledMembers.add(w.id.tag, w.std.slot(w.id.tag, w.std.Cell));
         compiledStruct.set("slots", compiledMembers);
         Visitor::visitList(enum_.values()[w.id.list], [this, &enum_, &compiledMembers, &compiledStruct](CellI& kvPair, int i, bool& stop) {
             CellI& valueKey  = kvPair[w.id.key];
@@ -1665,10 +1676,10 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
                     auto& resolvedValue = resolveTypeInEnumValue(value);
                     auto& valueType     = resolvedValue.__type__();
 
-                    compiledMembers.add(valueKey, valueType);
+                    compiledMembers.add(valueKey, w.std.slot(valueKey, valueType));
                     compiledValue.set(valueName, value[w.id.value]);
                 } else {
-                    compiledMembers.add(valueKey, compiledStruct);
+                    compiledMembers.add(valueKey, w.std.slot(valueKey, compiledStruct));
                     compiledValue.set(valueName, w.id.emptyObject);
                 }
             } else if (&valueCell.__type__() == &w.std.ast.TypedEnumValue) {
@@ -1676,7 +1687,7 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
                 auto& enumValueType         = valueCell["enumType"];
                 auto& compiledEnumValueType = getCompiledTypeFromResolvedType(enumValueType);
                 auto& fullName              = getFullyQualifiedName(enumValue);
-                compiledMembers.add(valueKey, compiledEnumValueType);
+                compiledMembers.add(valueKey, w.std.slot(valueKey, compiledEnumValueType));
             }
         });
     }

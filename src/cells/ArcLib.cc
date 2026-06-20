@@ -512,7 +512,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     // Frame::processAdjacentPixel
     frameStruct.addMethod("processAdjacentPixel")
         .parameters(
-            parameter("direction", _(std.Directions)),
+            parameter("direction", _(std.Direction)),
             parameter("shape", __type__("Shape")),
             parameter("checkPixels", tt_("std::Set", "valueType", _(std.Pixel))),
             parameter("checkPixel", _(std.Pixel)))

@@ -1525,6 +1525,7 @@ AstHelper::AstHelper(World& w) :
     Ast(w),
     id(w.id),
     std(w.std),
+    ev(w.ev),
     _0_(w._0_),
     _1_(w._1_),
     _2_(w._2_),

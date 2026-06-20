@@ -77,6 +77,15 @@ public:
     Strings strings;
 };
 
+class EnumValues
+{
+    EnumValues(World& w);
+    friend class World;
+
+public:
+    StdEnumValues std;
+};
+
 class World
 {
 public:
@@ -120,6 +129,7 @@ public:
     Pools pools;
     Ast::Scope globalScope;
     Std std;
+    EnumValues ev;
     Ast ast;
     cells::hybrid::ActivationPointer ap;
 
