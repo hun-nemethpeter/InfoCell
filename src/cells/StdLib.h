@@ -163,11 +163,11 @@ public:
     Op op;
     Ast ast;
 };
-
+class Compiler;
 class StdLib : public Library
 {
 public:
-    StdLib(World& w, Ast::Scope& parentScope);
+    StdLib(World& w, Ast::Scope& parentScope, Compiler& compiler);
 };
 
 } // namespace cells

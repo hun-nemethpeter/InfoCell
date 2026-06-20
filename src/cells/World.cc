@@ -3,7 +3,6 @@
 
 #include "ArcLib.h"
 #include "StdLib.h"
-#include "TestLib.h"
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "util/Log.h"
@@ -429,127 +428,10 @@ World::World(std::function<void()> loggerLevelInit) :
     _8_(pools.numbers.get(8)),
     _9_(pools.numbers.get(9)),
     m_stdCompiler(std::make_unique<Compiler>(*this)),
-    m_stdLib(std::make_unique<StdLib>(*this, globalScope)),
+    m_stdLib(std::make_unique<StdLib>(*this, globalScope, *m_stdCompiler)),
     m_arcLib(std::make_unique<ArcLib>(*this, globalScope))
 {
     Compiler& compiler = *m_stdCompiler;
-    compiler.reigisterStructBeforeCompilation(tt_("std::List", "valueType", _(std.Char)));    // TODO instantiate on demand in getStruct
-    compiler.registerBuiltInStruct("std::op::Activate", std.op.Activate);
-    compiler.registerBuiltInStruct("std::op::Add", std.op.Add);
-    compiler.registerBuiltInStruct("std::op::And", std.op.And);
-    compiler.registerBuiltInStruct("std::op::Base", std.op.Base);
-    compiler.registerBuiltInStruct("std::op::Block", std.op.Block);
-    compiler.registerBuiltInStruct("std::op::Call", std.op.Call);
-    compiler.registerBuiltInStruct("std::op::ConstVar", std.op.ConstVar);
-    compiler.registerBuiltInStruct("std::op::Delete", std.op.Delete);
-    compiler.registerBuiltInStruct("std::op::Divide", std.op.Divide);
-    compiler.registerBuiltInStruct("std::op::Do", std.op.Do);
-    compiler.registerBuiltInStruct("std::op::Equal", std.op.Equal);
-    compiler.registerBuiltInStruct("std::op::Erase", std.op.Erase);
-    compiler.registerBuiltInStruct("std::op::Function", std.op.Function);
-    compiler.registerBuiltInStruct("std::op::Get", std.op.Get);
-    compiler.registerBuiltInStruct("std::op::GreaterThan", std.op.GreaterThan);
-    compiler.registerBuiltInStruct("std::op::GreaterThanOrEqual", std.op.GreaterThanOrEqual);
-    compiler.registerBuiltInStruct("std::op::Has", std.op.Has);
-    compiler.registerBuiltInStruct("std::op::If", std.op.If);
-    compiler.registerBuiltInStruct("std::op::LessThan", std.op.LessThan);
-    compiler.registerBuiltInStruct("std::op::LessThanOrEqual", std.op.LessThanOrEqual);
-    compiler.registerBuiltInStruct("std::op::Missing", std.op.Missing);
-    compiler.registerBuiltInStruct("std::op::Multiply", std.op.Multiply);
-    compiler.registerBuiltInStruct("std::op::New", std.op.New);
-    compiler.registerBuiltInStruct("std::op::Not", std.op.Not);
-    compiler.registerBuiltInStruct("std::op::NotEqual", std.op.NotEqual);
-    compiler.registerBuiltInStruct("std::op::NotSame", std.op.NotSame);
-    compiler.registerBuiltInStruct("std::op::Or", std.op.Or);
-    compiler.registerBuiltInStruct("std::op::Return", std.op.Return);
-    compiler.registerBuiltInStruct("std::op::Same", std.op.Same);
-    compiler.registerBuiltInStruct("std::op::Set", std.op.Set);
-    compiler.registerBuiltInStruct("std::op::Subtract", std.op.Subtract);
-    compiler.registerBuiltInStruct("std::op::Var", std.op.Var);
-    compiler.registerBuiltInStruct("std::op::While", std.op.While);
-    compiler.registerBuiltInStruct("std::ast::Add", std.ast.Add);
-    compiler.registerBuiltInStruct("std::ast::And", std.ast.And);
-    compiler.registerBuiltInStruct("std::ast::AssociatedType", std.ast.AssociatedType);
-    compiler.registerBuiltInStruct("std::ast::Base", std.ast.Base);
-    compiler.registerBuiltInStruct("std::ast::Block", std.ast.Block);
-    compiler.registerBuiltInStruct("std::ast::Break", std.ast.Break);
-    compiler.registerBuiltInStruct("std::ast::Call", std.ast.Call);
-    compiler.registerBuiltInStruct("std::ast::Cell", std.ast.Cell);
-    compiler.registerBuiltInStruct("std::ast::Continue", std.ast.Continue);
-    compiler.registerBuiltInStruct("std::ast::Delete", std.ast.Delete);
-    compiler.registerBuiltInStruct("std::ast::Divide", std.ast.Divide);
-    compiler.registerBuiltInStruct("std::ast::Do", std.ast.Do);
-    compiler.registerBuiltInStruct("std::ast::Enum", std.ast.Enum);
-    compiler.registerBuiltInStruct("std::ast::EnumValue", std.ast.EnumValue);
-    compiler.registerBuiltInStruct("std::ast::Equal", std.ast.Equal);
-    compiler.registerBuiltInStruct("std::ast::Erase", std.ast.Erase);
-    compiler.registerBuiltInStruct("std::ast::Function", std.ast.Function);
-    compiler.registerBuiltInStruct("std::ast::FunctionT", std.ast.FunctionT);
-    compiler.registerBuiltInStruct("std::ast::Get", std.ast.Get);
-    compiler.registerBuiltInStruct("std::ast::GreaterThan", std.ast.GreaterThan);
-    compiler.registerBuiltInStruct("std::ast::GreaterThanOrEqual", std.ast.GreaterThanOrEqual);
-    compiler.registerBuiltInStruct("std::ast::Has", std.ast.Has);
-    compiler.registerBuiltInStruct("std::ast::If", std.ast.If);
-    compiler.registerBuiltInStruct("std::ast::LessThan", std.ast.LessThan);
-    compiler.registerBuiltInStruct("std::ast::LessThanOrEqual", std.ast.LessThanOrEqual);
-    compiler.registerBuiltInStruct("std::ast::Match", std.ast.Match);
-    compiler.registerBuiltInStruct("std::ast::Member", std.ast.Member);
-    compiler.registerBuiltInStruct("std::ast::Missing", std.ast.Missing);
-    compiler.registerBuiltInStruct("std::ast::Multiply", std.ast.Multiply);
-    compiler.registerBuiltInStruct("std::ast::New", std.ast.New);
-    compiler.registerBuiltInStruct("std::ast::Not", std.ast.Not);
-    compiler.registerBuiltInStruct("std::ast::NotEqual", std.ast.NotEqual);
-    compiler.registerBuiltInStruct("std::ast::NotSame", std.ast.NotSame);
-    compiler.registerBuiltInStruct("std::ast::Or", std.ast.Or);
-    compiler.registerBuiltInStruct("std::ast::Parameter", std.ast.Parameter);
-    compiler.registerBuiltInStruct("std::ast::ResolvedType", std.ast.ResolvedType);
-    compiler.registerBuiltInStruct("std::ast::Return", std.ast.Return);
-    compiler.registerBuiltInStruct("std::ast::Same", std.ast.Same);
-    compiler.registerBuiltInStruct("std::ast::Scope", std.ast.Scope);
-    compiler.registerBuiltInStruct("std::ast::Self", std.ast.Self);
-    compiler.registerBuiltInStruct("std::ast::SelfFn", std.ast.SelfFn);
-    compiler.registerBuiltInStruct("std::ast::Set", std.ast.Set);
-    compiler.registerBuiltInStruct("std::ast::Slot", std.ast.Slot);
-    compiler.registerBuiltInStruct("std::ast::StaticCall", std.ast.StaticCall);
-    compiler.registerBuiltInStruct("std::ast::Struct", std.ast.Struct);
-    compiler.registerBuiltInStruct("std::ast::StructName", std.ast.StructName);
-    compiler.registerBuiltInStruct("std::ast::StructT", std.ast.StructT);
-    compiler.registerBuiltInStruct("std::ast::Subtract", std.ast.Subtract);
-    compiler.registerBuiltInStruct("std::ast::TypeAlias", std.ast.TypeAlias);
-    compiler.registerBuiltInStruct("std::ast::TemplatedType", std.ast.TemplatedType);
-    compiler.registerBuiltInStruct("std::ast::TemplateParam", std.ast.TemplateParam);
-    compiler.registerBuiltInStruct("std::ast::Trait", std.ast.Trait);
-    compiler.registerBuiltInStruct("std::ast::TraitImpl", std.ast.TraitImpl);
-    compiler.registerBuiltInStruct("std::ast::TypedEnumValue", std.ast.TypedEnumValue);
-    compiler.registerBuiltInStruct("std::ast::Var", std.ast.Var);
-    compiler.registerBuiltInStruct("std::ast::While", std.ast.While);
-    compiler.registerBuiltInStruct("std::Cell", std.Cell);
-    compiler.registerBuiltInStruct("std::Slot", std.Slot);
-    compiler.registerBuiltInStruct("std::Struct", std.Struct);
-    compiler.registerBuiltInStruct("std::Enum", std.Enum);
-    compiler.registerBuiltInStruct("std::OpState", std.OpState);
-    compiler.registerBuiltInStruct("std::Container", std.Container);
-    compiler.registerBuiltInStruct("std::List", std.List);
-    compiler.registerBuiltInStruct("std::ListItem", std.ListItem);
-    compiler.registerBuiltInStruct("std::KVPair", std.KVPair);
-    compiler.registerBuiltInStruct("std::Map", std.Map);
-    compiler.registerBuiltInStruct("std::Index", std.Index);
-    compiler.registerBuiltInStruct("std::TrieMap", std.TrieMap);
-    compiler.registerBuiltInStruct("std::TrieMapNode", std.TrieMapNode);
-    compiler.registerBuiltInStruct("std::Boolean", std.Boolean);
-    compiler.registerBuiltInStruct("std::Char", std.Char);
-    compiler.registerBuiltInStruct("std::Digit", std.Digit);
-    compiler.registerBuiltInStruct("std::Number", std.Number);
-    compiler.registerBuiltInStruct("std::String", std.String);
-    compiler.registerBuiltInStruct("std::Color", std.Color);
-    compiler.registerBuiltInStruct("std::Pixel", std.Pixel);
-    compiler.registerBuiltInStruct("std::Grid", std.Grid);
-    compiler.registerBuiltInStruct("std::Stack", std.Stack);
-    compiler.registerBuiltInStruct("std::StackFrame", std.StackFrame);
-    compiler.registerBuiltInStruct("std::Library", std.Library);
-    compiler.registerBuiltInStruct("std::StructReference", std.StructReference);
-    compiler.registerBuiltInStruct("std::Directions", std.Directions);
-
     compiler.compile(stdLib());
 
     globalScope.m_toolFinder  = &compiler.getToolFinder();
