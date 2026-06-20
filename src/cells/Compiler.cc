@@ -583,15 +583,6 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
         });
     }
 
-    // trait implementations
-    if (astStruct.has("traitImpls")) {
-        CellI& traitImplsList = astStruct.traitImpls()[w.id.list];
-        Visitor::visitList(traitImplsList, [this, &astStruct, &ret](CellI& traitImpl, int i, bool& stop) {
-            std::cout << "";
-        });
-    }
-
-
     TRACE(compileStruct, "}");
     TRACE(compileStruct, "");
 
@@ -1496,7 +1487,7 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
                     });
                     aliasName.label(structFullName.label() + "::" + key.label());
                     if (IS_LOG_ENABLED) {
-                        TRACE(compileStruct, "{}: {}\n", aliasName.label(), value.label());
+                        TRACE(compileStruct, "type alias {}: {}", aliasName.label(), value.label());
                     }
                     compiledStructs().add(aliasName, value);
                 });
