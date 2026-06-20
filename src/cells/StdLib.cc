@@ -109,7 +109,7 @@ Std::Ast::Ast(World& w) :
 
 Std::Std(World& w) :
     w(w),
-    Boolean(w, w.std.Struct, "Boolean"),
+    Boolean(w, w.std.Enum, "Boolean"),
     Cell(w, w.std.Struct, "Cell"),
     Char(w, w.std.Struct, "Char"),
     Color(w, w.std.Struct, "Color"),
@@ -125,6 +125,7 @@ Std::Std(World& w) :
     ListItem(w, w.std.Struct, "ListItem"),
     Map(w, w.std.Struct, "Map"),
     Number(w, w.std.Struct, "Number"),
+    NumberSign(w, w.std.Enum, "NumberSign"),
     OpState(w, w.std.Struct, "OpState"),
     Pixel(w, w.std.Struct, "Pixel"),
     Slot(w, w.std.Struct, "Slot"),
@@ -135,6 +136,10 @@ Std::Std(World& w) :
     StructReference(w, w.std.Struct, "StructReference"),
     TrieMap(w, w.std.Struct, "TrieMap"),
     TrieMapNode(w, w.std.Struct, "TrieMapNode"),
+    true_(w, w.std.Boolean, "true"),
+    false_(w, w.std.Boolean, "false"),
+    positive(w, w.std.NumberSign, "positive"),
+    negative(w, w.std.NumberSign, "negative"),
     op(w),
     ast(w)
 {
@@ -2181,6 +2186,10 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::StructReference", std.StructReference);
     compiler.registerBuiltInStruct("std::TrieMap", std.TrieMap);
     compiler.registerBuiltInStruct("std::TrieMapNode", std.TrieMapNode);
+    compiler.registerBuiltInEnumValue("std::Boolean::true", std.true_);
+    compiler.registerBuiltInEnumValue("std::Boolean::false", std.false_);
+    compiler.registerBuiltInEnumValue("std::NumberSign::positive", std.positive);
+    compiler.registerBuiltInEnumValue("std::NumberSign::negative", std.negative);
 }
 
 } // namespace cells

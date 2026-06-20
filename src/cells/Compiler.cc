@@ -17,6 +17,7 @@ Compiler::Compiler(World& w) :
     w(w),
     m_toolFinder(*new ToolFinder(w)),
     m_earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs"),
+    m_earlyEnumValues(w, w.std.Cell, w.std.Cell, "earlyEnumValues"),
     m_structs(*new TrieMap(w, w.std.Cell, w.std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs")),
     m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances"))
@@ -116,7 +117,7 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
         return m_earlyStructs.getValue(structId);
     } else {
         auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", structId.label()));
-        unresolvedStruct.set("incomplete", w.boolean.true_);
+        unresolvedStruct.set("incomplete", w.std.true_);
 
         m_earlyStructs.add(structId, w.std.slot(structAst, unresolvedStruct));
         return unresolvedStruct;
@@ -155,6 +156,49 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     });
     idCell.label(ss.str());
     m_earlyStructs.add(idCell, w.std.slot(w.__type__(fullName), compiledStruct));
+}
+
+void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& compiledEnumValue)
+{
+    std::vector<std::string> sliced;
+    splitNamespacedString(sliced, fullName);
+
+    if (sliced.size() < 2) {
+        throw "Invalid enum value ID!";
+    }
+    const auto& enumName      = sliced[sliced.size() - 2];
+    const auto& enumValueName = sliced.back();
+    List& enumIdCell          = *new List(w, w.std.Cell);
+    List& enumValueIdCell     = w.name(enumValueName);
+    Ast::Scope* currentScope  = &w.globalScope;
+
+    if (sliced.size() > 1) {
+        for (int i = 0; i < sliced.size() - 2; ++i) {
+            const auto& scopeName = sliced[i];
+            currentScope          = &currentScope->getItem<Ast::Scope>(scopeName);
+            Visitor::visitList((*currentScope)["name"], [this, &enumIdCell](CellI& character, int, bool&) {
+                enumIdCell.add(character);
+            });
+            enumIdCell.add(w.pools.chars.get(':'));
+            enumIdCell.add(w.pools.chars.get(':'));
+        }
+    }
+    Ast::Enum& enumAst = currentScope->getItem<Ast::Enum>(enumName);
+    if (!enumAst.values().hasKey(enumValueIdCell)) {
+        throw "Invalid enum value!";
+    }
+    Ast::EnumValue& enumValueAst = static_cast<Ast::EnumValue&>(enumAst.values().getValue(enumValueIdCell));
+    Visitor::visitList(enumAst[w.id.name], [this, &enumIdCell](CellI& character, int, bool&) {
+        enumIdCell.add(character);
+    });
+    enumIdCell.add(w.pools.chars.get(':'));
+    enumIdCell.add(w.pools.chars.get(':'));
+    for (char ch : enumValueName) {
+        enumIdCell.add(w.pools.chars.get(ch));
+    }
+
+    enumIdCell.label(fullName);
+    m_earlyEnumValues.add(enumIdCell, compiledEnumValue);
 }
 
 ToolFinder& Compiler::getToolFinder()
@@ -919,7 +963,7 @@ CellI& Compiler::resolveStructName(CellI& name, CellI& fullyQualifiedName)
     } else {
         return getOrCreateStructReference(fullyQualifiedName, m_unknownStructs, [this, &name](CellI& structReference) -> CellI& {
             auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", name.label()));
-            unresolvedStruct.set("incomplete", w.boolean.true_);
+            unresolvedStruct.set("incomplete", w.std.true_);
 
             return unresolvedStruct;
         });
@@ -937,7 +981,7 @@ CellI& Compiler::resolveTemplateInstanceId(CellI& name, CellI& fullyQualifiedNam
         }
         auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", name.label()));
         unresolvedStruct.set("fullyQualifiedName", fullyQualifiedName);
-        unresolvedStruct.set("incomplete", w.boolean.true_);
+        unresolvedStruct.set("incomplete", w.std.true_);
 
         return unresolvedStruct;
     });
@@ -1582,7 +1626,7 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
     CellI& compiledStruct   = getResolvedTypeById(getFullyQualifiedName(enum_), enum_.has("instanceOf"));
 
     compiledStruct.erase("incomplete");
-    compiledStruct.set("enum", w.boolean.true_);
+    compiledStruct.set("enum", w.std.true_);
 
     // compile methods
     if (enum_.has("methods")) {
@@ -1606,22 +1650,26 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
             if (&valueCell.__type__() == &w.std.ast.EnumValue) {
                 auto& enumValue = static_cast<Ast::EnumValue&>(valueCell);
                 auto& fullName  = getFullyQualifiedName(enumValue);
+                CellI* compiledValuePtr = nullptr;
+                if (m_earlyEnumValues.hasKey(fullName)) {
+                    compiledValuePtr = &m_earlyEnumValues.getValue(fullName);
+                } else {
+                    compiledValuePtr = new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
+                }
+                auto& compiledValue = *compiledValuePtr;
+                compiledValue.set("tag", valueName);
+                compiledVariables().add(fullName, compiledValue);
+
                 if (valueCell.has(w.id.value)) {
                     auto& value         = enumValue[w.id.value];
                     auto& resolvedValue = resolveTypeInEnumValue(value);
                     auto& valueType     = resolvedValue.__type__();
 
                     compiledMembers.add(valueKey, valueType);
-                    auto& compiledValue = *new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
-                    compiledValue.set("tag", valueName);
                     compiledValue.set(valueName, value[w.id.value]);
-                    compiledVariables().add(fullName, compiledValue);
                 } else {
                     compiledMembers.add(valueKey, compiledStruct);
-                    auto& compiledValue = *new Object(w, compiledStruct, fmt::format("{}::{}", enum_.label(), enumValue.label()));
-                    compiledValue.set("tag", valueName);
                     compiledValue.set(valueName, w.id.emptyObject);
-                    compiledVariables().add(fullName, compiledValue);
                 }
             } else if (&valueCell.__type__() == &w.std.ast.TypedEnumValue) {
                 auto& enumValue             = static_cast<Ast::TypedEnumValue&>(valueCell);

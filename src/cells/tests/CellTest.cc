@@ -176,10 +176,10 @@ TEST_F(CellTest, ToolFinderTestForGet)
     CellI& resultToolAst    = *toolFinder.findToolByAst(requestForGet);
 
     EXPECT_EQ(&resultToolAst.struct_(), &std.ast.Get);
-    EXPECT_EQ(&resultToolAst[w.ids.cell].struct_(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.ids.cell][w.ids.value], &pixel);
-    EXPECT_EQ(&resultToolAst[w.ids.key].struct_(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[w.ids.key][w.ids.value], &w.ids.green);
+    EXPECT_EQ(&resultToolAst[id.cell].struct_(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.cell][id.value], &pixel);
+    EXPECT_EQ(&resultToolAst[id.key].struct_(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.green);
 #endif
 }
 
@@ -276,7 +276,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
             Base& ast = equal(add(_(x) / _(id.value), _(_2_)), _(_4_));
 #else
             // test 2 + x = 4 => equal(add(2, get(x, value))), 4)
-            Base& ast = equal(add(_(_2_), _(x) / _(w.ids.value)), _(_4_));
+            Base& ast = equal(add(_(_2_), _(x) / _(id.value)), _(_4_));
 #endif
             varX    = &x;
             request = &ast;
@@ -324,7 +324,7 @@ TEST_F(CellTest, Numbers)
     CellI& digit_9 = w.pools.digits[9];
 
     CellI& number_123 = toCellNumber(1234567890);
-    EXPECT_EQ(&number_123[w.numbers.sign], &w.numbers.positive);
+    EXPECT_EQ(&number_123[id.sign], &std.positive);
     List& number_123_digits = static_cast<List&>(number_123[id.value]);
     EXPECT_EQ(number_123_digits.size(), 10);
     EXPECT_EQ(&number_123_digits["first"]["value"], &digit_1);
@@ -339,7 +339,7 @@ TEST_F(CellTest, Numbers)
     EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["value"], &digit_0);
 
     CellI& number_minus_123 = toCellNumber(-123);
-    EXPECT_EQ(&number_minus_123[w.numbers.sign], &w.numbers.negative);
+    EXPECT_EQ(&number_minus_123[id.sign], &std.negative);
     List& number_minus_123_digits = static_cast<List&>(number_123[id.value]);
     // TODO
 }
@@ -987,7 +987,7 @@ TEST_F(CellTest, CreatingNumber)
     printAs.value(number_255[id.value][id.first][id.value]);
 
     printAs.cell(number_255);
-    printAs.cell(number_255[w.numbers.sign]);
+    printAs.cell(number_255[id.sign]);
     printAs.cell(number_255[id.value]);
     printAs.cell(number_255[id.value][id.first]);
     printAs.cell(number_255[id.value][id.first][id.value]);
@@ -1417,7 +1417,7 @@ TEST_F(CellTest, TrieMapTest)
     TrieMap trieMap(w, std.Number, std.Number, "testTrieMap");
     EXPECT_EQ(&trieMap[id.size], &_0_);
     auto& key1   = w.list(_0_, _1_, _2_, _3_, _4_);
-    auto& value1 = w.id.directions.down;
+    auto& value1 = id.directions.down;
     trieMap.add(key1, value1);
     EXPECT_EQ(&trieMap[id.size], &_1_);
     EXPECT_TRUE(trieMap.hasKey(key1));

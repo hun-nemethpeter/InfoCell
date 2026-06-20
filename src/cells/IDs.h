@@ -108,6 +108,7 @@ public:
     List scope;
     List scopes;
     List self;
+    List sign;
     List size;
     List slots;
     List stack;

@@ -19,6 +19,7 @@ public:
 
     CellI& reigisterStructBeforeCompilation(CellI& id);
     void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
+    void registerBuiltInEnumValue(const std::string& fullName, CellI& compiledEnumValue);
     ToolFinder& getToolFinder();
 
 protected:
@@ -84,6 +85,7 @@ protected:
     Ast::Scope* m_resolvedScope = nullptr;
 
     TrieMap m_earlyStructs;
+    TrieMap m_earlyEnumValues;
 
     TrieMap& m_structs;
     TrieMap& m_unknownStructs;

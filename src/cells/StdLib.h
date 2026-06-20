@@ -149,6 +149,7 @@ public:
     Object ListItem;
     Object Map;
     Object Number;
+    Object NumberSign;
     Object OpState;
     Object Pixel;
     Object Slot;
@@ -159,6 +160,12 @@ public:
     Object StructReference;
     Object TrieMap;
     Object TrieMapNode;
+
+    Object true_;
+    Object false_;
+
+    Object positive;
+    Object negative;
 
     Op op;
     Ast ast;

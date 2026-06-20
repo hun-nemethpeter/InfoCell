@@ -31,8 +31,8 @@ protected:
     CellI& _7_    = w._7_;
     CellI& _8_    = w._8_;
     CellI& _9_    = w._9_;
-    CellI& true_  = w.boolean.true_;
-    CellI& false_ = w.boolean.false_;
+    CellI& true_  = w.std.true_;
+    CellI& false_ = w.std.false_;
 };
 
 } // namespace cells

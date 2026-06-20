@@ -333,7 +333,7 @@ void Ast::StructBase::addTraitImpl(Ast::TraitImpl& traitImpl)
 Ast::StructBase& Ast::StructBase::primitiveTool()
 {
     if (missing("primitiveTool")) {
-        set("primitiveTool", w.boolean.true_);
+        set("primitiveTool", w.std.true_);
     }
 
     return *this;
@@ -1555,12 +1555,12 @@ Ast::Cell& AstHelper::_(const std::string& nameStr)
 
 Ast::Cell& AstHelper::true_()
 {
-    return _(w.boolean.true_);
+    return _(w.std.true_);
 }
 
 Ast::Cell& AstHelper::false_()
 {
-    return _(w.boolean.false_);
+    return _(w.std.false_);
 }
 
 Ast::Parameter& AstHelper::p_(const std::string& nameStr)

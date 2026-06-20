@@ -21,23 +21,6 @@ class ArcLib;
 class StdLib;
 class World;
 
-class Boolean
-{
-public:
-    Boolean(World& w);
-    Object true_;
-    Object false_;
-};
-
-class Numbers
-{
-public:
-    Numbers(World& w);
-    Map sign;
-    Object positive;
-    Object negative;
-};
-
 class Pools
 {
 public:
@@ -138,8 +121,6 @@ public:
     Ast::Scope globalScope;
     Std std;
     Ast ast;
-    Boolean boolean;
-    Numbers numbers;
     cells::hybrid::ActivationPointer ap;
 
     CellI& _0_;
@@ -166,7 +147,7 @@ public:
     CellI& getStruct(CellI& name);
     CellI& getVariable(const std::string& nameStr);
     CellI& getVariable(CellI& name);
-    CellI& name(const std::string& str);
+    List& name(const std::string& str);
     template <typename... Args>
     CellI& templateId(const std::string& str, Args&&... args);
     CellI& ListOf(CellI& type);

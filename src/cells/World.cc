@@ -10,22 +10,6 @@
 namespace infocell {
 namespace cells {
 
-Boolean::Boolean(World& w) :
-    true_(w, w.std.Boolean, "true"),
-    false_(w, w.std.Boolean, "false")
-{
-}
-
-Numbers::Numbers(World& w) :
-    sign(w, w.std.Cell, w.std.Cell, "sign"),
-    positive(w, w.std.Cell, "positive"),
-    negative(w, w.std.Cell, "negative")
-
-{
-    sign.add(positive, positive);
-    sign.add(negative, negative);
-}
-
 // ============================================================================
 Pools::Chars::Chars(World& w) :
     w(w)
@@ -168,8 +152,6 @@ World::World(std::function<void()> loggerLevelInit) :
     globalScope(Ast::Scope(*this, "global")),
     std(*this),
     ast(*this),
-    boolean(*this),
-    numbers(*this),
     ap(*this),
     _0_(pools.numbers.get(0)),
     _1_(pools.numbers.get(1)),
@@ -285,7 +267,7 @@ CellI& World::getVariable(CellI& name)
     throw "Unhandled state!";
 }
 
-CellI& World::name(const std::string& str)
+List& World::name(const std::string& str)
 {
     return pools.strings.getCharList(str);
 }
@@ -331,7 +313,7 @@ CellI& World::MapOf(CellI& keyType, CellI& valueType)
 
 CellI& World::toCellBool(bool value)
 {
-    return value ? boolean.true_ : boolean.false_;
+    return value ? std.true_ : std.false_;
 }
 
 World::InitPhase World::initPhase()

@@ -884,7 +884,7 @@ static void evalOpIf(CellI& self, CellI*& currentCell, CellI*& previousCell)
     } else if (&state == &w.id.stateParam1) {
         self.set(w.id.status, w.id.process);
         CellI* branchPtr = nullptr;
-        bool condition   = &self[w.id.condition][w.id.value] == &w.boolean.true_;
+        bool condition   = &self[w.id.condition][w.id.value] == &w.std.true_;
         if (condition) {
             branchPtr = &self[w.id.then];
             self.set(w.id.state, w.id.stateThen);
@@ -948,7 +948,7 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
             self.set(w.id.state, w.id.stateParamInit);
         } else {
             self.set(w.id.status, w.id.process);
-            bool condition = &self[w.id.condition][w.id.value] == &w.boolean.true_;
+            bool condition = &self[w.id.condition][w.id.value] == &w.std.true_;
             if (condition) {
                 currentCell = &self[w.id.statement];
                 self.set(w.id.state, w.id.stateStatement);
@@ -993,7 +993,7 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
             self.set(w.id.state, w.id.stateParamInit);
         } else {
             self.set(w.id.status, w.id.process);
-            bool condition = &self[w.id.condition][w.id.value] == &w.boolean.true_;
+            bool condition = &self[w.id.condition][w.id.value] == &w.std.true_;
             if (condition) {
                 currentCell = &self[w.id.statement];
                 self.set(w.id.state, w.id.stateStatement);
@@ -1189,7 +1189,7 @@ static void evalOpLessThan(CellI& self, CellI*& currentCell, CellI*& previousCel
         int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
-        self.set(w.id.value, lhs < rhs ? w.boolean.true_ : w.boolean.false_);
+        self.set(w.id.value, lhs < rhs ? w.std.true_ : w.std.false_);
         self.set(w.id.state, w.id.stateParamInit);
         previousCell = currentCell;
         currentCell  = &self.get(w.id.previous);
@@ -1218,7 +1218,7 @@ static void evalOpLessThanOrEqual(CellI& self, CellI*& currentCell, CellI*& prev
         int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
-        self.set(w.id.value, lhs <= rhs ? w.boolean.true_ : w.boolean.false_);
+        self.set(w.id.value, lhs <= rhs ? w.std.true_ : w.std.false_);
         self.set(w.id.state, w.id.stateParamInit);
         previousCell = currentCell;
         currentCell  = &self.get(w.id.previous);
@@ -1247,7 +1247,7 @@ static void evalOpGreaterThan(CellI& self, CellI*& currentCell, CellI*& previous
         int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
-        self.set(w.id.value, lhs > rhs ? w.boolean.true_ : w.boolean.false_);
+        self.set(w.id.value, lhs > rhs ? w.std.true_ : w.std.false_);
         self.set(w.id.state, w.id.stateParamInit);
         previousCell = currentCell;
         currentCell  = &self.get(w.id.previous);
@@ -1276,7 +1276,7 @@ static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI*& p
         int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
-        self.set(w.id.value, lhs >= rhs ? w.boolean.true_ : w.boolean.false_);
+        self.set(w.id.value, lhs >= rhs ? w.std.true_ : w.std.false_);
         self.set(w.id.state, w.id.stateParamInit);
         previousCell = currentCell;
         currentCell  = &self.get(w.id.previous);
@@ -1297,10 +1297,10 @@ static void evalOpAnd(CellI& self, CellI*& currentCell, CellI*& previousCell)
         currentCell     = &inputLhs;
         self.set(w.id.state, w.id.stateLhs);
     } else if (&state == &w.id.stateLhs) {
-        bool lhs = &self[w.id.lhs][w.id.value] == &w.boolean.true_;
+        bool lhs = &self[w.id.lhs][w.id.value] == &w.std.true_;
         // shortcut, if the left hand side already false we don't evaluate the right hand side
         if (lhs == false) {
-            self.set(w.id.value, w.boolean.false_);
+            self.set(w.id.value, w.std.false_);
             self.set(w.id.state, w.id.stateParamInit);
             previousCell = currentCell;
             currentCell  = &self.get(w.id.previous);
@@ -1311,8 +1311,8 @@ static void evalOpAnd(CellI& self, CellI*& currentCell, CellI*& previousCell)
             self.set(w.id.state, w.id.stateRhs);
         }
     } else if (&state == &w.id.stateRhs) {
-        bool lhs = &self[w.id.lhs][w.id.value] == &w.boolean.true_;
-        bool rhs = &self[w.id.rhs][w.id.value] == &w.boolean.true_;
+        bool lhs = &self[w.id.lhs][w.id.value] == &w.std.true_;
+        bool rhs = &self[w.id.rhs][w.id.value] == &w.std.true_;
 
         self.set(w.id.value, w.toCellBool(lhs && rhs));
         self.set(w.id.state, w.id.stateParamInit);
@@ -1340,8 +1340,8 @@ static void evalOpOr(CellI& self, CellI*& currentCell, CellI*& previousCell)
         currentCell     = &inputRhs;
         self.set(w.id.state, w.id.stateRhs);
     } else if (&state == &w.id.stateRhs) {
-        bool lhs = &self[w.id.lhs][w.id.value] == &w.boolean.true_;
-        bool rhs = &self[w.id.rhs][w.id.value] == &w.boolean.true_;
+        bool lhs = &self[w.id.lhs][w.id.value] == &w.std.true_;
+        bool rhs = &self[w.id.rhs][w.id.value] == &w.std.true_;
 
         self.set(w.id.value, w.toCellBool(lhs || rhs));
         self.set(w.id.state, w.id.stateParamInit);
@@ -1364,7 +1364,7 @@ static void evalOpNot(CellI& self, CellI*& currentCell, CellI*& previousCell)
         currentCell  = &input;
         self.set(w.id.state, w.id.stateParam1);
     } else if (&state == &w.id.stateParam1) {
-        bool res = &self[w.id.input][w.id.value] == &w.boolean.true_;
+        bool res = &self[w.id.input][w.id.value] == &w.std.true_;
 
         self.set(w.id.value, w.toCellBool(!res));
         self.set(w.id.state, w.id.stateParamInit);
@@ -2772,7 +2772,7 @@ bool Number::has(CellI& key)
     if (&key == &w.id.__type__ || &key == &w.id.value) {
         return true;
     }
-    if (&key == &w.numbers.sign) {
+    if (&key == &w.id.sign) {
         return m_value != 0;
     }
 
@@ -2800,8 +2800,8 @@ CellI& Number::operator[](CellI& key)
         return w.std.Number;
     }
 
-    if (&key == &w.numbers.sign && m_value != 0) {
-        return m_value > 0 ? w.numbers.positive : w.numbers.negative;
+    if (&key == &w.id.sign && m_value != 0) {
+        return m_value > 0 ? w.std.positive : w.std.negative;
     }
 
     if (&key == &w.id.value) {
