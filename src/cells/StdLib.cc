@@ -46,6 +46,7 @@ Std::Ast::Ast(World& w) :
     w(w),
     Add(w, w.std.Struct, "ast::Add"),
     And(w, w.std.Struct, "ast::And"),
+    AssociatedType(w, w.std.Struct, "ast::AssociatedType"),
     Base(w, w.std.Struct, "ast::Base"),
     Block(w, w.std.Struct, "ast::Block"),
     Break(w, w.std.Struct, "ast::Break"),
@@ -503,6 +504,10 @@ void StdLibAst::createAst()
             member("lhs", _(std.Boolean)),
             member("rhs", _(std.Boolean)));
 
+    astScope.add<Struct>("AssociatedType")
+        .members(
+            member("key", "std::Cell"));
+
     astScope.add<Struct>("Block")
         .members(
             member("asts", "std::Cell"));
@@ -918,7 +923,7 @@ void StdLibAst::createAst()
             member("structType", "std::Struct"),
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
-            member("associatedTypes", ListOf(std.ast.Slot)),
+            member("associatedTypes", MapOf(std.Cell, std.ast.Base)),
             member("typeAliases", ListOf(std.ast.Slot)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
 
@@ -1129,7 +1134,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     auto& implIterableTraitForListT
         = listStructT.addTraitImpl("Iterable")
               .associatedTypes(
-                  parameter("Iterator", tt_("ListIterator", tp_("valueType"))));
+                  parameter("Iterator", tt_("ListIterator", "valueType", tp_("valueType"))));
 
     implIterableTraitForListT.addMethod("iterator")
         .returnType(at_("Iterator"))
@@ -1154,18 +1159,15 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     iteratorTrait.addMethod("isContainerEmpty").returnType(_(std.Boolean));
     iteratorTrait.addMethod("goToFirstNode");
-    iteratorTrait.addMethod("getCurrentNodeValue").returnType(_(std.Boolean));
+    iteratorTrait.addMethod("getCurrentNodeValue").returnType(at_("ValueType"));
     iteratorTrait.addMethod("hasNextNode").returnType(_(std.Boolean));
     iteratorTrait.addMethod("goToNextNode");
 
+    // impl Iterator for ListItem<T>
     auto& implIteratorTraitForListT
         = listIteratorStructT.addTraitImpl("Iterator")
-              .templateParams(
-                  parameter("ValueType", _(std.Struct)))
               .associatedTypes(
-                  parameter("NodeType", tp_("ValueType")))
-              .members(
-                  member("node", tp_("ValueType")));
+                  parameter("ValueType", tp_("valueType")));
 
     implIteratorTraitForListT.addMethod("isContainerEmpty")
         .returnType(_(std.Boolean))
@@ -1177,7 +1179,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             set(m_("node"), _(id.value), m_("first")));
 
     implIteratorTraitForListT.addMethod("getCurrentNodeValue")
-        .returnType(st_("NodeType"))
+        .returnType(at_("ValueType"))
         .instructions(
             return_(m_("node")));
 

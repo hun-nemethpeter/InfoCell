@@ -536,9 +536,24 @@ Ast::TraitImpl& Ast::TraitImpl::templateParams(Slot& slot)
 
 Ast::TraitImpl& Ast::TraitImpl::associatedTypes(Slot& slot)
 {
-    // TODO
+    if (missing("associatedTypes")) {
+        set("associatedTypes", *new Map(w, w.std.Cell, w.std.ast.Base));
+    }
+    CellI& key  = slot[w.id.key];
+    CellI& type = slot[w.id.type];
+
+    associatedTypes().add(key, type);
 
     return *this;
+}
+
+Map& Ast::TraitImpl::associatedTypes()
+{
+    if (missing("associatedTypes")) {
+        throw "No associatedTypes!";
+    } else {
+        return static_cast<Map&>(get("associatedTypes"));
+    }
 }
 
 Ast::EnumValue::EnumValue(World& w, const std::string& name) :
@@ -958,7 +973,7 @@ Ast::TemplateParam::TemplateParam(World& w, CellI& key) :
 }
 
 Ast::AssociatedType::AssociatedType(World& w, CellI& key) :
-    BaseT<AssociatedType>(w, w.std.ast.TemplateParam, "ast.associatedType")
+    BaseT<AssociatedType>(w, w.std.ast.AssociatedType, "ast.associatedType")
 {
     set(w.id.key, key);
 }

@@ -390,6 +390,7 @@ public:
 
             return *this;
         }
+        Map& associatedTypes();
     };
 
     class EnumValue : public BaseT<EnumValue>

@@ -59,8 +59,9 @@ protected:
 
     void instantiateTemplateInstances();
     Ast::Struct& instantiateStructT(Ast::StructT& structT, Ast::Struct& compiledStruct, List& inputParams);
-    CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters);
-    Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters);
+    void instantiateFunctionInStructT(Ast::Function& astFunction, Ast::Struct& compiledStruct, Map& inputParameters, Map* associatedTypesPtr = nullptr);
+    CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, Map* associatedTypesPtr = nullptr);
+    Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, Map* associatedTypesPtr = nullptr);
 
     void compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
     CellI& compileStruct(Ast::Struct& __type__);
@@ -87,7 +88,6 @@ protected:
     TrieMap& m_structs;
     TrieMap& m_unknownStructs;
     TrieMap& m_unknownInstances;
-    List& m_traitsToInstantiate;
 
     Library* m_libraryPtr           = nullptr;
     TrieMap* m_compiledFunctionsPtr = nullptr;

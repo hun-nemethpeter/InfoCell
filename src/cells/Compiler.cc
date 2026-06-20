@@ -19,8 +19,7 @@ Compiler::Compiler(World& w) :
     m_earlyStructs(w, w.std.Cell, w.std.Cell, "earlyStructs"),
     m_structs(*new TrieMap(w, w.std.Cell, w.std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownStructs")),
-    m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances")),
-    m_traitsToInstantiate(*new List(w, w.std.ast.TraitImpl))
+    m_unknownInstances(*new TrieMap(w, w.std.Cell, w.std.Struct, "unknownInstances"))
 {
 }
 
@@ -589,7 +588,6 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
         CellI& traitImplsList = astStruct.traitImpls()[w.id.list];
         Visitor::visitList(traitImplsList, [this, &astStruct, &ret](CellI& traitImpl, int i, bool& stop) {
             std::cout << "";
-//            m_traitsToInstantiate
         });
     }
 
@@ -1208,32 +1206,10 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
 
     // instantiate methods
     if (structT.has("methods")) {
-        Visitor::visitList(structT.methods()[w.id.list], [this, &inputParameters, &ret](CellI& astFunction, int i, bool& stop) {
-            Ast::Function& instantiedFunction = *new Ast::Function(w, astFunction[w.id.name]);
-            ret.addMethod(instantiedFunction);
-
-            // parameters
-            if (astFunction.has("parameters")) {
-                List& instantiatedParameters = *new List(w, w.std.Slot);
-                Visitor::visitList(astFunction[w.id.parameters], [this, &inputParameters, &instantiatedParameters, &ret](CellI& slot, int i, bool& stop) {
-                    CellI& key               = slot[w.id.key];
-                    CellI& type              = slot[w.id.type];
-                    CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters);
-                    instantiatedParameters.add(w.ast.slot(key, instantiatedParam));
-                });
-                instantiedFunction.set("parameters", instantiatedParameters);
-            }
-            // return type
-            if (astFunction.has("returnType")) {
-                CellI& returnType             = astFunction[w.id.returnType];
-                CellI& instantiatedReturnType = instantiateTemplateParamType(returnType, ret, inputParameters);
-                instantiedFunction.set("returnType", instantiatedReturnType);
-            }
-            // instructions
-            if (astFunction.has("instructions")) {
-                instantiedFunction.set("instructions", instantiateAst(astFunction[w.id.instructions], ret, inputParameters));
-            }
-        });
+        Visitor::visitList(structT.methods()[w.id.list], [this, &inputParameters, &ret](CellI& astFunctionRef, int i, bool& stop) {
+            auto& astFunction = static_cast<Ast::Function&>(astFunctionRef);
+            instantiateFunctionInStructT(astFunction, ret, inputParameters);
+         });
     }
 
     // instantiate members
@@ -1261,22 +1237,52 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     // trait implementations
     if (structT.has("traitImpls")) {
         CellI& traitImplsList = structT.traitImpls()[w.id.list];
-        Visitor::visitList(traitImplsList, [this, &structT, &ret](CellI& traitImpl, int i, bool& stop) {
-            Line line { 100, 600 };
-            std::map<int, int> testMap;
-            testMap[1] = 2;
-            Object testObject(w, w.std.KVPair, "");
-            testObject.set(w.id.key, w._0_);
-            testObject.set(w.id.value, w._2_);
-            std::cout << "";
-            //            m_traitsToInstantiate
+
+        Visitor::visitList(traitImplsList, [this, &structT, &ret, &inputParameters](CellI& traitImpl, int i, bool& stop) {
+            Visitor::visitList(traitImpl[w.id.methods][w.id.list], [this, &structT, &ret, &inputParameters, &traitImpl](CellI& astFunctionRef, int i, bool& stop) {
+                Map* associatedTypesPtr = nullptr;
+                if (traitImpl.has("associatedTypes")) {
+                    associatedTypesPtr = &static_cast<Map&>(traitImpl["associatedTypes"]);
+                }
+
+                auto& astFunction = static_cast<Ast::Function&>(astFunctionRef);
+                instantiateFunctionInStructT(astFunction, ret, inputParameters, associatedTypesPtr);
+            });
         });
     }
 
     return ret;
 }
 
-CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters)
+void Compiler::instantiateFunctionInStructT(Ast::Function& astFunction, Ast::Struct& compiledStruct, Map& inputParameters, Map* associatedTypesPtr)
+{
+    Ast::Function& instantiedFunction = *new Ast::Function(w, astFunction[w.id.name]);
+    compiledStruct.addMethod(instantiedFunction);
+
+    // parameters
+    if (astFunction.has("parameters")) {
+        List& instantiatedParameters = *new List(w, w.std.Slot);
+        Visitor::visitList(astFunction[w.id.parameters], [this, &inputParameters, &associatedTypesPtr, &instantiatedParameters, &compiledStruct](CellI& slot, int i, bool& stop) {
+            CellI& key               = slot[w.id.key];
+            CellI& type              = slot[w.id.type];
+            CellI& instantiatedParam = instantiateTemplateParamType(type, compiledStruct, inputParameters, associatedTypesPtr);
+            instantiatedParameters.add(w.ast.slot(key, instantiatedParam));
+        });
+        instantiedFunction.set("parameters", instantiatedParameters);
+    }
+    // return type
+    if (astFunction.has("returnType")) {
+        CellI& returnType             = astFunction[w.id.returnType];
+        CellI& instantiatedReturnType = instantiateTemplateParamType(returnType, compiledStruct, inputParameters, associatedTypesPtr);
+        instantiedFunction.set("returnType", instantiatedReturnType);
+    }
+    // instructions
+    if (astFunction.has("instructions")) {
+        instantiedFunction.set("instructions", instantiateAst(astFunction[w.id.instructions], compiledStruct, inputParameters, associatedTypesPtr));
+    }
+}
+
+CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, Map* associatedTypesPtr)
 {
     if (&param.__type__() == &w.std.ast.TemplateParam) {
         CellI& paramValue = param[w.id.key];
@@ -1290,15 +1296,24 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
         auto& ret                   = *new Ast::TemplatedType(w, param[w.id.id], resolvedParameterList);
         auto& parametersList        = param[w.id.parameters];
 
-        Visitor::visitList(parametersList, [this, &resolvedParameterList, &selfType, &inputParameters](CellI& slot, int, bool&) {
+        Visitor::visitList(parametersList, [this, &resolvedParameterList, &selfType, &inputParameters, &associatedTypesPtr](CellI& slot, int, bool&) {
             CellI& key              = slot[w.id.key];
             CellI& type             = slot[w.id.type];
-            CellI& resolvedSlotType = instantiateTemplateParamType(type, selfType, inputParameters);
+            CellI& resolvedSlotType = instantiateTemplateParamType(type, selfType, inputParameters, associatedTypesPtr);
             resolvedParameterList.add(w.ast.slot(key, resolvedSlotType));
         });
 
         return ret;
     }
+    if (&param.__type__() == &w.std.ast.AssociatedType && associatedTypesPtr) {
+        Map& associatedTypes = *associatedTypesPtr;
+        CellI& paramValue = param[w.id.key];
+        if (!associatedTypes.hasKey(paramValue)) {
+            throw "Instantiating with unknown associated type parameter!";
+        }
+        return instantiateTemplateParamType(associatedTypes.getValue(paramValue), selfType, inputParameters, associatedTypesPtr);
+    }
+
     if (&param.__type__() == &w.std.ast.Cell || &param.__type__() == &w.std.ast.StructName || &param.__type__() == &w.std.ast.TypeAlias) {
         return param;
     }
@@ -1306,14 +1321,14 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
     throw "Unknown template parameter!";
 }
 
-Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters)
+Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, Map* associatedTypesPtr)
 {
-    auto instantiate = [this, &selfType, &inputParameters](CellI& ast) -> Ast::Base& { return instantiateAst(ast, selfType, inputParameters); };
+    auto instantiate = [this, &selfType, &inputParameters, associatedTypesPtr](CellI& ast) -> Ast::Base& { return instantiateAst(ast, selfType, inputParameters, associatedTypesPtr); };
 
     if (&ast.__type__() == &w.std.ast.New) {
         auto* objectTypePtr = &ast[w.id.objectType];
-        if (&(*objectTypePtr).__type__() == &w.std.ast.TemplatedType) {
-            CellI& resolvedObjectType = instantiateTemplateParamType(*objectTypePtr, selfType, inputParameters);
+        if (&(*objectTypePtr).__type__() == &w.std.ast.TemplatedType || &(*objectTypePtr).__type__() == &w.std.ast.AssociatedType) {
+            CellI& resolvedObjectType = instantiateTemplateParamType(*objectTypePtr, selfType, inputParameters, associatedTypesPtr);
             objectTypePtr             = &resolvedObjectType;
         }
         auto& objectType = *static_cast<Ast::Base*>(objectTypePtr);

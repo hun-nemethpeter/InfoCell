@@ -469,6 +469,7 @@ World::World(std::function<void()> loggerLevelInit) :
     compiler.registerBuiltInStruct("std::op::While", std.op.While);
     compiler.registerBuiltInStruct("std::ast::Add", std.ast.Add);
     compiler.registerBuiltInStruct("std::ast::And", std.ast.And);
+    compiler.registerBuiltInStruct("std::ast::AssociatedType", std.ast.AssociatedType);
     compiler.registerBuiltInStruct("std::ast::Base", std.ast.Base);
     compiler.registerBuiltInStruct("std::ast::Block", std.ast.Block);
     compiler.registerBuiltInStruct("std::ast::Break", std.ast.Break);

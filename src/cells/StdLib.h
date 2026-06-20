@@ -64,6 +64,7 @@ public:
     public:
         Object Add;
         Object And;
+        Object AssociatedType;
         Object Base;
         Object Block;
         Object Break;
