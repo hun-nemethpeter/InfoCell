@@ -19,13 +19,37 @@ class Library;
 class ArcLib;
 class StdLib;
 class World;
+class Pools;
 
 class ID
 {
     World& w;
+    std::map<List*, const char*> m_ids;
+    friend class Pools;
 
 public:
+    class Directions
+    {
+    public:
+        Directions(World& w);
+        List up;
+        List down;
+        List left;
+        List right;
+    };
+
+    class Coordinates
+    {
+    public:
+        Coordinates(World& w);
+        List x;
+        List y;
+    };
+
     ID(World& w);
+
+    Directions directions;
+    Coordinates coordinates;
 
     List __type__;
     List argument;
@@ -135,24 +159,6 @@ public:
     List width;
 };
 
-class Directions
-{
-public:
-    Directions(World& w);
-    List up;
-    List down;
-    List left;
-    List right;
-};
-
-class Coordinates
-{
-public:
-    Coordinates(World& w);
-    List x;
-    List y;
-};
-
 class Boolean
 {
 public:
@@ -209,7 +215,7 @@ public:
     class Strings
     {
     public:
-        Strings(World& w);
+        Strings(World& w, const std::map<List*, const char*>& ids);
         String& get(const std::string& str);
         List& getCharList(const std::string& str);
 
@@ -265,13 +271,11 @@ public:
     ~World();
 
     Logger logger;
-    Pools pools;
     ID id;
+    Pools pools;
     Ast::Scope globalScope;
     Std std;
     Ast ast;
-    Directions directions;
-    Coordinates coordinates;
     Boolean boolean;
     Numbers numbers;
     cells::hybrid::ActivationPointer ap;

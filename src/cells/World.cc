@@ -10,8 +10,24 @@
 namespace infocell {
 namespace cells {
 
+ID::Directions::Directions(World& w) :
+    up(w, w.std.Char, "up"),
+    down(w, w.std.Char, "down"),
+    left(w, w.std.Char, "left"),
+    right(w, w.std.Char, "right")
+{
+}
+
+ID::Coordinates::Coordinates(World& w) :
+    x(w, w.std.Char, "x"),
+    y(w, w.std.Char, "y")
+{
+}
+
 ID::ID(World& w) :
     w(w),
+    directions(w),
+    coordinates(w),
     __type__(w, w.std.Char, "__type__"),
     argument(w, w.std.Char, "argument"),
     ast(w, w.std.Char, "ast"),
@@ -119,20 +135,122 @@ ID::ID(World& w) :
     variables(w, w.std.Char, "variables"),
     width(w, w.std.Char, "width")
 {
-}
+    m_ids = {
+        { &__type__, "__type__" },
+        { &argument, "argument" },
+        { &ast, "ast" },
+        { &asts, "asts" },
+        { &blue, "blue" },
+        { &break_, "break_" },
+        { &cell, "cell" },
+        { &children, "children" },
+        { &color, "color" },
+        { &compiled, "compiled" },
+        { &condition, "condition" },
+        { &constructor, "constructor" },
+        { &container, "container" },
+        { &continue_, "continue_" },
+        { &currentFn, "currentFn" },
+        { &currentParam, "currentParam" },
+        { &currentStruct, "currentStruct" },
+        { &data, "data" },
+        { &description, "description" },
+        { &destructor, "destructor" },
+        { &else_, "else_" },
+        { &enum_, "enum_" },
+        { &emptyObject, "emptyObject" },
+        { &first, "first" },
+        { &functions, "functions" },
+        { &globalScope, "globalScope" },
+        { &green, "green" },
+        { &height, "height" },
+        { &id, "id" },
+        { &index, "index" },
+        { &input, "input" },
+        { &instances, "instances" },
+        { &instructions, "instructions" },
+        { &item, "item" },
+        { &itemType, "itemType" },
+        { &key, "key" },
+        { &keyType, "keyType" },
+        { &last, "last" },
+        { &lastOp, "lastOp" },
+        { &lhs, "lhs" },
+        { &list, "list" },
+        { &listType, "listType" },
+        { &localVars, "localVars" },
+        { &memberOf, "memberOf" },
+        { &members, "members" },
+        { &method, "method" },
+        { &methods, "methods" },
+        { &name, "name" },
+        { &next, "next" },
+        { &objectType, "objectType" },
+        { &op, "op" },
+        { &ops, "ops" },
+        { &output, "output" },
+        { &parameters, "parameters" },
+        { &parent, "parent" },
+        { &pixels, "pixels" },
+        { &pixelsMap, "pixelsMap" },
+        { &pop, "pop" },
+        { &previous, "previous" },
+        { &process, "process" },
+        { &push, "push" },
+        { &red, "red" },
+        { &resolvedScope, "resolvedScope" },
+        { &result, "result" },
+        { &return_, "return_" },
+        { &returnType, "returnType" },
+        { &rhs, "rhs" },
+        { &rootNode, "rootNode" },
+        { &scope, "scope" },
+        { &scopes, "scopes" },
+        { &self, "self" },
+        { &size, "size" },
+        { &slots, "slots" },
+        { &stack, "stack" },
+        { &state, "state" },
+        { &stateCondition, "stateCondition" },
+        { &stateElse, "stateElse" },
+        { &stateLhs, "stateLhs" },
+        { &statement, "statement" },
+        { &stateParam1, "stateParam1" },
+        { &stateParam2, "stateParam2" },
+        { &stateParam3, "stateParam3" },
+        { &stateParamEval, "stateParamEval" },
+        { &stateParamInit, "stateParamInit" },
+        { &stateRhs, "stateRhs" },
+        { &stateStackCall, "stateStackCall" },
+        { &stateStatement, "stateStatement" },
+        { &stateThen, "stateThen" },
+        { &static_, "static_" },
+        { &status, "status" },
+        { &structs, "structs" },
+        { &structType, "structType" },
+        { &typeAliases, "typeAliases" },
+        { &tag, "tag" },
+        { &templateId, "templateId" },
+        { &templateParams, "templateParams" },
+        { &then, "then" },
+        { &throw_, "throw" },
+        { &type, "type" },
+        { &unknownInstances, "unknownInstances" },
+        { &unknownStructs, "unknownStructs" },
+        { &value, "value" },
+        { &valueType, "valueType" },
+        { &variable, "variable" },
+        { &variables, "variables" },
+        { &width, "width" },
 
-Directions::Directions(World& w) :
-    up(w, w.std.Char, "up"),
-    down(w, w.std.Char, "down"),
-    left(w, w.std.Char, "left"),
-    right(w, w.std.Char, "right")
-{
-}
+        { &directions.up, "up" },
+        { &directions.down, "down" },
+        { &directions.left, "left" },
+        { &directions.right, "right" },
 
-Coordinates::Coordinates(World& w) :
-    x(w, w.std.Char, "x"),
-    y(w, w.std.Char, "y")
-{
+        { &coordinates.x, "x" },
+        { &coordinates.y, "y"  }
+    };
 }
 
 Boolean::Boolean(World& w) :
@@ -226,135 +344,16 @@ Number& Pools::Numbers::get(int number)
     }
 }
 
-
-struct StringInit
-{
-    StringInit(const std::string& str, List& list) :
-        str(str), list(list) {}
-    std::string str;
-    List& list;
-};
-
 // ============================================================================
-Pools::Strings::Strings(World& w) :
+Pools::Strings::Strings(World& w, const std::map<List*, const char*>& ids) :
     w(w)
 {
-    StringInit reservedStrings[] = {
-        { "__type__", w.id.__type__ },
-        { "argument", w.id.argument },
-        { "ast", w.id.ast },
-        { "asts", w.id.asts },
-        { "blue", w.id.blue },
-        { "cell", w.id.cell },
-        { "children", w.id.children },
-        { "color", w.id.color },
-        { "compiled", w.id.compiled },
-        { "condition", w.id.condition },
-        { "constructor", w.id.constructor },
-        { "container", w.id.container },
-        { "continue_", w.id.continue_ },
-        { "currentFn", w.id.currentFn },
-        { "currentParam", w.id.currentParam },
-        { "currentStruct", w.id.currentStruct },
-        { "data", w.id.data },
-        { "description", w.id.description },
-        { "destructor", w.id.destructor },
-        { "else_", w.id.else_ },
-        { "emptyObject", w.id.emptyObject },
-        { "first", w.id.first },
-        { "functions", w.id.functions },
-        { "globalScope", w.id.globalScope },
-        { "green", w.id.green },
-        { "height", w.id.height },
-        { "id", w.id.id },
-        { "index", w.id.index },
-        { "input", w.id.input },
-        { "instances", w.id.instances },
-        { "instructions", w.id.instructions },
-        { "item", w.id.item },
-        { "itemType", w.id.itemType },
-        { "key", w.id.key },
-        { "keyType", w.id.keyType },
-        { "last", w.id.last },
-        { "lastOp", w.id.lastOp },
-        { "lhs", w.id.lhs },
-        { "list", w.id.list },
-        { "listType", w.id.listType },
-        { "localVars", w.id.localVars },
-        { "memberOf", w.id.memberOf },
-        { "members", w.id.members },
-        { "method", w.id.method },
-        { "methods", w.id.methods },
-        { "name", w.id.name },
-        { "next", w.id.next },
-        { "objectType", w.id.objectType },
-        { "op", w.id.op },
-        { "ops", w.id.ops },
-        { "output", w.id.output },
-        { "parameters", w.id.parameters },
-        { "parent", w.id.parent },
-        { "pixels", w.id.pixels },
-        { "pixelsMap", w.id.pixelsMap },
-        { "previous", w.id.previous },
-        { "red", w.id.red },
-        { "resolvedScope", w.id.resolvedScope },
-        { "result", w.id.result },
-        { "returnType", w.id.returnType },
-        { "rhs", w.id.rhs },
-        { "key", w.id.key },
-        { "rootNode", w.id.rootNode },
-        { "scope", w.id.scope },
-        { "scopes", w.id.scopes },
-        { "self", w.id.self },
-        { "size", w.id.size },
-        { "key", w.id.key },
-        { "slots", w.id.slots },
-        { "stack", w.id.stack },
-        { "state", w.id.state },
-        { "stateCondition", w.id.stateCondition },
-        { "stateElse", w.id.stateElse },
-        { "stateLhs", w.id.stateLhs },
-        { "statement", w.id.statement },
-        { "stateParam1", w.id.stateParam1 },
-        { "stateParam2", w.id.stateParam2 },
-        { "stateParam3", w.id.stateParam3 },
-        { "stateParamEval", w.id.stateParamEval },
-        { "stateParamInit", w.id.stateParamInit },
-        { "stateRhs", w.id.stateRhs },
-        { "stateStackCall", w.id.stateStackCall },
-        { "stateStatement", w.id.stateStatement },
-        { "stateThen", w.id.stateThen },
-        { "static_", w.id.static_ },
-        { "status", w.id.status },
-        { "structs", w.id.structs },
-        { "structType", w.id.structType },
-        { "typeAliases", w.id.typeAliases },
-        { "tag", w.id.tag },
-        { "templateId", w.id.templateId },
-        { "templateParams", w.id.templateParams },
-        { "then", w.id.then },
-        { "throw", w.id.throw_ },
-        { "type", w.id.type },
-        { "unknownInstances", w.id.unknownInstances },
-        { "unknownStructs", w.id.unknownStructs },
-        { "value", w.id.value },
-        { "valueType", w.id.valueType },
-        { "variable", w.id.variable },
-        { "variables", w.id.variables },
-        { "width", w.id.width },
-        { "up", w.directions.up },
-        { "down", w.directions.down },
-        { "left", w.directions.left },
-        { "right", w.directions.right },
-        { "x", w.coordinates.x },
-        { "y", w.coordinates.y }
-    };
-    for (auto& reservedString : reservedStrings) {
-        auto& str = reservedString.str;
+    for (auto& listToStr : ids) {
+        List& list = *listToStr.first;
+        const char * str  = listToStr.second;
         m_strings.emplace(std::piecewise_construct,
-                          std::forward_as_tuple(reservedString.str),
-                          std::forward_as_tuple(w, reservedString.list, reservedString.str));
-
+                          std::forward_as_tuple(str),
+                          std::forward_as_tuple(w, list, str));
     }
 }
 
@@ -385,7 +384,7 @@ Pools::Pools(World& w) :
     chars(w),
     digits(w),
     numbers(w),
-    strings(w)
+    strings(w, w.id.m_ids)
 {
 }
 
@@ -407,13 +406,11 @@ Ast::StructName& World::__type__(const std::string& nameStr)
 World::World(std::function<void()> loggerLevelInit) :
     m_initPhase(InitPhase::Init),
     logger(loggerLevelInit),
-    pools(*this),
     id(*this),
+    pools(*this),
     globalScope(Ast::Scope(*this, "global")),
     std(*this),
     ast(*this),
-    directions(*this),
-    coordinates(*this),
     boolean(*this),
     numbers(*this),
     ap(*this),

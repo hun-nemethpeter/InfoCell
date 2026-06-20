@@ -224,10 +224,10 @@ void Frame::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
     colX.add(checkPixel["x"], shapePixel);
     m_inputPixels.remove(checkPixel);
 
-    processAdjacentPixel(w.directions.up, shape, checkPixels, checkPixel);
-    processAdjacentPixel(w.directions.down, shape, checkPixels, checkPixel);
-    processAdjacentPixel(w.directions.left, shape, checkPixels, checkPixel);
-    processAdjacentPixel(w.directions.right, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.id.directions.up, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.id.directions.down, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.id.directions.left, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.id.directions.right, shape, checkPixels, checkPixel);
 }
 
 void Frame::processAdjacentPixel(CellI& direction, CellI& p_shape, Set& checkPixels, CellI& checkPixel)

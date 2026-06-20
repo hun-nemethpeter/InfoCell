@@ -849,8 +849,6 @@ protected:
 
     ID& id;
     Std& std;
-    Directions& directions;
-    Coordinates& coordinates;
     CellI& _0_;
     CellI& _1_;
     CellI& _2_;

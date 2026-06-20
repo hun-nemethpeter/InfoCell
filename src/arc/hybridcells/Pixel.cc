@@ -23,25 +23,25 @@ bool Pixel::has(CellI& key)
     if (&key == &w.id.__type__) {
         return true;
     }
-    if (&key == &w.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
+    if (&key == &w.id.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
         return true;
     }
-    if (&key == &w.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
+    if (&key == &w.id.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
         return true;
     }
-    if (&key == &w.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
+    if (&key == &w.id.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
         return true;
     }
-    if (&key == &w.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
+    if (&key == &w.id.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
         return true;
     }
     if (&key == &w.id.color) {
         return true;
     }
-    if (&key == &w.coordinates.x) {
+    if (&key == &w.id.coordinates.x) {
         return true;
     }
-    if (&key == &w.coordinates.y) {
+    if (&key == &w.id.coordinates.y) {
         return true;
     }
 
@@ -68,25 +68,25 @@ CellI& Pixel::operator[](CellI& key)
     if (&key == &w.id.__type__) {
         return w.std.Pixel;
     }
-    if (&key == &w.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
+    if (&key == &w.id.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
         return m_grid.getPixel(m_x.value(), m_y.value() - 1);
     }
-    if (&key == &w.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
+    if (&key == &w.id.directions.down && m_grid.hasPixel(m_x.value(), m_y.value() + 1)) {
         return m_grid.getPixel(m_x.value(), m_y.value() + 1);
     }
-    if (&key == &w.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
+    if (&key == &w.id.directions.left && m_grid.hasPixel(m_x.value() - 1, m_y.value())) {
         return m_grid.getPixel(m_x.value() - 1, m_y.value());
     }
-    if (&key == &w.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
+    if (&key == &w.id.directions.right && m_grid.hasPixel(m_x.value() + 1, m_y.value())) {
         return m_grid.getPixel(m_x.value() + 1, m_y.value());
     }
     if (&key == &w.id.color) {
         return m_arcColor;
     }
-    if (&key == &w.coordinates.x) {
+    if (&key == &w.id.coordinates.x) {
         return m_x;
     }
-    if (&key == &w.coordinates.y) {
+    if (&key == &w.id.coordinates.y) {
         return m_y;
     }
 

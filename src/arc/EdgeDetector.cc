@@ -1775,10 +1775,10 @@ public:
         if (&key == &w.id.__type__) {
             return true;
         }
-        if (&key == &w.coordinates.x) {
+        if (&key == &w.id.coordinates.x) {
             return true;
         }
-        if (&key == &w.coordinates.y) {
+        if (&key == &w.id.coordinates.y) {
             return true;
         }
 
@@ -1807,10 +1807,10 @@ public:
 
             return VectorStruct;
         }
-        if (&key == &w.coordinates.x) {
+        if (&key == &w.id.coordinates.x) {
             return m_x;
         }
-        if (&key == &w.coordinates.y) {
+        if (&key == &w.id.coordinates.y) {
             return m_y;
         }
 

@@ -499,15 +499,15 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             parameter("checkPixels", tt_("std::Set", "valueType", "Pixel")),
             parameter("checkPixel", __type__("Pixel")))
         .instructions(
-            if_(not_(m_("shapePixels")("hasKey")("key", p_("checkPixel") / _(coordinates.y))))
-                .then_(m_("shapePixels")("add")("key", p_("checkPixel") / _(coordinates.y))("value", new_(ta_("tableType"), "constructor"))), // TODO just a TableRow, not a full TableType
-            var_("colX") = m_("shapePixels")("getValue")("key", p_("checkPixel") / _(coordinates.y)),
-            var_("colX")("add")("key", p_("checkPixel") / _(coordinates.x))("value", new_("ShapePixel", "constructor")("shape", p_("shape"))("pixel", p_("checkPixel"))),
+            if_(not_(m_("shapePixels")("hasKey")("key", p_("checkPixel") / _(id.coordinates.y))))
+                .then_(m_("shapePixels")("add")("key", p_("checkPixel") / _(id.coordinates.y))("value", new_(ta_("tableType"), "constructor"))), // TODO just a TableRow, not a full TableType
+            var_("colX") = m_("shapePixels")("getValue")("key", p_("checkPixel") / _(id.coordinates.y)),
+            var_("colX")("add")("key", p_("checkPixel") / _(id.coordinates.x))("value", new_("ShapePixel", "constructor")("shape", p_("shape"))("pixel", p_("checkPixel"))),
             m_("inputPixels")("remove")("value", p_("checkPixel")),
-            self()("processAdjacentPixel")("direction", _(directions.up))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
-            self()("processAdjacentPixel")("direction", _(directions.down))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
-            self()("processAdjacentPixel")("direction", _(directions.left))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
-            self()("processAdjacentPixel")("direction", _(directions.right))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")));
+            self()("processAdjacentPixel")("direction", _(id.directions.up))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
+            self()("processAdjacentPixel")("direction", _(id.directions.down))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
+            self()("processAdjacentPixel")("direction", _(id.directions.left))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")),
+            self()("processAdjacentPixel")("direction", _(id.directions.right))("shape", p_("shape"))("checkPixels", p_("checkPixels"))("checkPixel", p_("checkPixel")));
 
     // Frame::processAdjacentPixel
     frameStruct.addMethod("processAdjacentPixel")
@@ -520,12 +520,12 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             if_(has(p_("checkPixel"), p_("direction")))
                 .then_(block(
                     var_("pixel") = p_("checkPixel") / p_("direction"),
-                    if_(m_("shapePixels")("hasKey")("key", *var_("pixel") / _(coordinates.y)))
+                    if_(m_("shapePixels")("hasKey")("key", *var_("pixel") / _(id.coordinates.y)))
                         .then_(block(
-                            var_("colX") = m_("shapePixels")("getValue")("key", *var_("pixel") / _(coordinates.y)),
-                            if_(var_("colX")("hasKey")("key", *var_("pixel") / _(coordinates.x)))
+                            var_("colX") = m_("shapePixels")("getValue")("key", *var_("pixel") / _(id.coordinates.y)),
+                            if_(var_("colX")("hasKey")("key", *var_("pixel") / _(id.coordinates.x)))
                                 .then_(block(
-                                    var_("shape") = get(var_("colX")("getValue")("key", *var_("pixel") / _(coordinates.x)), "shape"),
+                                    var_("shape") = get(var_("colX")("getValue")("key", *var_("pixel") / _(id.coordinates.x)), "shape"),
                                     if_(same(p_("shape"), *var_("shape")))
                                         .then_(return_()))))),
                     if_(same(*var_("pixel") / "color", p_("shape") / "color"))

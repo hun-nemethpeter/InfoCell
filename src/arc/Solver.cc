@@ -629,16 +629,16 @@ void Shaper::processPixel(Shape& shape, std::set<cells::arc::Pixel*>& checkPixel
     shape.addPixel(checkPixel);
     m_inputPixels.erase(&checkPixel);
 
-    if (cells::arc::Pixel* pixel = processAdjacentPixel(w.directions.up, shape, checkPixels, checkPixel)) {
-        processAdjacentPixel(w.directions.left, shape, checkPixels, *pixel);
-        processAdjacentPixel(w.directions.right, shape, checkPixels, *pixel);
+    if (cells::arc::Pixel* pixel = processAdjacentPixel(w.id.directions.up, shape, checkPixels, checkPixel)) {
+        processAdjacentPixel(w.id.directions.left, shape, checkPixels, *pixel);
+        processAdjacentPixel(w.id.directions.right, shape, checkPixels, *pixel);
     }
-    if (cells::arc::Pixel* pixel = processAdjacentPixel(w.directions.down, shape, checkPixels, checkPixel)) {
-        processAdjacentPixel(w.directions.left, shape, checkPixels, *pixel);
-        processAdjacentPixel(w.directions.right, shape, checkPixels, *pixel);
+    if (cells::arc::Pixel* pixel = processAdjacentPixel(w.id.directions.down, shape, checkPixels, checkPixel)) {
+        processAdjacentPixel(w.id.directions.left, shape, checkPixels, *pixel);
+        processAdjacentPixel(w.id.directions.right, shape, checkPixels, *pixel);
     }
-    processAdjacentPixel(w.directions.left, shape, checkPixels, checkPixel);
-    processAdjacentPixel(w.directions.right, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.id.directions.left, shape, checkPixels, checkPixel);
+    processAdjacentPixel(w.id.directions.right, shape, checkPixels, checkPixel);
 }
 
 cells::arc::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel)

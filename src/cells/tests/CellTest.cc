@@ -1417,7 +1417,7 @@ TEST_F(CellTest, TrieMapTest)
     TrieMap trieMap(w, std.Number, std.Number, "testTrieMap");
     EXPECT_EQ(&trieMap[id.size], &_0_);
     auto& key1   = w.list(_0_, _1_, _2_, _3_, _4_);
-    auto& value1 = w.directions.down;
+    auto& value1 = w.id.directions.down;
     trieMap.add(key1, value1);
     EXPECT_EQ(&trieMap[id.size], &_1_);
     EXPECT_TRUE(trieMap.hasKey(key1));
@@ -2061,8 +2061,8 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
             List pixelContent(w, std.Pixel);
-            pixelContent.add(arcPixel[w.coordinates.x]);
-            pixelContent.add(arcPixel[w.coordinates.y]);
+            pixelContent.add(arcPixel[w.id.coordinates.x]);
+            pixelContent.add(arcPixel[w.id.coordinates.y]);
 
             CellI& outputColor = static_cast<TrieMap&>(outputGrid["pixelsMap"]).getValue(pixelContent);
             if (&outputColor != &arcPixel["color"])
@@ -2074,8 +2074,8 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
             List pixelContent(w, std.Pixel);
-            pixelContent.add(arcPixel[w.coordinates.x]);
-            pixelContent.add(arcPixel[w.coordinates.y]);
+            pixelContent.add(arcPixel[w.id.coordinates.x]);
+            pixelContent.add(arcPixel[w.id.coordinates.y]);
 
             CellI& inputColor = static_cast<TrieMap&>(inputGrid["pixelsMap"]).getValue(pixelContent);
             if (&inputColor != &arcPixel["color"]) {
