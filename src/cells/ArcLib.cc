@@ -374,7 +374,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                   member("height", _(std.Number)),
                   member("lastEdgeId", _(std.Number)),
                   member("edges", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge")),
-                  member("internalEdges", st_("InternalEdgeLookup")),
+                  member("internalEdges", ta_("InternalEdgeLookup")),
                   member("pixels", tt_("std::List", "valueType", "Pixel")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
                   member("shapePoints", tt_("std::List", "valueType", "ShapePoint")));
@@ -419,7 +419,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                   member("downRightPoint", "ShapePoint"),
                   member("shapes", tt_("std::List", "valueType", "Shape")),
                   member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape")),
-                  member("shapePixels", st_("tableType")),
+                  member("shapePixels", ta_("tableType")),
                   member("inputPixels", tt_("std::Set", "valueType", _(std.Pixel))));
 
     // Frame::Frame
@@ -431,7 +431,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             m_("width")       = p_("grid") / "width",
             m_("height")      = p_("grid") / "height",
             m_("shapes")      = new_(tt_("std::List", "valueType", "Shape"), "constructor"),
-            m_("shapePixels") = new_(st_("tableType"), "constructor"),
+            m_("shapePixels") = new_(ta_("tableType"), "constructor"),
             m_("shapeMap")    = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"), "constructor"),
             m_("inputPixels") = new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
             self()("processInputPixels"));
@@ -500,7 +500,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             parameter("checkPixel", __type__("Pixel")))
         .instructions(
             if_(not_(m_("shapePixels")("hasKey")("key", p_("checkPixel") / _(coordinates.y))))
-                .then_(m_("shapePixels")("add")("key", p_("checkPixel") / _(coordinates.y))("value", new_(st_("tableType"), "constructor"))), // TODO just a TableRow, not a full TableType
+                .then_(m_("shapePixels")("add")("key", p_("checkPixel") / _(coordinates.y))("value", new_(ta_("tableType"), "constructor"))), // TODO just a TableRow, not a full TableType
             var_("colX") = m_("shapePixels")("getValue")("key", p_("checkPixel") / _(coordinates.y)),
             var_("colX")("add")("key", p_("checkPixel") / _(coordinates.x))("value", new_("ShapePixel", "constructor")("shape", p_("shape"))("pixel", p_("checkPixel"))),
             m_("inputPixels")("remove")("value", p_("checkPixel")),

@@ -1050,7 +1050,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .members(
             member("previous", "ListItem"),
             member("next", "ListItem"),
-            member("value", st_("ValueType")));
+            member("value", ta_("ValueType")));
 
     auto& listItemStructT
         = stdScope.add<StructT>("ListItem")
@@ -1092,8 +1092,8 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                   typeAlias("itemType", tt_("ListItem", "valueType", tp_("valueType"))),
                   typeAlias("valueType", tp_("valueType")))
               .members(
-                  member("first", st_("itemType")),
-                  member("last", st_("itemType")),
+                  member("first", ta_("itemType")),
+                  member("last", ta_("itemType")),
                   member("size", _(std.Number)));
 
     auto& listIteratorStructT
@@ -1199,9 +1199,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     listStructT.addMethod("add")
         .parameters(
             parameter("value", tp_("valueType")))
-        .returnType(st_("itemType"))
+        .returnType(ta_("itemType"))
         .instructions(
-            var_("item") = new_(st_("itemType"), "constructor")("value", p_("value")),
+            var_("item") = new_(ta_("itemType"), "constructor")("value", p_("value")),
             if_(not_(m_("first").exist()))
                 .then_(m_("first") = *var_("item"))
                 .else_(block(
@@ -1272,12 +1272,12 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             return_(m_("last") / "value"));
 
     listStructT.addMethod("begin")
-        .returnType(st_("itemType"))
+        .returnType(ta_("itemType"))
         .instructions(
             return_(m_("first")));
 
     listStructT.addMethod("end")
-        .returnType(st_("itemType"))
+        .returnType(ta_("itemType"))
         .instructions(
             return_(m_("last")));
 #pragma endregion
@@ -1455,7 +1455,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             typeAlias("listType", tt_("List", "valueType", __type__("Cell"))))
         .memberOf(__type__("Container"))
         .members(
-            member("list", st_("listType")),
+            member("list", ta_("listType")),
             member("index", "Index"),
             member("size", _(std.Number)));
 
@@ -1470,14 +1470,14 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                   typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
               .memberOf(__type__("Map"))
               .members(
-                  member("list", st_("listType")),
+                  member("list", ta_("listType")),
                   member("index", "Index"),
                   member("size", _(std.Number)));
 
     mapStructT.addMethod("constructor")
         .instructions(
             m_("size")  = _(_0_),
-            m_("list")  = new_(st_("listType"), "constructor"),
+            m_("list")  = new_(ta_("listType"), "constructor"),
             m_("index") = new_("Index", "constructor"));
 
     mapStructT.addMethod("constructorWithIndexType")
@@ -1485,7 +1485,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("indexType", _(std.Struct)))
         .instructions(
             m_("size")  = _(_0_),
-            m_("list")  = new_(st_("listType"), "constructor"),
+            m_("list")  = new_(ta_("listType"), "constructor"),
             m_("index") = new_("Index", "constructorWithSelfType")("indexType", p_("indexType")));
 
     /*
@@ -1637,10 +1637,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             typeAlias("keyType", __type__("Cell")),
             typeAlias("valueType", __type__("Cell")),
             typeAlias("pairType", tt_("KVPair", "keyType", __type__("Cell"), "valueType", __type__("Cell"))),
-            typeAlias("listType", tt_("List", "valueType", st_("pairType"))))
+            typeAlias("listType", tt_("List", "valueType", ta_("pairType"))))
         .memberOf(__type__("Container"))
         .members(
-            member("list", st_("listType")),
+            member("list", ta_("listType")),
             member("rootNode", __type__("TrieMapNode")),
             member("size", _(std.Number)));
 
@@ -1653,16 +1653,16 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                   typeAlias("keyType", tp_("keyType")),
                   typeAlias("valueType", tp_("valueType")),
                   typeAlias("pairType", tt_("KVPair", "keyType", tp_("keyType"), "valueType", tp_("valueType"))),
-                  typeAlias("listType", tt_("List", "valueType", st_("pairType"))))
+                  typeAlias("listType", tt_("List", "valueType", ta_("pairType"))))
               .memberOf(_(std.Container), _(std.TrieMap))
               .members(
-                  member("list", st_("listType")),
+                  member("list", ta_("listType")),
                   member("rootNode", _(std.TrieMapNode)),
                   member("size", _(std.Number)));
 
     trieMapStructT.addMethod("constructor")
         .instructions(
-            m_("list")     = new_(st_("listType"), "constructor"),
+            m_("list")     = new_(ta_("listType"), "constructor"),
             m_("rootNode") = new_(_(std.TrieMapNode)),
             m_("size")     = _(_0_));
 
@@ -1844,7 +1844,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
                     if_(has(*var_("keyItem"), "next"))
                         .then_(var_("keyItem") = *var_("keyItem") / "next")
                         .else_(var_("keyItem") = _(id.emptyObject)))),
-            var_("item") = m_("list")("add")("value", new_(st_("pairType"), "constructor")("key", p_("key"))("value", p_("value"))),
+            var_("item") = m_("list")("add")("value", new_(ta_("pairType"), "constructor")("key", p_("key"))("value", p_("value"))),
             set(*var_("currentNode"), "data", *var_("item")),
             m_("size") = add(m_("size"), _(_1_)));
 

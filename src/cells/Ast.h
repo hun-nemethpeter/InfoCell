@@ -833,7 +833,7 @@ protected:
     Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type, const std::string& valueStr);
     Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, const std::string& valueStr);
     template <typename... Args>
-    Ast::TypeAlias& st_(const std::string& nameStr, Args&&... args);
+    Ast::TypeAlias& ta_(const std::string& nameStr, Args&&... args);
     Ast::TemplateParam& tp_(const std::string& name);
     Ast::AssociatedType& at_(const std::string& name);
     template <typename... Args>

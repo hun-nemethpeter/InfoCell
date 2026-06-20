@@ -6,7 +6,7 @@ namespace infocell {
 namespace cells {
 
 template <typename... Args>
-Ast::TypeAlias& AstHelper::st_(const std::string& nameStr, Args&&... args)
+Ast::TypeAlias& AstHelper::ta_(const std::string& nameStr, Args&&... args)
 {
     return Ast::typeAlias(name(nameStr), std::forward<Args>(args)...);
 }
