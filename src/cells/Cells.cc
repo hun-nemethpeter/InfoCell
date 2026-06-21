@@ -2971,7 +2971,7 @@ void ActivationPointer::operator()()
 CellI& ActivationPointer::operator[](CellI& key)
 {
     if (&key == &w.id.__type__) {
-        return w.std.Color; // TODO
+        return w.std.Cell; // TODO
     }
     if (&key == &w.id.cell) {
         return *m_currentCell;

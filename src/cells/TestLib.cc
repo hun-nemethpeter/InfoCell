@@ -1,8 +1,15 @@
-﻿#include "TestLib.h"
+﻿#include "Compiler.h"
+#include "TestLib.h"
 
 namespace infocell {
 namespace cells {
 
+// ============================================================================
+TestSyms::TestSyms(World& w) :
+    w(w),
+    Color(w, w.std.Struct, "Color")
+{
+}
 
 class TestLibAst : public AstHelper
 {
@@ -20,6 +27,12 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
     auto& testVariable = scope.add<Var>("testVariable");
     auto& testStruct   = scope.add<Struct>("TestStruct");
 
+    scope.add<Struct>("Color")
+        .members(
+            member("red", "std::Number"),
+            member("green", "std::Number"),
+            member("blue", "std::Number"));
+
     testStruct.addMethod("testCreateNewListOfNumbers")
         .instructions(
             var_("result") = new_(__type__("std::Index")),
@@ -27,8 +40,8 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
             var_("result") = new_(tt_("std::List", "valueType", _(std.Cell))),
             var_("result") = new_(tt_("std::List", "valueType", _(std.Pixel))),
             var_("result") = new_(tt_("std::Set", "valueType", _(std.Number))),
-            var_("result") = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", _(std.Color))),
-            var_("result") = new_(tt_("std::TrieMap", "keyType", _(std.Number), "valueType", _(std.Color))));
+            var_("result") = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "Color")),
+            var_("result") = new_(tt_("std::TrieMap", "keyType", _(std.Number), "valueType", "Color")));
 
     testStruct.addMethod("factorial")
         .parameters(
@@ -69,10 +82,13 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
     //
 }
 
-TestLib::TestLib(World& w, Ast::Scope& parentScope) :
+TestLib::TestLib(World& w, Ast::Scope& parentScope, Compiler& compiler, TestSyms& test) :
     Library(w, parentScope)
 {
     TestLibAst testLibAst(w, parentScope.add<Ast::Scope>("test"));
+
+    // structs
+    compiler.registerBuiltInStruct("test::Color", test.Color, &parentScope);
 }
 
 } // namespace cells

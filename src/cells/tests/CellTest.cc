@@ -36,16 +36,6 @@ namespace hybridarc = infocell::cells::arc;
 
 TEST_F(CellTest, CompilerSmokeTest)
 {
-    Ast::Scope rootScope(w, "root");
-
-    TestLib testLib(w, rootScope);
-    testLib.include(w.stdLib());
-
-    Compiler compiler(w);
-    compiler.compile(testLib);
-
-    testLib.mergeTo(w.stdLib());
-
     TRACE(compiledSymbols, "All compiled symbols:");
 
     TRACE(compiledSymbols, "  structs:");
@@ -117,7 +107,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     // test the pixel.set(green, 5)
-    Object& pixel           = *new Object(w, std.Color, "pixel");
+    Object& pixel           = *new Object(w, test.Color, "pixel");
     CellI& requestForSetGet = *new Object(w, std.ast.Get);
     requestForSetGet.set(id.cell, w.ast.cell(pixel));
     requestForSetGet.set(id.key, w.ast.cell(id.green));
@@ -149,7 +139,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
 TEST_F(CellTest, ToolFinderTestForGet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
-    Object& pixel                 = *new Object(w, std.Color, "pixel");
+    Object& pixel          = *new Object(w, test.Color, "pixel");
 
     // test the return get(x, y)
     CellI& requestForGetGet = *new Object(w, std.ast.Get);
@@ -190,12 +180,12 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     // currentTheme is a test structure to be able to test a nested get. So instead of pixel.get(green) we can replace the "green" node with "currentTheme / std.Color" so we can write
     // currentTheme.get(std.Color).get(green) == 5
     Index currentTheme(w, "currentTheme");
-    currentTheme.set(std.Color, id.green);
+    currentTheme.set(test.Color, id.green);
 
     // test the return currentTheme.get(std.Color).get(green) == 5
     CellI& requestForSetWithGetGetGet = *new Object(w, std.ast.Get, "currentTheme.get(std.Color)");
     requestForSetWithGetGetGet.set(id.cell, w.ast.cell(currentTheme));
-    requestForSetWithGetGetGet.set(id.key, w.ast.cell(std.Color));
+    requestForSetWithGetGetGet.set(id.key, w.ast.cell(test.Color));
 
     CellI& requestForSetWithGetGet = *new Object(w, std.ast.Get, "currentTheme.get(std.Color).get(green)");
     requestForSetWithGetGet.set(id.cell, requestForSetWithGetGetGet);
@@ -221,7 +211,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     EXPECT_EQ(&resultToolAst[id.cell][id.cell].__type__(), &std.ast.Cell);
     EXPECT_EQ(&resultToolAst[id.cell][id.cell][id.value], &currentTheme);
     EXPECT_EQ(&resultToolAst[id.cell][id.key].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.cell][id.key][id.value], &std.Color);
+    EXPECT_EQ(&resultToolAst[id.cell][id.key][id.value], &test.Color);
     EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
     EXPECT_EQ(&resultToolAst[id.key][id.value], &id.green);
     EXPECT_EQ(&resultToolAst[id.value].__type__(), &std.ast.Cell);
@@ -242,7 +232,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGetWithAstHelper)
         {
             // currentTheme.get(std.Color).get(green) == 5
             Var& currentTheme = var_("currentTheme");
-            Base& ast = equal(_(currentTheme) / _(std.Color) / _(id.green), _(_5_));
+            Base& ast = equal(_(currentTheme) / _(arc.Color) / _(id.green), _(_5_));
             value     = &ast;
         }
     } requestHelper(w);
@@ -253,7 +243,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGetWithAstHelper)
         Visitor::visitList(serializedRequest, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell op push __type__ ast::Get cell currentTheme key Color op pop key green op pop rhs 5 ");
+        EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell op push __type__ ast::Get cell currentTheme key arc::Color op pop key green op pop rhs 5 ");
     }
 }
 
@@ -350,7 +340,7 @@ TEST_F(CellTest, PrintStdCodes)
     auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, std.Number));
     auto& ListStruct     = getStruct(w.templateId("std::List", id.valueType, std.Number));
     auto& MapStruct      = getStruct(w.templateId("std::Map", id.keyType, std.Cell, id.valueType, std.Slot));
-    auto& TrieMapStruct  = getStruct(w.templateId("std::TrieMap", id.keyType, std.Number, id.valueType, std.Color));
+    auto& TrieMapStruct  = getStruct(w.templateId("std::TrieMap", id.keyType, std.Number, id.valueType, test.Color));
     auto& SetStruct      = getStruct(w.templateId("std::Set", id.valueType, std.Number));
     auto& IndexStruct    = getStruct("std::Index");
     auto& Struct         = getStruct("std::Struct");
@@ -644,7 +634,7 @@ TEST_F(CellTest, BuiltInType)
 
 TEST_F(CellTest, BuiltInMap)
 {
-    Map map(w, std.Number, std.Color);
+    Map map(w, std.Number, test.Color);
 
     printAs.value(map.__type__());
     printAs.value(map[id.list].__type__());
@@ -686,7 +676,7 @@ TEST_F(CellTest, BuiltInMap)
 
 TEST_F(CellTest, MapTemplateTypes)
 {
-    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, std.Color));
+    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, test.Color));
     Object map(w, MapNumberToColor, w.name("constructor"));
 
     printAs.value(map.__type__());
@@ -727,11 +717,11 @@ TEST_F(CellTest, MapTemplateTypes)
 
 TEST_F(CellTest, MapNumberToColor)
 {
-    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, std.Color));
+    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, test.Color));
     Object map(w, MapNumberToColor, w.name("constructor"));
 
     EXPECT_EQ(&map.__type__()[id.typeAliases][id.index][id.keyType][id.value], &std.Number);
-    EXPECT_EQ(&map.__type__()[id.typeAliases][id.index][id.valueType][id.value], &std.Color);
+    EXPECT_EQ(&map.__type__()[id.typeAliases][id.index][id.valueType][id.value], &test.Color);
 
     printAs.value(map);
     printAs.cell(map);
@@ -763,7 +753,7 @@ TEST_F(CellTest, MapNumberToColor)
 
 TEST_F(CellTest, ListItem)
 {
-    auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, std.Color));
+    auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, test.Color));
     Object listItem(w, ListItemStruct, w.name("constructor"), { id.value, id.green });
 
     EXPECT_EQ(&listItem[id.value], &id.green);
@@ -896,7 +886,7 @@ TEST_F(CellTest, BasicControlOpTest)
     testValue1.set(id.value, std.Char);
 
     Object testValue2(w, std.op.ConstVar);
-    testValue2.set(id.value, std.Color);
+    testValue2.set(id.value, arc.Color);
 
     Object sameOpEq(w, std.op.Same, "sameOpEq");
     sameOpEq.set(id.lhs, testValue1);
@@ -1065,7 +1055,7 @@ TEST_F(CellTest, NextgenList)
 
 TEST_F(CellTest, NextgenType)
 {
-    Map map(w, std.Number, std.Color);
+    Map map(w, std.Number, test.Color);
     map.add(_1_, id.blue);
     printAs.value(map, "Map<Number, Color>");
 
@@ -1076,7 +1066,7 @@ TEST_F(CellTest, NextgenType)
     EXPECT_EQ(&map[id.index][id.__type__], &map[id.index][id.__type__][id.slots][id.index][id.__type__]);
 
     Index index(w);
-    index.set(std.Number, std.Color);
+    index.set(std.Number, test.Color);
     printAs.value(index, "Index");
 
     Struct __type__(w, "__type__");
@@ -1101,7 +1091,7 @@ TEST_F(CellTest, NextgenType)
 
 TEST_F(CellTest, NextgenBrainType)
 {
-    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, std.Color));
+    auto& MapNumberToColor = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, test.Color));
     Object map(w, MapNumberToColor, w.name("constructor"));
 
     EXPECT_EQ(&map[id.size], &_0_);
@@ -1153,7 +1143,7 @@ TEST_F(CellTest, NextgenBrainType)
 
 TEST_F(CellTest, TrieMap)
 {
-    auto& MapNumberToColor = getStruct(w.templateId("std::TrieMap", id.keyType, std.Number, id.valueType, std.Color));
+    auto& MapNumberToColor = getStruct(w.templateId("std::TrieMap", id.keyType, std.Number, id.valueType, test.Color));
     Object trieMap(w, MapNumberToColor, w.name("constructor"));
 
     EXPECT_EQ(&trieMap[id.size], &_0_);

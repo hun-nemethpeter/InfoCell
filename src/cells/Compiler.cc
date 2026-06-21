@@ -124,7 +124,7 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
     }
 }
 
-void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct)
+void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct, Ast::Scope* parentScope)
 {
     std::vector<std::string> sliced;
     splitNamespacedString(sliced, fullName);
@@ -135,7 +135,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     std::stringstream ss;
     List& idCell             = *new List(w, w.std.Cell);
     const auto& structName   = sliced.back();
-    Ast::Scope* currentScope = &w.globalScope;
+    Ast::Scope* currentScope = parentScope ? parentScope : &w.globalScope;
     if (sliced.size() > 1) {
         for (int i = 0; i < sliced.size() - 1; ++i) {
             const auto& scopeName = sliced[i];
@@ -262,10 +262,7 @@ void Compiler::resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolve
     if (m_earlyStructs.empty()) {
         return;
     }
-    auto& stdScope         = scope.getItem<Ast::Scope>("std");
-    auto& resolvedStdScope = resolvedScope.getItem<Ast::Scope>("std");
-
-    Visitor::visitList(m_earlyStructs[w.id.list], [this, &stdScope, &resolvedStdScope](CellI& earlyStructKV, int i, bool& stop) {
+    Visitor::visitList(m_earlyStructs[w.id.list], [this](CellI& earlyStructKV, int i, bool& stop) {
         auto& structId       = earlyStructKV[w.id.key];
         auto& structRefAst   = earlyStructKV[w.id.value][w.id.key];
         auto& compiledStruct = earlyStructKV[w.id.value][w.id.type];
@@ -275,8 +272,12 @@ void Compiler::resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolve
         if (&structRefAst.__type__() == &w.std.ast.TemplatedType) {
             if (m_unknownInstances.hasKey(structId)) {
                 CellI& structReference = m_unknownInstances.getValue(structId);
-                structReference.set("scope", stdScope);
-                structReference.set("resolvedScope", resolvedStdScope);
+
+                auto& scope         = structReference[w.id.value][w.id.ast][w.id.scope];
+                auto& resolvedScope = scope[w.id.resolvedScope];
+
+                structReference.set("scope", scope);
+                structReference.set("resolvedScope", resolvedScope);
                 structReference.set("templateId", structRefAst["id"]);
                 structReference.set(w.id.templateParams, structRefAst[w.id.parameters]);
             }

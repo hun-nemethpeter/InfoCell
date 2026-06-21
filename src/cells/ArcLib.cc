@@ -253,13 +253,13 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     auto& vectorShapeStruct
         = scope.add<Struct>("VectorShape")
               .members(
-                  member("color", _(std.Color)),
+                  member("color", "Color"),
                   member("vectors", tt_("std::List", "valueType", "Vector")),
                   member("firstPixel", "Pixel"));
 
     vectorShapeStruct.addMethod("constructor")
         .parameters(
-            parameter("color", _(std.Color)))
+            parameter("color", "Color"))
         .instructions(
             m_("color")   = p_("color"),
             m_("vectors") = new_(tt_("std::List", "valueType", "Vector"), "constructor"));

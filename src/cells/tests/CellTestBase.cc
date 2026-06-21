@@ -3,6 +3,8 @@
 
 #include "CellTestBase.h"
 
+#include "cells/Compiler.h"
+
 using namespace infocell::cells;
 
 namespace infocell {
@@ -43,9 +45,22 @@ void PrintAs::cell(CellI& cell, const std::string& label)
     std::cout << structPrinter.print() << std::endl;
 }
 
+CellTestStaticData::CellTestStaticData(World& w) :
+    m_testSyms(w),
+    m_rootScope(w, "testRootScope"),
+    m_compiler(std::make_unique<Compiler>(w)),
+    m_testLib(w, m_rootScope, *m_compiler, m_testSyms)
+{
+    m_testLib.include(w.stdLib());
+    m_compiler->compile(m_testLib);
+    m_testLib.mergeTo(w.stdLib());
+}
+
 // ============================================================================
 CellTest::CellTest(std::function<void()> loggerLevelInit) :
     NodeBase(m_world.get() ? *m_world : (m_world = std::make_unique<World>(loggerLevelInit), *m_world)),
+    test(m_staticData.get() ? m_staticData->m_testSyms : (m_staticData = std::make_unique<CellTestStaticData>(w), m_staticData->m_testSyms)),
+    testLib(m_staticData->m_testLib),
     printAs(::testing::UnitTest::GetInstance()->current_test_info()->name())
 {
 }
@@ -66,6 +81,7 @@ void CellTest::printMethodInType(CellI& type, const std::string& method)
 }
 
 std::unique_ptr<World> CellTest::m_world;
+std::unique_ptr<CellTestStaticData> CellTest::m_staticData;
 
 // ============================================================================
 TestBase::TestBase() :

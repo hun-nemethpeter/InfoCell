@@ -801,6 +801,7 @@ protected:
 
 class ID;
 class Std;
+class Arc;
 class EnumValues;
 class Direction;
 class Coordinates;
@@ -851,6 +852,7 @@ protected:
 
     ID& id;
     Std& std;
+    Arc& arc;
 
     CellI& _0_;
     CellI& _1_;

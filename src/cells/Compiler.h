@@ -18,7 +18,7 @@ public:
     Library& compile(Ast::Scope& scope);
 
     CellI& reigisterStructBeforeCompilation(CellI& id);
-    void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct);
+    void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct, Ast::Scope* parentScope = nullptr);
     void registerBuiltInEnumValue(const std::string& fullName, CellI& compiledEnumValue);
     ToolFinder& getToolFinder();
 

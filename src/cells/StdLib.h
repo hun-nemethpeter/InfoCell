@@ -168,7 +168,6 @@ public:
     EBoolean Boolean;
     Object Cell;
     Object Char;
-    Object Color;
     Object Container;
     Object Digit;
     EDirection Direction;

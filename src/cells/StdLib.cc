@@ -139,7 +139,6 @@ Std::Std(World& w) :
     Boolean(w, w.std.Enum, "Boolean"),
     Cell(w, w.std.Struct, "Cell"),
     Char(w, w.std.Struct, "Char"),
-    Color(w, w.std.Struct, "Color"),
     Container(w, w.std.Struct, "Conatainer"),
     Digit(w, w.std.Struct, "Digit"),
     Direction(w, w.std.Enum, "Direction"),
@@ -2094,12 +2093,6 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     stdScope.add<Struct>("Char");
 
-    stdScope.add<Struct>("Color")
-        .members(
-            member("red", "Number"),
-            member("green", "Number"),
-            member("blue", "Number"));
-
     stdScope.add<Struct>("Container");
 
     stdScope.add<Struct>("Digit");
@@ -2305,7 +2298,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     // structs
     compiler.registerBuiltInStruct("std::Cell", std.Cell);
     compiler.registerBuiltInStruct("std::Char", std.Char);
-    compiler.registerBuiltInStruct("std::Color", std.Color);
     compiler.registerBuiltInStruct("std::Container", std.Container);
     compiler.registerBuiltInStruct("std::Digit", std.Digit);
     compiler.registerBuiltInStruct("std::Enum", std.Enum);

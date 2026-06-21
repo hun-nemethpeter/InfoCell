@@ -4,9 +4,11 @@
 
 #include "cells/World.h"
 #include "cells/NodeBase.h"
+#include "cells/TestLib.h"
 
 namespace infocell {
 namespace cells {
+class Compiler;
 namespace test {
 
 // ============================================================================
@@ -20,6 +22,17 @@ public:
     void cell(CellI& cell, const std::string& label = "");
 
     std::string m_postfix;
+};
+
+class CellTestStaticData
+{
+public:
+    CellTestStaticData(World& w);
+
+    TestSyms m_testSyms;
+    Ast::Scope m_rootScope;
+    std::unique_ptr<Compiler> m_compiler;
+    TestLib m_testLib;
 };
 
 // ============================================================================
@@ -37,6 +50,9 @@ protected:
     void printMethodInType(CellI& type, const std::string& method);
 
     static std::unique_ptr<World> m_world;
+    static std::unique_ptr<CellTestStaticData> m_staticData;
+    TestSyms& test;
+    TestLib& testLib;
     PrintAs printAs;
 };
 
