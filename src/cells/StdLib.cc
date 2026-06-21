@@ -142,7 +142,7 @@ Std::Std(World& w) :
     Color(w, w.std.Struct, "Color"),
     Container(w, w.std.Struct, "Conatainer"),
     Digit(w, w.std.Struct, "Digit"),
-    Direction(w, w.std.Enum, "Directions"),
+    Direction(w, w.std.Enum, "Direction"),
     Enum(w, w.std.Struct, "Enum"),
     Grid(w, w.std.Struct, "Grid"),
     Index(w, w.std.Struct, "Index"),
@@ -2187,7 +2187,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     Library(w, parentScope)
 {
     Std& std = w.std;
-
     StdLibAst stdLibAst(w, parentScope.add<Ast::Scope>("std"));
 
     compiler.reigisterStructBeforeCompilation(w.tt_("std::List", "valueType", w._(std.Char))); // TODO instantiate on demand in getStruct

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Library.h"
-#include "World.h"
 
 namespace infocell {
 namespace cells {
 
+class World;
 class Arc
 {
 public:
@@ -77,7 +77,7 @@ public:
         friend class Arc;
 
     public:
-        Object ExternalEdg;
+        Object ExternalEdge;
         Object InternalEdge;
     };
 
@@ -109,10 +109,11 @@ public:
     Object VectorShape;
 };
 
+class Compiler;
 class ArcLib : public Library
 {
 public:
-    ArcLib(World& w, Ast::Scope& parentScope);
+    ArcLib(World& w, Ast::Scope& parentScope, Compiler& compiler);
 };
 
 } // namespace cells

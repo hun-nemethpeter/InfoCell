@@ -26,10 +26,10 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
     static CellI& Rotate_degree_270 = w.getVariable("arc::RotationDir::Degree_270");
     static CellI& Mirror_horizontal = w.getVariable("arc::LineSymmetry::horizontal");
     static CellI& Mirror_vertical   = w.getVariable("arc::LineSymmetry::vertical");
-    static CellI& DirectionUpEV     = w.getVariable("arc::Directions::up");
-    static CellI& DirectionDownEV   = w.getVariable("arc::Directions::down");
-    static CellI& DirectionLeftEV   = w.getVariable("arc::Directions::left");
-    static CellI& DirectionRightEV  = w.getVariable("arc::Directions::right");
+    static CellI& DirectionUpEV     = w.getVariable("arc::Direction::up");
+    static CellI& DirectionDownEV   = w.getVariable("arc::Direction::down");
+    static CellI& DirectionLeftEV   = w.getVariable("arc::Direction::left");
+    static CellI& DirectionRightEV  = w.getVariable("arc::Direction::right");
     EdgeRelation result;
 
     List& lhsEdgeNodes = static_cast<List&>(lhs["edgeNodes"]);

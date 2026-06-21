@@ -1,4 +1,6 @@
 ﻿#include "ArcLib.h"
+#include "Compiler.h"
+#include "World.h"
 
 namespace infocell {
 namespace cells {
@@ -56,7 +58,7 @@ Arc::ERotationDir::ERotationDir(World& w, CellI& type, const std::string& label,
 
 Arc::EShapeEdgeKind::EShapeEdgeKind(World& w, CellI& type, const std::string& label, Arc& arc) :
     Object(w, type, label),
-    ExternalEdg(w, arc.ShapeEdgeKind, "ExternalEdg"),
+    ExternalEdge(w, arc.ShapeEdgeKind, "ExternalEdge"),
     InternalEdge(w, arc.ShapeEdgeKind, "InternalEdge")
 {
 }
@@ -133,7 +135,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             ev_("Degree_315")  // 🡬
         );
 
-    scope.add<Enum>("Directions")
+    scope.add<Enum>("Direction")
         .values(
             ev_("up"),        // 🡩
             ev_("upRight"),   // 🡭
@@ -150,13 +152,6 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             ev_("vertical"),           // ──
             ev_("diagonalLowerLeft"),  // /
             ev_("diagonalUpperLeft")); // \
-
-    auto& colorStruct
-        = scope.add<Struct>("Color")
-              .members(
-                  member("red", _(std.Number)),
-                  member("green", _(std.Number)),
-                  member("blue", _(std.Number)));
 
     // struct Pixel
     auto& pixelStruct
@@ -388,7 +383,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
               .members(
                   member("edge", "ShapeEdge"),
                   member("from", "ShapePoint"),
-                  member("direction", "Directions"),
+                  member("direction", "Direction"),
                   member("externalShape", "Shape"),
                   member("next", "ShapeEdgeNode"),
                   member("previous", "ShapeEdgeNode"));
@@ -615,10 +610,70 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                         .then_(p_("checkPixels")("add")("value", *var_("pixel"))))));
 }
 
-ArcLib::ArcLib(World& w, Ast::Scope& parentScope) :
+ArcLib::ArcLib(World& w, Ast::Scope& parentScope, Compiler& compiler) :
     Library(w, parentScope)
 {
+    Arc& arc = w.arc;
     ArcLibAst stdLibAst(w, parentScope.add<Ast::Scope>("arc"));
+
+    // enums
+    compiler.registerBuiltInStruct("arc::Color", arc.Color);
+    compiler.registerBuiltInEnumValue("arc::Color::black", arc.Color.black);
+    compiler.registerBuiltInEnumValue("arc::Color::blue", arc.Color.blue);
+    compiler.registerBuiltInEnumValue("arc::Color::red", arc.Color.red);
+    compiler.registerBuiltInEnumValue("arc::Color::green", arc.Color.green);
+    compiler.registerBuiltInEnumValue("arc::Color::yellow", arc.Color.yellow);
+    compiler.registerBuiltInEnumValue("arc::Color::grey", arc.Color.grey);
+    compiler.registerBuiltInEnumValue("arc::Color::fuschia", arc.Color.fuschia);
+    compiler.registerBuiltInEnumValue("arc::Color::orange", arc.Color.orange);
+    compiler.registerBuiltInEnumValue("arc::Color::teal", arc.Color.teal);
+    compiler.registerBuiltInEnumValue("arc::Color::brown", arc.Color.brown);
+
+    compiler.registerBuiltInStruct("arc::Direction", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::up", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::upRight", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::right", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::downRight", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::down", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::downLeft", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::left", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::upLeft", arc.Direction);
+
+    compiler.registerBuiltInStruct("arc::LineSymmetry", arc.LineSymmetry);
+    compiler.registerBuiltInEnumValue("arc::LineSymmetry::horizontal", arc.LineSymmetry);
+    compiler.registerBuiltInEnumValue("arc::LineSymmetry::vertical", arc.LineSymmetry);
+    compiler.registerBuiltInEnumValue("arc::LineSymmetry::diagonalLowerLeft", arc.LineSymmetry);
+    compiler.registerBuiltInEnumValue("arc::LineSymmetry::diagonalUpperLeft", arc.LineSymmetry);
+
+    compiler.registerBuiltInStruct("arc::RotationDir", arc.RotationDir);
+    compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_0", arc.RotationDir.Degree_0);
+    compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_45", arc.RotationDir.Degree_45);
+    compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_90", arc.RotationDir.Degree_90);
+    compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_135", arc.RotationDir.Degree_135);
+    compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_180", arc.RotationDir.Degree_180);
+    compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_225", arc.RotationDir.Degree_225);
+    compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_270", arc.RotationDir.Degree_270);
+    compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_315", arc.RotationDir.Degree_315);
+
+    compiler.registerBuiltInStruct("arc::ShapeEdgeKind", arc.ShapeEdgeKind);
+    compiler.registerBuiltInEnumValue("arc::ShapeEdgeKind::ExternalEdge", arc.ShapeEdgeKind.ExternalEdge);
+    compiler.registerBuiltInEnumValue("arc::ShapeEdgeKind::InternalEdge", arc.ShapeEdgeKind.InternalEdge);
+
+    // structs
+    compiler.registerBuiltInStruct("arc::Example", arc.Example);
+    compiler.registerBuiltInStruct("arc::Frame", arc.Frame);
+    compiler.registerBuiltInStruct("arc::Pixel", arc.Pixel);
+    compiler.registerBuiltInStruct("arc::Shape", arc.Shape);
+    compiler.registerBuiltInStruct("arc::ShapeEdge", arc.ShapeEdge);
+    compiler.registerBuiltInStruct("arc::ShapeEdgeJoint", arc.ShapeEdgeJoint);
+    compiler.registerBuiltInStruct("arc::ShapeEdgeMirroringCorners", arc.ShapeEdgeMirroringCorners);
+    compiler.registerBuiltInStruct("arc::ShapeEdgeNode", arc.ShapeEdgeNode);
+    compiler.registerBuiltInStruct("arc::ShapeEdgeRotationCorners", arc.ShapeEdgeRotationCorners);
+    compiler.registerBuiltInStruct("arc::ShapePixel", arc.ShapePixel);
+    compiler.registerBuiltInStruct("arc::ShapePoint", arc.ShapePoint);
+    compiler.registerBuiltInStruct("arc::Task", arc.Task);
+    compiler.registerBuiltInStruct("arc::Vector", arc.Vector);
+    compiler.registerBuiltInStruct("arc::VectorShape", arc.VectorShape);
 }
 
 } // namespace cells

@@ -28,10 +28,10 @@ EdgeDetector::EdgeDetector(World& w) :
     ShapeEdgeMirroringCornersStruct(getStruct("arc::ShapeEdgeMirroringCorners")),
     ExternalEdgeEV(getVariable("arc::ShapeEdgeKind::ExternalEdge")),
     InternalEdgeEV(getVariable("arc::ShapeEdgeKind::InternalEdge")),
-    DirectionUpEV(getVariable("arc::Directions::up")),
-    DirectionDownEV(getVariable("arc::Directions::down")),
-    DirectionLeftEV(getVariable("arc::Directions::left")),
-    DirectionRightEV(getVariable("arc::Directions::right")),
+    DirectionUpEV(getVariable("arc::Direction::up")),
+    DirectionDownEV(getVariable("arc::Direction::down")),
+    DirectionLeftEV(getVariable("arc::Direction::left")),
+    DirectionRightEV(getVariable("arc::Direction::right")),
     Degree_0(getVariable("arc::RotationDir::Degree_0")),
     Degree_90(getVariable("arc::RotationDir::Degree_90")),
     Degree_180(getVariable("arc::RotationDir::Degree_180")),
@@ -2002,7 +2002,7 @@ void EdgeDetector::createResult()
 
     Visitor::visitList(frame()["shapes"], [this, &rootFrame](CellI& currentShape, int, bool&) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
-        static CellI& ArcDirections = w.getStruct("arc::Directions");
+        static CellI& ArcDirections = w.getStruct("arc::Direction");
 
         // offset
         CellI& firstPoint      = currentShape["shapePoints"][w.id.first][w.id.value];

@@ -151,6 +151,7 @@ World::World(std::function<void()> loggerLevelInit) :
     pools(*this),
     globalScope(Ast::Scope(*this, "global")),
     std(*this),
+    arc(*this),
     ast(*this),
     ap(*this),
     _0_(pools.numbers.get(0)),
@@ -164,8 +165,9 @@ World::World(std::function<void()> loggerLevelInit) :
     _8_(pools.numbers.get(8)),
     _9_(pools.numbers.get(9)),
     m_stdCompiler(std::make_unique<Compiler>(*this)),
+    m_arcCompiler(std::make_unique<Compiler>(*this)),
     m_stdLib(std::make_unique<StdLib>(*this, globalScope, *m_stdCompiler)),
-    m_arcLib(std::make_unique<ArcLib>(*this, globalScope))
+    m_arcLib(std::make_unique<ArcLib>(*this, globalScope, *m_arcCompiler))
 {
     Compiler& compiler = *m_stdCompiler;
     compiler.compile(stdLib());

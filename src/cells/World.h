@@ -5,6 +5,7 @@
 #include "Ast.h"
 #include "Cells.h"
 #include "IDs.h"
+#include "ArcLib.h"
 #include "StdLib.h"
 #include "ToolFinder.h"
 
@@ -120,6 +121,7 @@ public:
     Pools pools;
     Ast::Scope globalScope;
     Std std;
+    Arc arc;
     Ast ast;
     cells::hybrid::ActivationPointer ap;
 
@@ -139,6 +141,7 @@ public:
 
 private:
     std::unique_ptr<Compiler> m_stdCompiler;
+    std::unique_ptr<Compiler> m_arcCompiler;
     std::unique_ptr<StdLib> m_stdLib;
     std::unique_ptr<ArcLib> m_arcLib;
 
