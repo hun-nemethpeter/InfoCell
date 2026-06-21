@@ -19,17 +19,8 @@ cells::CellI* isSymmetric(cells::CellI& edge)
 static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
 {
     World& w = lhs.w;
+    Arc& arc = w.arc;
 
-    static CellI& Rotate_degree_0   = w.getVariable("arc::RotationDir::Degree_0");
-    static CellI& Rotate_degree_90  = w.getVariable("arc::RotationDir::Degree_90");
-    static CellI& Rotate_degree_180 = w.getVariable("arc::RotationDir::Degree_180");
-    static CellI& Rotate_degree_270 = w.getVariable("arc::RotationDir::Degree_270");
-    static CellI& Mirror_horizontal = w.getVariable("arc::LineSymmetry::horizontal");
-    static CellI& Mirror_vertical   = w.getVariable("arc::LineSymmetry::vertical");
-    static CellI& DirectionUpEV     = w.getVariable("arc::Direction::up");
-    static CellI& DirectionDownEV   = w.getVariable("arc::Direction::down");
-    static CellI& DirectionLeftEV   = w.getVariable("arc::Direction::left");
-    static CellI& DirectionRightEV  = w.getVariable("arc::Direction::right");
     EdgeRelation result;
 
     List& lhsEdgeNodes = static_cast<List&>(lhs["edgeNodes"]);
@@ -42,80 +33,80 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
         return result;
     }
 
-    auto rotateDirection = [](CellI& direction, CellI& degree) -> CellI& {
-        if (&degree == &Rotate_degree_0) {
+    auto rotateDirection = [&arc](CellI& direction, CellI& degree) -> CellI& {
+        if (&degree == &arc.RotationDir.Degree_0) {
             return direction;
-        } else if (&degree == &Rotate_degree_90) {
-            if (&direction == &DirectionUpEV) {
-                return DirectionRightEV;
-            } else if (&direction == &DirectionRightEV) {
-                return DirectionDownEV;
-            } else if (&direction == &DirectionDownEV) {
-                return DirectionLeftEV;
-            } else if (&direction == &DirectionLeftEV) {
-                return DirectionUpEV;
+        } else if (&degree == &arc.RotationDir.Degree_90) {
+            if (&direction == &arc.Direction.up) {
+                return arc.Direction.right;
+            } else if (&direction == &arc.Direction.right) {
+                return arc.Direction.down;
+            } else if (&direction == &arc.Direction.down) {
+                return arc.Direction.left;
+            } else if (&direction == &arc.Direction.left) {
+                return arc.Direction.up;
             }
-        } else if (&degree == &Rotate_degree_180) {
-            if (&direction == &DirectionUpEV) {
-                return DirectionDownEV;
-            } else if (&direction == &DirectionRightEV) {
-                return DirectionLeftEV;
-            } else if (&direction == &DirectionDownEV) {
-                return DirectionUpEV;
-            } else if (&direction == &DirectionLeftEV) {
-                return DirectionRightEV;
+        } else if (&degree == &arc.RotationDir.Degree_180) {
+            if (&direction == &arc.Direction.up) {
+                return arc.Direction.down;
+            } else if (&direction == &arc.Direction.right) {
+                return arc.Direction.left;
+            } else if (&direction == &arc.Direction.down) {
+                return arc.Direction.up;
+            } else if (&direction == &arc.Direction.left) {
+                return arc.Direction.right;
             }
-        } else if (&degree == &Rotate_degree_270) {
-            if (&direction == &DirectionUpEV) {
-                return DirectionLeftEV;
-            } else if (&direction == &DirectionRightEV) {
-                return DirectionUpEV;
-            } else if (&direction == &DirectionDownEV) {
-                return DirectionRightEV;
-            } else if (&direction == &DirectionLeftEV) {
-                return DirectionDownEV;
+        } else if (&degree == &arc.RotationDir.Degree_270) {
+            if (&direction == &arc.Direction.up) {
+                return arc.Direction.left;
+            } else if (&direction == &arc.Direction.right) {
+                return arc.Direction.up;
+            } else if (&direction == &arc.Direction.down) {
+                return arc.Direction.right;
+            } else if (&direction == &arc.Direction.left) {
+                return arc.Direction.down;
             }
         }
         throw "error";
     };
 
-    auto mirrorDirection = [](CellI& direction, CellI& mirroringMode) -> CellI& {
-        if (&mirroringMode == &Rotate_degree_0) {
+    auto mirrorDirection = [&arc](CellI& direction, CellI& mirroringMode) -> CellI& {
+        if (&mirroringMode == &arc.RotationDir.Degree_0) {
             return direction;
-        } else if (&mirroringMode == &Mirror_horizontal) {
-            if (&direction == &DirectionUpEV) {
-                return DirectionUpEV;
-            } else if (&direction == &DirectionRightEV) {
-                return DirectionLeftEV;
-            } else if (&direction == &DirectionDownEV) {
-                return DirectionDownEV;
-            } else if (&direction == &DirectionLeftEV) {
-                return DirectionRightEV;
+        } else if (&mirroringMode == &arc.LineSymmetry.horizontal) {
+            if (&direction == &arc.Direction.up) {
+                return arc.Direction.up;
+            } else if (&direction == &arc.Direction.right) {
+                return arc.Direction.left;
+            } else if (&direction == &arc.Direction.down) {
+                return arc.Direction.down;
+            } else if (&direction == &arc.Direction.left) {
+                return arc.Direction.right;
             }
-        } else if (&mirroringMode == &Mirror_vertical) {
-            if (&direction == &DirectionUpEV) {
-                return DirectionDownEV;
-            } else if (&direction == &DirectionRightEV) {
-                return DirectionRightEV;
-            } else if (&direction == &DirectionDownEV) {
-                return DirectionUpEV;
-            } else if (&direction == &DirectionLeftEV) {
-                return DirectionLeftEV;
+        } else if (&mirroringMode == &arc.LineSymmetry.vertical) {
+            if (&direction == &arc.Direction.up) {
+                return arc.Direction.down;
+            } else if (&direction == &arc.Direction.right) {
+                return arc.Direction.right;
+            } else if (&direction == &arc.Direction.down) {
+                return arc.Direction.up;
+            } else if (&direction == &arc.Direction.left) {
+                return arc.Direction.left;
             }
         }
         throw "error";
     };
 
-    if (&transformation == &Rotate_degree_0 || &transformation == &Rotate_degree_90 || &transformation == &Rotate_degree_180 || &transformation == &Rotate_degree_270) {
+    if (&transformation == &arc.RotationDir.Degree_0 || &transformation == &arc.RotationDir.Degree_90 || &transformation == &arc.RotationDir.Degree_180 || &transformation == &arc.RotationDir.Degree_270) {
         CellI& rotationDegree = transformation;
         const char* firstCorner  = "";
-        if (&transformation == &Rotate_degree_0) {
+        if (&transformation == &arc.RotationDir.Degree_0) {
             firstCorner = "upLeftNode";
-        } else if (&transformation == &Rotate_degree_90) {
+        } else if (&transformation == &arc.RotationDir.Degree_90) {
             firstCorner = "upRightNode";
-        } else if (&transformation == &Rotate_degree_180) {
+        } else if (&transformation == &arc.RotationDir.Degree_180) {
             firstCorner = "downRightNode";
-        } else if (&transformation == &Rotate_degree_270) {
+        } else if (&transformation == &arc.RotationDir.Degree_270) {
             firstCorner = "downLeftNode";
         }
         CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[w.id.first][w.id.value];
@@ -144,12 +135,12 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
         return result;
     }
 
-    if (&transformation == &Mirror_horizontal || &transformation == &Mirror_vertical) {
+    if (&transformation == &arc.LineSymmetry.horizontal || &transformation == &arc.LineSymmetry.vertical) {
         CellI& lineSymmetry     = transformation;
         const char* firstCorner = "";
-        if (&transformation == &Mirror_horizontal) {
+        if (&transformation == &arc.LineSymmetry.horizontal) {
             firstCorner = "downLeftNode";
-        } else if (&transformation == &Mirror_vertical) {
+        } else if (&transformation == &arc.LineSymmetry.vertical) {
             firstCorner = "upRightNode";
         }
         CellI* lhsEdgeNodePtr   = &lhsEdgeNodes[w.id.first][w.id.value];
@@ -171,10 +162,10 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
         } while (lhsEdgeNodePtr != firstNodePtr);
 
         if (found) {
-            if (&lineSymmetry == &Mirror_horizontal) {
+            if (&lineSymmetry == &arc.LineSymmetry.horizontal) {
                 result.m_isHorizontallyMirrored = true;
             }
-            if (&lineSymmetry == &Mirror_vertical) {
+            if (&lineSymmetry == &arc.LineSymmetry.vertical) {
                 result.m_isVerticallyMirrored = true;
             }
         }
@@ -187,23 +178,17 @@ static EdgeRelation compareEdges(CellI& lhs, CellI& rhs, CellI& transformation)
 EdgeRelation compareEdges(CellI& lhs, CellI& rhs)
 {
     World& w = lhs.w;
-
-    static CellI& Rotate_degree_0   = w.getVariable("arc::RotationDir::Degree_0");
-    static CellI& Rotate_degree_90  = w.getVariable("arc::RotationDir::Degree_90");
-    static CellI& Rotate_degree_180 = w.getVariable("arc::RotationDir::Degree_180");
-    static CellI& Rotate_degree_270 = w.getVariable("arc::RotationDir::Degree_270");
-    static CellI& Mirror_horizontal = w.getVariable("arc::LineSymmetry::horizontal");
-    static CellI& Mirror_vertical   = w.getVariable("arc::LineSymmetry::vertical");
+    Arc& arc = w.arc;
 
     EdgeRelation result;
 
-    for (CellI* transformation : { &Rotate_degree_0, &Rotate_degree_90, &Rotate_degree_180, &Rotate_degree_270 }) {
+    for (CellI* transformation : { &arc.RotationDir.Degree_0, &arc.RotationDir.Degree_90, &arc.RotationDir.Degree_180, &arc.RotationDir.Degree_270 }) {
         EdgeRelation result = compareEdges(lhs, rhs, *transformation);
         if (result.m_rotatedWith) {
             return result;
         }
     }
-    for (CellI* transformation : { &Mirror_horizontal, &Mirror_vertical }) {
+    for (CellI* transformation : { &arc.LineSymmetry.horizontal, &arc.LineSymmetry.vertical }) {
         EdgeRelation mirrorResult = compareEdges(lhs, rhs, *transformation);
         if (mirrorResult.m_isHorizontallyMirrored) {
             result.m_isHorizontallyMirrored = true;
@@ -219,13 +204,7 @@ EdgeRelation compareEdges(CellI& lhs, CellI& rhs)
 ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
 {
     World& w = lhs.w;
-
-    static CellI& Rotate_degree_0   = w.getVariable("arc::RotationDir::Degree_0");
-    static CellI& Rotate_degree_90  = w.getVariable("arc::RotationDir::Degree_90");
-    static CellI& Rotate_degree_180 = w.getVariable("arc::RotationDir::Degree_180");
-    static CellI& Rotate_degree_270 = w.getVariable("arc::RotationDir::Degree_270");
-    static CellI& Mirror_horizontal = w.getVariable("arc::LineSymmetry::horizontal");
-    static CellI& Mirror_vertical   = w.getVariable("arc::LineSymmetry::vertical");
+    Arc& arc = w.arc;
 
     ShapeRelation result;
     List& lhsEdges = static_cast<List&>(lhs["edges"]["list"]);
@@ -235,15 +214,15 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
         return result;
     }
 
-    auto getEdge = [&w](CellI& transformation, CellI& lhsEdge, CellI& firstLhsEdge, CellI& rhsShape) -> CellI* {
+    auto getEdge = [&w, &arc](CellI& transformation, CellI& lhsEdge, CellI& firstLhsEdge, CellI& rhsShape) -> CellI* {
         CellI* fromExternalX = nullptr;
         CellI* fromExternalY = nullptr;
 
-        if (&transformation == &Rotate_degree_0) {
+        if (&transformation == &arc.RotationDir.Degree_0) {
             fromExternalX = &lhsEdge["fromExternalX"];
             fromExternalY = &lhsEdge["fromExternalY"];
         } else {
-            if (&transformation == &Rotate_degree_90) {
+            if (&transformation == &arc.RotationDir.Degree_90) {
                 int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
                 int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["y"]).value();
                 int currentEdgeCornerX = static_cast<Number&>(lhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
@@ -258,7 +237,7 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
 
                 fromExternalX = &w.pools.numbers.get(rotatedVectorX);
                 fromExternalY = &w.pools.numbers.get(rotatedVectorY);
-            } else if (&transformation == &Rotate_degree_180) {
+            } else if (&transformation == &arc.RotationDir.Degree_180) {
                 int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downRightNode"]["from"]["x"]).value();
                 int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downRightNode"]["from"]["y"]).value();
                 int currentEdgeCornerX = static_cast<Number&>(lhsEdge["rotationCorners"]["downRightNode"]["from"]["x"]).value();
@@ -273,7 +252,7 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
 
                 fromExternalX = &w.pools.numbers.get(rotatedVectorX);
                 fromExternalY = &w.pools.numbers.get(rotatedVectorY);
-            } else if (&transformation == &Rotate_degree_270) {
+            } else if (&transformation == &arc.RotationDir.Degree_270) {
                 int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["upRightNode"]["from"]["x"]).value();
                 int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["rotationCorners"]["upRightNode"]["from"]["y"]).value();
                 int currentEdgeCornerX = static_cast<Number&>(lhsEdge["rotationCorners"]["upRightNode"]["from"]["x"]).value();
@@ -288,7 +267,7 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
 
                 fromExternalX = &w.pools.numbers.get(rotatedVectorX);
                 fromExternalY = &w.pools.numbers.get(rotatedVectorY);
-            } else if (&transformation == &Mirror_horizontal) {
+            } else if (&transformation == &arc.LineSymmetry.horizontal) {
                 int firstEdgeCornerX = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
                 int firstEdgeCornerY = static_cast<Number&>(firstLhsEdge["rotationCorners"]["downLeftNode"]["from"]["y"]).value();
                 int currentEdgeCornerX = static_cast<Number&>(lhsEdge["rotationCorners"]["downLeftNode"]["from"]["x"]).value();
@@ -303,7 +282,7 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
 
                 fromExternalX = &w.pools.numbers.get(rotatedVectorX);
                 fromExternalY = &w.pools.numbers.get(rotatedVectorY);
-            } else if (&transformation == &Mirror_vertical) {
+            } else if (&transformation == &arc.LineSymmetry.vertical) {
                 int firstEdgeCornerX   = static_cast<Number&>(firstLhsEdge["mirroringCorners"]["upRightNode"]["from"]["x"]).value();
                 int firstEdgeCornerY   = static_cast<Number&>(firstLhsEdge["mirroringCorners"]["upRightNode"]["from"]["y"]).value();
                 int currentEdgeCornerX = static_cast<Number&>(lhsEdge["mirroringCorners"]["upRightNode"]["from"]["x"]).value();
@@ -350,9 +329,9 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
         if (outerResult.m_rotatedWith) {
             transformationPtr = outerResult.m_rotatedWith;
         } else if (outerResult.m_isHorizontallyMirrored) {
-            transformationPtr = &Mirror_horizontal;
+            transformationPtr = &arc.LineSymmetry.horizontal;
         } else if (outerResult.m_isVerticallyMirrored) {
-            transformationPtr = &Mirror_vertical;
+            transformationPtr = &arc.LineSymmetry.vertical;
         }
         CellI& transformation = *transformationPtr;
         Visitor::visitList(lhsEdges, [&w, &rhs, &getEdge, &result, &outerLhsEdge, &transformation](CellI& lhsEdge, int i, bool& stop) {
@@ -371,7 +350,6 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
 
     return result;
 }
-
 
 } // namespace arc
 } // namespace infocell
