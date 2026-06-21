@@ -167,7 +167,7 @@ World::World(std::function<void()> loggerLevelInit) :
     m_stdCompiler(std::make_unique<Compiler>(*this)),
     m_arcCompiler(std::make_unique<Compiler>(*this)),
     m_stdLib(std::make_unique<StdLib>(*this, globalScope, *m_stdCompiler)),
-    m_arcLib(std::make_unique<ArcLib>(*this, globalScope, *m_arcCompiler))
+    m_arcLib(std::make_unique<ArcLib>(*this, globalScope, *m_stdCompiler))
 {
     Compiler& compiler = *m_stdCompiler;
     compiler.compile(stdLib());

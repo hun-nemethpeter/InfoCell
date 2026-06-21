@@ -12,8 +12,7 @@ Shape::Shape(World& w, Number& id, CellI& color, Number& width, Number& height) 
     m_height(height),
     m_lastEdgeId(&w.pools.numbers.get(0))
 {
-    static CellI& ShapeEdgeStruct = w.getStruct("arc::ShapeEdge");
-    m_edges                       = new Map(w, w.std.Number, ShapeEdgeStruct);
+    m_edges = new Map(w, w.std.Number, w.arc.ShapeEdge);
 }
 
 bool Shape::has(CellI& role)
@@ -111,7 +110,6 @@ void Shape::operator()()
 
 CellI& Shape::operator[](CellI& role)
 {
-    static CellI& ShapeStruct        = w.getStruct("arc::Shape");
     static CellI& name_lastEdgeId    = w.name("lastEdgeId");
     static CellI& name_shapePixels   = w.name("shapePixels");
     static CellI& name_shapePoints   = w.name("shapePoints");
@@ -119,7 +117,7 @@ CellI& Shape::operator[](CellI& role)
     static CellI& name_internalEdges = w.name("internalEdges");
 
     if (&role == &w.id.__type__) {
-        return ShapeStruct;
+        return w.arc.Shape;
     }
     if (&role == &w.id.id) {
         return m_id;

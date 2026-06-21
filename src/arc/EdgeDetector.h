@@ -50,28 +50,6 @@ protected:
     void addEdgeToShape(cells::CellI& shape, cells::CellI& newEdgeId, cells::CellI& newEdge);
     int getShapeEdgesSize(cells::CellI& shape);
 
-    cells::CellI& FrameStruct;
-    cells::CellI& ShapeStruct;
-    cells::CellI& ShapePointStruct;
-    cells::CellI& ShapePixelStruct;
-    cells::CellI& ShapeEdgeStruct;
-    cells::CellI& ShapeEdgeJointStruct;
-    cells::CellI& ShapeEdgeNodeStruct;
-    cells::CellI& ShapeEdgeRotationCornersStruct;
-    cells::CellI& ShapeEdgeMirroringCornersStruct;
-    cells::CellI& ExternalEdgeEV;
-    cells::CellI& InternalEdgeEV;
-    cells::CellI& DirectionUpEV;
-    cells::CellI& DirectionDownEV;
-    cells::CellI& DirectionLeftEV;
-    cells::CellI& DirectionRightEV;
-    cells::CellI& Degree_0;
-    cells::CellI& Degree_90;
-    cells::CellI& Degree_180;
-    cells::CellI& Degree_270;
-    cells::CellI& Symmetry_Horizontal;
-    cells::CellI& Symmetry_Vertical;
-
     std::unique_ptr<arc::native::Grid> m_inputGrid;
     std::unique_ptr<cells::arc::Grid> m_inputHybridGrid;
     cells::arc::Grid* m_inputHybridGridPtr = nullptr;

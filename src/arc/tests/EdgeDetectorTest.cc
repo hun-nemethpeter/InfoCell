@@ -121,7 +121,7 @@ public:
             } else {
                 TRACE(shapeRelations, "  shape id {} has internal edge(s)", shape["id"].label());
                 Visitor::visitList(shape["edges"]["list"], [this](CellI& edge, int, bool&) {
-                    if (&edge["kind"] == &InternalEdgeEV) {
+                    if (&edge["kind"] == &arc.ShapeEdgeKind.InternalEdge) {
                         if (edge.has("shapes")) {
                             std::stringstream ss;
                             Visitor::visitList(edge["shapes"]["index"].slotList(), [this, &ss](CellI& slot, int, bool&) {
@@ -411,23 +411,23 @@ public:
                         lineToX   = arrowLineLength;
                         lineToY   = 0;
                     }
-                    if (&direction == &DirectionLeftEV && (edgeJointSlotName == "rightDown" || edgeJointSlotName == "rightUp")) {
+                    if (&direction == &arc.Direction.left && (edgeJointSlotName == "rightDown" || edgeJointSlotName == "rightUp")) {
                         lineFromX += arrowLength;
                         lineToX += arrowLength;
                     }
-                    if (&direction == &DirectionRightEV && (edgeJointSlotName == "leftDown" || edgeJointSlotName == "leftUp")) {
+                    if (&direction == &arc.Direction.right && (edgeJointSlotName == "leftDown" || edgeJointSlotName == "leftUp")) {
                         lineFromX -= arrowLength;
                         lineToX -= arrowLength;
                     }
-                    if (&direction == &DirectionUpEV && (edgeJointSlotName == "downLeft" || edgeJointSlotName == "downRight")) {
+                    if (&direction == &arc.Direction.up && (edgeJointSlotName == "downLeft" || edgeJointSlotName == "downRight")) {
                         lineFromX += 3;
                         lineToX += 3;
                     }
-                    if (&direction == &DirectionDownEV && (edgeJointSlotName == "upLeft" || edgeJointSlotName == "upRight")) {
+                    if (&direction == &arc.Direction.down && (edgeJointSlotName == "upLeft" || edgeJointSlotName == "upRight")) {
                         lineFromX -= 3;
                         lineToX -= 3;
                     }
-                    if (&direction == &DirectionLeftEV || &direction == &DirectionUpEV) {
+                    if (&direction == &arc.Direction.left || &direction == &arc.Direction.up) {
                         std::swap(lineFromX, lineToX);
                         std::swap(lineFromY, lineToY);
                     }
@@ -436,7 +436,7 @@ public:
                     if (edgeNode.has("externalShape")) {
                         externalShapeId = fmt::format("({})", edgeNode["externalShape"]["id"].label());
                     }
-                    if (&direction == &DirectionRightEV || &direction == &DirectionLeftEV) {
+                    if (&direction == &arc.Direction.right || &direction == &arc.Direction.left) {
                         svgFile << fmt::format("      <text x=\"{}\" y=\"{}\" fill=\"{}\" class=\"arrowText\">{}{}</text>\n", textFromX, textFromY, arcColors[color], edgeNode["edge"]["id"].label(), externalShapeId);
                         svgFile << fmt::format("      <line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" marker-end=\"url(#arrow)\"/>\n", lineFromX, lineFromY, lineToX, lineToY, arcColors[color]);
                     } else {
@@ -962,8 +962,8 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareExactMatch)
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_0);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_0);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &arc.RotationDir.Degree_0);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &arc.RotationDir.Degree_0);
 }
 
 TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate90)
@@ -987,8 +987,8 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate90)
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_90);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_90);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &arc.RotationDir.Degree_90);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &arc.RotationDir.Degree_90);
 }
 
 TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate180)
@@ -1013,8 +1013,8 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate180)
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_180);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_180);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &arc.RotationDir.Degree_180);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &arc.RotationDir.Degree_180);
 }
 
 TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate270)
@@ -1037,8 +1037,8 @@ TEST_F(EdgeDetectorTest, ShapeWithHoleCompareRotate270)
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 2);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_270);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &Degree_270);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &arc.RotationDir.Degree_270);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[1].m_rotatedWith, &arc.RotationDir.Degree_270);
 }
 
 TEST_F(EdgeDetectorTest, ShapeWithHoleCompare_Mirror_Horizontal)
@@ -1182,12 +1182,12 @@ TEST_F(EdgeDetectorTest, ShapeCompareExactMatch)
     EXPECT_TRUE(edge1["rotationCorners"].has("upLeftNode"));
     EXPECT_TRUE(edge2["rotationCorners"].has("upLeftNode"));
 
-    EXPECT_NE(infocell::arc::compareEdges(edge1FirstPixel, edge2).m_rotatedWith, &Degree_0);
-    EXPECT_EQ(infocell::arc::compareEdges(edge1, edge2).m_rotatedWith, &Degree_0);
+    EXPECT_NE(infocell::arc::compareEdges(edge1FirstPixel, edge2).m_rotatedWith, &arc.RotationDir.Degree_0);
+    EXPECT_EQ(infocell::arc::compareEdges(edge1, edge2).m_rotatedWith, &arc.RotationDir.Degree_0);
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 1);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_0);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &arc.RotationDir.Degree_0);
 }
 
 TEST_F(EdgeDetectorTest, ShapeCompareRotate90)
@@ -1210,11 +1210,11 @@ TEST_F(EdgeDetectorTest, ShapeCompareRotate90)
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
-    EXPECT_EQ(edgeRelation.m_rotatedWith, &Degree_90);
+    EXPECT_EQ(edgeRelation.m_rotatedWith, &arc.RotationDir.Degree_90);
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 1);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_90);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &arc.RotationDir.Degree_90);
 }
 
 TEST_F(EdgeDetectorTest, ShapeCompareRotate180)
@@ -1238,11 +1238,11 @@ TEST_F(EdgeDetectorTest, ShapeCompareRotate180)
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
-    EXPECT_EQ(edgeRelation.m_rotatedWith, &Degree_180);
+    EXPECT_EQ(edgeRelation.m_rotatedWith, &arc.RotationDir.Degree_180);
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 1);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_180);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &arc.RotationDir.Degree_180);
 }
 
 TEST_F(EdgeDetectorTest, ShapeCompareRotate270)
@@ -1265,11 +1265,11 @@ TEST_F(EdgeDetectorTest, ShapeCompareRotate270)
     CellI& edge2  = getEdgeFromShape(shape2, _1_);
 
     infocell::arc::EdgeRelation edgeRelation = infocell::arc::compareEdges(edge1, edge2);
-    EXPECT_EQ(edgeRelation.m_rotatedWith, &Degree_270);
+    EXPECT_EQ(edgeRelation.m_rotatedWith, &arc.RotationDir.Degree_270);
 
     infocell::arc::ShapeRelation shapeRelation = infocell::arc::compareShapes(shape1, shape2);
     EXPECT_EQ(shapeRelation.m_edgeRelations.size(), 1);
-    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &Degree_270);
+    EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, &arc.RotationDir.Degree_270);
 }
 
 TEST_F(EdgeDetectorTest, ShapeCompare_Mirror_Horizontal)
@@ -1669,12 +1669,12 @@ TEST_F(EdgeDetectorTest, EdgeTestMinimal)
     EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("leftUp"));
     EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("leftDown"));
     EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["from"], previousShapePointPtr);
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["direction"], &DirectionRightEV);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["direction"], &arc.Direction.right);
     EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["leftDown"]["edge"]["shape"]["id"], &_1_);
     EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
     EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
     EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["from"], currentShapePointPtr);
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["direction"], &DirectionRightEV);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["direction"], &arc.Direction.right);
     EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["edge"]["shape"]["id"], &_2_);
 
     previousShapePointPtr = currentShapePointPtr;
@@ -1692,7 +1692,7 @@ TEST_F(EdgeDetectorTest, EdgeTestMinimal)
     EXPECT_FALSE((*currentShapePointPtr)["edgeJoint"].has("rightUp"));
     EXPECT_TRUE((*currentShapePointPtr)["edgeJoint"].has("rightDown"));
     EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["from"], currentShapePointPtr);
-    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["direction"], &DirectionRightEV);
+    EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["direction"], &arc.Direction.right);
     EXPECT_EQ(&(*currentShapePointPtr)["edgeJoint"]["rightDown"]["edge"]["shape"]["id"], &_2_);
 
     previousShapePointPtr = currentShapePointPtr;

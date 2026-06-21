@@ -15,8 +15,7 @@ Frame::Frame(World& w, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableR
     m_shapeMap(w, w.std.Number, ShapeStruct),
     m_inputPixels(w, w.std.Pixel)
 {
-    static CellI& ShapeEdgeNodeStruct = w.getStruct("arc::ShapeEdgeNode");
-    m_frameEdgeNodes                  = new List(w, ShapeEdgeNodeStruct);
+    m_frameEdgeNodes = new List(w, w.arc.ShapeEdgeNode);
     processInputPixels();
 }
 
@@ -82,7 +81,6 @@ bool Frame::has(CellI& role)
 
 CellI& Frame::operator[](CellI& role)
 {
-    static CellI& FrameStruct         = w.getStruct("arc::Frame");
     static CellI& name_grid           = w.name("grid");
     static CellI& name_shapePixels    = w.name("shapePixels");
     static CellI& name_shapes         = w.name("shapes");
@@ -97,7 +95,7 @@ CellI& Frame::operator[](CellI& role)
         throw "No such role!";
     }
     if (&role == &w.id.__type__) {
-        return FrameStruct;
+        return w.arc.Frame;
     }
     if (&role == &w.id.width) {
         return m_width;
@@ -210,15 +208,13 @@ void Frame::process()
 
 void Frame::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
 {
-    static CellI& ShapeStruct      = w.getStruct("arc::Shape");
-    static CellI& ShapePixelStruct = w.getStruct("arc::ShapePixel");
-    static CellI& TableRowStruct   = w.getStruct(w.templateId("std::Map", w.id.keyType, w.std.Number, w.id.valueType, ShapeStruct));
+    static CellI& TableRowStruct = w.getStruct(w.templateId("std::Map", w.id.keyType, w.std.Number, w.id.valueType, w.arc.Shape));
 
     if (!m_shapePixels.hasKey(checkPixel["y"])) {
         m_shapePixels.add(checkPixel["y"], *new Map(w, w.std.Number, TableRowStruct));
     }
     Map& colX = static_cast<Map&>(m_shapePixels.getValue(checkPixel["y"]));
-    CellI& shapePixel = *new Object(w, ShapePixelStruct);
+    CellI& shapePixel = *new Object(w, w.arc.ShapePixel);
     shapePixel.set("shape", shape);
     shapePixel.set("pixel", checkPixel);
     colX.add(checkPixel["x"], shapePixel);
