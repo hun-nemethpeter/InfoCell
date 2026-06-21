@@ -117,7 +117,7 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
         return m_earlyStructs.getValue(structId);
     } else {
         auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", structId.label()));
-        unresolvedStruct.set("incomplete", w.std.true_);
+        unresolvedStruct.set("incomplete", w.true_);
 
         m_earlyStructs.add(structId, w.std.slot(structAst, unresolvedStruct));
         return unresolvedStruct;
@@ -974,7 +974,7 @@ CellI& Compiler::resolveStructName(CellI& name, CellI& fullyQualifiedName)
     } else {
         return getOrCreateStructReference(fullyQualifiedName, m_unknownStructs, [this, &name](CellI& structReference) -> CellI& {
             auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", name.label()));
-            unresolvedStruct.set("incomplete", w.std.true_);
+            unresolvedStruct.set("incomplete", w.true_);
 
             return unresolvedStruct;
         });
@@ -992,7 +992,7 @@ CellI& Compiler::resolveTemplateInstanceId(CellI& name, CellI& fullyQualifiedNam
         }
         auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", name.label()));
         unresolvedStruct.set("fullyQualifiedName", fullyQualifiedName);
-        unresolvedStruct.set("incomplete", w.std.true_);
+        unresolvedStruct.set("incomplete", w.true_);
 
         return unresolvedStruct;
     });
@@ -1637,7 +1637,7 @@ CellI& Compiler::compileEnum(Ast::Enum& enum_)
     CellI& compiledStruct   = getResolvedTypeById(getFullyQualifiedName(enum_), enum_.has("instanceOf"));
 
     compiledStruct.erase("incomplete");
-    compiledStruct.set("enum", w.std.true_);
+    compiledStruct.set("enum", w.true_);
 
     // compile methods
     if (enum_.has("methods")) {

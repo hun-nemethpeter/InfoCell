@@ -2099,7 +2099,7 @@ void EdgeDetector::createResult()
 
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     toolFinder.findConversionTools(w._2_, w._4_);
-    toolFinder.findConversionTools(w.std.false_, w.std.true_);
+    toolFinder.findConversionTools(w.false_, w.true_);
 
 #if 0
 ┌──┬──┬──┬──┐

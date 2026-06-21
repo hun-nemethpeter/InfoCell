@@ -324,7 +324,7 @@ TEST_F(CellTest, Numbers)
     CellI& digit_9 = w.pools.digits[9];
 
     CellI& number_123 = toCellNumber(1234567890);
-    EXPECT_EQ(&number_123[id.sign], &std.positive);
+    EXPECT_EQ(&number_123[id.sign], &std.NumberSign.positive);
     List& number_123_digits = static_cast<List&>(number_123[id.value]);
     EXPECT_EQ(number_123_digits.size(), 10);
     EXPECT_EQ(&number_123_digits["first"]["value"], &digit_1);
@@ -339,7 +339,7 @@ TEST_F(CellTest, Numbers)
     EXPECT_EQ(&number_123_digits["first"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["next"]["value"], &digit_0);
 
     CellI& number_minus_123 = toCellNumber(-123);
-    EXPECT_EQ(&number_minus_123[id.sign], &std.negative);
+    EXPECT_EQ(&number_minus_123[id.sign], &std.NumberSign.negative);
     List& number_minus_123_digits = static_cast<List&>(number_123[id.value]);
     // TODO
 }

@@ -850,7 +850,7 @@ protected:
 
     ID& id;
     Std& std;
-    EnumValues& ev;
+
     CellI& _0_;
     CellI& _1_;
     CellI& _2_;

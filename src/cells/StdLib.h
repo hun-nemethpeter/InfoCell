@@ -123,6 +123,38 @@ public:
         Object While;
     };
 
+    class EBoolean : public Object
+    {
+        EBoolean(World& w, CellI& type, const std::string& label);
+        friend class Std;
+
+    public:
+        Object false_;
+        Object true_;
+    };
+
+    class EDirection : public Object
+    {
+        EDirection(World& w, CellI& type, const std::string& label);
+        friend class Std;
+
+    public:
+        Object up;
+        Object down;
+        Object left;
+        Object right;
+    };
+
+    class ENumberSign : public Object
+    {
+        ENumberSign(World& w, CellI& type, const std::string& label);
+        friend class Std;
+
+    public:
+        Object positive;
+        Object negative;
+    };
+
     Std(World& w);
 
     cells::CellI& slot(const std::string& key, cells::CellI& type);
@@ -133,13 +165,13 @@ protected:
     World& w;
 
 public:
-    Object Boolean;
+    EBoolean Boolean;
     Object Cell;
     Object Char;
     Object Color;
     Object Container;
     Object Digit;
-    Object Direction;
+    EDirection Direction;
     Object Enum;
     Object Grid;
     Object Index;
@@ -149,7 +181,7 @@ public:
     Object ListItem;
     Object Map;
     Object Number;
-    Object NumberSign;
+    ENumberSign NumberSign;
     Object OpState;
     Object Pixel;
     Object Slot;
@@ -161,62 +193,9 @@ public:
     Object TrieMap;
     Object TrieMapNode;
 
-    Object true_;
-    Object false_;
-
-    Object positive;
-    Object negative;
-
     Op op;
     Ast ast;
 };
-
-class StdEnumValues
-{
-public:
-    class EBoolean
-    {
-        EBoolean(World& w);
-        friend class StdEnumValues;
-
-    public:
-        Object false_;
-        Object true_;
-    };
-
-    class EDirection
-    {
-        EDirection(World& w);
-        friend class StdEnumValues;
-
-    public:
-        Object up;
-        Object down;
-        Object left;
-        Object right;
-    };
-
-    class ENumberSign
-    {
-        ENumberSign(World& w);
-        friend class StdEnumValues;
-
-    public:
-        Object positive;
-        Object negative;
-    };
-
-    StdEnumValues(World& w);
-
-protected:
-    World& w;
-
-public:
-    EBoolean Boolean;
-    EDirection Direction;
-    ENumberSign NumberSign;
-};
-
 
 class Compiler;
 class StdLib : public Library

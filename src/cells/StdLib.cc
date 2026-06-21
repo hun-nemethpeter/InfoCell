@@ -5,6 +5,37 @@
 namespace infocell {
 namespace cells {
 
+class EBoolean : public Object
+{
+    EBoolean(World& w);
+    friend class StdEnumValues;
+
+};
+
+// ============================================================================
+Std::EBoolean::EBoolean(World& w, CellI& type, const std::string& label) :
+    Object(w, type, label),
+    true_(w, w.std.Boolean, "true"),
+    false_(w, w.std.Boolean, "false")
+{
+}
+
+Std::EDirection::EDirection(World& w, CellI& type, const std::string& label) :
+    Object(w, type, label),
+    up(w, w.std.Direction, "up"),
+    down(w, w.std.Direction, "down"),
+    left(w, w.std.Direction, "left"),
+    right(w, w.std.Direction, "right")
+{
+}
+
+Std::ENumberSign::ENumberSign(World& w, CellI& type, const std::string& label) :
+    Object(w, type, label),
+    positive(w, w.std.NumberSign, "positive"),
+    negative(w, w.std.NumberSign, "negative")
+{
+}
+
 // ============================================================================
 Std::Op::Op(World& w) :
     w(w),
@@ -139,10 +170,6 @@ Std::Std(World& w) :
     StructReference(w, w.std.Struct, "StructReference"),
     TrieMap(w, w.std.Struct, "TrieMap"),
     TrieMapNode(w, w.std.Struct, "TrieMapNode"),
-    true_(w, w.std.Boolean, "true"),
-    false_(w, w.std.Boolean, "false"),
-    positive(w, w.std.NumberSign, "positive"),
-    negative(w, w.std.NumberSign, "negative"),
     op(w),
     ast(w)
 {
@@ -173,35 +200,6 @@ cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
     ret.set(w.id.value, value);
 
     return ret;
-}
-
-// ============================================================================
-StdEnumValues::EBoolean::EBoolean(World& w) :
-    true_(w, w.std.Boolean, "true"),
-    false_(w, w.std.Boolean, "false")
-{
-}
-
-StdEnumValues::EDirection::EDirection(World& w) :
-    up(w, w.std.Direction, "up"),
-    down(w, w.std.Direction, "down"),
-    left(w, w.std.Direction, "left"),
-    right(w, w.std.Direction, "right")
-{
-}
-
-StdEnumValues::ENumberSign::ENumberSign(World& w) :
-    positive(w, w.std.NumberSign, "positive"),
-    negative(w, w.std.NumberSign, "negative")
-{
-}
-
-StdEnumValues::StdEnumValues(World& w) :
-    w(w),
-    Boolean(w),
-    Direction(w),
-    NumberSign(w)
-{
 }
 
 // ============================================================================
@@ -2196,10 +2194,11 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     Library(w, parentScope)
 {
     Std& std = w.std;
-    EnumValues& ev = w.ev;
 
     StdLibAst stdLibAst(w, parentScope.add<Ast::Scope>("std"));
+
     compiler.reigisterStructBeforeCompilation(w.tt_("std::List", "valueType", w._(std.Char))); // TODO instantiate on demand in getStruct
+
     compiler.registerBuiltInStruct("std::op::Activate", std.op.Activate);
     compiler.registerBuiltInStruct("std::op::Add", std.op.Add);
     compiler.registerBuiltInStruct("std::op::And", std.op.And);
@@ -2233,6 +2232,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::op::Subtract", std.op.Subtract);
     compiler.registerBuiltInStruct("std::op::Var", std.op.Var);
     compiler.registerBuiltInStruct("std::op::While", std.op.While);
+
     compiler.registerBuiltInStruct("std::ast::Add", std.ast.Add);
     compiler.registerBuiltInStruct("std::ast::And", std.ast.And);
     compiler.registerBuiltInStruct("std::ast::AssociatedType", std.ast.AssociatedType);
@@ -2292,8 +2292,18 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
 
     // enums
     compiler.registerBuiltInStruct("std::Boolean", std.Boolean);
+    compiler.registerBuiltInEnumValue("std::Boolean::true", std.Boolean.true_);
+    compiler.registerBuiltInEnumValue("std::Boolean::false", std.Boolean.false_);
+
     compiler.registerBuiltInStruct("std::Direction", std.Direction);
+    compiler.registerBuiltInEnumValue("std::Direction::up", std.Direction.up);
+    compiler.registerBuiltInEnumValue("std::Direction::down", std.Direction.down);
+    compiler.registerBuiltInEnumValue("std::Direction::left", std.Direction.left);
+    compiler.registerBuiltInEnumValue("std::Direction::right", std.Direction.right);
+
     compiler.registerBuiltInStruct("std::NumberSign", std.NumberSign);
+    compiler.registerBuiltInEnumValue("std::NumberSign::positive", std.NumberSign.positive);
+    compiler.registerBuiltInEnumValue("std::NumberSign::negative", std.NumberSign.negative);
 
     // structs
     compiler.registerBuiltInStruct("std::Cell", std.Cell);
@@ -2320,17 +2330,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::StructReference", std.StructReference);
     compiler.registerBuiltInStruct("std::TrieMap", std.TrieMap);
     compiler.registerBuiltInStruct("std::TrieMapNode", std.TrieMapNode);
-
-    compiler.registerBuiltInEnumValue("std::Boolean::true", ev.std.Boolean.true_);
-    compiler.registerBuiltInEnumValue("std::Boolean::false", ev.std.Boolean.false_);
-
-    compiler.registerBuiltInEnumValue("std::Direction::up", ev.std.Direction.up);
-    compiler.registerBuiltInEnumValue("std::Direction::down", ev.std.Direction.down);
-    compiler.registerBuiltInEnumValue("std::Direction::left", ev.std.Direction.left);
-    compiler.registerBuiltInEnumValue("std::Direction::right", ev.std.Direction.right);
-
-    compiler.registerBuiltInEnumValue("std::NumberSign::positive", ev.std.NumberSign.positive);
-    compiler.registerBuiltInEnumValue("std::NumberSign::negative", ev.std.NumberSign.negative);
 }
 
 } // namespace cells

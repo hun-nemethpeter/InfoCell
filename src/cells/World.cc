@@ -144,11 +144,6 @@ Ast::StructName& World::__type__(const std::string& nameStr)
     return ast.structName(nameStr);
 }
 
-EnumValues::EnumValues(World& w) :
-    std(w)
-{
-}
-
 World::World(std::function<void()> loggerLevelInit) :
     m_initPhase(InitPhase::Init),
     logger(loggerLevelInit),
@@ -156,7 +151,6 @@ World::World(std::function<void()> loggerLevelInit) :
     pools(*this),
     globalScope(Ast::Scope(*this, "global")),
     std(*this),
-    ev(*this),
     ast(*this),
     ap(*this),
     _0_(pools.numbers.get(0)),
@@ -319,7 +313,7 @@ CellI& World::MapOf(CellI& keyType, CellI& valueType)
 
 CellI& World::toCellBool(bool value)
 {
-    return value ? std.true_ : std.false_;
+    return value ? true_ : false_;
 }
 
 World::InitPhase World::initPhase()

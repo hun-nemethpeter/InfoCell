@@ -77,15 +77,6 @@ public:
     Strings strings;
 };
 
-class EnumValues
-{
-    EnumValues(World& w);
-    friend class World;
-
-public:
-    StdEnumValues std;
-};
-
 class World
 {
 public:
@@ -129,7 +120,6 @@ public:
     Pools pools;
     Ast::Scope globalScope;
     Std std;
-    EnumValues ev;
     Ast ast;
     cells::hybrid::ActivationPointer ap;
 
@@ -143,6 +133,9 @@ public:
     CellI& _7_;
     CellI& _8_;
     CellI& _9_;
+
+    CellI& true_  = std.Boolean.true_;
+    CellI& false_ = std.Boolean.false_;
 
 private:
     std::unique_ptr<Compiler> m_stdCompiler;
