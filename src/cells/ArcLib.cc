@@ -3,6 +3,89 @@
 namespace infocell {
 namespace cells {
 
+// ============================================================================
+Arc::EColor::EColor(World& w, CellI& type, const std::string& label, Arc& arc) :
+    Object(w, type, label),
+    black(w, arc.Color, "black"),
+    blue(w, arc.Color, "blue"),
+    red(w, arc.Color, "red"),
+    green(w, arc.Color, "green"),
+    yellow(w, arc.Color, "yellow"),
+    grey(w, arc.Color, "grey"),
+    fuschia(w, arc.Color, "fuschia"),
+    orange(w, arc.Color, "orange"),
+    teal(w, arc.Color, "teal"),
+    brown(w, arc.Color, "brown")
+{
+}
+
+Arc::EDirection::EDirection(World& w, CellI& type, const std::string& label, Arc& arc) :
+    Object(w, type, label),
+    up(w, arc.Direction, "up"),
+    upRight(w, arc.Direction, "upRight"),
+    right(w, arc.Direction, "right"),
+    downRight(w, arc.Direction, "downRight"),
+    down(w, arc.Direction, "down"),
+    downLeft(w, arc.Direction, "downLeft"),
+    left(w, arc.Direction, "left"),
+    upLeft(w, arc.Direction, "upLeft")
+{
+}
+
+Arc::ELineSymmetry::ELineSymmetry(World& w, CellI& type, const std::string& label, Arc& arc) :
+    Object(w, type, label),
+    horizontal(w, arc.LineSymmetry, "horizontal"),
+    vertical(w, arc.LineSymmetry, "vertical"),
+    diagonalLowerLeft(w, arc.LineSymmetry, "diagonalLowerLeft"),
+    diagonalUpperLeft(w, arc.LineSymmetry, "diagonalUpperLeft")
+{
+}
+
+Arc::ERotationDir::ERotationDir(World& w, CellI& type, const std::string& label, Arc& arc) :
+    Object(w, type, label),
+    Degree_0(w, arc.RotationDir, "Degree_0"),
+    Degree_45(w, arc.RotationDir, "Degree_45"),
+    Degree_90(w, arc.RotationDir, "Degree_90"),
+    Degree_135(w, arc.RotationDir, "Degree_135"),
+    Degree_180(w, arc.RotationDir, "Degree_180"),
+    Degree_225(w, arc.RotationDir, "Degree_225"),
+    Degree_270(w, arc.RotationDir, "Degree_270"),
+    Degree_315(w, arc.RotationDir, "Degree_315")
+{
+}
+
+Arc::EShapeEdgeKind::EShapeEdgeKind(World& w, CellI& type, const std::string& label, Arc& arc) :
+    Object(w, type, label),
+    ExternalEdg(w, arc.ShapeEdgeKind, "ExternalEdg"),
+    InternalEdge(w, arc.ShapeEdgeKind, "InternalEdge")
+{
+}
+
+// ============================================================================
+Arc::Arc(World& w) :
+    w(w),
+    Color(w, w.std.Enum, "Boolean", *this),
+    Direction(w, w.std.Enum, "Direction", *this),
+    LineSymmetry(w, w.std.Enum, "LineSymmetry", *this),
+    RotationDir(w, w.std.Enum, "RotationDir", *this),
+    ShapeEdgeKind(w, w.std.Enum, "ShapeEdgeKind", *this),
+    Example(w, w.std.Struct, "Example"),
+    Frame(w, w.std.Struct, "Frame"),
+    Pixel(w, w.std.Struct, "Pixel"),
+    Shape(w, w.std.Struct, "Shape"),
+    ShapeEdge(w, w.std.Struct, "ShapeEdge"),
+    ShapeEdgeJoint(w, w.std.Struct, "ShapeEdgeJoint"),
+    ShapeEdgeMirroringCorners(w, w.std.Struct, "ShapeEdgeMirroringCorners"),
+    ShapeEdgeNode(w, w.std.Struct, "ShapeEdgeNode"),
+    ShapeEdgeRotationCorners(w, w.std.Struct, "ShapeEdgeRotationCorners"),
+    ShapePixel(w, w.std.Struct, "ShapePixel"),
+    ShapePoint(w, w.std.Struct, "ShapePoint"),
+    Task(w, w.std.Struct, "Task"),
+    Vector(w, w.std.Struct, "Vector"),
+    VectorShape(w, w.std.Struct, "VectorShape")
+{
+}
+
 class ArcLibAst : public AstHelper
 {
 public:

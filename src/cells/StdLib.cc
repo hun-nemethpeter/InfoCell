@@ -5,13 +5,6 @@
 namespace infocell {
 namespace cells {
 
-class EBoolean : public Object
-{
-    EBoolean(World& w);
-    friend class StdEnumValues;
-
-};
-
 // ============================================================================
 Std::EBoolean::EBoolean(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
