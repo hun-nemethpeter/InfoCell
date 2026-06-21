@@ -144,7 +144,6 @@ Std::Std(World& w) :
     Digit(w, w.std.Struct, "Digit"),
     Direction(w, w.std.Enum, "Direction"),
     Enum(w, w.std.Struct, "Enum"),
-    Grid(w, w.std.Struct, "Grid"),
     Index(w, w.std.Struct, "Index"),
     KVPair(w, w.std.Struct, "KVPair"),
     Library(w, w.std.Struct, "Library"),
@@ -2107,9 +2106,15 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     stdScope.add<Struct>("Enum")
         .members(
+            member("name", tt_("List", "valueType", "Char")),
+            member("fullyQualifiedName", "std::Cell"),
+            member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
+            member("enum", "Boolean"),
+            member("incomplete", "Boolean"),
+            member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
+            member("ast", "std::ast::Base"),
+            member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")),
             member("values", tt_("Map", "keyType", "Cell", "valueType", "Struct")));
-
-    stdScope.add<Struct>("Grid");
 
     createIndex();
 
@@ -2304,7 +2309,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::Container", std.Container);
     compiler.registerBuiltInStruct("std::Digit", std.Digit);
     compiler.registerBuiltInStruct("std::Enum", std.Enum);
-    compiler.registerBuiltInStruct("std::Grid", std.Grid);
     compiler.registerBuiltInStruct("std::Index", std.Index);
     compiler.registerBuiltInStruct("std::KVPair", std.KVPair);
     compiler.registerBuiltInStruct("std::Library", std.Library);

@@ -1578,6 +1578,11 @@ Ast::Slot& AstHelper::parameter(const std::string& nameStr, CellI& value)
     return slot(name(nameStr), value);
 }
 
+Ast::Slot& AstHelper::parameter(const std::string& nameStr, const std::string& typeStr)
+{
+    return slot(name(nameStr), __type__(typeStr));
+}
+
 Ast::Member& AstHelper::m_(const std::string& nameStr)
 {
     return Ast::member(name(nameStr));
@@ -1588,9 +1593,9 @@ Ast::Var& AstHelper::var_(const std::string& nameStr)
     return var(nameStr);
 }
 
-Ast::Slot& AstHelper::member(const std::string& nameStr, const std::string& type)
+Ast::Slot& AstHelper::member(const std::string& nameStr, const std::string& typeStr)
 {
-    return slot(name(nameStr), __type__(type));
+    return slot(name(nameStr), __type__(typeStr));
 }
 
 Ast::Slot& AstHelper::member(const std::string& nameStr, CellI& type)
@@ -1598,9 +1603,9 @@ Ast::Slot& AstHelper::member(const std::string& nameStr, CellI& type)
     return slot(name(nameStr), type);
 }
 
-Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, const std::string& type)
+Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, const std::string& typeStr)
 {
-    return slot(name(nameStr), __type__(type));
+    return slot(name(nameStr), __type__(typeStr));
 }
 
 Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, CellI& type)

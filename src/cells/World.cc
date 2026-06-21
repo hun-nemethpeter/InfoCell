@@ -176,8 +176,7 @@ World::World(std::function<void()> loggerLevelInit) :
     m_initPhase               = InitPhase::FullyConstructed;
 
     arcLib().include(stdLib());
-    Compiler arcCompiler(*this);
-    arcCompiler.compile(arcLib());
+    m_arcCompiler->compile(arcLib());
 
     if (IS_LOG_ENABLED) {
         TRACE(compiledSymbols, "All compiled symbols:");

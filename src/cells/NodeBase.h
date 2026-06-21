@@ -20,6 +20,7 @@ protected:
 
     ID& id   = w.id;
     Std& std = w.std;
+    Arc& arc = w.arc;
 
     CellI& _0_    = w._0_;
     CellI& _1_    = w._1_;

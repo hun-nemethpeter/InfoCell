@@ -66,13 +66,14 @@ Arc::EShapeEdgeKind::EShapeEdgeKind(World& w, CellI& type, const std::string& la
 // ============================================================================
 Arc::Arc(World& w) :
     w(w),
-    Color(w, w.std.Enum, "Boolean", *this),
+    Color(w, w.std.Enum, "Color", *this),
     Direction(w, w.std.Enum, "Direction", *this),
     LineSymmetry(w, w.std.Enum, "LineSymmetry", *this),
     RotationDir(w, w.std.Enum, "RotationDir", *this),
     ShapeEdgeKind(w, w.std.Enum, "ShapeEdgeKind", *this),
     Example(w, w.std.Struct, "Example"),
     Frame(w, w.std.Struct, "Frame"),
+    Grid(w, w.std.Struct, "Grid"),
     Pixel(w, w.std.Struct, "Pixel"),
     Shape(w, w.std.Struct, "Shape"),
     ShapeEdge(w, w.std.Struct, "ShapeEdge"),
@@ -92,23 +93,46 @@ class ArcLibAst : public AstHelper
 {
 public:
     ArcLibAst(World& w, Ast::Scope& scope);
+    Arc& arc = w.arc;
 };
 
 ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     AstHelper(w)
 {
-    auto& exampleStruct
-        = scope.add<Struct>("Example")
-              .members(
-                  member("input", _(std.Grid)),
-                  member("output", _(std.Grid)));
+    scope.add<Struct>("Example")
+        .members(
+            member("input", "Grid"),
+            member("output", "Grid"));
 
-    auto& taskStruct
-        = scope.add<Struct>("Task")
+    scope.add<Struct>("Grid")
+        .members(
+            member("width", "std::Number"),
+            member("height", "std::Number"),
+            member("pixels", tt_("std::List", "valueType", "Pixel")),
+            member("pixelsMap", _(std.TrieMap))
+        );
+
+    // struct Pixel
+    auto& pixelStruct
+        = scope.add<Struct>("Pixel")
               .members(
-                  member("examples", tt_("std::List", "valueType", "Example")),
-                  member("tests", tt_("std::List", "valueType", "Example")),
-                  member("solution", _(std.Grid)));
+                  member("x", "std::Number"),
+                  member("y", "std::Number"));
+
+    pixelStruct.addMethod("constructor")
+        .parameters(
+            parameter("x", _(std.Number)),
+            parameter("y", _(std.Number)))
+        .instructions(
+            m_("x") = p_("x"),
+            m_("y") = p_("y"));
+
+
+    scope.add<Struct>("Task")
+        .members(
+            member("examples", tt_("std::List", "valueType", "Example")),
+            member("tests", tt_("std::List", "valueType", "Example")),
+            member("solution", "Grid"));
 
     scope.add<Enum>("Color")
         .values(
@@ -152,21 +176,6 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             ev_("vertical"),           // ──
             ev_("diagonalLowerLeft"),  // /
             ev_("diagonalUpperLeft")); // \
-
-    // struct Pixel
-    auto& pixelStruct
-        = scope.add<Struct>("Pixel")
-              .members(
-                  member("x", _(std.Number)),
-                  member("y", _(std.Number)));
-
-    pixelStruct.addMethod("constructor")
-        .parameters(
-            parameter("x", _(std.Number)),
-            parameter("y", _(std.Number)))
-        .instructions(
-            m_("x") = p_("x"),
-            m_("y") = p_("y"));
 
     // struct Vector
     auto& vectorStruct
@@ -490,7 +499,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
               .members(
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
-                  member("grid", _(std.Grid)),
+                  member("grid", "Grid"),
                   member("upLeftPoint", "ShapePoint"),
                   member("upRightPoint", "ShapePoint"),
                   member("downLeftPoint", "ShapePoint"),
@@ -503,7 +512,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     // Frame::Frame
     frameStruct.addMethod("constructor")
         .parameters(
-            parameter("grid", _(std.Grid)))
+            parameter("grid", "Grid"))
         .instructions(
             m_("grid")        = p_("grid"),
             m_("width")       = p_("grid") / "width",
@@ -630,20 +639,20 @@ ArcLib::ArcLib(World& w, Ast::Scope& parentScope, Compiler& compiler) :
     compiler.registerBuiltInEnumValue("arc::Color::brown", arc.Color.brown);
 
     compiler.registerBuiltInStruct("arc::Direction", arc.Direction);
-    compiler.registerBuiltInEnumValue("arc::Direction::up", arc.Direction);
-    compiler.registerBuiltInEnumValue("arc::Direction::upRight", arc.Direction);
-    compiler.registerBuiltInEnumValue("arc::Direction::right", arc.Direction);
-    compiler.registerBuiltInEnumValue("arc::Direction::downRight", arc.Direction);
-    compiler.registerBuiltInEnumValue("arc::Direction::down", arc.Direction);
-    compiler.registerBuiltInEnumValue("arc::Direction::downLeft", arc.Direction);
-    compiler.registerBuiltInEnumValue("arc::Direction::left", arc.Direction);
-    compiler.registerBuiltInEnumValue("arc::Direction::upLeft", arc.Direction);
+    compiler.registerBuiltInEnumValue("arc::Direction::up", arc.Direction.up);
+    compiler.registerBuiltInEnumValue("arc::Direction::upRight", arc.Direction.upRight);
+    compiler.registerBuiltInEnumValue("arc::Direction::right", arc.Direction.right);
+    compiler.registerBuiltInEnumValue("arc::Direction::downRight", arc.Direction.downRight);
+    compiler.registerBuiltInEnumValue("arc::Direction::down", arc.Direction.down);
+    compiler.registerBuiltInEnumValue("arc::Direction::downLeft", arc.Direction.downLeft);
+    compiler.registerBuiltInEnumValue("arc::Direction::left", arc.Direction.left);
+    compiler.registerBuiltInEnumValue("arc::Direction::upLeft", arc.Direction.upLeft);
 
     compiler.registerBuiltInStruct("arc::LineSymmetry", arc.LineSymmetry);
-    compiler.registerBuiltInEnumValue("arc::LineSymmetry::horizontal", arc.LineSymmetry);
-    compiler.registerBuiltInEnumValue("arc::LineSymmetry::vertical", arc.LineSymmetry);
-    compiler.registerBuiltInEnumValue("arc::LineSymmetry::diagonalLowerLeft", arc.LineSymmetry);
-    compiler.registerBuiltInEnumValue("arc::LineSymmetry::diagonalUpperLeft", arc.LineSymmetry);
+    compiler.registerBuiltInEnumValue("arc::LineSymmetry::horizontal", arc.LineSymmetry.horizontal);
+    compiler.registerBuiltInEnumValue("arc::LineSymmetry::vertical", arc.LineSymmetry.vertical);
+    compiler.registerBuiltInEnumValue("arc::LineSymmetry::diagonalLowerLeft", arc.LineSymmetry.diagonalLowerLeft);
+    compiler.registerBuiltInEnumValue("arc::LineSymmetry::diagonalUpperLeft", arc.LineSymmetry.diagonalUpperLeft);
 
     compiler.registerBuiltInStruct("arc::RotationDir", arc.RotationDir);
     compiler.registerBuiltInEnumValue("arc::RotationDir::Degree_0", arc.RotationDir.Degree_0);
@@ -662,6 +671,7 @@ ArcLib::ArcLib(World& w, Ast::Scope& parentScope, Compiler& compiler) :
     // structs
     compiler.registerBuiltInStruct("arc::Example", arc.Example);
     compiler.registerBuiltInStruct("arc::Frame", arc.Frame);
+    compiler.registerBuiltInStruct("arc::Grid", arc.Grid);
     compiler.registerBuiltInStruct("arc::Pixel", arc.Pixel);
     compiler.registerBuiltInStruct("arc::Shape", arc.Shape);
     compiler.registerBuiltInStruct("arc::ShapeEdge", arc.ShapeEdge);

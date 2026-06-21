@@ -818,12 +818,13 @@ protected:
     Ast::Cell& false_();
     Ast::Parameter& p_(const std::string& nameStr);
     Ast::Slot& p_(const std::string& nameStr, CellI& value);
+    Ast::Slot& parameter(const std::string& nameStr, const std::string& typeStr);
     Ast::Slot& parameter(const std::string& nameStr, CellI& value);
     Ast::Member& m_(const std::string& nameStr);
     Ast::Var& var_(const std::string& nameStr);
-    Ast::Slot& member(const std::string& nameStr, const std::string& type);
+    Ast::Slot& member(const std::string& nameStr, const std::string& typeStr);
     Ast::Slot& member(const std::string& nameStr, CellI& type);
-    Ast::Slot& typeAlias(const std::string& nameStr, const std::string& type);
+    Ast::Slot& typeAlias(const std::string& nameStr, const std::string& typeStr);
     Ast::Slot& typeAlias(const std::string& nameStr, CellI& type);
     Ast::EnumValue& ev_(const std::string& nameStr);
     Ast::EnumValue& ev_(const std::string& nameStr, CellI& value);

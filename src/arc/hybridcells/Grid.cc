@@ -21,27 +21,17 @@ Grid::Grid(World& w, nativearc::Grid& grid) :
     m_heightCell(w.pools.numbers.get(m_height)),
     m_pixelsMap(w, w.std.Cell, w.std.Pixel, "PixelsMap")
 {
-    static CellI& ArcColorBlack   = w.getVariable("arc::Color::black");
-    static CellI& ArcColorBlue    = w.getVariable("arc::Color::blue");
-    static CellI& ArcColorRed     = w.getVariable("arc::Color::red");
-    static CellI& ArcColorGreen   = w.getVariable("arc::Color::green");
-    static CellI& ArcColorYellow  = w.getVariable("arc::Color::yellow");
-    static CellI& ArcColorGrey    = w.getVariable("arc::Color::grey");
-    static CellI& ArcColorFuschia = w.getVariable("arc::Color::fuschia");
-    static CellI& ArcColorOrange  = w.getVariable("arc::Color::orange");
-    static CellI& ArcColorTeal    = w.getVariable("arc::Color::teal");
-    static CellI& ArcColorBrown   = w.getVariable("arc::Color::brown");
     static std::array<CellI*, 10> arcColorEnumValues = {
-        &ArcColorBlack,
-        &ArcColorBlue,
-        &ArcColorRed,
-        &ArcColorGreen,
-        &ArcColorYellow,
-        &ArcColorGrey,
-        &ArcColorFuschia,
-        &ArcColorOrange,
-        &ArcColorTeal,
-        &ArcColorBrown
+        &w.arc.Color.black,
+        &w.arc.Color.blue,
+        &w.arc.Color.red,
+        &w.arc.Color.green,
+        &w.arc.Color.yellow,
+        &w.arc.Color.grey,
+        &w.arc.Color.fuschia,
+        &w.arc.Color.orange,
+        &w.arc.Color.teal,
+        &w.arc.Color.brown
     };
 
     const int gridSize = m_height * m_width;
@@ -95,7 +85,7 @@ void Grid::operator()()
 CellI& Grid::operator[](CellI& key)
 {
     if (&key == &w.id.__type__) {
-        return w.std.Grid;
+        return w.arc.Grid;
     }
     if (&key == &w.id.width) {
         return m_widthCell;

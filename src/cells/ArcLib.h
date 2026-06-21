@@ -95,6 +95,7 @@ public:
 
     Object Example;
     Object Frame;
+    Object Grid;
     Object Pixel;
     Object Shape;
     Object ShapeEdge;

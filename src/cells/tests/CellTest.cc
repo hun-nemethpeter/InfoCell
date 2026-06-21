@@ -854,7 +854,7 @@ TEST_F(CellTest, HybridGrid)
 
     printAs.value(grid[id.pixels]);
 
-    EXPECT_EQ(&grid[id.__type__], &std.Grid);
+    EXPECT_EQ(&grid[id.__type__], &arc.Grid);
     EXPECT_EQ(&grid[id.width], &w.pools.numbers.get(3));
     EXPECT_EQ(&grid[id.height], &w.pools.numbers.get(3));
     EXPECT_EQ(&grid[id.pixels][id.__type__], &w.ListOf(std.Pixel));

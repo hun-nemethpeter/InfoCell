@@ -173,7 +173,6 @@ public:
     Object Digit;
     EDirection Direction;
     Object Enum;
-    Object Grid;
     Object Index;
     Object KVPair;
     Object Library;
