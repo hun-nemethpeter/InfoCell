@@ -260,7 +260,7 @@ StdLibAst::Traits::Traits(World& w, Ast::Scope& stdScope) :
     */
     Iterator.
         associatedTypes(
-        parameter("ValueType", _(std.Struct)));
+                parameter("ValueType", _(std.Struct)));
 
     Iterator.addMethod("isContainerEmpty").returnType(_(std.Boolean));
     Iterator.addMethod("goToFirstNode");
@@ -1250,16 +1250,16 @@ void StdLibAst::createList()
     implIteratorTraitForListT.addMethod("isContainerEmpty")
         .returnType(_(std.Boolean))
         .instructions(
-            return_(equal(m_("size"), _(_0_))));
+            return_(equal(m_("list") / _(id.size), _(_0_))));
 
     implIteratorTraitForListT.addMethod("goToFirstNode")
         .instructions(
-            set(m_("node"), _(id.value), m_("first")));
+            set(self(), "node", m_("list") / _(id.first)));
 
     implIteratorTraitForListT.addMethod("getCurrentNodeValue")
         .returnType(at_("ValueType"))
         .instructions(
-            return_(m_("node")));
+            return_(m_("node") / _(id.value)));
 
     implIteratorTraitForListT.addMethod("hasNextNode")
         .returnType(_(std.Boolean))

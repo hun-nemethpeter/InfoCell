@@ -34,6 +34,40 @@ namespace hybridarc = infocell::cells::arc;
 // type checking
 // remove .label() from CellI
 
+TEST_F(CellTest, Traits)
+{
+    auto& ListOfNumbers = getStruct(w.templateId("std::List", id.valueType, std.Number));
+    Object listOfNumbers(w, ListOfNumbers, w.name("constructor"), "listOfNumbers");
+    listOfNumbers.method(w.name("add"), { id.value, _1_ });
+    listOfNumbers.method(w.name("add"), { id.value, _2_ });
+    listOfNumbers.method(w.name("add"), { id.value, _3_ });
+
+    Object& iterator = static_cast<Object&>(listOfNumbers.method(w.name("iterator")));
+    EXPECT_TRUE(iterator.has(id.list));
+    EXPECT_FALSE(iterator.has("node"));
+
+    EXPECT_EQ(&iterator.method(w.name("isContainerEmpty")), &std.Boolean.false_);
+    EXPECT_TRUE(iterator.has(id.list));
+    EXPECT_FALSE(iterator.has("node"));
+
+    iterator.method(w.name("goToFirstNode"));
+    EXPECT_TRUE(iterator.has("node"));
+    EXPECT_EQ(&iterator["node"], &listOfNumbers[id.first]);
+
+    EXPECT_EQ(&iterator.method(w.name("getCurrentNodeValue")), &_1_);
+    EXPECT_EQ(&iterator.method(w.name("hasNextNode")), &std.Boolean.true_);
+    iterator.method(w.name("goToNextNode"));
+    EXPECT_EQ(&iterator["node"], &listOfNumbers[id.first][id.next]);
+
+    EXPECT_EQ(&iterator.method(w.name("getCurrentNodeValue")), &_2_);
+    EXPECT_EQ(&iterator.method(w.name("hasNextNode")), &std.Boolean.true_);
+    iterator.method(w.name("goToNextNode"));
+    EXPECT_EQ(&iterator["node"], &listOfNumbers[id.first][id.next][id.next]);
+
+    EXPECT_EQ(&iterator.method(w.name("getCurrentNodeValue")), &_3_);
+    EXPECT_EQ(&iterator.method(w.name("hasNextNode")), &std.Boolean.false_);
+}
+
 TEST_F(CellTest, CompilerSmokeTest)
 {
     TRACE(compiledSymbols, "All compiled symbols:");
