@@ -152,7 +152,6 @@ Std::Std(World& w) :
     Number(w, w.std.Struct, "Number"),
     NumberSign(w, w.std.Enum, "NumberSign"),
     OpState(w, w.std.Struct, "OpState"),
-    Pixel(w, w.std.Struct, "Pixel"),
     Slot(w, w.std.Struct, "Slot"),
     Stack(w, w.std.Struct, "Stack"),
     StackFrame(w, w.std.Struct, "StackFrame"),
@@ -2136,8 +2135,6 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             member("state", "Cell"),
             member("value", "Cell"));
 
-    stdScope.add<Struct>("Pixel");
-
     createSet();
 
     stdScope.add<Struct>("Slot")
@@ -2309,7 +2306,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::Map", std.Map);
     compiler.registerBuiltInStruct("std::Number", std.Number);
     compiler.registerBuiltInStruct("std::OpState", std.OpState);
-    compiler.registerBuiltInStruct("std::Pixel", std.Pixel);
     compiler.registerBuiltInStruct("std::Slot", std.Slot);
     compiler.registerBuiltInStruct("std::Stack", std.Stack);
     compiler.registerBuiltInStruct("std::StackFrame", std.StackFrame);

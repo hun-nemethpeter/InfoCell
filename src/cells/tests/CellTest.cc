@@ -905,9 +905,9 @@ TEST_F(CellTest, HybridGrid)
     EXPECT_EQ(&grid[id.__type__], &arc.Grid);
     EXPECT_EQ(&grid[id.width], &w.pools.numbers.get(3));
     EXPECT_EQ(&grid[id.height], &w.pools.numbers.get(3));
-    EXPECT_EQ(&grid[id.pixels][id.__type__], &w.ListOf(std.Pixel));
+    EXPECT_EQ(&grid[id.pixels][id.__type__], &w.ListOf(arc.Pixel));
 
-    auto& ListOfPixels  = getStruct(w.templateId("std::List", id.valueType, std.Pixel));
+    auto& ListOfPixels  = getStruct(w.templateId("std::List", id.valueType, arc.Pixel));
     Object listOfPixels(w, ListOfPixels, w.name("constructor"), "listOfPixels");
     listOfPixels.method(w.name("add"), { id.value, grid[id.pixels][id.first][id.value] });
     listOfPixels.method(w.name("add"), { id.value, grid[id.pixels][id.first][id.next][id.value] });
@@ -2108,7 +2108,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
         Visitor::visitList(inputGrid["pixels"], [this, &outputGrid](CellI& arcPixel, int, bool&) {
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
-            List pixelContent(w, std.Pixel);
+            List pixelContent(w, arc.Pixel);
             pixelContent.add(arcPixel[w.id.coordinates.x]);
             pixelContent.add(arcPixel[w.id.coordinates.y]);
 
@@ -2121,7 +2121,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
         Visitor::visitList(outputGrid["pixels"], [this, &inputGrid](CellI& arcPixel, int, bool&) {
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
-            List pixelContent(w, std.Pixel);
+            List pixelContent(w, arc.Pixel);
             pixelContent.add(arcPixel[w.id.coordinates.x]);
             pixelContent.add(arcPixel[w.id.coordinates.y]);
 

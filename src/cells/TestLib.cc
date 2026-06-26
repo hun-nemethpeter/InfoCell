@@ -38,7 +38,7 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
             var_("result") = new_(__type__("std::Index")),
             var_("result") = new_(tt_("std::List", "valueType", _(std.Number))),
             var_("result") = new_(tt_("std::List", "valueType", _(std.Cell))),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Pixel))),
+            var_("result") = new_(tt_("std::List", "valueType", _(arc.Pixel))),
             var_("result") = new_(tt_("std::Set", "valueType", _(std.Number))),
             var_("result") = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "Color")),
             var_("result") = new_(tt_("std::TrieMap", "keyType", _(std.Number), "valueType", "Color")));

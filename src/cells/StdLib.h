@@ -181,7 +181,6 @@ public:
     Object Number;
     ENumberSign NumberSign;
     Object OpState;
-    Object Pixel;
     Object Slot;
     Object Stack;
     Object StackFrame;

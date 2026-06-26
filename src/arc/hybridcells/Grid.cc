@@ -19,7 +19,7 @@ Grid::Grid(World& w, nativearc::Grid& grid) :
     m_height(grid.height()),
     m_widthCell(w.pools.numbers.get(m_width)),
     m_heightCell(w.pools.numbers.get(m_height)),
-    m_pixelsMap(w, w.std.Cell, w.std.Pixel, "PixelsMap")
+    m_pixelsMap(w, w.std.Cell, w.arc.Pixel, "PixelsMap")
 {
     static std::array<CellI*, 10> arcColorEnumValues = {
         &w.arc.Color.black,
@@ -45,7 +45,7 @@ Grid::Grid(World& w, nativearc::Grid& grid) :
     for (const infocell::arc::Color& color : grid.pixels()) {
         CellI& arcColorEnumValue = *arcColorEnumValues[(int)color.id()];
         m_pixels.emplace_back(w, x, y, arcColorEnumValue, *this);
-        List pixelContent(w, w.std.Pixel);
+        List pixelContent(w, w.arc.Pixel);
         pixelContent.add(w.pools.numbers.get(x));
         pixelContent.add(w.pools.numbers.get(y));
         m_pixelsMap.add(pixelContent, arcColorEnumValue);

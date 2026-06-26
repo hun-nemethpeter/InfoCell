@@ -13,7 +13,7 @@ Frame::Frame(World& w, cells::arc::Grid& grid, CellI& ShapeStruct, CellI& TableR
     m_shapePixels(w, w.std.Number, TableRowStruct),
     m_shapes(w, ShapeStruct),
     m_shapeMap(w, w.std.Number, ShapeStruct),
-    m_inputPixels(w, w.std.Pixel)
+    m_inputPixels(w, w.arc.Pixel)
 {
     m_frameEdgeNodes = new List(w, w.arc.ShapeEdgeNode);
     processInputPixels();
@@ -180,7 +180,7 @@ void Frame::process()
         CellI& firstPixel = m_inputPixels.first();
         CellI& shape      = *new RenderedShape(w, w.pools.numbers.get(shapeId), firstPixel["color"], m_width, m_height);
         shapeId           = shapeId + 1;
-        Set checkPixels(w, w.std.Pixel);
+        Set checkPixels(w, w.arc.Pixel);
         checkPixels.add(firstPixel);
         while (!checkPixels.empty()) {
             CellI& checkPixel = checkPixels.first();

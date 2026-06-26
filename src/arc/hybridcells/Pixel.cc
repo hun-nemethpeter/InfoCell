@@ -66,7 +66,7 @@ void Pixel::operator()()
 CellI& Pixel::operator[](CellI& key)
 {
     if (&key == &w.id.__type__) {
-        return w.std.Pixel;
+        return w.arc.Pixel;
     }
     if (&key == &w.id.directions.up && m_grid.hasPixel(m_x.value(), m_y.value() - 1)) {
         return m_grid.getPixel(m_x.value(), m_y.value() - 1);

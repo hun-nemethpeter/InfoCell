@@ -441,12 +441,12 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                   member("upRightPoint", "ShapePoint"),
                   member("downLeftPoint", "ShapePoint"),
                   member("downRightPoint", "ShapePoint"),
-                  member("pixel", _(std.Pixel)));
+                  member("pixel", "Pixel"));
 
     shapePixelStruct.addMethod("constructor")
         .parameters(
             parameter("shape", __type__("RenderedShape")),
-            parameter("pixel", _(std.Pixel)))
+            parameter("pixel", "Pixel"))
         .instructions(
             m_("shape") = p_("shape"),
             m_("pixel") = p_("pixel"));
@@ -525,7 +525,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                   member("shapes", tt_("std::List", "valueType", "RenderedShape")),
                   member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "RenderedShape")),
                   member("shapePixels", ta_("tableType")),
-                  member("inputPixels", tt_("std::Set", "valueType", _(std.Pixel))));
+                  member("inputPixels", tt_("std::Set", "valueType", "Pixel")));
 
     // Frame::Frame
     frameStruct.addMethod("constructor")
@@ -538,7 +538,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             m_("shapes")      = new_(tt_("std::List", "valueType", "RenderedShape"), "constructor"),
             m_("shapePixels") = new_(ta_("tableType"), "constructor"),
             m_("shapeMap")    = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "RenderedShape"), "constructor"),
-            m_("inputPixels") = new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
+            m_("inputPixels") = new_(tt_("std::Set", "valueType", "Pixel"), "constructor"),
             self()("processInputPixels"));
 
     // Frame::processInputPixels
@@ -573,7 +573,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                     var_("firstPixel")  = m_("inputPixels")("first"),
                     var_("shape")       = new_("RenderedShape", "constructor")("id", *var_("shapeId"))("color", *var_("firstPixel") / "color")("width", m_("width"))("height", m_("height")),
                     var_("shapeId")     = add(*var_("shapeId"), _(_1_)),
-                    var_("checkPixels") = new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
+                    var_("checkPixels") = new_(tt_("std::Set", "valueType", "Pixel"), "constructor"),
                     var_("checkPixels")("add")("value", *var_("firstPixel")),
                     while_(not_(var_("checkPixels")("empty")))
                         .do_(block(
@@ -619,8 +619,8 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("direction", _(std.Direction)),
             parameter("shape", __type__("RenderedShape")),
-            parameter("checkPixels", tt_("std::Set", "valueType", _(std.Pixel))),
-            parameter("checkPixel", _(std.Pixel)))
+            parameter("checkPixels", tt_("std::Set", "valueType", "Pixel")),
+            parameter("checkPixel", "Pixel"))
         .instructions(
             if_(has(p_("checkPixel"), p_("direction")))
                 .then_(block(
