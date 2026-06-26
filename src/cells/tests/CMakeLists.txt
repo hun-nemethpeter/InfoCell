@@ -1,6 +1,8 @@
 add_library(cellstestbase STATIC
     CellTestBase.cc
     CellTestBase.h
+    TestLib.cc
+    TestLib.h
 )
 
 target_link_libraries(cellstestbase

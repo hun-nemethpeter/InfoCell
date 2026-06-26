@@ -5,7 +5,7 @@
 #include "Ast.h"
 #include "Cells.h"
 #include "IDs.h"
-#include "ArcLib.h"
+#include "arc/ArcLib.h"
 #include "StdLib.h"
 #include "ToolFinder.h"
 

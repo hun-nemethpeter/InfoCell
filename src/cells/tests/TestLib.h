@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Library.h"
-#include "World.h"
+#include "cells/Library.h"
+#include "cells/World.h"
 
 namespace infocell {
 namespace cells {

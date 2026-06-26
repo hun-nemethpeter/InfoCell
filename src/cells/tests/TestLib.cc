@@ -1,5 +1,5 @@
-﻿#include "Compiler.h"
-#include "TestLib.h"
+﻿#include "TestLib.h"
+#include "cells/Compiler.h"
 
 namespace infocell {
 namespace cells {

@@ -2,6 +2,8 @@ add_subdirectory(hybridcells)
 add_subdirectory(tests)
 
 add_library(arc-lib STATIC
+    ArcLib.cc
+    ArcLib.h
     Color.cc
     Color.h
     EdgeDetector.cc

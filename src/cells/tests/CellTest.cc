@@ -13,8 +13,6 @@
 #include "arc/Task.h"
 #include "arc/hybridcells/Grid.h"
 #include "cells/Cells.h"
-#include "cells/Compiler.h"
-#include "cells/TestLib.h"
 #include "tui/App.h"
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE

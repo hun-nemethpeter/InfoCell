@@ -1,6 +1,6 @@
 ﻿#include "ArcLib.h"
-#include "Compiler.h"
-#include "World.h"
+#include "cells/Compiler.h"
+#include "cells/World.h"
 
 namespace infocell {
 namespace cells {

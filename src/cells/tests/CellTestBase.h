@@ -4,7 +4,7 @@
 
 #include "cells/World.h"
 #include "cells/NodeBase.h"
-#include "cells/TestLib.h"
+#include "TestLib.h"
 
 namespace infocell {
 namespace cells {
