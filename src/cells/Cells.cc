@@ -2498,6 +2498,36 @@ CellI& TrieMap::getValue(CellI& key)
     return (*currentNode)[w.id.data][w.id.value][w.id.value];
 }
 
+bool TrieMap::hasValueWithDataKey(CellI& key)
+{
+    CellI* currentNode = &m_rootNode;
+
+    Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+        CellI& keyItem  = key[slot[w.id.key]];
+        CellI* children = nullptr;
+        if (currentNode->missing(w.id.children)) {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
+        if (childrenIndex.has(keyItem)) {
+            children = &childrenIndex.get(keyItem);
+        } else {
+            stop        = true;
+            currentNode = nullptr;
+            return;
+        }
+        currentNode = children;
+    });
+
+    if (!currentNode || currentNode->missing(w.id.data)) {
+        return false;
+    }
+
+    return true;
+}
+
 CellI& TrieMap::getValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;

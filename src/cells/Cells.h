@@ -368,6 +368,7 @@ public:
     bool hasKey(CellI& key);
     CellI& getValue(CellI& key);
 
+    bool hasValueWithDataKey(CellI& key);
     CellI& getValueWithDataKey(CellI& key);
     void addWithDataKey(CellI& key, CellI& value);
 

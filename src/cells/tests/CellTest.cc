@@ -474,21 +474,19 @@ TEST_F(CellTest, PrintTestCodes)
 
 TEST_F(CellTest, PrintArcCodes)
 {
-    auto& VectorStruct = getStruct("arc::Vector");
-    auto& ShapeStruct  = getStruct("arc::Shape");
-    auto& FrameStruct = getStruct("arc::Frame");
+    printMethodInType(arc.Vector, "rotate");
 
-    printMethodInType(VectorStruct, "rotate");
+    printAs.value(arc.RenderedShape);
+    printMethodInType(arc.RenderedShape, "constructor");
 
-    printAs.value(ShapeStruct);
-    printMethodInType(ShapeStruct, "constructor");
+    printAs.value(arc.Shape);
 
-    printAs.value(FrameStruct);
-    printMethodInType(FrameStruct, "constructor");
-    printMethodInType(FrameStruct, "processInputPixels");
-    printMethodInType(FrameStruct, "process");
-    printMethodInType(FrameStruct, "processPixel");
-    printMethodInType(FrameStruct, "processAdjacentPixel");
+    printAs.value(arc.Frame);
+    printMethodInType(arc.Frame, "constructor");
+    printMethodInType(arc.Frame, "processInputPixels");
+    printMethodInType(arc.Frame, "process");
+    printMethodInType(arc.Frame, "processPixel");
+    printMethodInType(arc.Frame, "processAdjacentPixel");
 }
 
 TEST_F(CellTest, RecursiveCall)

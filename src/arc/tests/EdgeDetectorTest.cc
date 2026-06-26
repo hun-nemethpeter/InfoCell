@@ -940,6 +940,91 @@ public:
     std::string m_outputSVGFileName;
 };
 
+class GridPairTest : public TestBase
+{
+public:
+    GridPairTest() :
+        m_input(getWorld()),
+        m_output(getWorld())
+    {
+    }
+
+    void detect(const std::string& inputJsonStr, const std::string& outputJsonStr)
+    {
+        m_input.detect(inputJsonStr);
+        m_output.detect(outputJsonStr);
+        cells::arc::ShapeField& inputShapeField = m_input.createResult();
+        cells::arc::ShapeField& outputShapeField = m_output.createResult();
+    }
+
+    arc::EdgeDetector m_input;
+    arc::EdgeDetector m_output;
+};
+
+} // namespace infocell
+
+TEST_F(GridPairTest, GridPair_0ca9ddb6_Train1)
+{
+    detect(R"([[0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,1,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0]])",
+
+            R"([[0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,4,0,4,0,0,0,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,4,0,4,0,0,0,0,0],
+               [0,0,0,0,0,0,7,0,0],
+               [0,0,0,0,0,7,1,7,0],
+               [0,0,0,0,0,0,7,0,0],
+               [0,0,0,0,0,0,0,0,0]])");
+    std::cout << "";
+}
+
+TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train1Input)
+{
+    detect(R"([[0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,1,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0]])");
+    createResult();
+
+    expectedShapeIds(R"([
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 2, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 3, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                          [1, 1, 1, 1, 1, 1, 1, 1, 1]
+                        ])");
+    expectedShapesCount(3);
+    expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 } });
+
+    detect(R"([[0,0,0,0,0,0,0,0,0],
+               [0,0,0,0,0,0,0,0,0],
+               [0,4,0,4,0,0,0,0,0],
+               [0,0,2,0,0,0,0,0,0],
+               [0,4,0,4,0,0,0,0,0],
+               [0,0,0,0,0,0,7,0,0],
+               [0,0,0,0,0,7,1,7,0],
+               [0,0,0,0,0,0,7,0,0],
+               [0,0,0,0,0,0,0,0,0]])");
+    createResult();
+    std::cout << "";
 }
 
 TEST_F(EdgeDetectorTest, ShapeWithHoleCompareExactMatch)
@@ -1366,33 +1451,6 @@ TEST_F(EdgeDetectorTest, ShapeCompare_Mirror_Horizontal_And_Vertical)
     EXPECT_EQ(shapeRelation.m_edgeRelations[0].m_rotatedWith, nullptr);
     EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isHorizontallyMirrored);
     EXPECT_TRUE(shapeRelation.m_edgeRelations[0].m_isVerticallyMirrored);
-}
-
-TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train1Input)
-{
-    detect(R"([[0,0,0,0,0,0,0,0,0],
-               [0,0,0,0,0,0,0,0,0],
-               [0,0,0,0,0,0,0,0,0],
-               [0,0,2,0,0,0,0,0,0],
-               [0,0,0,0,0,0,0,0,0],
-               [0,0,0,0,0,0,0,0,0],
-               [0,0,0,0,0,0,1,0,0],
-               [0,0,0,0,0,0,0,0,0],
-               [0,0,0,0,0,0,0,0,0]])");
-
-    expectedShapeIds(R"([
-                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
-                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
-                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
-                          [1, 1, 2, 1, 1, 1, 1, 1, 1],
-                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
-                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
-                          [1, 1, 1, 1, 1, 1, 3, 1, 1],
-                          [1, 1, 1, 1, 1, 1, 1, 1, 1],
-                          [1, 1, 1, 1, 1, 1, 1, 1, 1]
-                        ])");
-    expectedShapesCount(3);
-    expectedShapeEdgeCounts({ { 1, 3 }, { 2, 1 }, { 3, 1 } });
 }
 
 TEST_F(EdgeDetectorTest, EdgeTestWithArc_0ca9ddb6_Train1Output)
@@ -2091,7 +2149,7 @@ So in the input we have an input grid which contains pixels.
 In a next layer we need Shapes which contains shape-pixels. A shape pixel has a shape id and a pixel.
    Input:
       Grid { Pixel1, Pixel2, ... , PixelLast }
-          Shapes { Shape1 { ShapePixel1 { shape: Shape, left: ShapePixel, up: ShapePixel,  ... }
+          Shapes { Shape1 { ShapePixel1 { shape: RenderedShape, left: ShapePixel, up: ShapePixel,  ... }
 
 So we interpret the input and output as a set of objects, now the challenge is to find the transformation algorithm. The strategy here is to make as many observation about the change as possible
 and find those which are true for every case.

@@ -4,7 +4,7 @@ namespace infocell {
 namespace cells {
 namespace arc {
 
-Shape::Shape(World& w, Number& id, CellI& color, Number& width, Number& height) :
+RenderedShape::RenderedShape(World& w, Number& id, CellI& color, Number& width, Number& height) :
     CellI(w),
     m_id(id),
     m_color(color),
@@ -15,7 +15,7 @@ Shape::Shape(World& w, Number& id, CellI& color, Number& width, Number& height) 
     m_edges = new Map(w, w.std.Number, w.arc.ShapeEdge);
 }
 
-bool Shape::has(CellI& role)
+bool RenderedShape::has(CellI& role)
 {
     static CellI& name_lastEdgeId    = w.name("lastEdgeId");
     static CellI& name_hybridPixels  = w.name("hybridPixels");
@@ -66,7 +66,7 @@ bool Shape::has(CellI& role)
 }
 
 
-void Shape::set(CellI& role, CellI& value)
+void RenderedShape::set(CellI& role, CellI& value)
 {
     static CellI& name_lastEdgeId    = w.name("lastEdgeId");
     static CellI& name_shapePixels   = w.name("shapePixels");
@@ -98,17 +98,17 @@ void Shape::set(CellI& role, CellI& value)
     throw "Not implemented!";
 }
 
-void Shape::erase(CellI& role)
+void RenderedShape::erase(CellI& role)
 {
     throw "Changing a hybrid shape cell is not possible!";
 }
 
-void Shape::operator()()
+void RenderedShape::operator()()
 {
     // Do nothing
 }
 
-CellI& Shape::operator[](CellI& role)
+CellI& RenderedShape::operator[](CellI& role)
 {
     static CellI& name_lastEdgeId    = w.name("lastEdgeId");
     static CellI& name_shapePixels   = w.name("shapePixels");
@@ -117,7 +117,7 @@ CellI& Shape::operator[](CellI& role)
     static CellI& name_internalEdges = w.name("internalEdges");
 
     if (&role == &w.id.__type__) {
-        return w.arc.Shape;
+        return w.arc.RenderedShape;
     }
     if (&role == &w.id.id) {
         return m_id;
@@ -150,9 +150,106 @@ CellI& Shape::operator[](CellI& role)
     throw "No such role!";
 }
 
+void RenderedShape::accept(Visitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+Shape::Shape(World& w, cells::CellI& color, List& externalEdgeLine, cells::TrieMap& internalEdges) :
+    cells::CellI(w),
+    m_color(color),
+    m_externalEdgeLine(externalEdgeLine),
+    m_internalEdges(internalEdges)
+{
+}
+
+bool Shape::has(CellI& key)
+{
+    if (&key == &w.id.__type__) {
+        return true;
+    }
+    if (&key == &w.name("externalEdgeLine")) {
+        return true;
+    }
+    if (&key == &w.id.color) {
+        return true;
+    }
+    if (&key == &w.name("internalEdges")) {
+        return true;
+    }
+
+    return false;
+}
+
+void Shape::set(CellI& key, CellI& value)
+{
+    throw "Changing a hybrid offset cell is not possible!";
+}
+
+void Shape::erase(CellI& key)
+{
+    throw "Changing a hybrid offset cell is not possible!";
+}
+
+void Shape::operator()()
+{
+    // Do nothing, this is a data cell
+}
+
+CellI& Shape::operator[](CellI& key)
+{
+    if (&key == &w.id.__type__) {
+        return w.arc.Shape;
+    }
+    if (&key == &w.name("externalEdgeLine")) {
+        return m_externalEdgeLine;
+    }
+    if (&key == &w.id.color) {
+        return m_color;
+    }
+    if (&key == &w.name("internalEdges")) {
+        return m_internalEdges;
+    }
+
+    throw "No such key!";
+}
+
 void Shape::accept(Visitor& visitor)
 {
     visitor.visit(*this);
+}
+
+bool Shape::operator==(Shape& rhs)
+{
+    if (&m_color != &rhs.m_color) {
+        return false;
+    }
+    if (m_externalEdgeLine.size() != rhs.m_externalEdgeLine.size()) {
+        return false;
+    }
+    if (m_internalEdges.size() != rhs.m_internalEdges.size()) {
+        return false;
+    }
+    List& rhsExternalEdgeLine = rhs.m_externalEdgeLine;
+    CellI* rhsDirNodePtr      = &rhsExternalEdgeLine[w.id.first];
+    bool result               = true;
+    Visitor::visitList(m_externalEdgeLine, [this, &rhsExternalEdgeLine, &rhsDirNodePtr, &result](CellI& dir, int i, bool& stop) {
+        CellI& rhsDir = (*rhsDirNodePtr)[w.id.value];
+        if (&dir != &rhsDir) {
+            stop   = true;
+            result = false;
+            return;
+        }
+        rhsDirNodePtr = &(*rhsDirNodePtr)[w.id.next];
+    });
+
+    return true;
+}
+
+// getShape(pos) == shape
+void Shape::addInternalEdge(Vector& offset, List& edge)
+{
+    m_internalEdges.addWithDataKey(offset, edge);
 }
 
 } // namespace arc

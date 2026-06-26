@@ -349,18 +349,18 @@ VectorShapeRelation VectorShape::compare(const VectorShape& other)
     return ret;
 }
 
-void Shape::addPixel(cells::arc::Pixel& pixel)
+void RenderedShape::addPixel(cells::arc::Pixel& pixel)
 {
     m_pixels.push_back({ pixel.m_x.value(), pixel.m_y.value() });
     m_hybridPixels.insert(&pixel);
 }
 
-bool Shape::hasPixel(cells::arc::Pixel& pixel) const
+bool RenderedShape::hasPixel(cells::arc::Pixel& pixel) const
 {
     return m_hybridPixels.find(&pixel) != m_hybridPixels.end();
 }
 
-void Shape::sortPixels()
+void RenderedShape::sortPixels()
 {
     int width = m_width;
     std::sort(m_pixels.begin(), m_pixels.end(), [width](const Pixel& p1, const Pixel& p2) {
@@ -368,7 +368,7 @@ void Shape::sortPixels()
     });
 }
 
-std::string Shape::toString() const
+std::string RenderedShape::toString() const
 {
     char boardColor = '0' + (int)colorId();
     std::string board(m_width * m_height, '.');
@@ -385,7 +385,7 @@ std::string Shape::toString() const
     return ret;
 }
 
-VectorShape Shape::toVectorShape() const
+VectorShape RenderedShape::toVectorShape() const
 {
     VectorShape ret(colorId());
     ret.fromPixels(pixels());
@@ -599,7 +599,7 @@ void Shaper::processInputPixels()
 // The object extractor algorithm
 // - has an input set of pixels (x:0, y:0, color)
 // - has a rule for grouping same pixels:
-//     + when a pixel-group (currently this is the class Shape) is started, the color of the pixel-group will be the color of the first pixel
+//     + when a pixel-group (currently this is the class RenderedShape) is started, the color of the pixel-group will be the color of the first pixel
 //     + try growing the pixel in every possible (8) direction by moving pixels from the input set to the group's set
 //     + when no more possibility for growing start a new pixel-group
 // - so this algo only dealing with one pixel-group a time
@@ -608,8 +608,8 @@ void Shaper::process()
     int shapeId = 1;
     while (!m_inputPixels.empty()) {
         cells::arc::Pixel& firstPixel = **m_inputPixels.begin();
-        m_shapes.push_back(std::make_shared<Shape>(shapeId++, firstPixel.colorId(), m_width, m_height));
-        Shape& shape = *m_shapes.back();
+        m_shapes.push_back(std::make_shared<RenderedShape>(shapeId++, firstPixel.colorId(), m_width, m_height));
+        RenderedShape& shape = *m_shapes.back();
         std::set<cells::arc::Pixel*> checkPixels;
         checkPixels.insert(&firstPixel);
         while (!checkPixels.empty()) {
@@ -621,10 +621,10 @@ void Shaper::process()
         shape.sortPixels();
     }
     std::sort(m_shapes.begin(), m_shapes.end(),
-              [](const std::shared_ptr<Shape>& lhs, const std::shared_ptr<Shape>& rhs) { return *lhs < *rhs; });
+              [](const std::shared_ptr<RenderedShape>& lhs, const std::shared_ptr<RenderedShape>& rhs) { return *lhs < *rhs; });
 }
 
-void Shaper::processPixel(Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel)
+void Shaper::processPixel(RenderedShape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel)
 {
     shape.addPixel(checkPixel);
     m_inputPixels.erase(&checkPixel);
@@ -641,7 +641,7 @@ void Shaper::processPixel(Shape& shape, std::set<cells::arc::Pixel*>& checkPixel
     processAdjacentPixel(w.id.directions.right, shape, checkPixels, checkPixel);
 }
 
-cells::arc::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel)
+cells::arc::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, RenderedShape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel)
 {
     if (checkPixel.has(direction)) {
         cells::arc::Pixel& pixel = static_cast<cells::arc::Pixel&>(checkPixel[direction]);
@@ -654,7 +654,7 @@ cells::arc::Pixel* Shaper::processAdjacentPixel(cells::CellI& direction, Shape& 
     return nullptr;
 }
 
-Solver::Grid::Grid(std::vector<std::shared_ptr<Shape>> shapes)
+Solver::Grid::Grid(std::vector<std::shared_ptr<RenderedShape>> shapes)
 {
     for (const auto& shape : shapes) {
         vectorShapes.push_back(shape->toVectorShape());
@@ -695,7 +695,7 @@ Solver::Grid Solver::parse(const cells::arc::Grid& grid)
 {
     Shaper shaper(grid);
     shaper.process();
-    for (std::shared_ptr<Shape> shape : shaper.shapes()) {
+    for (std::shared_ptr<RenderedShape> shape : shaper.shapes()) {
         logger.log(LogLevel::DEBUG) << "Shape:";
         logger.logBoard(LogLevel::DEBUG) << shape->toString() << "\n";
         VectorShape vectorShape = shape->toVectorShape();
@@ -896,7 +896,7 @@ Ez már le is van kódolva,
 
 Felmerül a kérdés, hogy ezt az algoritmust biztos nekünk kell leprogramozni? Mi lenne, ha ezt az algoritmust egy általánosabb algoritmus készítené, hisz valamelyik fázisában a programnak, valahol kell ilyet csinálnia.
 
-Szóval a feldolgozási sor a következő: Picture (ami pixelek halmaza) amiből készítünk Shapert (ami Shape-ek halmaza)
+Szóval a feldolgozási sor a következő: Picture (ami pixelek halmaza) amiből készítünk Shapert (ami RenderedShape-ek halmaza)
 
 Valahogy az algoritmusnak rá kellene jönnie, hogy azonos színű összekapcsolódott pixelhalmazokat hozunk létre.
 

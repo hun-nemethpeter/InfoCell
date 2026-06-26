@@ -34,7 +34,7 @@ cells::CellI* isSymmetric(cells::CellI& edge);
 // compare two ShapeEdge
 EdgeRelation compareEdges(cells::CellI& lhs, cells::CellI& rhs);
 
-// compare two Shape
+// compare two RenderedShape
 ShapeRelation compareShapes(cells::CellI& lhs, cells::CellI& rhs);
 
 } // namespace arc

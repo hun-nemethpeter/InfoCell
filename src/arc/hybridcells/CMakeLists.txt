@@ -7,6 +7,10 @@ add_library(arc-hybridcells-lib STATIC
     Pixel.h
     Shape.cc
     Shape.h
+    ShapeField.cc
+    ShapeField.h
+    Vector.cc
+    Vector.h
 )
 
 target_include_directories(arc-hybridcells-lib

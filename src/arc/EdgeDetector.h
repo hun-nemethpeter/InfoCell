@@ -2,6 +2,7 @@
 
 #include "arc/hybridcells/Frame.h"
 #include "arc/hybridcells/Grid.h"
+#include "arc/hybridcells/ShapeField.h"
 #include "arc/Grid.h"
 #include "cells/NodeBase.h"
 #include "cells/World.h"
@@ -18,6 +19,7 @@ public:
 
     void detect(const std::string& jsonStr);
     void detect(cells::arc::Grid& inputHybridGrid);
+    cells::arc::ShapeField& createResult();
 
     cells::CellI& frame();
     cells::arc::Grid& inputHybridGrid();
@@ -44,7 +46,6 @@ protected:
     virtual void findMirroringCornersUpRight();
     virtual void findMirroringCornersDownLeft();
     virtual void findPossibleBackgroundWithShapes();
-    virtual void createResult();
 
     cells::CellI* firstShapePixelPtr();
     void addEdgeToShape(cells::CellI& shape, cells::CellI& newEdgeId, cells::CellI& newEdge);

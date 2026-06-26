@@ -1,5 +1,8 @@
 ﻿#include "arc/hybridcells/Frame.h"
 #include "arc/hybridcells/Grid.h"
+#include "arc/hybridcells/Shape.h"
+#include "arc/hybridcells/ShapeField.h"
+#include "arc/hybridcells/Vector.h"
 #include "arc/Grid.h"
 #include "arc/Task.h"
 #include "EdgeDetector.h"
@@ -18,7 +21,7 @@ namespace arc {
 EdgeDetector::EdgeDetector(World& w) :
     NodeBase(w)
 {
-    auto& TableRowStruct = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, arc.Shape));
+    auto& TableRowStruct = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, arc.RenderedShape));
     auto& TableStruct    = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, TableRowStruct));
 }
 
@@ -53,8 +56,8 @@ void EdgeDetector::detect()
 void EdgeDetector::frameProcess()
 {
 #if 1
-    auto& TableRowStruct = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, arc.Shape));
-    m_hybridFrame        = std::make_unique<hybridarc::Frame>(w, inputHybridGrid(), arc.Shape, TableRowStruct);
+    auto& TableRowStruct = getStruct(w.templateId("std::Map", id.keyType, std.Number, id.valueType, arc.RenderedShape));
+    m_hybridFrame        = std::make_unique<hybridarc::Frame>(w, inputHybridGrid(), arc.RenderedShape, TableRowStruct);
     m_hybridFrame->process();
     return;
 #endif
@@ -629,7 +632,7 @@ For leftToRight direction edge from point middle
                     newEdge.set("fromExternalY", distanceY);
                     CellI* internalEdgesPtr = nullptr;
                     if (currentShape.missing("internalEdges")) {
-                        static CellI& InternalEdgeLookup = w.getStruct("arc::Shape::InternalEdgeLookup");
+                        static CellI& InternalEdgeLookup = w.getStruct("arc::RenderedShape::InternalEdgeLookup");
 
                         internalEdgesPtr = new Map(w, std.Number, InternalEdgeLookup);
                         currentShape.set("internalEdges", *internalEdgesPtr);
@@ -1318,7 +1321,7 @@ void EdgeDetector::processEdgeNodes()
                         CellI& lastInternalEdge = internalEdges["last"]["value"];
                         CellI* shapeSetPtr      = nullptr;
                         if (lastInternalEdge.missing("shapes")) {
-                            Set& newShapesSet = *new Set(w, arc.Shape);
+                            Set& newShapesSet = *new Set(w, arc.RenderedShape);
                             lastInternalEdge.set("shapes", newShapesSet);
                             shapeSetPtr = &newShapesSet;
                         } else {
@@ -1740,253 +1743,23 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
 
 #endif
 }
-class Vector : public cells::CellI
-{
-public:
-    Vector(World& w, Number& x, Number& y) :
-        CellI(w, "Vector"),
-        m_x(x),
-        m_y(y)
-    { }
 
-    bool has(CellI& key) override
-    {
-        if (&key == &w.id.__type__) {
-            return true;
-        }
-        if (&key == &w.id.coordinates.x) {
-            return true;
-        }
-        if (&key == &w.id.coordinates.y) {
-            return true;
-        }
-
-        return false;
-    }
-
-    void set(CellI& key, CellI& value) override
-    {
-        throw "Changing a hybrid offset cell is not possible!";
-    }
-
-    void erase(CellI& key) override
-    {
-        throw "Changing a hybrid offset cell is not possible!";
-    }
-
-    void operator()() override
-    {
-        // Do nothing, this is a data cell
-    }
-
-    CellI& operator[](CellI& key) override
-    {
-        if (&key == &w.id.__type__) {
-            return w.arc.Vector;
-        }
-        if (&key == &w.id.coordinates.x) {
-            return m_x;
-        }
-        if (&key == &w.id.coordinates.y) {
-            return m_y;
-        }
-
-        throw "No such key!";
-    }
-
-    void accept(Visitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    Number& m_x;
-    Number& m_y;
-};
-
-class Shape : public cells::CellI
-{
-public:
-    Shape(World& w, cells::CellI& color, List& externalEdgeLine, cells::TrieMap& internalEdges) :
-        cells::CellI(w),
-        m_color(color),
-        m_externalEdgeLine(externalEdgeLine),
-        m_internalEdges(internalEdges) { }
-
-    using CellI::get;
-    using CellI::has;
-    using CellI::missing;
-    using CellI::set;
-    using CellI::erase;
-    using CellI::operator[];
-
-    bool has(CellI& key) override
-    {
-        if (&key == &w.id.__type__) {
-            return true;
-        }
-        if (&key == &w.name("externalEdgeLine")) {
-            return true;
-        }
-        if (&key == &w.id.color) {
-            return true;
-        }
-        if (&key == &w.name("internalEdges")) {
-            return true;
-        }
-
-        return false;
-    }
-
-    void set(CellI& key, CellI& value) override
-    {
-        throw "Changing a hybrid offset cell is not possible!";
-    }
-
-    void erase(CellI& key) override
-    {
-        throw "Changing a hybrid offset cell is not possible!";
-    }
-
-    void operator()() override
-    {
-        // Do nothing, this is a data cell
-    }
-
-    CellI& operator[](CellI& key) override
-    {
-        if (&key == &w.id.__type__) {
-            return w.arc.Shape;
-        }
-        if (&key == &w.name("externalEdgeLine")) {
-            return m_externalEdgeLine;
-        }
-        if (&key == &w.id.color) {
-            return m_color;
-        }
-        if (&key == &w.name("internalEdges")) {
-            return m_internalEdges;
-        }
-
-        throw "No such key!";
-    }
-
-    void accept(Visitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    // getShape(pos) == shape
-    void addInternalEdge(Vector& offset, List& edge)
-    {
-        m_internalEdges.addWithDataKey(offset, edge);
-    }
-
-    List& m_externalEdgeLine;
-    cells::CellI& m_color;
-    cells::TrieMap& m_internalEdges;
-};
-
-class RootFrame : public cells::CellI
-{
-public:
-    RootFrame(World& w, int width, int height) :
-        cells::CellI(w),
-        m_width(w, width),
-        m_height(w, height),
-        m_shapesMap(w, w.std.Number, w.arc.Shape)
-    { }
-
-    using CellI::erase;
-    using CellI::get;
-    using CellI::has;
-    using CellI::missing;
-    using CellI::set;
-    using CellI::operator[];
-
-    bool has(CellI& key) override
-    {
-        if (&key == &w.id.__type__) {
-            return true;
-        }
-        if (&key == &w.id.width) {
-            return true;
-        }
-        if (&key == &w.id.height) {
-            return true;
-        }
-        if (&key == &w.name("shapesMap")) {
-            return true;
-        }
-
-        return false;
-    }
-
-    void set(CellI& key, CellI& value) override
-    {
-        throw "Changing a hybrid offset cell is not possible!";
-    }
-
-    void erase(CellI& key) override
-    {
-        throw "Changing a hybrid offset cell is not possible!";
-    }
-
-    void operator()() override
-    {
-        // Do nothing, this is a data cell
-    }
-
-    CellI& operator[](CellI& key) override
-    {
-        if (&key == &w.id.__type__) {
-            return w.std.Cell; // TODO
-        }
-        if (&key == &w.id.width) {
-            return m_width;
-        }
-        if (&key == &w.id.height) {
-            return m_height;
-        }
-        if (&key == &w.name("shapesMap")) {
-            return m_shapesMap;
-        }
-
-        throw "No such key!";
-    }
-
-    void accept(Visitor& visitor) override
-    {
-        visitor.visit(*this);
-    }
-
-    // getShape(pos) == shape
-    void addShape(Vector& offset, Shape& shape)
-    {
-        m_shapesMap.addWithDataKey(offset, shape);
-    }
-    Shape& getShape(const Vector& offset);
-
-    Number m_width;
-    Number m_height;
-    cells::TrieMap m_shapesMap;
-};
-
-void EdgeDetector::createResult()
+hybridarc::ShapeField& EdgeDetector::createResult()
 {
     int width = static_cast<Number&>(frame().get(id.width)).value();
     int height = static_cast<Number&>(frame().get(id.height)).value();
-    RootFrame rootFrame(w, width, height);
+    auto& shapeField = *new hybridarc::ShapeField(w, width, height);
 
-    Visitor::visitList(frame()["shapes"], [this, &rootFrame](CellI& currentShape, int, bool&) {
+    Visitor::visitList(frame()["shapes"], [this, &shapeField](CellI& currentShape, int, bool&) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
         // offset
         CellI& firstPoint      = currentShape["shapePoints"][id.first][id.value];
         Number& x              = static_cast<Number&>(firstPoint["x"]);
         Number& y              = static_cast<Number&>(firstPoint["y"]);
-        Vector& offset         = *new Vector(w, x, y);
+        hybridarc::Vector& offset = *new hybridarc::Vector(w, x, y);
         CellI& edgesList       = currentShape["edges"]["list"];
         List& externalEdgeLine = *new List(w, arc.Direction);
-        TrieMap& internalEdges = *new TrieMap(w, std.Cell, std.Cell);
+        TrieMap& internalEdges    = *new TrieMap(w, arc.Vector, w.tt_("std::List", "valueType", "Direction"));
 
         Visitor::visitList(edgesList, [this, &externalEdgeLine, &internalEdges](CellI& currentEdge, int i, bool&) {
             List* outEdgePtr = nullptr;
@@ -1996,7 +1769,7 @@ void EdgeDetector::createResult()
             } else {
                 Number& x                  = static_cast<Number&>(currentEdge["fromExternalX"]);
                 Number& y                  = static_cast<Number&>(currentEdge["fromExternalY"]);
-                Vector& offset             = *new Vector(w, x, y);
+                hybridarc::Vector& offset  = *new hybridarc::Vector(w, x, y);
                 List& internalEdgeLine     = *new List(w, arc.Direction);
                 internalEdges.addWithDataKey(offset, internalEdgeLine);
                 outEdgePtr = &internalEdgeLine;
@@ -2007,8 +1780,8 @@ void EdgeDetector::createResult()
                 outEdge.add(node["direction"]);
             });
         });
-        Shape& shape = *new Shape(w, currentShape["color"], externalEdgeLine, internalEdges);
-        rootFrame.addShape(offset, shape);
+        hybridarc::Shape& shape = *new hybridarc::Shape(w, currentShape["color"], externalEdgeLine, internalEdges);
+        shapeField.addShape(offset, shape);
     });
     auto printDirection = [this](CellI& direction) {
         if (&direction == &arc.Direction.up) {
@@ -2021,23 +1794,23 @@ void EdgeDetector::createResult()
             std::cout << "🡪 ";
         }
     };
-    std::cout << "RootFrame rootFrame(width: " << static_cast<Number&>(rootFrame.m_width).value() << ", height: " << static_cast<Number&>(rootFrame.m_height).value() << ");" << std::endl;
-    class RootFrameMaker : public AstHelper
+    std::cout << "ShapeField shapeField(width: " << static_cast<Number&>(shapeField.m_width).value() << ", height: " << static_cast<Number&>(shapeField.m_height).value() << ");" << std::endl;
+    class ShapeFieldMaker : public AstHelper
     {
     public:
         Base* ast = nullptr;
-        RootFrameMaker(World& w, Number& width, Number& height) :
+        ShapeFieldMaker(World& w, Number& width, Number& height) :
             AstHelper(w)
         {
-            ast = &(var_("rootFrame") = new_("RootFrame", "new")("width", _(width))("height", _(height)));
+            ast = &(var_("shapeField") = new_("ShapeField", "new")("width", _(width))("height", _(height)));
         }
-    } rootFrameMaker(w, rootFrame.m_width, rootFrame.m_height);
-    CellI& astNewRootFrame = *rootFrameMaker.ast;
-    CellI& shapesMap = rootFrame["shapesMap"];
+    } shapeFieldMaker(w, shapeField.m_width, shapeField.m_height);
+    CellI& astNewShapeField = *shapeFieldMaker.ast;
+    CellI& shapesMap        = shapeField["shapesMap"];
     Visitor::visitList(shapesMap[id.list], [this, &printDirection, &shapesMap](CellI& kvPair, int, bool&) {
-        Vector& offset = static_cast<Vector&>(kvPair[id.key]);
-        Shape& shape   = static_cast<Shape&>(kvPair[id.value]);
-        std::cout << "rootFrame.addShape({ " << shape.m_color.label() << ", [" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
+        hybridarc::Vector& offset = static_cast<hybridarc::Vector&>(kvPair[id.key]);
+        hybridarc::Shape& shape   = static_cast<hybridarc::Shape&>(kvPair[id.value]);
+        std::cout << "shapeField.addShape({ " << shape.m_color.label() << ", [" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
 
         class GetShapeAst : public AstHelper
         {
@@ -2046,7 +1819,7 @@ void EdgeDetector::createResult()
             GetShapeAst(World& w, CellI& offset, CellI& shape) :
                 AstHelper(w)
             {
-                Base& var = equal(var_("rootFrame")("getShape")("offset", _(offset)), _(shape));
+                Base& var = equal(var_("shapeField")("getShape")("offset", _(offset)), _(shape));
             }
         } getShapeAst(w, offset, shape);
 
@@ -2058,7 +1831,7 @@ void EdgeDetector::createResult()
             std::cout << ", inEdges: {";
         }
         Visitor::visitList(shape["internalEdges"][id.list], [this, &printDirection, &shape](CellI& kvPair, int, bool&) {
-            Vector& offset     = static_cast<Vector&>(kvPair[id.key]);
+            hybridarc::Vector& offset = static_cast<hybridarc::Vector&>(kvPair[id.key]);
             List& internalEdge = static_cast<List&>(kvPair[id.value]);
             std::cout << "[" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
             Visitor::visitList(internalEdge, [this, &printDirection](CellI& direction, int, bool&) {
@@ -2072,9 +1845,12 @@ void EdgeDetector::createResult()
         std::cout << "});" << std::endl;
     });
 
+    return shapeField;
+#if 0
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     toolFinder.findConversionTools(w._2_, w._4_);
     toolFinder.findConversionTools(w.false_, w.true_);
+#endif
 
 #if 0
 ┌──┬──┬──┬──┐
@@ -2084,13 +1860,13 @@ void EdgeDetector::createResult()
 ├──┼──┼──┼──┤
 │  │██│██│██│
 └──┴──┴──┴──┘
-RootFrame rootFrame(width: 4, height: 3);
-rootFrame.addShape({[0, 0], { Color::black,  🡪 🡫 🡨 🡩 });
-rootFrame.addShape({[1, 0], { Color::orange, 🡪 🡪 🡪 🡫 🡫 🡫 🡨 🡨 🡨 🡩 🡨 🡩 🡪 🡩 }, inEdges: {[1, 1], { 🡪 🡫 🡨 🡩 }});
-rootFrame.addShape({[2, 1], { Color::black,  🡪 🡫 🡨 🡩 });
-rootFrame.addShape({[0, 2], { Color::black,  🡪 🡫 🡨 🡩 });
+ShapeField shapeField(width: 4, height: 3);
+shapeField.addShape({[0, 0], { Color::black,  🡪 🡫 🡨 🡩 });
+shapeField.addShape({[1, 0], { Color::orange, 🡪 🡪 🡪 🡫 🡫 🡫 🡨 🡨 🡨 🡩 🡨 🡩 🡪 🡩 }, inEdges: {[1, 1], { 🡪 🡫 🡨 🡩 }});
+shapeField.addShape({[2, 1], { Color::black,  🡪 🡫 🡨 🡩 });
+shapeField.addShape({[0, 2], { Color::black,  🡪 🡫 🡨 🡩 });
 
-// rootFrame = new RootFrame(.width = 4, .height = 3)
+// shapeField = new ShapeField(.width = 4, .height = 3)
 // this.getShape([0, 0]) == { Color::black,  🡪 🡫 🡨 🡩 };
 // this.getShape([1, 0]) == { Color::orange, 🡪 🡫 🡨 🡩 }, inEdges: {[1, 1], { 🡪 🡫 🡨 🡩 }};
 // this.getShape([2, 1]) == { Color::black,  🡪 🡫 🡨 🡩 };
@@ -2113,7 +1889,37 @@ struct SubShape {
     Shape m_shape;
 };
 
+result;
+lhsFrame, rhsFrame
+std::copy_if(lhs.begin(), lhs.end(), std::back_inserter(result),
+    [&rhs] (int needle) { return rhs.find(needle) == rhs.end(); });
+
+for (; first != last; ++first) {
+    if (pred(*first))
+    {
+        *d_first = *first;
+        ++d_first;
+    }
 }
+return d_first;
+
+var_("iterator") = p_("lhsFrame")("iterator"),
+if_(same(var_("iterator")("isContainerEmpty"), false_())
+    .then(block(
+        var_("iterator")("goToFirstNode"),
+        do_(block(
+            var_("shape") = var_("iterator")("getCurrentNodeValue"),
+            if_(p_("rhsFrame")("hasShape")("shape", *var_("shape"))),
+            if_(same(var_("iterator")("hasNextNode"), true_()))
+                .then_(var_("iterator")("goToNextNode"))
+                .else_(break_())))
+       .while_(true())))
+
+
+for_("shape", p_("lhsFrame"))
+    do_(block(
+        if_(p_("rhsFrame")("hasShape")("shape", *var_("shape"))),
+
 #endif
 }
 
@@ -2184,7 +1990,7 @@ So in the input we have an input grid which contains pixels.
 In a next layer we need Shapes which contains shape-pixels. A shape pixel has a shape id and a pixel.
    Input:
       Grid { Pixel1, Pixel2, ... , PixelLast }
-          Shapes { Shape1 { ShapePixel1 { shape: Shape, left: ShapePixel, up: ShapePixel,  ... }
+          Shapes { Shape1 { ShapePixel1 { shape: RenderedShape, left: ShapePixel, up: ShapePixel,  ... }
 
 So we interpret the input and output as a set of objects, now the challenge is to find the transformation algorithm. The strategy here is to make as many observation about the change as possible
 and find those which are true for every case.

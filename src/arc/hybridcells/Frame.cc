@@ -178,7 +178,7 @@ void Frame::process()
 
     while (!m_inputPixels.empty()) {
         CellI& firstPixel = m_inputPixels.first();
-        CellI& shape = *new Shape(w, w.pools.numbers.get(shapeId), firstPixel["color"], m_width, m_height);
+        CellI& shape      = *new RenderedShape(w, w.pools.numbers.get(shapeId), firstPixel["color"], m_width, m_height);
         shapeId           = shapeId + 1;
         Set checkPixels(w, w.std.Pixel);
         checkPixels.add(firstPixel);
@@ -193,9 +193,9 @@ void Frame::process()
         Map& colX = static_cast<Map&>(m_shapePixels.getValue(w.pools.numbers.get(y)));
         int x     = 0;
         while (x < width) {
-            CellI& shapePixel = colX.getValue(w.pools.numbers.get(x));
-            Shape& shape      = static_cast<Shape&>(shapePixel["shape"]);
-            CellI& pixel      = shapePixel["pixel"];
+            CellI& shapePixel    = colX.getValue(w.pools.numbers.get(x));
+            RenderedShape& shape = static_cast<RenderedShape&>(shapePixel["shape"]);
+            CellI& pixel         = shapePixel["pixel"];
             if (!m_shapeMap.hasKey(shape[w.id.id])) {
                 m_shapeMap.add(shape[w.id.id], shape);
                 m_shapes.add(shape);
@@ -208,7 +208,7 @@ void Frame::process()
 
 void Frame::processPixel(CellI& shape, Set& checkPixels, CellI& checkPixel)
 {
-    static CellI& TableRowStruct = w.getStruct(w.templateId("std::Map", w.id.keyType, w.std.Number, w.id.valueType, w.arc.Shape));
+    static CellI& TableRowStruct = w.getStruct(w.templateId("std::Map", w.id.keyType, w.std.Number, w.id.valueType, w.arc.RenderedShape));
 
     if (!m_shapePixels.hasKey(checkPixel["y"])) {
         m_shapePixels.add(checkPixel["y"], *new Map(w, w.std.Number, TableRowStruct));

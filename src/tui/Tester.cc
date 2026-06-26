@@ -81,7 +81,7 @@ void TestCases::addTestCases()
         Shaper shaper(grid);
         shaper.process();
 #if 0
-        for (std::shared_ptr<Shape> shape : shaper.shapes()) {
+        for (std::shared_ptr<RenderedShape> shape : shaper.shapes()) {
             loggerPtr->log(LogLevel::DEBUG) << "Shape:";
             loggerPtr->logBoard(LogLevel::DEBUG) << shape->toString() << "\n";
         }
@@ -96,7 +96,7 @@ void TestCases::addTestCases()
         Shaper shaper(grid);
         shaper.process();
 #if 0
-        for (std::shared_ptr<Shape> shape : shaper.shapes()) {
+        for (std::shared_ptr<RenderedShape> shape : shaper.shapes()) {
             loggerPtr->log(LogLevel::DEBUG) << "Shape:";
             loggerPtr->logBoard(LogLevel::DEBUG) << shape->toString() << "\n";
         }
@@ -111,7 +111,7 @@ void TestCases::addTestCases()
         Shaper shaper(grid);
         shaper.process();
 #if 0
-        for (std::shared_ptr<Shape> shape : shaper.shapes()) {
+        for (std::shared_ptr<RenderedShape> shape : shaper.shapes()) {
             loggerPtr->log(LogLevel::DEBUG) << "Shape:";
             loggerPtr->logBoard(LogLevel::DEBUG) << shape->toString() << "\n";
         }

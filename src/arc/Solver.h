@@ -278,10 +278,10 @@ private:
 };
 
 // ============================================================================
-class Shape
+class RenderedShape
 {
 public:
-    Shape(int id, arc::ColorId colorId, int width, int height) :
+    RenderedShape(int id, arc::ColorId colorId, int width, int height) :
         m_id(id), m_colorId(colorId), m_width(width), m_height(height) { }
 
     void addPixel(cells::arc::Pixel& pixel);
@@ -329,7 +329,7 @@ public:
         return pixel.y * m_width + pixel.x;
     }
 
-    bool operator<(const Shape& rhs) const
+    bool operator<(const RenderedShape& rhs) const
     {
         return firstPixelIndex() < rhs.firstPixelIndex();
     }
@@ -354,22 +354,22 @@ public:
 
     void process();
 
-    const std::vector<std::shared_ptr<Shape>>& shapes() const
+    const std::vector<std::shared_ptr<RenderedShape>>& shapes() const
     {
         return m_shapes;
     }
 
 protected:
     void processInputPixels();
-    void processPixel(Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
-    cells::arc::Pixel* processAdjacentPixel(cells::CellI& direction, Shape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
+    void processPixel(RenderedShape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
+    cells::arc::Pixel* processAdjacentPixel(cells::CellI& direction, RenderedShape& shape, std::set<cells::arc::Pixel*>& checkPixels, cells::arc::Pixel& checkPixel);
 
     cells::World& w;
     const int m_width;
     const int m_height;
     const cells::arc::Grid& m_grid;
     std::set<cells::arc::Pixel*> m_inputPixels;
-    std::vector<std::shared_ptr<Shape>> m_shapes;
+    std::vector<std::shared_ptr<RenderedShape>> m_shapes;
 };
 
 // ============================================================================
@@ -429,7 +429,7 @@ class Solver
     class Grid
     {
     public:
-        Grid(std::vector<std::shared_ptr<Shape>> shapes);
+        Grid(std::vector<std::shared_ptr<RenderedShape>> shapes);
 
     private:
         std::vector<VectorShape> vectorShapes;

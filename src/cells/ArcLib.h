@@ -97,12 +97,14 @@ public:
     Object Frame;
     Object Grid;
     Object Pixel;
+    Object RenderedShape;
     Object Shape;
     Object ShapeEdge;
     Object ShapeEdgeJoint;
     Object ShapeEdgeMirroringCorners;
     Object ShapeEdgeNode;
     Object ShapeEdgeRotationCorners;
+    Object ShapeField;
     Object ShapePixel;
     Object ShapePoint;
     Object Task;

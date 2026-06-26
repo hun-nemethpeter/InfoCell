@@ -75,12 +75,14 @@ Arc::Arc(World& w) :
     Frame(w, w.std.Struct, "arc::Frame"),
     Grid(w, w.std.Struct, "arc::Grid"),
     Pixel(w, w.std.Struct, "arc::Pixel"),
+    RenderedShape(w, w.std.Struct, "arc::RenderedShape"),
     Shape(w, w.std.Struct, "arc::Shape"),
     ShapeEdge(w, w.std.Struct, "arc::ShapeEdge"),
     ShapeEdgeJoint(w, w.std.Struct, "arc::ShapeEdgeJoint"),
     ShapeEdgeMirroringCorners(w, w.std.Struct, "arc::ShapeEdgeMirroringCorners"),
     ShapeEdgeNode(w, w.std.Struct, "arc::ShapeEdgeNode"),
     ShapeEdgeRotationCorners(w, w.std.Struct, "arc::ShapeEdgeRotationCorners"),
+    ShapeField(w, w.std.Struct, "arc::ShapeField"),
     ShapePixel(w, w.std.Struct, "arc::ShapePixel"),
     ShapePoint(w, w.std.Struct, "arc::ShapePoint"),
     Task(w, w.std.Struct, "arc::Task"),
@@ -372,11 +374,11 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
         = scope.add<Struct>("ShapeEdge")
               .members(
                   member("id", _(std.Number)),
-                  member("shape", "Shape"),
+                  member("shape", "RenderedShape"),
                   member("kind", "ShapeEdgeKind"),
                   member("fromExternalX", _(std.Number)),
                   member("fromExternalY", _(std.Number)),
-                  member("shapes", tt_("std::Set", "valueType", "Shape")),
+                  member("shapes", tt_("std::Set", "valueType", "RenderedShape")),
                   member("shapePixels", tt_("std::List", "valueType", "ShapePixel")),
                   member("rotationCorners", "ShapeEdgeRotationCorners"),
                   member("mirroringCorners", "ShapeEdgeMirroringCorners"),
@@ -393,7 +395,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                   member("edge", "ShapeEdge"),
                   member("from", "ShapePoint"),
                   member("direction", "Direction"),
-                  member("externalShape", "Shape"),
+                  member("externalShape", "RenderedShape"),
                   member("next", "ShapeEdgeNode"),
                   member("previous", "ShapeEdgeNode"));
 
@@ -430,7 +432,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     auto& shapePixelStruct
         = scope.add<Struct>("ShapePixel")
               .members(
-                  member("shape", "Shape"),
+                  member("shape", "RenderedShape"),
                   member("up", "ShapePixel"),
                   member("down", "ShapePixel"),
                   member("left", "ShapePixel"),
@@ -443,15 +445,15 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
 
     shapePixelStruct.addMethod("constructor")
         .parameters(
-            parameter("shape", __type__("Shape")),
+            parameter("shape", __type__("RenderedShape")),
             parameter("pixel", _(std.Pixel)))
         .instructions(
             m_("shape") = p_("shape"),
             m_("pixel") = p_("pixel"));
 
-    // struct Shape
-    auto& shapeStruct
-        = scope.add<Struct>("Shape")
+    // struct RenderedShape
+    auto& renderedShapeStruct
+        = scope.add<Struct>("RenderedShape")
               .typeAliases(
                   typeAlias("InternalEdgeLookup", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"))))
               .members(
@@ -467,10 +469,10 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                   member("shapePoints", tt_("std::List", "valueType", "ShapePoint")));
 
     /*
-    Shape(int id, input::Color color, int width, int height) :
+    RenderedShape(int id, input::Color color, int width, int height) :
         m_id(id), m_color(color), m_width(width), m_height(height) { }
     */
-    shapeStruct.addMethod("constructor")
+    renderedShapeStruct.addMethod("constructor")
         .parameters(
             parameter("id", _(std.Number)),
             parameter("color", __type__("Color")),
@@ -484,18 +486,34 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             m_("lastEdgeId")   = _(_0_),
             m_("edges")        = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "ShapeEdge"), "constructor"));
 
-    shapeStruct.addMethod("toVectorShape")
+    renderedShapeStruct.addMethod("toVectorShape")
         .returnType(__type__("VectorShape"))
         .instructions(
             var_("ret") = new_("VectorShape", "constructor")("color", m_("color")),
             var_("ret")("fromPixels")("pixels", m_("pixels")),
             return_(*var_("ret")));
 
+    // struct Shape
+    auto& shapeStruct
+        = scope.add<Struct>("Shape")
+              .members(
+                  member("color", "Color"),
+                  member("externalEdgeLine", tt_("std::List", "valueType", "Direction")),
+                  member("internalEdges", tt_("std::TrieMap", "keyType", "Vector", "valueType", tt_("std::List", "valueType", "Direction"))));
+
+    // struct ShapeField
+    auto& shapeFieldStruct
+        = scope.add<Struct>("ShapeField")
+              .members(
+                  member("width", _(std.Number)),
+                  member("height", _(std.Number)),
+                  member("internalEdges", tt_("std::TrieMap", "keyType", "Vector", "valueType", "Shape")));
+
     // struct Frame
     auto& frameStruct
         = scope.add<Struct>("Frame")
               .typeAliases(
-                  typeAlias("tableType", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"))))
+                  typeAlias("tableType", tt_("std::Map", "keyType", _(std.Number), "valueType", tt_("std::Map", "keyType", _(std.Number), "valueType", "RenderedShape"))))
               .members(
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
@@ -504,8 +522,8 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
                   member("upRightPoint", "ShapePoint"),
                   member("downLeftPoint", "ShapePoint"),
                   member("downRightPoint", "ShapePoint"),
-                  member("shapes", tt_("std::List", "valueType", "Shape")),
-                  member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape")),
+                  member("shapes", tt_("std::List", "valueType", "RenderedShape")),
+                  member("shapeMap", tt_("std::Map", "keyType", _(std.Number), "valueType", "RenderedShape")),
                   member("shapePixels", ta_("tableType")),
                   member("inputPixels", tt_("std::Set", "valueType", _(std.Pixel))));
 
@@ -517,9 +535,9 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             m_("grid")        = p_("grid"),
             m_("width")       = p_("grid") / "width",
             m_("height")      = p_("grid") / "height",
-            m_("shapes")      = new_(tt_("std::List", "valueType", "Shape"), "constructor"),
+            m_("shapes")      = new_(tt_("std::List", "valueType", "RenderedShape"), "constructor"),
             m_("shapePixels") = new_(ta_("tableType"), "constructor"),
-            m_("shapeMap")    = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "Shape"), "constructor"),
+            m_("shapeMap")    = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "RenderedShape"), "constructor"),
             m_("inputPixels") = new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
             self()("processInputPixels"));
 
@@ -553,7 +571,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             while_(not_(m_("inputPixels")("empty")))
                 .do_(block(
                     var_("firstPixel")  = m_("inputPixels")("first"),
-                    var_("shape")       = new_("Shape", "constructor")("id", *var_("shapeId"))("color", *var_("firstPixel") / "color")("width", m_("width"))("height", m_("height")),
+                    var_("shape")       = new_("RenderedShape", "constructor")("id", *var_("shapeId"))("color", *var_("firstPixel") / "color")("width", m_("width"))("height", m_("height")),
                     var_("shapeId")     = add(*var_("shapeId"), _(_1_)),
                     var_("checkPixels") = new_(tt_("std::Set", "valueType", _(std.Pixel)), "constructor"),
                     var_("checkPixels")("add")("value", *var_("firstPixel")),
@@ -582,7 +600,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     // Frame::processPixel
     frameStruct.addMethod("processPixel")
         .parameters(
-            parameter("shape", __type__("Shape")),
+            parameter("shape", __type__("RenderedShape")),
             parameter("checkPixels", tt_("std::Set", "valueType", "Pixel")),
             parameter("checkPixel", __type__("Pixel")))
         .instructions(
@@ -600,7 +618,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
     frameStruct.addMethod("processAdjacentPixel")
         .parameters(
             parameter("direction", _(std.Direction)),
-            parameter("shape", __type__("Shape")),
+            parameter("shape", __type__("RenderedShape")),
             parameter("checkPixels", tt_("std::Set", "valueType", _(std.Pixel))),
             parameter("checkPixel", _(std.Pixel)))
         .instructions(
@@ -673,12 +691,14 @@ ArcLib::ArcLib(World& w, Ast::Scope& parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("arc::Frame", arc.Frame);
     compiler.registerBuiltInStruct("arc::Grid", arc.Grid);
     compiler.registerBuiltInStruct("arc::Pixel", arc.Pixel);
+    compiler.registerBuiltInStruct("arc::RenderedShape", arc.RenderedShape);
     compiler.registerBuiltInStruct("arc::Shape", arc.Shape);
     compiler.registerBuiltInStruct("arc::ShapeEdge", arc.ShapeEdge);
     compiler.registerBuiltInStruct("arc::ShapeEdgeJoint", arc.ShapeEdgeJoint);
     compiler.registerBuiltInStruct("arc::ShapeEdgeMirroringCorners", arc.ShapeEdgeMirroringCorners);
     compiler.registerBuiltInStruct("arc::ShapeEdgeNode", arc.ShapeEdgeNode);
     compiler.registerBuiltInStruct("arc::ShapeEdgeRotationCorners", arc.ShapeEdgeRotationCorners);
+    compiler.registerBuiltInStruct("arc::ShapeField", arc.ShapeField);
     compiler.registerBuiltInStruct("arc::ShapePixel", arc.ShapePixel);
     compiler.registerBuiltInStruct("arc::ShapePoint", arc.ShapePoint);
     compiler.registerBuiltInStruct("arc::Task", arc.Task);
