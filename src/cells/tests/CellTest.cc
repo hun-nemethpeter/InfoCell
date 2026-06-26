@@ -68,6 +68,32 @@ TEST_F(CellTest, Traits)
     EXPECT_EQ(&iterator.method(w.name("hasNextNode")), &std.Boolean.false_);
 }
 
+TEST_F(CellTest, TraitsInLoop)
+{
+    auto& ListOfNumbers = getStruct(w.templateId("std::List", id.valueType, std.Number));
+    Object listOfNumbers(w, ListOfNumbers, w.name("constructor"), "listOfNumbers");
+    listOfNumbers.method(w.name("add"), { id.value, _1_ });
+    listOfNumbers.method(w.name("add"), { id.value, _2_ });
+    listOfNumbers.method(w.name("add"), { id.value, _3_ });
+
+    Object& iterator = static_cast<Object&>(listOfNumbers.method(w.name("iterator")));
+
+    int i = 1;
+    if (&iterator.method(w.name("isContainerEmpty")) == &std.Boolean.false_) {
+        iterator.method(w.name("goToFirstNode"));
+        do {
+            Object& value = static_cast<Object&>(iterator.method(w.name("getCurrentNodeValue")));
+            EXPECT_EQ(&value, &toCellNumber(i));
+            if (&iterator.method(w.name("hasNextNode")) == &std.Boolean.true_) {
+                iterator.method(w.name("goToNextNode"));
+                i++;
+            } else {
+                break;
+            }
+        } while (true);
+    }
+}
+
 TEST_F(CellTest, CompilerSmokeTest)
 {
     TRACE(compiledSymbols, "All compiled symbols:");
