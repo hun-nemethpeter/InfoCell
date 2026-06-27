@@ -1916,8 +1916,8 @@ if_(same(var_("iterator")("isContainerEmpty"), false_())
        .while_(true())))
 
 
-for_("shape", p_("lhsFrame"))
-    do_(block(
+for_("shape").in(p_("lhsFrame"))
+    (block(
         if_(p_("rhsFrame")("hasShape")("shape", *var_("shape"))),
 
 #endif
