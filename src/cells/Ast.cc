@@ -168,6 +168,19 @@ Ast::Block::Block(World& w, List& list) :
     set(w.id.asts, list);
 }
 
+void Ast::Block::mergeFrom(Base& statement)
+{
+    List& toAstList = static_cast<List&>((*this)[w.id.asts]);
+    if (&statement.__type__() == &w.std.ast.Block) {
+        List& fromAstList = static_cast<List&>(statement[w.id.asts]);
+        Visitor::visitList(fromAstList, [&toAstList](CellI& ast, int, bool&) {
+            toAstList.add(ast);
+        });
+    } else {
+        toAstList.add(statement);
+    }
+}
+
 template <>
 Ast::Items<TrieMap, Ast::Scope>& Ast::Scope::getItemMember()
 {
@@ -860,10 +873,10 @@ Ast::While& Ast::While::do_(Base& statement)
     return *this;
 }
 
-Ast::For::For(World& w, const std::string& varName) :
-    BaseT<For>(w, w.std.ast.For, "ast.For")
+Ast::For::For(World& w, Base& var) :
+    BaseT<For>(w, w.std.ast.For, "ast.for")
 {
-    set(w.id.variable, w.name(varName));
+    set(w.id.variable, var);
 }
 
 Ast::For& Ast::For::in(Base& container)
@@ -1313,9 +1326,14 @@ Ast::While& Ast::while_(Base& condition)
     return While::New(w, condition);
 }
 
+Ast::For& Ast::for_(Base& var)
+{
+    return For::New(w, var);
+}
+
 Ast::For& Ast::for_(const std::string& varName)
 {
-    return For::New(w, varName);
+    return For::New(w, var(varName));
 }
 
 Ast::Var& Ast::var(CellI& name)

@@ -495,6 +495,8 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         return w.ast.do_(resolveNode(ast[w.id.statement])).while_(resolveNode(ast[w.id.condition]));
     } else if (&ast.__type__() == &w.std.ast.While) {
         return w.ast.while_(resolveNode(ast[w.id.condition])).do_(resolveNode(ast[w.id.statement]));
+    } else if (&ast.__type__() == &w.std.ast.For) {
+        return w.ast.for_(resolveNode(ast[w.id.variable])).in(resolveNode(ast[w.id.container]))(resolveNode(ast[w.id.statement]));
     } else if (&ast.__type__() == &w.std.ast.And) {
         return w.ast.and_(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
     } else if (&ast.__type__() == &w.std.ast.Or) {
@@ -1462,6 +1464,8 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         return w.ast.do_(instantiate(ast[w.id.statement])).while_(instantiate(ast[w.id.condition]));
     } else if (&ast.__type__() == &w.std.ast.While) {
         return w.ast.while_(instantiate(ast[w.id.condition])).do_(instantiate(ast[w.id.statement]));
+    } else if (&ast.__type__() == &w.std.ast.For) {
+        return w.ast.for_(instantiate(ast[w.id.variable])).in(instantiate(ast[w.id.container]))(instantiate(ast[w.id.statement]));
     } else if (&ast.__type__() == &w.std.ast.And) {
         return w.ast.and_(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
     } else if (&ast.__type__() == &w.std.ast.Or) {
@@ -1952,6 +1956,32 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         retOp.set(w.id.ast, ast);
         retOp.set(w.id.condition, compile(ast[w.id.condition]));
         retOp.set(w.id.statement, compile(ast[w.id.statement]));
+        return retOp;
+    } else if (&ast.__type__() == &w.std.ast.For) {
+        auto& valueVar  = static_cast<Ast::Var&>(ast[w.id.variable]);
+        auto& statement = static_cast<Ast::Base&>(ast[w.id.statement]);
+
+        Ast::Block& forLoopBlock =
+            w.ast.block(
+                valueVar = w.ast.call(*w.ast.var("iterator"), "getCurrentNodeValue"));
+
+        Ast::Base& forLoopBlockEnd =
+            w.ast.if_(w.ast.same(w.ast.call(*w.ast.var("iterator"), "hasNextNode"), w._(w.true_)))
+                            .then_(w.ast.call(*w.ast.var("iterator"), "goToNextNode"))
+                            .else_(w.ast.break_());
+
+        forLoopBlock.mergeFrom(statement);
+        forLoopBlock.mergeFrom(forLoopBlockEnd);
+
+        Ast::Block& retAst = w.ast.block(
+            w.ast.var("iterator") = w.ast.call(ast[w.id.container], "iterator"),
+            w.ast.if_(w.ast.same(w.ast.call(*w.ast.var("iterator"), "isContainerEmpty"), w._(w.false_)))
+                .then_(w.ast.block(
+                    w.ast.call(*w.ast.var("iterator"), "goToFirstNode"),
+                    w.ast.do_(forLoopBlock)
+                        .while_(w._(w.true_))))
+        );
+        CellI& retOp = compile(retAst);
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.New) {
         CellI* firstOpBlockNode = nullptr;

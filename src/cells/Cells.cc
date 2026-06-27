@@ -284,6 +284,7 @@ void Object::resetIndent()
 void Object::createSelfStack()
 {
     createStack(*this);
+    initLocalVars(*this);
 }
 
 // core data handling
@@ -943,7 +944,7 @@ static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
         self.set(w.id.state, w.id.stateCondition);
     } else if (&state == &w.id.stateCondition) {
         previousCell = currentCell;
-        if (self.has(w.id.status) && (&self[w.id.status] == &w.id.return_)) {
+        if (self.has(w.id.status) && ((&self[w.id.status] == &w.id.return_) || (&self[w.id.status] == &w.id.break_))) {
             currentCell = &self[w.id.previous];
             self.set(w.id.state, w.id.stateParamInit);
         } else {
@@ -988,7 +989,7 @@ static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
         self.set(w.id.state, w.id.stateCondition);
     } else if (&state == &w.id.stateCondition) {
         previousCell = currentCell;
-        if (self.has(w.id.status) && (&self[w.id.status] == &w.id.return_)) {
+        if (self.has(w.id.status) && ((&self[w.id.status] == &w.id.return_) || (&self[w.id.status] == &w.id.break_))) {
             currentCell = &self[w.id.previous];
             self.set(w.id.state, w.id.stateParamInit);
         } else {

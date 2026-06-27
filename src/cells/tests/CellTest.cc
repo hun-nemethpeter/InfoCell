@@ -13,6 +13,7 @@
 #include "arc/Task.h"
 #include "arc/hybridcells/Grid.h"
 #include "cells/Cells.h"
+#include "cells/Compiler.h"
 #include "tui/App.h"
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
@@ -90,6 +91,60 @@ TEST_F(CellTest, TraitsInLoop)
             }
         } while (true);
     }
+}
+
+TEST_F(CellTest, ForLoop)
+{
+    Object colorObj(w, test.Color);
+    auto& listOfStrings = getStruct(w.templateId("std::List", id.valueType, std.Number));
+    Object membersNames(w, listOfStrings, w.name("constructor"), "listOfStrings");
+    membersNames.method(w.name("add"), { id.value, w.name("red") });
+    membersNames.method(w.name("add"), { id.value, w.name("green") });
+    membersNames.method(w.name("add"), { id.value, w.name("blue") });
+
+    class ForLoopAst : public AstHelper
+    {
+    public:
+        Base* astPtr = nullptr;
+        ForLoopAst(World& w, Object& colorObj, Object& membersNames) :
+            AstHelper(w)
+        {
+            astPtr = &for_("memberName").in(_(membersNames))(set(_(colorObj), *var_("memberName"), _(_1_)));
+        }
+    } forLoopAst(w, colorObj, membersNames);
+
+    class ForLoopTestLib : public Library
+    {
+    public:
+        ForLoopTestLib(World& w, Ast::Scope& parentScope, Ast::Base& forLoop) :
+            Library(w, parentScope)
+        {
+            auto& forLoopTestScope = parentScope.add<Ast::Scope>("forLoopTest");
+            auto& forLoopTestFunction = forLoopTestScope.add<Ast::Function>("forLoopTestFunction");
+            forLoopTestFunction.instructions(forLoop);
+        }
+    };
+
+    Ast::Scope rootScope(w, "root");
+    Compiler compiler(w);
+
+    ForLoopTestLib forLoopTestLib(w, rootScope, *forLoopAst.astPtr);
+    forLoopTestLib.include(testLib);
+
+    compiler.compile(forLoopTestLib);
+
+    auto& forLoopTestFn = forLoopTestLib.getFunction("forLoopTest::forLoopTestFunction");
+    forLoopTestFn.createSelfStack();
+
+    EXPECT_FALSE(colorObj.has("red"));
+    EXPECT_FALSE(colorObj.has("green"));
+    EXPECT_FALSE(colorObj.has("blue"));
+
+    forLoopTestFn();
+
+    EXPECT_TRUE(colorObj.has("red"));
+    EXPECT_TRUE(colorObj.has("green"));
+    EXPECT_TRUE(colorObj.has("blue"));
 }
 
 TEST_F(CellTest, CompilerSmokeTest)

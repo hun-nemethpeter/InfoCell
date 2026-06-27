@@ -78,6 +78,7 @@ public:
     {
     public:
         Block(World& w, List& list);
+        void mergeFrom(Base& statement);
     };
 
     class Break : public BaseT<Break>
@@ -150,7 +151,7 @@ public:
     class For : public BaseT<For>
     {
     public:
-        For(World& w, const std::string& varName);
+        For(World& w, Base& var);
         For& in(Base& container);
         For& operator()(Base& statement);
     };
@@ -776,6 +777,7 @@ public:
     Equal& equal(Base& lhs, Base& rhs);
     Erase& erase(Base& cell, Base& key);
     Erase& erase(Base& cell, const std::string& key);
+    For& for_(Base& var);
     For& for_(const std::string& varName);
     Get& get(Base& cell, Base& key);
     Get& get(Base& cell, const std::string& key);

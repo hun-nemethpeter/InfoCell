@@ -2236,6 +2236,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::EnumValue", std.ast.EnumValue);
     compiler.registerBuiltInStruct("std::ast::Equal", std.ast.Equal);
     compiler.registerBuiltInStruct("std::ast::Erase", std.ast.Erase);
+    compiler.registerBuiltInStruct("std::ast::For", std.ast.For);
     compiler.registerBuiltInStruct("std::ast::Function", std.ast.Function);
     compiler.registerBuiltInStruct("std::ast::FunctionT", std.ast.FunctionT);
     compiler.registerBuiltInStruct("std::ast::Get", std.ast.Get);
