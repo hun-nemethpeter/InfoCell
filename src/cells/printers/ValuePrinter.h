@@ -11,7 +11,7 @@ class CellValuePrinter : public Visitor
 public:
     void visit(CellI& cell) override;
     void visit(Object& cell) override;
-    void visit(List::Item& cell) override;
+    void visit(List::Node& cell) override;
     void visit(List& cell) override;
     void visit(Struct& cell) override;
     void visit(Index& cell) override;

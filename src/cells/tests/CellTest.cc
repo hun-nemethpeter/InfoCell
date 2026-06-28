@@ -450,7 +450,7 @@ TEST_F(CellTest, Numbers)
 TEST_F(CellTest, PrintStdCodes)
 {
 #if 1
-    auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, std.Number));
+    auto& ListNodeStruct = getStruct(w.templateId("std::ListNode", id.valueType, std.Number));
     auto& ListStruct     = getStruct(w.templateId("std::List", id.valueType, std.Number));
     auto& MapStruct      = getStruct(w.templateId("std::Map", id.keyType, std.Cell, id.valueType, std.Slot));
     auto& TrieMapStruct  = getStruct(w.templateId("std::TrieMap", id.keyType, std.Number, id.valueType, test.Color));
@@ -460,8 +460,8 @@ TEST_F(CellTest, PrintStdCodes)
 
     EXPECT_EQ(&Struct, &std.Struct);
 
-    printAs.value(ListItemStruct);
-    printMethodInType(ListItemStruct, "constructor");
+    printAs.value(ListNodeStruct);
+    printMethodInType(ListNodeStruct, "constructor");
 
     printAs.value(ListStruct);
     printMethodInType(ListStruct, "constructor");
@@ -589,11 +589,11 @@ TEST_F(CellTest, List)
     EXPECT_TRUE(list.has(id.first));
     EXPECT_TRUE(list.has(id.last));
 
-    CellI& firstItem = list[id.first];
-    EXPECT_EQ(&firstItem, &list[id.last]);
-    EXPECT_FALSE(firstItem.has(id.previous));
-    EXPECT_FALSE(firstItem.has(id.next));
-    EXPECT_EQ(&firstItem[id.value], &_1_);
+    CellI& firstNode = list[id.first];
+    EXPECT_EQ(&firstNode, &list[id.last]);
+    EXPECT_FALSE(firstNode.has(id.previous));
+    EXPECT_FALSE(firstNode.has(id.next));
+    EXPECT_EQ(&firstNode[id.value], &_1_);
     printAs.value(list);
 
     list.method(w.name("add"), { id.value, w.pools.numbers.get(2) });
@@ -601,17 +601,17 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list.method(w.name("size")), &_2_);
     EXPECT_EQ(&list.method(w.name("empty")), &false_);
 
-    CellI& secondItem = list[id.last];
-    EXPECT_EQ(&firstItem, &list[id.first]);
-    EXPECT_NE(&firstItem, &list[id.last]);
+    CellI& secondNode = list[id.last];
+    EXPECT_EQ(&firstNode, &list[id.first]);
+    EXPECT_NE(&firstNode, &list[id.last]);
 
-    EXPECT_EQ(firstItem.has(id.previous), false);
-    EXPECT_EQ(&firstItem[id.next], &secondItem);
-    EXPECT_EQ(&firstItem[id.value], &_1_);
+    EXPECT_EQ(firstNode.has(id.previous), false);
+    EXPECT_EQ(&firstNode[id.next], &secondNode);
+    EXPECT_EQ(&firstNode[id.value], &_1_);
 
-    EXPECT_EQ(&secondItem[id.previous], &firstItem);
-    EXPECT_EQ(secondItem.has(id.next), false);
-    EXPECT_EQ(&secondItem[id.value], &_2_);
+    EXPECT_EQ(&secondNode[id.previous], &firstNode);
+    EXPECT_EQ(secondNode.has(id.next), false);
+    EXPECT_EQ(&secondNode[id.value], &_2_);
     printAs.value(list);
 
     list.method(w.name("add"), { id.value, _3_ });
@@ -619,56 +619,56 @@ TEST_F(CellTest, List)
     EXPECT_EQ(&list.method(w.name("size")), &_3_);
     EXPECT_EQ(&list.method(w.name("empty")), &false_);
 
-    CellI& thirdItem = list[id.last];
-    EXPECT_EQ(&firstItem, &list[id.first]);
-    EXPECT_NE(&firstItem, &list[id.last]);
+    CellI& thirdNode = list[id.last];
+    EXPECT_EQ(&firstNode, &list[id.first]);
+    EXPECT_NE(&firstNode, &list[id.last]);
 
-    EXPECT_EQ(firstItem.has(id.previous), false);
-    EXPECT_EQ(&firstItem[id.next], &secondItem);
-    EXPECT_EQ(&firstItem[id.value], &_1_);
+    EXPECT_EQ(firstNode.has(id.previous), false);
+    EXPECT_EQ(&firstNode[id.next], &secondNode);
+    EXPECT_EQ(&firstNode[id.value], &_1_);
 
-    EXPECT_EQ(&secondItem[id.previous], &firstItem);
-    EXPECT_EQ(&secondItem[id.next], &thirdItem);
-    EXPECT_EQ(&secondItem[id.value], &_2_);
+    EXPECT_EQ(&secondNode[id.previous], &firstNode);
+    EXPECT_EQ(&secondNode[id.next], &thirdNode);
+    EXPECT_EQ(&secondNode[id.value], &_2_);
 
-    EXPECT_EQ(&thirdItem[id.previous], &secondItem);
-    EXPECT_EQ(thirdItem.has(id.next), false);
-    EXPECT_EQ(&thirdItem[id.value], &_3_);
+    EXPECT_EQ(&thirdNode[id.previous], &secondNode);
+    EXPECT_EQ(thirdNode.has(id.next), false);
+    EXPECT_EQ(&thirdNode[id.value], &_3_);
     printAs.value(list);
 
-    list.method(w.name("remove"), { id.item, thirdItem });
+    list.method(w.name("remove"), { id.node, thirdNode });
     EXPECT_EQ(&list[id.size], &_2_);
     EXPECT_EQ(&list.method(w.name("size")), &_2_);
     EXPECT_EQ(&list.method(w.name("empty")), &false_);
     {
-        CellI& secondItem = list[id.last];
-        EXPECT_EQ(&firstItem, &list[id.first]);
-        EXPECT_NE(&firstItem, &list[id.last]);
+        CellI& secondNode = list[id.last];
+        EXPECT_EQ(&firstNode, &list[id.first]);
+        EXPECT_NE(&firstNode, &list[id.last]);
 
-        EXPECT_EQ(firstItem.has(id.previous), false);
-        EXPECT_EQ(&firstItem[id.next], &secondItem);
-        EXPECT_EQ(&firstItem[id.value], &_1_);
+        EXPECT_EQ(firstNode.has(id.previous), false);
+        EXPECT_EQ(&firstNode[id.next], &secondNode);
+        EXPECT_EQ(&firstNode[id.value], &_1_);
 
-        EXPECT_EQ(&secondItem[id.previous], &firstItem);
-        EXPECT_EQ(secondItem.has(id.next), false);
-        EXPECT_EQ(&secondItem[id.value], &_2_);
+        EXPECT_EQ(&secondNode[id.previous], &firstNode);
+        EXPECT_EQ(secondNode.has(id.next), false);
+        EXPECT_EQ(&secondNode[id.value], &_2_);
     }
     printAs.value(list);
 
-    list.method(w.name("remove"), { id.item, secondItem });
+    list.method(w.name("remove"), { id.node, secondNode });
     EXPECT_EQ(&list[id.size], &_1_);
     EXPECT_EQ(&list.method(w.name("size")), &_1_);
     EXPECT_EQ(&list.method(w.name("empty")), &false_);
     {
-        CellI& firstItem = list[id.first];
-        EXPECT_EQ(&firstItem, &list[id.last]);
-        EXPECT_EQ(firstItem.has(id.previous), false);
-        EXPECT_EQ(firstItem.has(id.next), false);
-        EXPECT_EQ(&firstItem[id.value], &_1_);
+        CellI& firstNode = list[id.first];
+        EXPECT_EQ(&firstNode, &list[id.last]);
+        EXPECT_EQ(firstNode.has(id.previous), false);
+        EXPECT_EQ(firstNode.has(id.next), false);
+        EXPECT_EQ(&firstNode[id.value], &_1_);
     }
     printAs.value(list);
 
-    list.method(w.name("remove"), { id.item, firstItem });
+    list.method(w.name("remove"), { id.node, firstNode });
     EXPECT_EQ(&list[id.size], &_0_);
     EXPECT_EQ(&list.method(w.name("size")), &_0_);
     EXPECT_EQ(&list.method(w.name("empty")), &true_);
@@ -862,45 +862,45 @@ TEST_F(CellTest, MapNumberToColor)
     printAs.cell(map);
 }
 
-TEST_F(CellTest, ListItem)
+TEST_F(CellTest, ListNode)
 {
-    auto& ListItemStruct = getStruct(w.templateId("std::ListItem", id.valueType, test.Color));
-    Object listItem(w, ListItemStruct, w.name("constructor"), { id.value, id.green });
+    auto& ListNodeStruct = getStruct(w.templateId("std::ListNode", id.valueType, test.Color));
+    Object listNode(w, ListNodeStruct, w.name("constructor"), { id.value, id.green });
 
-    EXPECT_EQ(&listItem[id.value], &id.green);
+    EXPECT_EQ(&listNode[id.value], &id.green);
 
-    EXPECT_EQ(&listItem.__type__()[id.memberOf][id.size], &_1_);
-    EXPECT_TRUE(listItem.__type__()[id.memberOf][id.index].has(std.ListItem));
+    EXPECT_EQ(&listNode.__type__()[id.memberOf][id.size], &_1_);
+    EXPECT_TRUE(listNode.__type__()[id.memberOf][id.index].has(std.ListNode));
 
-    EXPECT_EQ(&listItem.__type__()[id.slots][id.size], &_3_);
-    EXPECT_TRUE(listItem.__type__()[id.slots][id.index].has(id.previous));
-    EXPECT_TRUE(listItem.__type__()[id.slots][id.index].has(id.next));
-    EXPECT_TRUE(listItem.__type__()[id.slots][id.index].has(id.value));
+    EXPECT_EQ(&listNode.__type__()[id.slots][id.size], &_3_);
+    EXPECT_TRUE(listNode.__type__()[id.slots][id.index].has(id.previous));
+    EXPECT_TRUE(listNode.__type__()[id.slots][id.index].has(id.next));
+    EXPECT_TRUE(listNode.__type__()[id.slots][id.index].has(id.value));
 
-    EXPECT_TRUE(listItem.__type__()[id.methods][id.index].has(w.name("constructor")));
+    EXPECT_TRUE(listNode.__type__()[id.methods][id.index].has(w.name("constructor")));
 }
 
-TEST_F(CellTest, ListItemTemplate)
+TEST_F(CellTest, ListNodeTemplate)
 {
-    auto& ListItemNumber  = getStruct(w.templateId("std::ListItem", id.valueType, std.Number));
-    Object listItemNumber(w, ListItemNumber, w.name("constructor"), { id.value, _1_ });
+    auto& ListNodeNumber  = getStruct(w.templateId("std::ListNode", id.valueType, std.Number));
+    Object listNodeNumber(w, ListNodeNumber, w.name("constructor"), { id.value, _1_ });
 
-    EXPECT_EQ(&listItemNumber[id.value], &_1_);
+    EXPECT_EQ(&listNodeNumber[id.value], &_1_);
 
-    printAs.value(std.ListItem, "type.ListItem");
-    printAs.value(ListItemNumber, "listItemNumber");
-    printAs.value(std.ListItem[id.slots][id.list], "type.ListItem[slots]");
-    printAs.value(ListItemNumber[id.slots][id.list], "listItemNumber[slots]");
+    printAs.value(std.ListNode, "type.ListNode");
+    printAs.value(ListNodeNumber, "listNodeNumber");
+    printAs.value(std.ListNode[id.slots][id.list], "type.ListNode[slots]");
+    printAs.value(ListNodeNumber[id.slots][id.list], "listNodeNumber[slots]");
 
-    EXPECT_EQ(&ListItemNumber[id.memberOf][id.size], &_1_);
-    EXPECT_TRUE(ListItemNumber[id.memberOf][id.index].has(std.ListItem));
+    EXPECT_EQ(&ListNodeNumber[id.memberOf][id.size], &_1_);
+    EXPECT_TRUE(ListNodeNumber[id.memberOf][id.index].has(std.ListNode));
 
-    EXPECT_EQ(&ListItemNumber[id.slots][id.size], &_3_);
-    EXPECT_TRUE(ListItemNumber[id.slots][id.index].has(id.previous));
-    EXPECT_TRUE(ListItemNumber[id.slots][id.index].has(id.next));
-    EXPECT_TRUE(ListItemNumber[id.slots][id.index].has(id.value));
+    EXPECT_EQ(&ListNodeNumber[id.slots][id.size], &_3_);
+    EXPECT_TRUE(ListNodeNumber[id.slots][id.index].has(id.previous));
+    EXPECT_TRUE(ListNodeNumber[id.slots][id.index].has(id.next));
+    EXPECT_TRUE(ListNodeNumber[id.slots][id.index].has(id.value));
 
-    EXPECT_TRUE(ListItemNumber.has(id.methods));
+    EXPECT_TRUE(ListNodeNumber.has(id.methods));
 }
 
 TEST_F(CellTest, ListTemplate)
@@ -910,24 +910,24 @@ TEST_F(CellTest, ListTemplate)
     EXPECT_EQ(&ListOfNumbers[id.typeAliases][id.size], &_2_);
     EXPECT_TRUE(ListOfNumbers[id.typeAliases][id.index].has(id.valueType));
     EXPECT_EQ(&ListOfNumbers[id.typeAliases][id.index][id.valueType][id.value], &std.Number);
-    EXPECT_TRUE(ListOfNumbers[id.typeAliases][id.index].has(id.itemType));
-    CellI& ListItemType = ListOfNumbers[id.typeAliases][id.index][id.itemType][id.value];
-    EXPECT_EQ(&ListItemType[id.slots][id.index][id.value][id.value][id.type], &std.Number);
-    EXPECT_NE(&ListItemType, &std.ListItem);
-    EXPECT_EQ(&ListItemType[id.memberOf][id.size], &_1_);
-    EXPECT_TRUE(ListItemType[id.memberOf][id.index].has(std.ListItem));
+    EXPECT_TRUE(ListOfNumbers[id.typeAliases][id.index].has(id.nodeType));
+    CellI& ListNodeType = ListOfNumbers[id.typeAliases][id.index][id.nodeType][id.value];
+    EXPECT_EQ(&ListNodeType[id.slots][id.index][id.value][id.value][id.type], &std.Number);
+    EXPECT_NE(&ListNodeType, &std.ListNode);
+    EXPECT_EQ(&ListNodeType[id.memberOf][id.size], &_1_);
+    EXPECT_TRUE(ListNodeType[id.memberOf][id.index].has(std.ListNode));
 
-    EXPECT_EQ(&ListItemType[id.slots][id.size], &_3_);
-    EXPECT_TRUE(ListItemType[id.slots][id.index].has(id.previous));
-    EXPECT_TRUE(ListItemType[id.slots][id.index].has(id.next));
-    EXPECT_TRUE(ListItemType[id.slots][id.index].has(id.value));
+    EXPECT_EQ(&ListNodeType[id.slots][id.size], &_3_);
+    EXPECT_TRUE(ListNodeType[id.slots][id.index].has(id.previous));
+    EXPECT_TRUE(ListNodeType[id.slots][id.index].has(id.next));
+    EXPECT_TRUE(ListNodeType[id.slots][id.index].has(id.value));
 
     EXPECT_EQ(&ListOfNumbers[id.slots][id.size], &_3_);
     EXPECT_TRUE(ListOfNumbers[id.slots][id.index].has(id.first));
-    EXPECT_EQ(&ListOfNumbers[id.slots][id.index][id.first][id.value][id.type], &ListItemType);
+    EXPECT_EQ(&ListOfNumbers[id.slots][id.index][id.first][id.value][id.type], &ListNodeType);
 
     EXPECT_TRUE(ListOfNumbers[id.slots][id.index].has(id.last));
-    EXPECT_EQ(&ListOfNumbers[id.slots][id.index][id.last][id.value][id.type], &ListItemType);
+    EXPECT_EQ(&ListOfNumbers[id.slots][id.index][id.last][id.value][id.type], &ListNodeType);
 
     EXPECT_TRUE(ListOfNumbers[id.slots][id.index].has(id.size));
     EXPECT_EQ(&ListOfNumbers[id.slots][id.index][id.size][id.value][id.type], &std.Number);
@@ -1105,57 +1105,57 @@ TEST_F(CellTest, NextgenList)
     EXPECT_TRUE(list.empty());
     printAs.value(list);
 
-    auto& item1 = *list.add(_1_);
+    auto& node1 = *list.add(_1_);
     EXPECT_TRUE(list.has(id.first));
     EXPECT_TRUE(list.has(id.last));
     EXPECT_EQ(&list[id.size], &_1_);
     EXPECT_FALSE(list.empty());
 
-    EXPECT_EQ(&item1, &list[id.first]);
-    EXPECT_EQ(&item1, &list[id.last]);
-    EXPECT_FALSE(item1.has(id.previous));
-    EXPECT_FALSE(item1.has(id.next));
-    EXPECT_EQ(&item1[id.value], &_1_);
+    EXPECT_EQ(&node1, &list[id.first]);
+    EXPECT_EQ(&node1, &list[id.last]);
+    EXPECT_FALSE(node1.has(id.previous));
+    EXPECT_FALSE(node1.has(id.next));
+    EXPECT_EQ(&node1[id.value], &_1_);
     printAs.value(list);
 
-    auto& item2 = *list.add(_2_);
+    auto& node2 = *list.add(_2_);
     EXPECT_TRUE(list.has(id.first));
     EXPECT_TRUE(list.has(id.last));
     EXPECT_EQ(&list[id.size], &_2_);
     EXPECT_FALSE(list.empty());
 
-    EXPECT_EQ(&item1, &list[id.first]);
-    EXPECT_EQ(&item2, &list[id.last]);
-    EXPECT_FALSE(item1.has(id.previous));
-    EXPECT_TRUE(item1.has(id.next));
-    EXPECT_TRUE(item2.has(id.previous));
-    EXPECT_FALSE(item2.has(id.next));
-    EXPECT_EQ(&item1[id.value], &_1_);
-    EXPECT_EQ(&item2[id.value], &_2_);
+    EXPECT_EQ(&node1, &list[id.first]);
+    EXPECT_EQ(&node2, &list[id.last]);
+    EXPECT_FALSE(node1.has(id.previous));
+    EXPECT_TRUE(node1.has(id.next));
+    EXPECT_TRUE(node2.has(id.previous));
+    EXPECT_FALSE(node2.has(id.next));
+    EXPECT_EQ(&node1[id.value], &_1_);
+    EXPECT_EQ(&node2[id.value], &_2_);
     printAs.value(list);
 
-    auto& item3 = *list.add(_3_);
+    auto& node3 = *list.add(_3_);
     EXPECT_TRUE(list.has(id.first));
     EXPECT_TRUE(list.has(id.last));
     EXPECT_EQ(&list[id.size], &_3_);
     EXPECT_FALSE(list.empty());
     printAs.value(list);
 
-    list.remove(&item2);
+    list.remove(&node2);
     EXPECT_TRUE(list.has(id.first));
     EXPECT_TRUE(list.has(id.last));
     EXPECT_EQ(&list[id.size], &_2_);
     EXPECT_FALSE(list.empty());
     printAs.value(list);
 
-    list.remove(&item1);
+    list.remove(&node1);
     EXPECT_TRUE(list.has(id.first));
     EXPECT_TRUE(list.has(id.last));
     EXPECT_EQ(&list[id.size], &_1_);
     EXPECT_FALSE(list.empty());
     printAs.value(list);
 
-    list.remove(&item3);
+    list.remove(&node3);
     EXPECT_FALSE(list.has(id.first));
     EXPECT_FALSE(list.has(id.last));
     EXPECT_EQ(&list[id.size], &_0_);
@@ -1602,9 +1602,9 @@ static ftxui::Element renderShape(CellI& shape)
     int width               = static_cast<Number&>(shape["width"]).value();
     int height              = static_cast<Number&>(shape["height"]).value();
     CellI& pixelList        = shape["pixels"];
-    CellI* currentPixelItem = &pixelList["first"];
-    int shapePixelX         = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
-    int shapePixelY         = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
+    CellI* currentPixelNode = &pixelList["first"];
+    int shapePixelX         = static_cast<Number&>((*currentPixelNode)["value"]["x"]).value();
+    int shapePixelY         = static_cast<Number&>((*currentPixelNode)["value"]["y"]).value();
     CellI& shapeColorTag    = shape["color"]["tag"];
     CellI& shapeColorValue  = shape["color"][shapeColorTag];
     int shapeColorNum       = static_cast<Number&>(shapeColorValue).value();
@@ -1615,14 +1615,14 @@ static ftxui::Element renderShape(CellI& shape)
         ftxui::Elements arcSetInputLine;
         for (int x = 0; x < width; ++x) {
             const ftxui::Color* currentColor = &ftxAlphaColor;
-            if (currentPixelItem && shapePixelX == x && shapePixelY == y) {
+            if (currentPixelNode && shapePixelX == x && shapePixelY == y) {
                 currentColor = &shapeColor;
-                if (currentPixelItem->has("next")) {
-                    currentPixelItem = &currentPixelItem->get("next");
-                    shapePixelX      = static_cast<Number&>((*currentPixelItem)["value"]["x"]).value();
-                    shapePixelY      = static_cast<Number&>((*currentPixelItem)["value"]["y"]).value();
+                if (currentPixelNode->has("next")) {
+                    currentPixelNode = &currentPixelNode->get("next");
+                    shapePixelX      = static_cast<Number&>((*currentPixelNode)["value"]["x"]).value();
+                    shapePixelY      = static_cast<Number&>((*currentPixelNode)["value"]["y"]).value();
                 } else {
-                    currentPixelItem = nullptr;
+                    currentPixelNode = nullptr;
                 }
             }
             arcSetInputLine.push_back(colorTile(*currentColor));

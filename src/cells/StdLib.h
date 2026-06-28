@@ -176,7 +176,7 @@ public:
     Object KVPair;
     Object Library;
     Object List;
-    Object ListItem;
+    Object ListNode;
     Object Map;
     Object Number;
     ENumberSign NumberSign;

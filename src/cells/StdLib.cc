@@ -147,7 +147,7 @@ Std::Std(World& w) :
     KVPair(w, w.std.Struct, "KVPair"),
     Library(w, w.std.Struct, "Library"),
     List(w, w.std.Struct, "List"),
-    ListItem(w, w.std.Struct, "ListItem"),
+    ListNode(w, w.std.Struct, "ListNode"),
     Map(w, w.std.Struct, "Map"),
     Number(w, w.std.Struct, "Number"),
     NumberSign(w, w.std.Enum, "NumberSign"),
@@ -216,7 +216,7 @@ private:
     void createIndex();
     void createKVPair();
     void createList();
-    void createListItem();
+    void createListNode();
     void createMap();
     void createSet();
     void createStruct();
@@ -1186,11 +1186,11 @@ void StdLibAst::createList()
 #pragma region List
     stdScope.add<Struct>("List")
         .typeAliases(
-            typeAlias("itemType", __type__("ListItem")),
+            typeAlias("nodeType", __type__("ListNode")),
             typeAlias("valueType", __type__("Cell")))
         .members(
-            member("first", "ListItem"),
-            member("last", "ListItem"),
+            member("first", "ListNode"),
+            member("last", "ListNode"),
             member("size", _(std.Number)));
 
     auto& listStructT
@@ -1201,11 +1201,11 @@ void StdLibAst::createList()
                   __type__("Container"),
                   __type__("List"))
               .typeAliases(
-                  typeAlias("itemType", tt_("ListItem", "valueType", tp_("valueType"))),
+                  typeAlias("nodeType", tt_("ListNode", "valueType", tp_("valueType"))),
                   typeAlias("valueType", tp_("valueType")))
               .members(
-                  member("first", ta_("itemType")),
-                  member("last", ta_("itemType")),
+                  member("first", ta_("nodeType")),
+                  member("last", ta_("nodeType")),
                   member("size", _(std.Number)));
 
     auto& listIteratorStructT
@@ -1241,7 +1241,7 @@ void StdLibAst::createList()
         .instructions(
             return_(new_(at_("Iterator"), "constructor")("list", self())));
 
-    // impl Iterator for ListItem<T>
+    // impl Iterator for ListNode<T>
     auto& implIteratorTraitForListT
         = listIteratorStructT.addTraitImpl("Iterator")
               .associatedTypes(
@@ -1277,55 +1277,55 @@ void StdLibAst::createList()
     listStructT.addMethod("add")
         .parameters(
             parameter("value", tp_("valueType")))
-        .returnType(ta_("itemType"))
+        .returnType(ta_("nodeType"))
         .instructions(
-            var_("item") = new_(ta_("itemType"), "constructor")("value", p_("value")),
+            var_("node") = new_(ta_("nodeType"), "constructor")("value", p_("value")),
             if_(not_(m_("first").exist()))
-                .then_(m_("first") = *var_("item"))
+                .then_(m_("first") = *var_("node"))
                 .else_(block(
-                    set(m_("last"), "next", *var_("item")),
-                    set(*var_("item"), "previous", m_("last")))),
-            m_("last") = *var_("item"),
+                    set(m_("last"), "next", *var_("node")),
+                    set(*var_("node"), "previous", m_("last")))),
+            m_("last") = *var_("node"),
             m_("size") = add(m_("size"), _(_1_)),
-            return_(*var_("item")));
+            return_(*var_("node")));
 
     /*
-    void List::removeItem(Item* item)
+    void List::removeNode(Node* node)
     {
-        if (item->m_previous) {
-            item->m_previous->m_next = item->m_next;
+        if (node->m_previous) {
+            node->m_previous->m_next = node->m_next;
         } else {
-            m_firstItem = item->m_next;
+            m_firstNode = node->m_next;
         }
-        if (item->m_next) {
-            item->m_next->m_previous = item->m_previous;
+        if (node->m_next) {
+            node->m_next->m_previous = node->m_previous;
         } else {
-            m_lastItem = item->m_previous;
+            m_lastNode = node->m_previous;
         }
         --m_size;
     }
     */
     listStructT.addMethod("remove")
         .parameters(
-            parameter("item", _(std.Cell)))
+            parameter("node", _(std.Cell)))
         .instructions(
-            if_(has(p_("item"), "previous"))
+            if_(has(p_("node"), "previous"))
                 .then_(
-                    if_(has(p_("item"), "next"))
-                        .then_(set(p_("item") / "previous", "next", p_("item") / "next"))
-                        .else_(erase(p_("item") / "previous", "next")))
+                    if_(has(p_("node"), "next"))
+                        .then_(set(p_("node") / "previous", "next", p_("node") / "next"))
+                        .else_(erase(p_("node") / "previous", "next")))
                 .else_(
-                    if_(has(p_("item"), "next"))
-                        .then_(m_("first") = p_("item") / "next")
+                    if_(has(p_("node"), "next"))
+                        .then_(m_("first") = p_("node") / "next")
                         .else_(erase(self(), "first"))),
-            if_(has(p_("item"), "next"))
+            if_(has(p_("node"), "next"))
                 .then_(
-                    if_(has(p_("item"), "previous"))
-                        .then_(set(p_("item") / "next", "previous", p_("item") / "previous"))
-                        .else_(erase(p_("item") / "next", "previous")))
+                    if_(has(p_("node"), "previous"))
+                        .then_(set(p_("node") / "next", "previous", p_("node") / "previous"))
+                        .else_(erase(p_("node") / "next", "previous")))
                 .else_(
-                    if_(has(p_("item"), "previous"))
-                        .then_(m_("last") = p_("item") / "previous")
+                    if_(has(p_("node"), "previous"))
+                        .then_(m_("last") = p_("node") / "previous")
                         .else_(erase(self(), "last"))),
             m_("size") = subtract(m_("size"), _(_1_)));
 
@@ -1350,43 +1350,43 @@ void StdLibAst::createList()
             return_(m_("last") / "value"));
 
     listStructT.addMethod("begin")
-        .returnType(ta_("itemType"))
+        .returnType(ta_("nodeType"))
         .instructions(
             return_(m_("first")));
 
     listStructT.addMethod("end")
-        .returnType(ta_("itemType"))
+        .returnType(ta_("nodeType"))
         .instructions(
             return_(m_("last")));
 #pragma endregion
 }
 
 // ============================================================================
-void StdLibAst::createListItem()
+void StdLibAst::createListNode()
 {
-#pragma region ListItem
-    stdScope.add<Struct>("ListItem")
+#pragma region ListNode
+    stdScope.add<Struct>("ListNode")
         .typeAliases(
             typeAlias("ValueType", __type__("Cell")))
         .members(
-            member("previous", "ListItem"),
-            member("next", "ListItem"),
+            member("previous", "ListNode"),
+            member("next", "ListNode"),
             member("value", ta_("ValueType")));
 
-    auto& listItemStructT
-        = stdScope.add<StructT>("ListItem")
+    auto& listNodeStructT
+        = stdScope.add<StructT>("ListNode")
               .templateParams(
                   parameter("valueType", _(std.Struct)))
               .memberOf(
-                  _(std.ListItem))
+                  _(std.ListNode))
               .typeAliases(
                   typeAlias("valueType", tp_("valueType")))
               .members(
-                  member("previous", tt_("ListItem", "valueType", tp_("valueType"))),
-                  member("next", tt_("ListItem", "valueType", tp_("valueType"))),
+                  member("previous", tt_("ListNode", "valueType", tp_("valueType"))),
+                  member("next", tt_("ListNode", "valueType", tp_("valueType"))),
                   member("value", tp_("valueType")));
 
-    listItemStructT.addMethod("constructor")
+    listNodeStructT.addMethod("constructor")
         .parameters(
             parameter("value", tp_("valueType")))
         .instructions(
@@ -1478,8 +1478,8 @@ void StdLibAst::createMap()
         if (m_index.has(key)) {
             throw "A value already registered with this key";
         }
-        List::Item& item = *m_list.add(value);
-        m_index.insert(key, item);
+        List::Node& node = *m_list.add(value);
+        m_index.insert(key, node);
         ++m_size;
     }
     */
@@ -1493,8 +1493,8 @@ void StdLibAst::createMap()
             if_(has(m_("index"), p_("key")))
                 .then_(return_()),
             m_("size")   = add(m_("size"), _(_1_)),
-            var_("item") = m_("list")("add")("value", p_("value")),
-            m_("index")("insert")("key", p_("key"))("value", *var_("item")));
+            var_("node") = m_("list")("add")("value", p_("value")),
+            m_("index")("insert")("key", p_("key"))("value", *var_("node")));
 
     /*
     void Map::remove(CellI& key)
@@ -1502,8 +1502,8 @@ void StdLibAst::createMap()
         if (!m_index.has(key)) {
             return;
         }
-        List::Item* item = &static_cast<List::Item&>(m_index[key]);
-        m_list.removeItem(item);
+        List::Node* node = &static_cast<List::Node&>(m_index[key]);
+        m_list.removeNode(node);
         m_index.erase(key);
         --m_size;
     }
@@ -1514,7 +1514,7 @@ void StdLibAst::createMap()
         .instructions(
             if_(missing(m_("index"), p_("key")))
                 .then_(return_()),
-            m_("list")("remove")("item", m_("index") / p_("key")),
+            m_("list")("remove")("node", m_("index") / p_("key")),
             m_("index")("remove")("key", p_("key")),
             m_("size") = subtract(m_("size"), _(_1_)));
 
@@ -1539,12 +1539,12 @@ void StdLibAst::createMap()
             return_(m_("list") / "last" / "value"));
 
     mapStructT.addMethod("begin")
-        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
             return_(m_("list") / "first"));
 
     mapStructT.addMethod("end")
-        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
             return_(m_("list") / "last"));
 #pragma endregion
@@ -1608,12 +1608,12 @@ void StdLibAst::createSet()
             return_(m_("index") / "__type__" / "slots" / "list" / "last" / "value" / "key"));
 
     setStructT.addMethod("begin")
-        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
             return_(m_("index") / "__type__" / "slots" / "list" / "last"));
 
     setStructT.addMethod("end")
-        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
             return_(m_("list") / "last"));
 
@@ -1689,14 +1689,14 @@ void StdLibAst::createStruct()
         .instructions(
             if_(equal(p_("list") / "size", _(_0_)))
                 .then_(return_()),
-            var_("item") = p_("list") / "first",
+            var_("node") = p_("list") / "first",
             if_(m_("slots").missing())
                 .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
             do_(block(
                     var_("next") = true_(),
-                    m_("slots")("add")("key", *var_("item") / "value" / "key")("value", *var_("item") / "value"),
-                    if_(has(*var_("item"), "next"))
-                        .then_(var_("item") = *var_("item") / "next")
+                    m_("slots")("add")("key", *var_("node") / "value" / "key")("value", *var_("node") / "value"),
+                    if_(has(*var_("node"), "next"))
+                        .then_(var_("node") = *var_("node") / "next")
                         .else_(var_("next") = false_())))
                 .while_(same(*var_("next"), true_())));
 
@@ -1768,7 +1768,7 @@ void StdLibAst::createTrieMap()
             throw "Key is not a list!";
         }
 
-        Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+        Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
             if (currentNode->missing(w.id.children)) {
                 stop        = true;
@@ -1776,8 +1776,8 @@ void StdLibAst::createTrieMap()
                 return;
             }
             Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-            if (childrenIndex.has(keyItem)) {
-                children = &childrenIndex.get(keyItem);
+            if (childrenIndex.has(keyNode)) {
+                children = &childrenIndex.get(keyNode);
             } else {
                 stop        = true;
                 currentNode = nullptr;
@@ -1799,23 +1799,23 @@ void StdLibAst::createTrieMap()
         .returnType(_(std.Boolean))
         .instructions(
             var_("currentNode") = m_("rootNode"),
-            var_("keyItem")     = _(id.emptyObject),
+            var_("keyNode")     = _(id.emptyObject),
             if_(has(p_("key"), "first"))
-                .then_(var_("keyItem") = p_("key") / "first"),
-            while_(notSame(*var_("keyItem"), _(id.emptyObject)))
+                .then_(var_("keyNode") = p_("key") / "first"),
+            while_(notSame(*var_("keyNode"), _(id.emptyObject)))
                 .do_(block(
-                    var_("keyItemObj") = *var_("keyItem") / "value",
+                    var_("keyNodeObj") = *var_("keyNode") / "value",
                     var_("child")      = _(id.emptyObject),
                     if_(missing(*var_("currentNode"), "children"))
                         .then_(return_(false_())),
                     var_("childrenIndex") = *var_("currentNode") / "children",
-                    if_(has(*var_("childrenIndex"), *var_("keyItemObj")))
-                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyItemObj"))
+                    if_(has(*var_("childrenIndex"), *var_("keyNodeObj")))
+                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyNodeObj"))
                         .else_(return_(false_())),
                     var_("currentNode") = *var_("child"),
-                    if_(has(*var_("keyItem"), "next"))
-                        .then_(var_("keyItem") = *var_("keyItem") / "next")
-                        .else_(var_("keyItem") = _(id.emptyObject)))),
+                    if_(has(*var_("keyNode"), "next"))
+                        .then_(var_("keyNode") = *var_("keyNode") / "next")
+                        .else_(var_("keyNode") = _(id.emptyObject)))),
             if_(missing(*var_("currentNode"), "data"))
                 .then_(return_(false_())),
             return_(true_()));
@@ -1829,7 +1829,7 @@ void StdLibAst::createTrieMap()
 
         CellI* currentNode = &m_rootNode;
 
-        Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+        Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
             if (currentNode->missing(w.id.children)) {
                 stop        = true;
@@ -1837,8 +1837,8 @@ void StdLibAst::createTrieMap()
                 return;
             }
             Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-            if (childrenIndex.has(keyItem)) {
-                children = &childrenIndex.get(keyItem);
+            if (childrenIndex.has(keyNode)) {
+                children = &childrenIndex.get(keyNode);
             } else {
                 stop        = true;
                 currentNode = nullptr;
@@ -1860,23 +1860,23 @@ void StdLibAst::createTrieMap()
         .returnType(tp_("valueType"))
         .instructions(
             var_("currentNode") = m_("rootNode"),
-            var_("keyItem")     = _(id.emptyObject),
+            var_("keyNode")     = _(id.emptyObject),
             if_(has(p_("key"), "first"))
-                .then_(var_("keyItem") = p_("key") / "first"),
-            while_(notSame(*var_("keyItem"), _(id.emptyObject)))
+                .then_(var_("keyNode") = p_("key") / "first"),
+            while_(notSame(*var_("keyNode"), _(id.emptyObject)))
                 .do_(block(
-                    var_("keyItemObj") = *var_("keyItem") / "value",
+                    var_("keyNodeObj") = *var_("keyNode") / "value",
                     var_("child")      = _(id.emptyObject),
                     if_(missing(*var_("currentNode"), "children"))
                         .then_(return_(_(id.emptyObject))),
                     var_("childrenIndex") = *var_("currentNode") / "children",
-                    if_(has(*var_("childrenIndex"), *var_("keyItemObj")))
-                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyItemObj"))
+                    if_(has(*var_("childrenIndex"), *var_("keyNodeObj")))
+                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyNodeObj"))
                         .else_(return_(_(id.emptyObject))),
                     var_("currentNode") = *var_("child"),
-                    if_(has(*var_("keyItem"), "next"))
-                        .then_(var_("keyItem") = *var_("keyItem") / "next")
-                        .else_(var_("keyItem") = _(id.emptyObject)))),
+                    if_(has(*var_("keyNode"), "next"))
+                        .then_(var_("keyNode") = *var_("keyNode") / "next")
+                        .else_(var_("keyNode") = _(id.emptyObject)))),
             if_(missing(*var_("currentNode"), "data"))
                 .then_(return_(_(id.emptyObject))),
             return_(*var_("currentNode") / "data" / "value" / "value"));
@@ -1890,24 +1890,24 @@ void StdLibAst::createTrieMap()
 
         CellI* currentNode = &m_rootNode;
 
-        Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+        Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* child = nullptr;
             if (currentNode->missing(w.id.children)) {
                 currentNode->set(w.id.children, *new Index(w));
             }
             Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-            if (childrenIndex.has(keyItem)) {
-                child = &childrenIndex.get(keyItem);
+            if (childrenIndex.has(keyNode)) {
+                child = &childrenIndex.get(keyNode);
             } else {
                 child = new Object(w, w.type.TrieMapNode);
                 child->set(w.id.parent, *currentNode);
-                childrenIndex.insert(keyItem, *child);
+                childrenIndex.insert(keyNode, *child);
             }
             currentNode = child;
         });
 
-        List::Item& item = *m_list.add(w.type.kvPair(key, value));
-        currentNode->set(w.id.data, item);
+        List::Node& node = *m_list.add(w.type.kvPair(key, value));
+        currentNode->set(w.id.data, node);
         ++m_size;
     }
     */
@@ -1917,28 +1917,28 @@ void StdLibAst::createTrieMap()
             parameter("value", tp_("valueType")))
         .instructions(
             var_("currentNode") = m_("rootNode"),
-            var_("keyItem")     = _(id.emptyObject),
+            var_("keyNode")     = _(id.emptyObject),
             if_(has(p_("key"), "first"))
-                .then_(var_("keyItem") = p_("key") / "first"),
-            while_(notSame(*var_("keyItem"), _(id.emptyObject)))
+                .then_(var_("keyNode") = p_("key") / "first"),
+            while_(notSame(*var_("keyNode"), _(id.emptyObject)))
                 .do_(block(
-                    var_("keyItemObj") = *var_("keyItem") / "value",
+                    var_("keyNodeObj") = *var_("keyNode") / "value",
                     var_("child")      = _(id.emptyObject),
                     if_(missing(*var_("currentNode"), "children"))
                         .then_(set(*var_("currentNode"), "children", new_("Index", "constructor"))),
                     var_("childrenIndex") = *var_("currentNode") / "children",
-                    if_(has(*var_("childrenIndex"), *var_("keyItemObj")))
-                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyItemObj"))
+                    if_(has(*var_("childrenIndex"), *var_("keyNodeObj")))
+                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyNodeObj"))
                         .else_(block(
                             var_("child") = new_(_(std.TrieMapNode)),
                             set(*var_("child"), "parent", *var_("currentNode")),
-                            var_("childrenIndex")("insert")("key", *var_("keyItemObj"))("value", *var_("child")))),
+                            var_("childrenIndex")("insert")("key", *var_("keyNodeObj"))("value", *var_("child")))),
                     var_("currentNode") = *var_("child"),
-                    if_(has(*var_("keyItem"), "next"))
-                        .then_(var_("keyItem") = *var_("keyItem") / "next")
-                        .else_(var_("keyItem") = _(id.emptyObject)))),
-            var_("item") = m_("list")("add")("value", new_(ta_("pairType"), "constructor")("key", p_("key"))("value", p_("value"))),
-            set(*var_("currentNode"), "data", *var_("item")),
+                    if_(has(*var_("keyNode"), "next"))
+                        .then_(var_("keyNode") = *var_("keyNode") / "next")
+                        .else_(var_("keyNode") = _(id.emptyObject)))),
+            var_("node") = m_("list")("add")("value", new_(ta_("pairType"), "constructor")("key", p_("key"))("value", p_("value"))),
+            set(*var_("currentNode"), "data", *var_("node")),
             m_("size") = add(m_("size"), _(_1_)));
 
     /*
@@ -1954,7 +1954,7 @@ void StdLibAst::createTrieMap()
 
         CellI* currentNode    = &m_rootNode;
 
-        Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+        Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
             if (currentNode->missing(w.id.children)) {
                 stop        = true;
@@ -1962,8 +1962,8 @@ void StdLibAst::createTrieMap()
                 return;
             }
             Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-            if (childrenIndex.has(keyItem)) {
-                children = &childrenIndex.get(keyItem);
+            if (childrenIndex.has(keyNode)) {
+                children = &childrenIndex.get(keyNode);
             } else {
                 stop        = true;
                 currentNode = nullptr;
@@ -1975,31 +1975,31 @@ void StdLibAst::createTrieMap()
         if (!currentNode || currentNode->missing(w.id.data)) {
             return;
         }
-        List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[w.id.data]);
+        List::Node* valueNode = &static_cast<List::Node&>((*currentNode)[w.id.data]);
         currentNode->erase(w.id.data);
 
-        CellI* keyItemPtr = &key[w.id.last];
+        CellI* keyNodePtr = &key[w.id.last];
         while (currentNode->has(w.id.parent)) {
-            CellI& keyItem = *keyItemPtr;
+            CellI& keyNode = *keyNodePtr;
             CellI& parent = currentNode->get(w.id.parent);
             CellI& child = *currentNode;
             if (child.missing(w.id.data)) {
                 if (child.missing(w.id.children) || ( child.has(w.id.children) && static_cast<Index&>(child[w.id.children]).empty())) {
                     delete currentNode;
-                    parent[w.id.children].erase(keyItem[w.id.value]);
+                    parent[w.id.children].erase(keyNode[w.id.value]);
                 }
             }
             currentNode = &parent;
-            if (keyItem.has(w.id.previous)) {
-                keyItemPtr = &keyItem[w.id.previous];
+            if (keyNode.has(w.id.previous)) {
+                keyNodePtr = &keyNode[w.id.previous];
             } else {
                 break;
             }
         }
-        if (!valueItem) {
+        if (!valueNode) {
             return;
         }
-        m_list.removeItem(valueItem);
+        m_list.removeNode(valueNode);
         --m_size;
     }
     */
@@ -2008,28 +2008,28 @@ void StdLibAst::createTrieMap()
             parameter("key", tp_("keyType")))
         .instructions(
             var_("currentNode") = m_("rootNode"),
-            var_("keyItem")     = _(id.emptyObject),
+            var_("keyNode")     = _(id.emptyObject),
             if_(has(p_("key"), "first"))
-                .then_(var_("keyItem") = p_("key") / "first"),
-            while_(notSame(*var_("keyItem"), _(id.emptyObject)))
+                .then_(var_("keyNode") = p_("key") / "first"),
+            while_(notSame(*var_("keyNode"), _(id.emptyObject)))
                 .do_(block(
-                    var_("keyItemObj") = *var_("keyItem") / "value",
+                    var_("keyNodeObj") = *var_("keyNode") / "value",
                     var_("child")      = _(id.emptyObject),
                     if_(missing(*var_("currentNode"), "children"))
                         .then_(return_()),
                     var_("childrenIndex") = *var_("currentNode") / "children",
-                    if_(has(*var_("childrenIndex"), *var_("keyItemObj")))
-                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyItemObj"))
+                    if_(has(*var_("childrenIndex"), *var_("keyNodeObj")))
+                        .then_(var_("child") = *var_("childrenIndex") / *var_("keyNodeObj"))
                         .else_(return_()),
                     var_("currentNode") = *var_("child"),
-                    if_(has(*var_("keyItem"), "next"))
-                        .then_(var_("keyItem") = *var_("keyItem") / "next")
-                        .else_(var_("keyItem") = _(id.emptyObject)))),
+                    if_(has(*var_("keyNode"), "next"))
+                        .then_(var_("keyNode") = *var_("keyNode") / "next")
+                        .else_(var_("keyNode") = _(id.emptyObject)))),
             if_(missing(*var_("currentNode"), "data"))
                 .then_(return_()),
-            var_("valueItem") = *var_("currentNode") / "data",
+            var_("valueNode") = *var_("currentNode") / "data",
             erase(*var_("currentNode"), "data"),
-            var_("keyItem") = p_("key") / "last",
+            var_("keyNode") = p_("key") / "last",
             while_(has(*var_("currentNode"), "parent"))
                 .do_(block(
                     var_("parent") = *var_("currentNode") / "parent",
@@ -2039,12 +2039,12 @@ void StdLibAst::createTrieMap()
                             if_(or_(missing(*var_("child"), "children"), and_(has(*var_("child"), "children"), ((*var_("child") / "children")("empty")))))
                                 .then_(block(
                                     delete_(*var_("currentNode")),
-                                    erase(*var_("parent") / "children", *var_("keyItem") / "value")))),
+                                    erase(*var_("parent") / "children", *var_("keyNode") / "value")))),
                     var_("currentNode") = *var_("parent"),
-                    if_(has(*var_("keyItem"), "previous"))
-                        .then_(var_("keyItem") = *var_("keyItem") / "previous")
+                    if_(has(*var_("keyNode"), "previous"))
+                        .then_(var_("keyNode") = *var_("keyNode") / "previous")
                         .else_(break_()))),
-            m_("list")("remove")("item", *var_("valueItem")),
+            m_("list")("remove")("node", *var_("valueNode")),
             m_("size") = subtract(m_("size"), _(_1_)));
 
     trieMapStructT.addMethod("size")
@@ -2068,12 +2068,12 @@ void StdLibAst::createTrieMap()
             return_(m_("list") / "last" / "value"));
 
     trieMapStructT.addMethod("begin")
-        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
             return_(m_("list") / "first"));
 
     trieMapStructT.addMethod("end")
-        .returnType(tt_("ListItem", "valueType", tp_("valueType")))
+        .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
             return_(m_("list") / "last"));
 #pragma endregion
@@ -2122,7 +2122,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             member("variables", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Var")));
 
     createList();
-    createListItem();
+    createListNode();
     createMap();
 
     stdScope.add<Struct>("Number")
@@ -2173,7 +2173,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     stdScope.add<Struct>("TrieMapNode")
         .members(
             member("children", "Index"),
-            member("data", "ListItem"),
+            member("data", "ListNode"),
             member("parent", "TrieMapNode"));
 
     stdScope.add<Struct>("Void");
@@ -2304,7 +2304,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::KVPair", std.KVPair);
     compiler.registerBuiltInStruct("std::Library", std.Library);
     compiler.registerBuiltInStruct("std::List", std.List);
-    compiler.registerBuiltInStruct("std::ListItem", std.ListItem);
+    compiler.registerBuiltInStruct("std::ListNode", std.ListNode);
     compiler.registerBuiltInStruct("std::Map", std.Map);
     compiler.registerBuiltInStruct("std::Number", std.Number);
     compiler.registerBuiltInStruct("std::OpState", std.OpState);

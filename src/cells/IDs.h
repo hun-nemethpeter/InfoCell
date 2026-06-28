@@ -58,8 +58,8 @@ public:
     List description;
     List destructor;
     List else_;
-    List enum_;
     List emptyObject;
+    List enum_;
     List first;
     List functions;
     List globalScope;
@@ -70,8 +70,6 @@ public:
     List input;
     List instances;
     List instructions;
-    List item;
-    List itemType;
     List key;
     List keyType;
     List last;
@@ -86,6 +84,8 @@ public:
     List methods;
     List name;
     List next;
+    List node;
+    List nodeType;
     List objectType;
     List op;
     List ops;
@@ -130,13 +130,13 @@ public:
     List status;
     List structs;
     List structType;
-    List typeAliases;
     List tag;
     List templateId;
     List templateParams;
     List then;
     List throw_;
     List type;
+    List typeAliases;
     List unknownInstances;
     List unknownStructs;
     List value;

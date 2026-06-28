@@ -153,10 +153,10 @@ T& ref(T* obj) { return *obj; }
 class List : public CellI
 {
 public:
-    class Item : public CellI
+    class Node : public CellI
     {
     public:
-        Item(World& w, List& list, CellI& value);
+        Node(World& w, List& list, CellI& value);
 
         using CellI::get;
         using CellI::has;
@@ -174,8 +174,8 @@ public:
 
         List& m_list;
         CellI& m_value;
-        Item* m_previous  = nullptr;
-        Item* m_next      = nullptr;
+        Node* m_previous  = nullptr;
+        Node* m_next      = nullptr;
         CellI* m_selfType = nullptr;
     };
 
@@ -213,23 +213,23 @@ public:
     CellI& operator[](CellI& key) override;
     void accept(Visitor& visitor) override;
 
-    Item* add(CellI& value);
+    Node* add(CellI& value);
     template <typename... Args>
     void add(CellI& value, Args&&... args)
     {
         add(value);
         add(std::forward<Args>(args)...);
     }
-    Item* addFront(CellI& value);
-    void remove(Item* item);
+    Node* addFront(CellI& value);
+    void remove(Node* node);
     bool empty() const;
     int size();
     void clear();
 
 protected:
     CellI& m_valueType;
-    Item* m_firstItem = nullptr;
-    Item* m_lastItem  = nullptr;
+    Node* m_firstNode = nullptr;
+    Node* m_lastNode  = nullptr;
     CellI* m_selfType = nullptr;
     int m_size        = 0;
 };
@@ -513,7 +513,7 @@ public:
     virtual void visit(Object&)     = 0;
     virtual void visit(Number&)     = 0;
     virtual void visit(String&)     = 0;
-    virtual void visit(List::Item&) = 0;
+    virtual void visit(List::Node&) = 0;
     virtual void visit(List&)       = 0;
     virtual void visit(Struct&)     = 0;
     virtual void visit(Index&)      = 0;

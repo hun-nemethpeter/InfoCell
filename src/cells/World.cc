@@ -196,10 +196,10 @@ World::World(std::function<void()> loggerLevelInit) :
 
     // TODO hack: std.List is a "baseclass" now so we just set its method to std.List<Cell>
     // we need to implement the trait system properly
-    auto& compiledListItemStruct = getStruct(templateId("std::ListItem", id.valueType, std.Cell));
+    auto& compiledListNodeStruct = getStruct(templateId("std::ListNode", id.valueType, std.Cell));
     auto& compiledListStruct     = getStruct(templateId("std::List", id.valueType, std.Cell));
     auto& compiledStructStruct   = getStruct("std::Struct");
-    std.ListItem.set("methods", compiledListItemStruct[id.methods]);
+    std.ListNode.set("methods", compiledListNodeStruct[id.methods]);
     std.List.set("methods", compiledListStruct[id.methods]);
     std.Struct.set("methods", compiledStructStruct[id.methods]);
 }

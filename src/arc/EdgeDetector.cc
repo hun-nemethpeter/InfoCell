@@ -273,12 +273,12 @@ void EdgeDetector::sortShapePoints()
         List& shapePoints = *new List(w, arc.ShapePoint);
         currentShape.set("shapePoints", shapePoints);
 
-        CellI* currentPixelItemPtr      = &currentShape["shapePixels"][id.first];
-        CellI* currentMiddleRowListItem = nullptr;
-        CellI* upMiddleRowListItem      = nullptr;
-        CellI* downMiddleRowListItem    = nullptr;
-        CellI* firstColumnPixelItem     = currentPixelItemPtr;
-        CellI& firstPixel               = (*currentPixelItemPtr)[id.value];
+        CellI* currentPixelNodePtr      = &currentShape["shapePixels"][id.first];
+        CellI* currentMiddleRowListNode = nullptr;
+        CellI* upMiddleRowListNode      = nullptr;
+        CellI* downMiddleRowListNode    = nullptr;
+        CellI* firstColumnPixelNode     = currentPixelNodePtr;
+        CellI& firstPixel               = (*currentPixelNodePtr)[id.value];
 
         bool isUpperLine          = false;
         bool hasMoreUp            = false;
@@ -290,11 +290,11 @@ void EdgeDetector::sortShapePoints()
 
         std::stringstream ss;
         ss << "  ";
-        while (currentPixelItemPtr) {
+        while (currentPixelNodePtr) {
             switch (scanLineState) {
             case ScanLineState::Up: {
-                CellI& currentPixelItem = *currentPixelItemPtr;
-                CellI& currentPixel     = currentPixelItem[id.value];
+                CellI& currentPixelNode = *currentPixelNodePtr;
+                CellI& currentPixel     = currentPixelNode[id.value];
                 CellI& currentPoint     = currentPixel["upLeftPoint"];
                 int upLeftPointX        = static_cast<Number&>(currentPoint["x"]).value();
 
@@ -327,22 +327,22 @@ void EdgeDetector::sortShapePoints()
                 pointX = upLeftPointX + 1;
                 ss << fmt::format("({},{}) ", pointX, pointY);
                 shapePoints.add(currentPoint["right"]);
-                CellI* nextPixelItem            = currentPixelItem.has(id.next) ? &currentPixelItem[id.next] : nullptr;
-                bool isNextPixelIsInTheSameLine = nextPixelItem ? &(*firstColumnPixelItem)["value"]["pixel"]["y"] == &(*nextPixelItem)["value"]["pixel"]["y"] : false;
+                CellI* nextPixelNode            = currentPixelNode.has(id.next) ? &currentPixelNode[id.next] : nullptr;
+                bool isNextPixelIsInTheSameLine = nextPixelNode ? &(*firstColumnPixelNode)["value"]["pixel"]["y"] == &(*nextPixelNode)["value"]["pixel"]["y"] : false;
 
-                if (nextPixelItem) {
+                if (nextPixelNode) {
                     if (isNextPixelIsInTheSameLine) {
                         // same line
-                        currentPixelItemPtr = nextPixelItem;
+                        currentPixelNodePtr = nextPixelNode;
                     } else {
                         // new line
-                        upMiddleRowListItem   = firstColumnPixelItem;
-                        downMiddleRowListItem = nextPixelItem;
-                        firstColumnPixelItem  = downMiddleRowListItem;
-                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
-                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        upMiddleRowListNode   = firstColumnPixelNode;
+                        downMiddleRowListNode = nextPixelNode;
+                        firstColumnPixelNode  = downMiddleRowListNode;
+                        upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListNode)["value"]["pixel"]["x"]).value();
+                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListNode)["value"]["pixel"]["x"]).value();
                         isUpperLine           = upMiddleColumnIndex <= downMiddleColumnIndex;
-                        currentPixelItemPtr   = isUpperLine ? upMiddleRowListItem : downMiddleRowListItem;
+                        currentPixelNodePtr   = isUpperLine ? upMiddleRowListNode : downMiddleRowListNode;
                         hasMoreUp             = true;
                         hasMoreDown           = true;
                         pointX                = -1;
@@ -354,7 +354,7 @@ void EdgeDetector::sortShapePoints()
                     }
                 } else {
                     // no more pixel, but still the bottom points row must be created
-                    currentPixelItemPtr = firstColumnPixelItem;
+                    currentPixelNodePtr = firstColumnPixelNode;
                     pointX              = -1;
                     ++pointY;
                     scanLineState = ScanLineState::Down;
@@ -365,8 +365,8 @@ void EdgeDetector::sortShapePoints()
             } break;
             case ScanLineState::Middle: {
                 // we have at least two rows of pixels
-                CellI& currentPixelItem = *currentPixelItemPtr;
-                CellI& currentPixel     = currentPixelItem[id.value];
+                CellI& currentPixelNode = *currentPixelNodePtr;
+                CellI& currentPixel     = currentPixelNode[id.value];
                 CellI& currentPoint     = currentPixel[isUpperLine ? "downLeftPoint" : "upLeftPoint"];
                 int currentPointX       = static_cast<Number&>(currentPoint["x"]).value();
                 int currentPointY       = static_cast<Number&>(currentPoint["y"]).value();
@@ -379,8 +379,8 @@ void EdgeDetector::sortShapePoints()
                 shapePoints.add(currentPoint["right"]);
 
                 // stepping
-                CellI* nextUpListItem   = nullptr;
-                CellI* nextDownListItem = nullptr;
+                CellI* nextUpListNode   = nullptr;
+                CellI* nextDownListNode = nullptr;
                 if (hasMoreUp && hasMoreDown) {
                     if (upMiddleColumnIndex < downMiddleColumnIndex) {
                         // ┌──┬──┐
@@ -389,8 +389,8 @@ void EdgeDetector::sortShapePoints()
                         // │  │xx│ <- down-line
                         // └──┴──┘
                         // step up-line iter only
-                        nextUpListItem   = &(*upMiddleRowListItem)[id.next];
-                        nextDownListItem = downMiddleRowListItem;
+                        nextUpListNode   = &(*upMiddleRowListNode)[id.next];
+                        nextDownListNode = downMiddleRowListNode;
                     } else if (upMiddleColumnIndex == downMiddleColumnIndex) {
                         // ┌──┬──┐
                         // │██│xx│ <- up line
@@ -398,8 +398,8 @@ void EdgeDetector::sortShapePoints()
                         // │██│xx│ <- down line
                         // └──┴──┘
                         // step up- and down-line iters
-                        nextUpListItem   = &(*upMiddleRowListItem)[id.next];
-                        nextDownListItem = (*downMiddleRowListItem).has(id.next) ? &(*downMiddleRowListItem)[id.next] : nullptr;
+                        nextUpListNode   = &(*upMiddleRowListNode)[id.next];
+                        nextDownListNode = (*downMiddleRowListNode).has(id.next) ? &(*downMiddleRowListNode)[id.next] : nullptr;
                     } else {
                         // ┌──┬──┐
                         // │  │xx│ <- up-line
@@ -407,8 +407,8 @@ void EdgeDetector::sortShapePoints()
                         // │██│xx│ <- down-line
                         // └──┴──┘
                         // step down-line iter only
-                        nextUpListItem   = upMiddleRowListItem;
-                        nextDownListItem = (*downMiddleRowListItem).has(id.next) ? &(*downMiddleRowListItem)[id.next] : nullptr;
+                        nextUpListNode   = upMiddleRowListNode;
+                        nextDownListNode = (*downMiddleRowListNode).has(id.next) ? &(*downMiddleRowListNode)[id.next] : nullptr;
                     }
                 } else if (hasMoreUp && !hasMoreDown) {
                     // ┌──┬──┐
@@ -417,8 +417,8 @@ void EdgeDetector::sortShapePoints()
                     // │xx│  │ <- down-line, no more pixel in this line
                     // └──┴──┘
                     // step up line iter only
-                    nextUpListItem   = &(*upMiddleRowListItem)[id.next];
-                    nextDownListItem = downMiddleRowListItem;
+                    nextUpListNode   = &(*upMiddleRowListNode)[id.next];
+                    nextDownListNode = downMiddleRowListNode;
                 } else if (!hasMoreUp && hasMoreDown) {
                     // ┌──┐
                     // │xx│ <- up-line, no more pixel in this line
@@ -426,18 +426,18 @@ void EdgeDetector::sortShapePoints()
                     // │xx│ <- down-line
                     // └──┘
                     // step down line iter only
-                    nextUpListItem   = upMiddleRowListItem;
-                    nextDownListItem = (*downMiddleRowListItem).has(id.next) ? &(*downMiddleRowListItem)[id.next] : nullptr;
+                    nextUpListNode   = upMiddleRowListNode;
+                    nextDownListNode = (*downMiddleRowListNode).has(id.next) ? &(*downMiddleRowListNode)[id.next] : nullptr;
                 }
 
-                hasMoreUp       = (nextUpListItem != firstColumnPixelItem);
-                hasMoreDown     = nextDownListItem ? static_cast<Number&>((*nextDownListItem)["value"]["pixel"]["y"]).value() == pointY : false;
-                bool isLastLine = !nextDownListItem;
+                hasMoreUp       = (nextUpListNode != firstColumnPixelNode);
+                hasMoreDown     = nextDownListNode ? static_cast<Number&>((*nextDownListNode)["value"]["pixel"]["y"]).value() == pointY : false;
+                bool isLastLine = !nextDownListNode;
 
                 if (isLastLine && !hasMoreUp && !hasMoreDown) {
-                    upMiddleRowListItem   = nullptr;
-                    downMiddleRowListItem = nullptr;
-                    currentPixelItemPtr   = firstColumnPixelItem;
+                    upMiddleRowListNode   = nullptr;
+                    downMiddleRowListNode = nullptr;
+                    currentPixelNodePtr   = firstColumnPixelNode;
                     pointX                = -1;
                     ++pointY;
                     scanLineState = ScanLineState::Down;
@@ -448,42 +448,42 @@ void EdgeDetector::sortShapePoints()
                 } else if (!hasMoreUp && !hasMoreDown) {
                     pointX = -1;
                     ++pointY;
-                    upMiddleRowListItem   = nextUpListItem;
-                    downMiddleRowListItem = nextDownListItem;
-                    firstColumnPixelItem  = nextDownListItem;
-                    upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
-                    downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                    upMiddleRowListNode   = nextUpListNode;
+                    downMiddleRowListNode = nextDownListNode;
+                    firstColumnPixelNode  = nextDownListNode;
+                    upMiddleColumnIndex   = static_cast<Number&>((*upMiddleRowListNode)["value"]["pixel"]["x"]).value();
+                    downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListNode)["value"]["pixel"]["x"]).value();
                     isUpperLine           = upMiddleColumnIndex <= downMiddleColumnIndex;
-                    currentPixelItemPtr   = isUpperLine ? upMiddleRowListItem : downMiddleRowListItem;
+                    currentPixelNodePtr   = isUpperLine ? upMiddleRowListNode : downMiddleRowListNode;
                     hasMoreUp             = true;
                     hasMoreDown           = true;
                     TRACE(edge, "{} Middle -> Middle", ss.str());
                     ss.str("");
                     ss << "  ";
                 } else {
-                    upMiddleRowListItem   = nextUpListItem;
-                    downMiddleRowListItem = nextDownListItem;
+                    upMiddleRowListNode   = nextUpListNode;
+                    downMiddleRowListNode = nextDownListNode;
                     if (hasMoreUp) {
-                        upMiddleColumnIndex = static_cast<Number&>((*upMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        upMiddleColumnIndex = static_cast<Number&>((*upMiddleRowListNode)["value"]["pixel"]["x"]).value();
                     }
                     if (hasMoreDown) {
-                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListItem)["value"]["pixel"]["x"]).value();
+                        downMiddleColumnIndex = static_cast<Number&>((*downMiddleRowListNode)["value"]["pixel"]["x"]).value();
                     }
                     if (hasMoreUp && hasMoreDown) {
                         isUpperLine         = upMiddleColumnIndex <= downMiddleColumnIndex;
-                        currentPixelItemPtr = isUpperLine ? upMiddleRowListItem : downMiddleRowListItem;
+                        currentPixelNodePtr = isUpperLine ? upMiddleRowListNode : downMiddleRowListNode;
                     } else if (!hasMoreUp) {
-                        currentPixelItemPtr = downMiddleRowListItem;
+                        currentPixelNodePtr = downMiddleRowListNode;
                         isUpperLine         = false;
                     } else {
-                        currentPixelItemPtr = upMiddleRowListItem;
+                        currentPixelNodePtr = upMiddleRowListNode;
                         isUpperLine         = true;
                     }
                 }
             } break;
             case ScanLineState::Down: {
-                CellI& currentPixelItem = *currentPixelItemPtr;
-                CellI& currentPixel     = currentPixelItem[id.value];
+                CellI& currentPixelNode = *currentPixelNodePtr;
+                CellI& currentPixel     = currentPixelNode[id.value];
                 CellI& currentPoint     = currentPixel["downLeftPoint"];
                 int downLeftPointX      = static_cast<Number&>(currentPoint["x"]).value();
 
@@ -495,7 +495,7 @@ void EdgeDetector::sortShapePoints()
                 ss << fmt::format("({},{}) ", pointX, pointY);
                 shapePoints.add(currentPoint["right"]);
 
-                currentPixelItemPtr = currentPixelItem.has(id.next) ? &currentPixelItem[id.next] : nullptr;
+                currentPixelNodePtr = currentPixelNode.has(id.next) ? &currentPixelNode[id.next] : nullptr;
             } break;
             }
         }
@@ -522,9 +522,9 @@ void EdgeDetector::calculateEdgesForShapes()
 
         ProcessingMode processingMode = ProcessingMode::ExternalEdgeStart;
         CellI* processingDirectionPtr = &arc.Direction.right;
-        CellI* currentListItemPtr     = &currentShape["shapePoints"][id.first];
-        CellI* previousListItemPtr    = nullptr;
-        CellI* firstColumnPointItem   = currentListItemPtr;
+        CellI* currentListNodePtr     = &currentShape["shapePoints"][id.first];
+        CellI* previousListNodePtr    = nullptr;
+        CellI* firstColumnPointNode   = currentListNodePtr;
 
         CellI* newEdgePtr  = nullptr;
         List* edgeNodesPtr = nullptr;
@@ -539,9 +539,9 @@ void EdgeDetector::calculateEdgesForShapes()
         int startPointX             = -1;
         int startPointY             = -1;
 
-        while (currentListItemPtr || currentShapePointPtr) {
-            CellI& currentListItem = *currentListItemPtr;
-            CellI& shapePoint      = currentListItemPtr ? (*currentListItemPtr)[id.value] : *currentShapePointPtr;
+        while (currentListNodePtr || currentShapePointPtr) {
+            CellI& currentListNode = *currentListNodePtr;
+            CellI& shapePoint      = currentListNodePtr ? (*currentListNodePtr)[id.value] : *currentShapePointPtr;
             int pointX             = static_cast<Number&>(shapePoint["x"]).value();
             int pointY             = static_cast<Number&>(shapePoint["y"]).value();
 #if 0
@@ -610,8 +610,8 @@ For leftToRight direction edge from point middle
 
                 addEdgeToShape(currentShape, newEdge["id"], newEdge);
 
-                previousListItemPtr  = currentListItemPtr;
-                currentListItemPtr   = nullptr;
+                previousListNodePtr  = currentListNodePtr;
+                currentListNodePtr   = nullptr;
                 currentShapePointPtr = &shapePoint;
                 firstShapePointPtr   = currentShapePointPtr;
                 previousEdgeNodePtr  = nullptr;
@@ -1164,7 +1164,7 @@ For leftToRight direction edge from point middle
                     firstEdgeNode.set("previous", newEdgeNode);
                     newEdgeNode.set("next", firstEdgeNode);
                     processingMode       = ProcessingMode::Searching;
-                    currentListItemPtr   = previousListItemPtr;
+                    currentListNodePtr   = previousListNodePtr;
                     currentShapePointPtr = nullptr;
                 }
             } break;
@@ -1204,7 +1204,7 @@ For leftToRight direction edge from point middle
                     processingDirectionPtr = &arc.Direction.right;
                     processingMode         = ProcessingMode::InternalEdgeStart;
                 } else {
-                    currentListItemPtr = currentListItem.has(id.next) ? &currentListItem[id.next] : nullptr;
+                    currentListNodePtr = currentListNode.has(id.next) ? &currentListNode[id.next] : nullptr;
                 }
             } break;
             } // switch processinMode
@@ -1218,7 +1218,7 @@ void EdgeDetector::processEdgeNodes()
     CellI* shapePointPtr       = firstColumnPointPtr;
     CellI* lastShapeEdgeInLine = nullptr;
     List internalEdges(w, arc.ShapeEdge);
-    List::Item* lastInternalEdgeItem = nullptr;
+    List::Node* lastInternalEdgeNode = nullptr;
     enum class ProcessingDirection
     {
         LeftToRight,
@@ -1288,7 +1288,7 @@ void EdgeDetector::processEdgeNodes()
                     CellI& shapeEdge = shapeEdgeNode["edge"];
                     if (&shapeEdge["kind"] == &arc.ShapeEdgeKind.InternalEdge) {
                         // entering an internal edge
-                        lastInternalEdgeItem = internalEdges.add(shapeEdge);
+                        lastInternalEdgeNode = internalEdges.add(shapeEdge);
                     }
                 }
                 if (edgeJoint.has("downRight")) {
@@ -1297,9 +1297,9 @@ void EdgeDetector::processEdgeNodes()
                     CellI& shapeEdge = shapeEdgeNode["edge"];
                     if (&shapeEdge["kind"] == &arc.ShapeEdgeKind.InternalEdge) {
                         // leaving an internal edge
-                        internalEdges.remove(lastInternalEdgeItem);
+                        internalEdges.remove(lastInternalEdgeNode);
                         if (!internalEdges.empty()) {
-                            lastInternalEdgeItem = &static_cast<List::Item&>(internalEdges["last"]);
+                            lastInternalEdgeNode = &static_cast<List::Node&>(internalEdges["last"]);
                         }
                     }
                     lastShapeEdgeInLine = &shapeEdge;

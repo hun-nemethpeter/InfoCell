@@ -18,7 +18,7 @@ void CellStructPrinter::visit(Object& cell)
     printImpl(cell);
 }
 
-void CellStructPrinter::visit(List::Item& cell)
+void CellStructPrinter::visit(List::Node& cell)
 {
     printImpl(cell);
 }
@@ -102,8 +102,8 @@ void CellStructPrinter::printImpl(CellI& cell)
 
     if (is(w.std.List)) {
         m_ss << "List<" << cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label() << ">";
-    } else if (is(w.std.ListItem)) {
-        m_ss << "ListItem<" << cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label() << ">";
+    } else if (is(w.std.ListNode)) {
+        m_ss << "ListNode<" << cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label() << ">";
     } else if (is(w.std.Map)) {
         m_ss << "Map<" << cell.__type__()[w.id.typeAliases][w.id.index][w.id.keyType][w.id.value].label() << ", " << cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label() << ">";
     } else {

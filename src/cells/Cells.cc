@@ -750,16 +750,16 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
             stackFrame.set(w.id.localVars, localVarsIndex);
         }
 
-        CellI& newStackListItem = *new Object(w, w.std.ListItem);
-        newStackListItem.set(w.id.value, stackFrame);
-        newStackListItem.set(w.id.previous, stack);
-        stack.set(w.id.next, newStackListItem);
+        CellI& newStackListNode = *new Object(w, w.std.ListNode);
+        newStackListNode.set(w.id.value, stackFrame);
+        newStackListNode.set(w.id.previous, stack);
+        stack.set(w.id.next, newStackListNode);
 
         CellI& previousMethod = stack[w.id.value][w.id.method];
 //        std::cout << "previous method " << previousMethod.label() << std::endl;
 //        std::cout << "next     method " << method.label() << std::endl;
 
-        method.set(w.id.stack, newStackListItem);
+        method.set(w.id.stack, newStackListNode);
         self.set(w.id.state, w.id.stateStackCall);
         previousMethod.set(w.id.lastOp, self);
 
@@ -1750,22 +1750,22 @@ void Object::createStack(CellI& method)
 {
     Object& inputIndex    = *new Object(w, w.std.Index, "StackFrame1.InputIndex");
     Object& stackFrame    = *new Object(w, w.std.StackFrame, "StackFrame1");
-    Object& stackListItem0 = *new Object(w, w.std.ListItem, "StackListItem0");
-    Object& stackListItem1 = *new Object(w, w.std.ListItem, "StackListItem1");
+    Object& stackListNode0 = *new Object(w, w.std.ListNode, "StackListNode0");
+    Object& stackListNode1 = *new Object(w, w.std.ListNode, "StackListNode1");
     stackFrame.set(w.id.method, method);
     stackFrame.set(w.id.input, inputIndex);
 
-    stackListItem0.set(w.id.next, stackListItem1);
-    stackListItem1.set(w.id.value, stackFrame);
-    stackListItem1.set(w.id.previous, stackListItem0);
-    method.set(w.id.stack, stackListItem1);
+    stackListNode0.set(w.id.next, stackListNode1);
+    stackListNode1.set(w.id.value, stackFrame);
+    stackListNode1.set(w.id.previous, stackListNode0);
+    method.set(w.id.stack, stackListNode1);
 }
 
 void Object::clearStack(CellI& method)
 {
-    CellI* stackListItem1 = &method["stack"];
-    CellI* stackListItem0 = &(*stackListItem1)["previous"];
-    CellI* stackFrame     = &(*stackListItem1)["value"];
+    CellI* stackListNode1 = &method["stack"];
+    CellI* stackListNode0 = &(*stackListNode1)["previous"];
+    CellI* stackFrame     = &(*stackListNode1)["value"];
     CellI* inputIndex     = &(*stackFrame)["input"];
     if (method.has("localVars")) {
         CellI* localVarsIndex = &(*stackFrame)["localVars"];
@@ -1773,8 +1773,8 @@ void Object::clearStack(CellI& method)
         // TODO
     }
 
-    delete stackListItem1;
-    delete stackListItem0;
+    delete stackListNode1;
+    delete stackListNode0;
     delete stackFrame;
     delete inputIndex;
 }
@@ -1824,16 +1824,16 @@ void Object::setFnParam(CellI& fn, Param param)
 }
 
 #pragma endregion
-#pragma region List::Item
+#pragma region List::Node
 // ============================================================================
-List::Item::Item(World& w, List& list, CellI& value) :
+List::Node::Node(World& w, List& list, CellI& value) :
     CellI(w),
     m_list(list),
     m_value(value)
 {
 }
 
-bool List::Item::has(CellI& key)
+bool List::Node::has(CellI& key)
 {
     if (&key == &w.id.__type__ || &key == &w.id.value) {
         return true;
@@ -1848,12 +1848,12 @@ bool List::Item::has(CellI& key)
     return false;
 }
 
-void List::Item::set(CellI& key, CellI& value)
+void List::Node::set(CellI& key, CellI& value)
 {
     // Do nothing
 }
 
-void List::Item::erase(CellI& key)
+void List::Node::erase(CellI& key)
 {
     if (&key == &w.id.next) {
         m_next = nullptr;
@@ -1864,16 +1864,16 @@ void List::Item::erase(CellI& key)
     throw "No such key!";
 }
 
-void List::Item::operator()()
+void List::Node::operator()()
 {
     // Do nothing
 }
 
-CellI& List::Item::operator[](CellI& key)
+CellI& List::Node::operator[](CellI& key)
 {
     if (&key == &w.id.__type__) {
         if (!m_selfType) {
-            m_selfType = &w.getStruct(w.templateId("std::ListItem", w.id.valueType, m_list.m_valueType));
+            m_selfType = &w.getStruct(w.templateId("std::ListNode", w.id.valueType, m_list.m_valueType));
         }
         return *m_selfType;
     }
@@ -1896,7 +1896,7 @@ CellI& List::Item::operator[](CellI& key)
     throw "No such key!";
 }
 
-void List::Item::accept(Visitor& visitor)
+void List::Node::accept(Visitor& visitor)
 {
     visitor.visit(*this);
 }
@@ -1914,10 +1914,10 @@ bool List::has(CellI& key)
     if (&key == &w.id.__type__ || &key == &w.id.size) {
         return true;
     }
-    if (&key == &w.id.first && m_firstItem) {
+    if (&key == &w.id.first && m_firstNode) {
         return true;
     }
-    if (&key == &w.id.last && m_lastItem) {
+    if (&key == &w.id.last && m_lastNode) {
         return true;
     }
 
@@ -1948,10 +1948,10 @@ CellI& List::operator[](CellI& key)
         return *m_selfType;
     }
     if (&key == &w.id.first) {
-        return *m_firstItem;
+        return *m_firstNode;
     }
     if (&key == &w.id.last) {
-        return *m_lastItem;
+        return *m_lastNode;
     }
     if (&key == &w.id.size) {
         int size = (int)m_size;
@@ -1967,50 +1967,50 @@ void List::accept(Visitor& visitor)
     visitor.visit(*this);
 }
 
-List::Item* List::add(CellI& value)
+List::Node* List::add(CellI& value)
 {
-    Item* item = new Item(w, *this, value);
-    if (m_lastItem) {
-        m_lastItem->m_next = item;
-        item->m_previous   = m_lastItem;
+    Node* node = new Node(w, *this, value);
+    if (m_lastNode) {
+        m_lastNode->m_next = node;
+        node->m_previous   = m_lastNode;
     }
-    m_lastItem = item;
-    if (!m_firstItem) {
-        m_firstItem = m_lastItem;
+    m_lastNode = node;
+    if (!m_firstNode) {
+        m_firstNode = m_lastNode;
     }
     ++m_size;
 
-    return item;
+    return node;
 }
 
 
-List::Item* List::addFront(CellI& value)
+List::Node* List::addFront(CellI& value)
 {
-    Item* item = new Item(w, *this, value);
-    if (m_firstItem) {
-        m_firstItem->m_previous = item;
-        item->m_next            = m_firstItem;
+    Node* node = new Node(w, *this, value);
+    if (m_firstNode) {
+        m_firstNode->m_previous = node;
+        node->m_next            = m_firstNode;
     }
-    m_firstItem = item;
-    if (!m_lastItem) {
-        m_lastItem = item;
+    m_firstNode = node;
+    if (!m_lastNode) {
+        m_lastNode = node;
     }
     ++m_size;
 
-    return item;
+    return node;
 }
 
-void List::remove(Item* item)
+void List::remove(Node* node)
 {
-    if (item->m_previous) {
-        item->m_previous->m_next = item->m_next;
+    if (node->m_previous) {
+        node->m_previous->m_next = node->m_next;
     } else {
-        m_firstItem = item->m_next;
+        m_firstNode = node->m_next;
     }
-    if (item->m_next) {
-        item->m_next->m_previous = item->m_previous;
+    if (node->m_next) {
+        node->m_next->m_previous = node->m_previous;
     } else {
-        m_lastItem = item->m_previous;
+        m_lastNode = node->m_previous;
     }
     --m_size;
 }
@@ -2030,7 +2030,7 @@ void List::clear()
     if (empty()) {
         return;
     }
-    for (CellI* node = m_firstItem; node;) {
+    for (CellI* node = m_firstNode; node;) {
         CellI& currentNode = *node;
         CellI* nextNode    = nullptr;
         if (currentNode.has(w.id.next)) {
@@ -2337,8 +2337,8 @@ void Map::add(CellI& key, CellI& value)
     if (m_index.has(key)) {
         throw "A value already registered with this key";
     }
-    List::Item& item = *m_list.add(value);
-    m_index.insert(key, item);
+    List::Node& node = *m_list.add(value);
+    m_index.insert(key, node);
     ++m_size;
 }
 
@@ -2347,8 +2347,8 @@ void Map::remove(CellI& key)
     if (!m_index.has(key)) {
         return;
     }
-    List::Item* item = &static_cast<List::Item&>(m_index[key]);
-    m_list.remove(item);
+    List::Node* node = &static_cast<List::Node&>(m_index[key]);
+    m_list.remove(node);
     m_index.erase(key);
     --m_size;
 }
@@ -2441,7 +2441,7 @@ bool TrieMap::hasKey(CellI& key)
         throw "Key is not a list!";
     }
 
-    Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+    Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             stop        = true;
@@ -2449,8 +2449,8 @@ bool TrieMap::hasKey(CellI& key)
             return;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-        if (childrenIndex.has(keyItem)) {
-            children = &childrenIndex.get(keyItem);
+        if (childrenIndex.has(keyNode)) {
+            children = &childrenIndex.get(keyNode);
         } else {
             stop        = true;
             currentNode = nullptr;
@@ -2474,7 +2474,7 @@ CellI& TrieMap::getValue(CellI& key)
 
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+    Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             stop        = true;
@@ -2482,8 +2482,8 @@ CellI& TrieMap::getValue(CellI& key)
             return;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-        if (childrenIndex.has(keyItem)) {
-            children = &childrenIndex.get(keyItem);
+        if (childrenIndex.has(keyNode)) {
+            children = &childrenIndex.get(keyNode);
         } else {
             stop        = true;
             currentNode = nullptr;
@@ -2504,7 +2504,7 @@ bool TrieMap::hasValueWithDataKey(CellI& key)
     CellI* currentNode = &m_rootNode;
 
     Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
-        CellI& keyItem  = key[slot[w.id.key]];
+        CellI& keyNode  = key[slot[w.id.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             stop        = true;
@@ -2512,8 +2512,8 @@ bool TrieMap::hasValueWithDataKey(CellI& key)
             return;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-        if (childrenIndex.has(keyItem)) {
-            children = &childrenIndex.get(keyItem);
+        if (childrenIndex.has(keyNode)) {
+            children = &childrenIndex.get(keyNode);
         } else {
             stop        = true;
             currentNode = nullptr;
@@ -2534,7 +2534,7 @@ CellI& TrieMap::getValueWithDataKey(CellI& key)
     CellI* currentNode = &m_rootNode;
 
     Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
-        CellI& keyItem  = key[slot[w.id.key]];
+        CellI& keyNode  = key[slot[w.id.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             stop        = true;
@@ -2542,8 +2542,8 @@ CellI& TrieMap::getValueWithDataKey(CellI& key)
             return;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-        if (childrenIndex.has(keyItem)) {
-            children = &childrenIndex.get(keyItem);
+        if (childrenIndex.has(keyNode)) {
+            children = &childrenIndex.get(keyNode);
         } else {
             stop        = true;
             currentNode = nullptr;
@@ -2564,24 +2564,24 @@ void TrieMap::addWithDataKey(CellI& key, CellI& value)
     CellI* currentNode = &m_rootNode;
 
     Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
-        CellI& keyItem = key[slot[w.id.key]];
+        CellI& keyNode = key[slot[w.id.key]];
         CellI* child = nullptr;
         if (currentNode->missing(w.id.children)) {
             currentNode->set(w.id.children, *new Index(w));
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-        if (childrenIndex.has(keyItem)) {
-            child = &childrenIndex.get(keyItem);
+        if (childrenIndex.has(keyNode)) {
+            child = &childrenIndex.get(keyNode);
         } else {
             child = new Object(w, w.std.TrieMapNode);
             child->set(w.id.parent, *currentNode);
-            childrenIndex.insert(keyItem, *child);
+            childrenIndex.insert(keyNode, *child);
         }
         currentNode = child;
     });
 
-    List::Item& item = *m_list.add(w.std.kvPair(key, value));
-    currentNode->set(w.id.data, item);
+    List::Node& node = *m_list.add(w.std.kvPair(key, value));
+    currentNode->set(w.id.data, node);
     ++m_size;
 }
 
@@ -2593,24 +2593,24 @@ void TrieMap::add(CellI& key, CellI& value)
 
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+    Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* child = nullptr;
         if (currentNode->missing(w.id.children)) {
             currentNode->set(w.id.children, *new Index(w));
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-        if (childrenIndex.has(keyItem)) {
-            child = &childrenIndex.get(keyItem);
+        if (childrenIndex.has(keyNode)) {
+            child = &childrenIndex.get(keyNode);
         } else {
             child = new Object(w, w.std.TrieMapNode);
             child->set(w.id.parent, *currentNode);
-            childrenIndex.insert(keyItem, *child);
+            childrenIndex.insert(keyNode, *child);
         }
         currentNode = child;
     });
 
-    List::Item& item = *m_list.add(w.std.kvPair(key, value));
-    currentNode->set(w.id.data, item);
+    List::Node& node = *m_list.add(w.std.kvPair(key, value));
+    currentNode->set(w.id.data, node);
     ++m_size;
 }
 
@@ -2624,9 +2624,9 @@ void TrieMap::remove(CellI& key)
         return;
     }
 
-    CellI* currentNode    = &m_rootNode;
+    CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key, [this, &currentNode](CellI& keyItem, int i, bool& stop) {
+    Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             stop        = true;
@@ -2634,8 +2634,8 @@ void TrieMap::remove(CellI& key)
             return;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
-        if (childrenIndex.has(keyItem)) {
-            children = &childrenIndex.get(keyItem);
+        if (childrenIndex.has(keyNode)) {
+            children = &childrenIndex.get(keyNode);
         } else {
             stop        = true;
             currentNode = nullptr;
@@ -2647,31 +2647,31 @@ void TrieMap::remove(CellI& key)
     if (!currentNode || currentNode->missing(w.id.data)) {
         return;
     }
-    List::Item* valueItem = &static_cast<List::Item&>((*currentNode)[w.id.data]);
+    List::Node* valueNode = &static_cast<List::Node&>((*currentNode)[w.id.data]);
     currentNode->erase(w.id.data);
 
-    CellI* keyItemPtr = &key[w.id.last];
+    CellI* keyNodePtr = &key[w.id.last];
     while (currentNode->has(w.id.parent)) {
-        CellI& keyItem = *keyItemPtr;
+        CellI& keyNode = *keyNodePtr;
         CellI& parent = currentNode->get(w.id.parent);
         CellI& child = *currentNode;
         if (child.missing(w.id.data)) {
             if (child.missing(w.id.children) || ( child.has(w.id.children) && static_cast<Index&>(child[w.id.children]).empty())) {
                 delete currentNode;
-                parent[w.id.children].erase(keyItem[w.id.value]);
+                parent[w.id.children].erase(keyNode[w.id.value]);
             }
         }
         currentNode = &parent;
-        if (keyItem.has(w.id.previous)) {
-            keyItemPtr = &keyItem[w.id.previous];
+        if (keyNode.has(w.id.previous)) {
+            keyNodePtr = &keyNode[w.id.previous];
         } else {
             break;
         }
     }
-    if (!valueItem) {
+    if (!valueNode) {
         return;
     }
-    m_list.remove(valueItem);
+    m_list.remove(valueNode);
     --m_size;
 }
 
@@ -3031,17 +3031,17 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
         return;
     }
 
-    for (CellI* currentListItemPtr = &list[w.ids.first];;) {
-        CellI& currentListItem = *currentListItemPtr;
-        CellI& value           = currentListItem[w.ids.value];
+    for (CellI* currentListNodePtr = &list[w.ids.first];;) {
+        CellI& currentListNode = *currentListNodePtr;
+        CellI& value           = currentListNode[w.ids.value];
         bool stop              = false;
 
         visitFn(value, i++, stop);
-        if (stop || currentListItem.missing(w.ids.next)) {
+        if (stop || currentListNode.missing(w.ids.next)) {
             return;
         }
 
-        currentListItemPtr = &currentListItem[w.ids.next];
+        currentListNodePtr = &currentListNode[w.ids.next];
     };
 }
 #else
@@ -3119,17 +3119,17 @@ void Visitor::visitListInReverse(CellI& list, std::function<void(CellI& value, i
         return;
     }
 
-    for (CellI* currentListItemPtr = &list[w.id.last];;) {
-        CellI& currentListItem = *currentListItemPtr;
-        CellI& value           = currentListItem[w.id.value];
+    for (CellI* currentListNodePtr = &list[w.id.last];;) {
+        CellI& currentListNode = *currentListNodePtr;
+        CellI& value           = currentListNode[w.id.value];
         bool stop              = false;
 
         visitFn(value, i++, stop);
-        if (stop || currentListItem.missing(w.id.previous)) {
+        if (stop || currentListNode.missing(w.id.previous)) {
             return;
         }
 
-        currentListItemPtr = &currentListItem[w.id.previous];
+        currentListNodePtr = &currentListNode[w.id.previous];
     }
 }
 

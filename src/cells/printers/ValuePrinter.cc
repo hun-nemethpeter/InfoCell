@@ -16,7 +16,7 @@ void CellValuePrinter::visit(Object& object)
     printImpl(object);
 }
 
-void CellValuePrinter::visit(List::Item& cell)
+void CellValuePrinter::visit(List::Node& cell)
 {
     printImpl(cell);
 }
@@ -598,12 +598,12 @@ void CellValuePrinter::printTypeName(CellI& cell)
     if (isA(w.std.Map)) {
         m_ss << fmt::format("Map<{}, {}>", cell[w.id.typeAliases][w.id.index][w.id.keyType][w.id.value].label(), cell[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label());
         return;
-    } else if (isA(w.std.ListItem)) {
-        if (&cell == &w.std.ListItem) {
-            m_ss << "ListItem";
+    } else if (isA(w.std.ListNode)) {
+        if (&cell == &w.std.ListNode) {
+            m_ss << "ListNode";
             return;
         }
-        m_ss << fmt::format("ListItem<{}>", cell[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label());
+        m_ss << fmt::format("ListNode<{}>", cell[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label());
         return;
     } else if (isA(w.std.List)) {
         if (&cell == &w.std.List) {
@@ -624,8 +624,8 @@ void CellValuePrinter::printImpl(CellI& cell)
     if (is(w.std.Slot)) {
         CellI& cellType = cell[w.id.type];
         m_ss << cell[w.id.key].label() << ": ";
-        if (cellType.__type__().has(w.id.memberOf) && cellType.__type__()[w.id.memberOf][w.id.index].has(w.std.ListItem)) {
-            m_ss << "ListItem<" << cellType.__type__()[w.id.slots][w.id.index][w.id.value][w.id.value][w.id.type].label() << ">";
+        if (cellType.__type__().has(w.id.memberOf) && cellType.__type__()[w.id.memberOf][w.id.index].has(w.std.ListNode)) {
+            m_ss << "ListNode<" << cellType.__type__()[w.id.slots][w.id.index][w.id.value][w.id.value][w.id.type].label() << ">";
         } else {
             m_ss << cellType.label();
         }

@@ -587,11 +587,11 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
 
             CellI* toDelete = subpToolItemPtr;
             subpToolItemPtr = (*subpToolItemPtr).has(w.id.next) ? &(*subpToolItemPtr)[w.id.next] : nullptr;
-            subTools.remove((List::Item*)toDelete);
+            subTools.remove((List::Node*)toDelete);
         }
         CellI* toDelete = toCreateItemPtr;
         toCreateItemPtr = (*toCreateItemPtr).has(w.id.next) ? &(*toCreateItemPtr)[w.id.next] : nullptr;
-        toCreate.remove((List::Item*)toDelete);
+        toCreate.remove((List::Node*)toDelete);
     }
 }
 
