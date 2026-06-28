@@ -94,5 +94,11 @@ CellI& Library::getVariable(CellI& name)
 {
     return variables().getValue(name);
 }
+
+ToolFinder& Library::toolFinder()
+{
+    return *m_toolFinderPtr;
+}
+
 } // namespace cells
 } // namespace infocell

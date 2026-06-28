@@ -45,7 +45,6 @@ protected:
 
     Ast::Base& resolveType(CellI& typeAst);
     CellI& getCompiledTypeFromResolvedType(CellI& ast);
-    CellI& getResolvedTypeById(CellI& id, bool isInstance);
     CellI& getOrCreateStructReference(CellI& structId, TrieMap& unresolvedContainer, std::function<CellI&(CellI& structReference)> unknownCb);
     CellI& resolveStructName(CellI& name, CellI& fullyQualifiedName);
     CellI& resolveTemplateInstanceId(CellI& name, CellI& fullyQualifiedName, CellI& idScope, CellI& ast, CellI& templateParams);
@@ -65,8 +64,8 @@ protected:
     Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, Map* associatedTypesPtr = nullptr);
 
     void compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
-    CellI& compileStruct(Ast::Struct& __type__);
-    CellI& compileEnum(Ast::Enum& enum_);
+    void compileStruct(Ast::Struct& __type__);
+    void compileEnum(Ast::Enum& enum_);
     CellI& compileFunction(Ast::Function& function);
     void compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction);
     std::string shortFunctionName(Ast::Function& function);

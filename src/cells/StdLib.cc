@@ -643,6 +643,7 @@ void StdLibAst::createAst()
     astScope.add<Struct>("Enum")
         .members(
             member("name", "std::Cell"),
+            member("compiledStruct", "std::op::Base"),
             member("fullyQualifiedName", "std::Cell"),
             member("scope", "Scope"),
             member("values", "TrieMap"));

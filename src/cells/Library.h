@@ -5,6 +5,7 @@
 namespace infocell {
 namespace cells {
 
+class ToolFinder;
 class World;
 class Library : public Object
 {
@@ -26,6 +27,10 @@ public:
     CellI& getStruct(CellI& name);
     CellI& getVariable(const std::string& nameStr);
     CellI& getVariable(CellI& name);
+
+    ToolFinder& toolFinder();
+
+    ToolFinder* m_toolFinderPtr = nullptr;
 };
 
 } // namespace cells
