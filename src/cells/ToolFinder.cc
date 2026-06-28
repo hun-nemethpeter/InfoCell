@@ -51,7 +51,7 @@ CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[w.id.value];
-        CellI& key     = slot[w.id.key];
+        CellI& key      = slot[w.id.key];
         CellI& current  = *currentPtr;
 
         if (first) {
@@ -157,7 +157,7 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
     auto& effects = tool[w.id.description][w.id.asts];
     if (tool.has(w.id.returnType)) {
         // so this can be a conversion tool
-        CellI& returnType = tool[w.id.returnType][w.id.value];
+        CellI& returnType     = tool[w.id.returnType][w.id.value];
         CellI& toolInputSlots = compiledToolType[w.id.slots][w.id.list];
         Visitor::visitList(toolInputSlots, [this, &tool, &compiledToolType, &returnType](CellI& slot, int i, bool& stop) {
             CellI& inputType = slot[w.id.type];
@@ -186,7 +186,6 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
             ss << ": " << returnType.label();
         }
         TRACE(toolFinder, "{} =>", ss.str());
-
     }
     Visitor::visitList(effects, [this, &tool, &compiledToolType](CellI& effect, int i, bool& stop) {
         add(effect, tool, compiledToolType);
@@ -213,7 +212,7 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[w.id.value];
-        CellI& key     = slot[w.id.key];
+        CellI& key      = slot[w.id.key];
         CellI& current  = *currentPtr;
 
         if (first) {
@@ -300,7 +299,7 @@ CellI* ToolFinder::processToolAst(CellI& toolAst, Map& memberIds, CellI& compile
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& slot     = slotItem[w.id.value];
-        CellI& key     = slot[w.id.key];
+        CellI& key      = slot[w.id.key];
 
         if (first) {
             first = false;
@@ -452,8 +451,7 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
 
     do {
         findContext.toolKind = ToolKind::Statement;
-        while (findContext.slotItemPtr)
-        {
+        while (findContext.slotItemPtr) {
             CellI& key = (*findContext.slotItemPtr)[w.id.value][w.id.key];
             if (findContext.slotKind == SlotKind::StructSlot && !checkValue(findContext, w.id.__type__, (*findContext.effectAstPtr).__type__())) {
                 return nullptr;
@@ -496,7 +494,7 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
 {
     auto& ListOfCellStruct = w.getStruct(w.templateId("std::List", w.id.valueType, w.std.Cell));
 
-    World& w        = this->w;
+    World& w                = this->w;
     List& toCreate          = *new List(w, w.std.Cell);
     Index& toCreateItemRoot = *new Index(w);
     toCreateItemRoot.set(w.id.ast, inputAst);
@@ -536,7 +534,7 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
 
                 slotItemPtr = &nextSlotItem;
             } else if (&key.__type__() == &w.std.ast.Cell) {
-                CellI& unwrappedKey         = key[w.id.value];
+                CellI& unwrappedKey = key[w.id.value];
                 CellI& nextSlotItem = (*slotItemPtr)[w.id.next];
                 CellI& valueCell    = nextSlotItem[w.id.value];
                 CellI* valuePtr     = nullptr;
@@ -744,25 +742,6 @@ CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
     }
     std::cout << "";
 #if 0
-Add(lhs: Number, rhs: Number): Number
-And(lhs: Boolean, rhs: Boolean): Boolean
-Divide(lhs: Number, rhs: Number): Number
-Equal(lhs: ast::Base, rhs: ast::Base): Boolean
-Get(cell: ast::Base, key: ast::Base): ast::Base
-GreaterThan(lhs: Number, rhs: Number): Boolean
-GreaterThanOrEqual(lhs: Number, rhs: Number): Boolean
-Has(cell: ast::Base, key: ast::Base): Boolean
-LessThan(lhs: Number, rhs: Number): Boolean
-LessThanOrEqual(lhs: Number, rhs: Number): Boolean
-Missing(cell: ast::Base, key: ast::Base): Boolean
-Multiply(lhs: Number, rhs: Number): Number
-Not(input: Boolean): Boolean
-NotEqual(lhs: ast::Base, rhs: ast::Base): Boolean
-NotSame(lhs: ast::Base, rhs: ast::Base): Boolean
-Or(lhs: Boolean, rhs: Boolean): Boolean
-Same(lhs: ast::Base, rhs: ast::Base): Boolean
-Subtract(lhs: Number, rhs: Number): Number
-
 2 -> 4
 Number -> Number
 

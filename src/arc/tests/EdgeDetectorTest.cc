@@ -944,8 +944,9 @@ class GridPairTest : public TestBase
 {
 public:
     GridPairTest() :
-        m_input(getWorld()),
-        m_output(getWorld())
+        w(getWorld()),
+        m_input(w),
+        m_output(w)
     {
     }
 
@@ -955,8 +956,14 @@ public:
         m_output.detect(outputJsonStr);
         cells::arc::ShapeField& inputShapeField = m_input.createResult();
         cells::arc::ShapeField& outputShapeField = m_output.createResult();
+
+        ToolFinder& toolFinder = w.arcLib().toolFinder();
+        toolFinder.findConversionTools(w._2_, w._4_);
+        toolFinder.findConversionTools(w.false_, w.true_);
+        toolFinder.findConversionTools(inputShapeField, outputShapeField);
     }
 
+    World& w;
     arc::EdgeDetector m_input;
     arc::EdgeDetector m_output;
 };

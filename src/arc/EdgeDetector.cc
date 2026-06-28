@@ -1846,11 +1846,6 @@ hybridarc::ShapeField& EdgeDetector::createResult()
     });
 
     return shapeField;
-#if 0
-    ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
-    toolFinder.findConversionTools(w._2_, w._4_);
-    toolFinder.findConversionTools(w.false_, w.true_);
-#endif
 
 #if 0
 ┌──┬──┬──┬──┐
@@ -1902,19 +1897,6 @@ for (; first != last; ++first) {
     }
 }
 return d_first;
-
-var_("iterator") = p_("lhsFrame")("iterator"),
-if_(same(var_("iterator")("isContainerEmpty"), false_())
-    .then(block(
-        var_("iterator")("goToFirstNode"),
-        do_(block(
-            var_("shape") = var_("iterator")("getCurrentNodeValue"),
-            if_(p_("rhsFrame")("hasShape")("shape", *var_("shape"))),
-            if_(same(var_("iterator")("hasNextNode"), true_()))
-                .then_(var_("iterator")("goToNextNode"))
-                .else_(break_())))
-       .while_(true())))
-
 
 for_("shape").in(p_("lhsFrame"))
     (block(
