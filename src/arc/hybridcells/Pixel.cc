@@ -93,11 +93,6 @@ CellI& Pixel::operator[](CellI& key)
     throw "No such key!";
 }
 
-void Pixel::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 const int Pixel::color() const
 {
     CellI& tagValue = m_arcColor["tag"];

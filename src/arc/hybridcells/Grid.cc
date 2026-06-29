@@ -103,11 +103,6 @@ CellI& Grid::operator[](CellI& key)
     throw "No such key!";
 }
 
-void Grid::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 Pixel& Grid::getPixel(int x, int y)
 {
     return m_pixels[currentIndex(x, y)];

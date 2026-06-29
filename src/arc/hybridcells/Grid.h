@@ -19,7 +19,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     Pixel& getPixel(int x, int y);
     const Pixel& getPixel(int x, int y) const;

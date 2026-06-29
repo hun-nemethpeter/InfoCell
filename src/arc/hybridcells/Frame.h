@@ -19,7 +19,6 @@ public:
     void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
 
 protected:
     void processInputPixels();

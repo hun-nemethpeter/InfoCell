@@ -63,11 +63,6 @@ CellI& ShapeField::operator[](CellI& key)
     throw "No such key!";
 }
 
-void ShapeField::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 // getShape(pos) == shape
 void ShapeField::addShape(Vector& offset, Shape& shape)
 {

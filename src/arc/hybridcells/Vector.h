@@ -16,7 +16,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     Number& m_x;
     Number& m_y;

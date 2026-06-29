@@ -23,26 +23,24 @@ PrintAs::~PrintAs()
 
 void PrintAs::value(CellI& cell, const std::string& label)
 {
-    CellValuePrinter valuePrinter;
-    cell.accept(valuePrinter);
+    CellValuePrinter valuePrinter(cell.w);
 
     if (!label.empty()) {
         std::cout << label << ": ";
     }
 
-    std::cout << valuePrinter.print() << std::endl;
+    std::cout << valuePrinter.print(cell) << std::endl;
 }
 
 void PrintAs::cell(CellI& cell, const std::string& label)
 {
-    CellStructPrinter structPrinter;
-    cell.accept(structPrinter);
+    CellStructPrinter structPrinter(cell.w);
 
     if (!label.empty()) {
         std::cout << label << ": ";
     }
 
-    std::cout << structPrinter.print() << std::endl;
+    std::cout << structPrinter.print(cell) << std::endl;
 }
 
 CellTestStaticData::CellTestStaticData(World& w) :

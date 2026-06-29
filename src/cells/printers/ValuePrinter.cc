@@ -6,55 +6,15 @@
 namespace infocell {
 namespace cells {
 
-void CellValuePrinter::visit(CellI& cell)
-{
-    printImpl(cell);
-}
 
-void CellValuePrinter::visit(Object& object)
+CellValuePrinter::CellValuePrinter(World& w) :
+    NodeBase(w)
 {
-    printImpl(object);
-}
-
-void CellValuePrinter::visit(List::Node& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(List& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Struct& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Index& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Map& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(TrieMap& cell)
-{
-    printImpl(cell);
-}
-
-void CellValuePrinter::visit(Set& cell)
-{
-    printImpl(cell);
 }
 
 void CellValuePrinter::printOpBlock(CellI& cell)
 {
-    World& w = cell.w;
-    CellI& ast       = cell[w.id.ast];
+    CellI& ast = cell[w.id.ast];
     if (&ast.__type__() == &w.std.ast.Call || &ast.__type__() == &w.std.ast.StaticCall) {
         if (&ast[w.id.cell].__type__() == &w.std.ast.Get && cell.label() != "New { call constructor; }") {
             printImpl(ast[w.id.cell]);
@@ -83,7 +43,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                 m_ss << "(";
                 if (cell.has(w.id.parameters)) {
                     int paramNum = 0;
-                    Visitor::visitList(cell[w.id.parameters], [this, &w, &paramNum](CellI& parameter, int, bool& stop) {
+                    Visitor::visitList(cell[w.id.parameters], [this, &paramNum](CellI& parameter, int, bool& stop) {
                         if (paramNum++ > 0) {
                             m_ss << ", ";
                         }
@@ -142,7 +102,6 @@ void CellValuePrinter::printOpBlock(CellI& cell)
 
 void CellValuePrinter::printOpActivate(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "activate (";
     printImpl(cell[w.id.cell]);
     m_ss << ")";
@@ -150,13 +109,12 @@ void CellValuePrinter::printOpActivate(CellI& cell)
 
 void CellValuePrinter::printOpFunction(CellI& cell)
 {
-    World& w = cell.w;
     std::stringstream iss;
     std::stringstream oss;
 
     if (cell.has(w.id.parameters)) {
         CellI& parametersList = cell[w.id.parameters][w.id.list];
-        Visitor::visitList(parametersList, [this, &iss, &w](CellI& slot, int i, bool& stop) {
+        Visitor::visitList(parametersList, [this, &iss](CellI& slot, int i, bool& stop) {
             if (i > 0) {
                 iss << ", ";
             }
@@ -195,8 +153,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
 
 void CellValuePrinter::printOpCall(CellI& cell)
 {
-    World& w = cell.w;
-    CellI& ast       = cell[w.id.ast];
+    CellI& ast = cell[w.id.ast];
 
     if (&ast[w.id.cell].__type__() == &w.std.ast.Get && cell.label() != "New { call constructor; }") {
         printImpl(ast[w.id.cell]);
@@ -222,7 +179,7 @@ void CellValuePrinter::printOpCall(CellI& cell)
     m_ss << "(";
     if (cell.has(w.id.parameters)) {
         int paramNum = 0;
-        Visitor::visitList(cell[w.id.parameters], [this, &w, &paramNum](CellI& parameter, int, bool& stop) {
+        Visitor::visitList(cell[w.id.parameters], [this, &paramNum](CellI& parameter, int, bool& stop) {
             if (paramNum++ > 0) {
                 m_ss << ", ";
             }
@@ -238,7 +195,6 @@ void CellValuePrinter::printOpCall(CellI& cell)
 
 void CellValuePrinter::printOpDelete(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "delete (";
     printImpl(cell[w.id.input]);
     m_ss << ")";
@@ -246,7 +202,6 @@ void CellValuePrinter::printOpDelete(CellI& cell)
 
 void CellValuePrinter::printOpSet(CellI& cell)
 {
-    World& w = cell.w;
     if ((&cell[w.id.ast][w.id.cell].__type__() == &w.std.ast.Self) && (&cell[w.id.ast][w.id.key].__type__() == &w.std.ast.Cell)) {
         m_ss << "m_";
     } else {
@@ -260,7 +215,6 @@ void CellValuePrinter::printOpSet(CellI& cell)
 
 void CellValuePrinter::printOpErase(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.cell]);
     m_ss << ".erase(";
     printImpl(cell[w.id.key]);
@@ -269,9 +223,7 @@ void CellValuePrinter::printOpErase(CellI& cell)
 
 void CellValuePrinter::printOpIf(CellI& cell)
 {
-    World& w = cell.w;
-
-    auto isBlock = [this, &w, &cell](CellI& ast) -> bool {
+    auto isBlock = [this, &cell](CellI& ast) -> bool {
         if (&ast.__type__() == &w.std.op.Block) {
             auto& astType = ast[w.id.ast].__type__();
             if (&astType == &w.std.ast.Call || &astType == &w.std.ast.StaticCall || &astType == &w.std.ast.New) {
@@ -314,7 +266,6 @@ void CellValuePrinter::printOpIf(CellI& cell)
 
 void CellValuePrinter::printOpDo(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "do ";
     printImpl(cell[w.id.statement]);
     m_ss << " (";
@@ -324,7 +275,6 @@ void CellValuePrinter::printOpDo(CellI& cell)
 
 void CellValuePrinter::printOpWhile(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "while (";
     printImpl(cell[w.id.condition]);
     m_ss << ") ";
@@ -333,7 +283,6 @@ void CellValuePrinter::printOpWhile(CellI& cell)
 
 void CellValuePrinter::printOpConstVar(CellI& cell)
 {
-    World& w = cell.w;
     if (cell.has(w.id.ast)) {
         CellI& ast = cell[w.id.ast];
         if (&ast.__type__() == &w.std.ast.Cell) {
@@ -354,20 +303,17 @@ void CellValuePrinter::printOpConstVar(CellI& cell)
 
 void CellValuePrinter::printOpVar(CellI& cell)
 {
-    World& w = cell.w;
     cell.label().empty() ? (m_ss << "<empty>") : (m_ss << cell.label());
 }
 
 void CellValuePrinter::printOpNew(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "new ";
     printImpl(cell[w.id.objectType]);
 }
 
 void CellValuePrinter::printOpSame(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " is ";
     printImpl(cell[w.id.rhs]);
@@ -375,7 +321,6 @@ void CellValuePrinter::printOpSame(CellI& cell)
 
 void CellValuePrinter::printOpNotSame(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " is not ";
     printImpl(cell[w.id.rhs]);
@@ -383,7 +328,6 @@ void CellValuePrinter::printOpNotSame(CellI& cell)
 
 void CellValuePrinter::printOpEqual(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " == ";
     printImpl(cell[w.id.rhs]);
@@ -391,7 +335,6 @@ void CellValuePrinter::printOpEqual(CellI& cell)
 
 void CellValuePrinter::printOpNotEqual(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " != ";
     printImpl(cell[w.id.rhs]);
@@ -399,7 +342,6 @@ void CellValuePrinter::printOpNotEqual(CellI& cell)
 
 void CellValuePrinter::printOpHas(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.cell]);
     m_ss << " has ";
     printImpl(cell[w.id.key]);
@@ -407,7 +349,6 @@ void CellValuePrinter::printOpHas(CellI& cell)
 
 void CellValuePrinter::printOpMissing(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.cell]);
     m_ss << " missing ";
     printImpl(cell[w.id.key]);
@@ -415,7 +356,6 @@ void CellValuePrinter::printOpMissing(CellI& cell)
 
 void CellValuePrinter::printOpGet(CellI& cell)
 {
-    World& w = cell.w;
     if (&cell[w.id.ast].__type__() == &w.std.ast.Member) {
         m_ss << "m_" << cell[w.id.ast][w.id.key].label();
         return;
@@ -439,7 +379,6 @@ void CellValuePrinter::printOpGet(CellI& cell)
 
 void CellValuePrinter::printOpAnd(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " and ";
     printImpl(cell[w.id.rhs]);
@@ -447,7 +386,6 @@ void CellValuePrinter::printOpAnd(CellI& cell)
 
 void CellValuePrinter::printOpOr(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " or ";
     printImpl(cell[w.id.rhs]);
@@ -455,7 +393,6 @@ void CellValuePrinter::printOpOr(CellI& cell)
 
 void CellValuePrinter::printOpNot(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "not(";
     printImpl(cell[w.id.input]);
     m_ss << ")";
@@ -463,7 +400,6 @@ void CellValuePrinter::printOpNot(CellI& cell)
 
 void CellValuePrinter::printOpAdd(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " + ";
     printImpl(cell[w.id.rhs]);
@@ -471,7 +407,6 @@ void CellValuePrinter::printOpAdd(CellI& cell)
 
 void CellValuePrinter::printOpSubtract(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " - ";
     printImpl(cell[w.id.rhs]);
@@ -479,7 +414,6 @@ void CellValuePrinter::printOpSubtract(CellI& cell)
 
 void CellValuePrinter::printOpMultiply(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " * ";
     printImpl(cell[w.id.rhs]);
@@ -487,7 +421,6 @@ void CellValuePrinter::printOpMultiply(CellI& cell)
 
 void CellValuePrinter::printOpDivide(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " / ";
     printImpl(cell[w.id.rhs]);
@@ -495,7 +428,6 @@ void CellValuePrinter::printOpDivide(CellI& cell)
 
 void CellValuePrinter::printOpLessThan(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " < ";
     printImpl(cell[w.id.rhs]);
@@ -503,7 +435,6 @@ void CellValuePrinter::printOpLessThan(CellI& cell)
 
 void CellValuePrinter::printOpLessThanOrEqual(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " <= ";
     printImpl(cell[w.id.rhs]);
@@ -511,7 +442,6 @@ void CellValuePrinter::printOpLessThanOrEqual(CellI& cell)
 
 void CellValuePrinter::printOpGreaterThan(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " > ";
     printImpl(cell[w.id.rhs]);
@@ -519,7 +449,6 @@ void CellValuePrinter::printOpGreaterThan(CellI& cell)
 
 void CellValuePrinter::printOpGreaterThanOrEqual(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " >= ";
     printImpl(cell[w.id.rhs]);
@@ -527,13 +456,11 @@ void CellValuePrinter::printOpGreaterThanOrEqual(CellI& cell)
 
 void CellValuePrinter::printAstCell(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << cell[w.id.value].label();
 }
 
 void CellValuePrinter::printAstGet(CellI& cell)
 {
-    World& w = cell.w;
     if (&cell.__type__() == &w.std.ast.Member) {
         m_ss << "m_" << cell[w.id.ast][w.id.key].label();
         return;
@@ -557,25 +484,21 @@ void CellValuePrinter::printAstGet(CellI& cell)
 
 void CellValuePrinter::printAstParameter(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "p_" << cell[w.id.key].label();
 }
 
 void CellValuePrinter::printAstVar(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "var_" << cell[w.id.name].label();
 }
 
 void CellValuePrinter::printAstMember(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "m_" << cell[w.id.key].label();
 }
 
 void CellValuePrinter::printAstSubtract(CellI& cell)
 {
-    World& w = cell.w;
     printImpl(cell[w.id.lhs]);
     m_ss << " - ";
     printImpl(cell[w.id.rhs]);
@@ -583,7 +506,6 @@ void CellValuePrinter::printAstSubtract(CellI& cell)
 
 void CellValuePrinter::printOpReturn(CellI& cell)
 {
-    World& w = cell.w;
     m_ss << "return";
     if (cell.has(w.id.result)) {
         m_ss << " ";
@@ -593,35 +515,15 @@ void CellValuePrinter::printOpReturn(CellI& cell)
 
 void CellValuePrinter::printTypeName(CellI& cell)
 {
-    World& w = cell.w;
-    auto isA          = [this, &cell, &w](CellI& type) -> bool { return &cell == &type || (cell.has(w.id.memberOf) && cell[w.id.memberOf][w.id.index].has(type)); };
-    if (isA(w.std.Map)) {
-        m_ss << fmt::format("Map<{}, {}>", cell[w.id.typeAliases][w.id.index][w.id.keyType][w.id.value].label(), cell[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label());
-        return;
-    } else if (isA(w.std.ListNode)) {
-        if (&cell == &w.std.ListNode) {
-            m_ss << "ListNode";
-            return;
-        }
-        m_ss << fmt::format("ListNode<{}>", cell[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label());
-        return;
-    } else if (isA(w.std.List)) {
-        if (&cell == &w.std.List) {
-            m_ss << "List";
-            return;
-        }
-        m_ss << fmt::format("List<{}>", cell[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value].label());
-        return;
-    }
     m_ss << cell.label();
 }
 
 void CellValuePrinter::printImpl(CellI& cell)
 {
-    World& w = cell.w;
-    auto is          = [this, &cell, &w](CellI& type) -> bool { return &cell.__type__() == &type || (cell.__type__().has(w.id.memberOf) && cell.__type__()[w.id.memberOf][w.id.index].has(type)); };
-
-    if (is(w.std.Slot)) {
+    if (cell.isA(w.std.Number)) {
+        m_ss << cell.label();
+        return;
+    } else if (cell.isA(w.std.Slot)) {
         CellI& cellType = cell[w.id.type];
         m_ss << cell[w.id.key].label() << ": ";
         if (cellType.__type__().has(w.id.memberOf) && cellType.__type__()[w.id.memberOf][w.id.index].has(w.std.ListNode)) {
@@ -630,45 +532,45 @@ void CellValuePrinter::printImpl(CellI& cell)
             m_ss << cellType.label();
         }
         return;
-    } else if (is(w.std.List)) {
+    } else if (cell.isA(w.std.List)) {
         if (&cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value] == &w.std.Char) {
             m_ss << cell.label();
             return;
         }
         printTypeName(cell.__type__());
         m_ss << "[";
-        visitList(cell, [this](CellI& value, int i, bool&) {
+        Visitor::visitList(cell, [this](CellI& value, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }
-            value.accept(*this);
+            printImpl(value);
         });
         m_ss << "]";
         return;
-    } else if (is(w.std.Map)) {
+    } else if (cell.isA(w.std.Map)) {
         if (!cell.has(w.id.list)) {
             m_ss << "{}";
             return;
         }
         printTypeName(cell.__type__());
         m_ss << "{";
-        visitList(cell[w.id.index][w.id.__type__][w.id.slots][w.id.list], [this, &w, &cell](CellI& value, int i, bool&) {
+        Visitor::visitList(cell[w.id.index].slotList(), [this, &cell](CellI& value, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }
-            value[w.id.key].accept(*this);
+            printImpl(value[w.id.key]);
             m_ss << ": {";
-            cell[w.id.index][value[w.id.key]][w.id.value].accept(*this);
+            printImpl(cell[w.id.index][value[w.id.key]][w.id.value]);
             m_ss << "}";
         });
         m_ss << "}";
         return;
-    } else if (is(w.std.Struct)) {
+    } else if (cell.isA(w.std.Struct)) {
         CellI& type = cell;
         m_ss << "Type ";
         printTypeName(cell);
         if (type.has(w.id.memberOf)) {
-            visitList(type[w.id.memberOf][w.id.list], [this, &w](CellI& member, int i, bool&) {
+            Visitor::visitList(type[w.id.memberOf][w.id.list], [this](CellI& member, int i, bool&) {
                 if (i != 0) {
                     m_ss << ", ";
                 } else {
@@ -679,7 +581,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         m_ss << " { ";
         if (type.has(w.id.slots)) {
-            visitList(type[w.id.slots][w.id.list], [this, &w](CellI& slot, int i, bool&) {
+            Visitor::visitList(type[w.id.slots][w.id.list], [this](CellI& slot, int i, bool&) {
                 if (i != 0) {
                     m_ss << ", ";
                 }
@@ -692,118 +594,118 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (&cell == &w.id.red || &cell == &w.id.green || &cell == &w.id.blue) {
         m_ss << cell.label();
         return;
-    } else if (is(w.std.op.Block)) {
+    } else if (cell.isA(w.std.op.Block)) {
         printOpBlock(cell);
         return;
-    } else if (is(w.std.op.Activate)) {
+    } else if (cell.isA(w.std.op.Activate)) {
         printOpActivate(cell);
         return;
-    } else if (is(w.std.op.Function)) {
+    } else if (cell.isA(w.std.op.Function)) {
         printOpFunction(cell);
         return;
-    } else if (is(w.std.op.Call)) {
+    } else if (cell.isA(w.std.op.Call)) {
         printOpCall(cell);
         return;
-    } else if (is(w.std.op.Delete)) {
+    } else if (cell.isA(w.std.op.Delete)) {
         printOpDelete(cell);
         return;
-    } else if (is(w.std.op.Set)) {
+    } else if (cell.isA(w.std.op.Set)) {
         printOpSet(cell);
         return;
-    } else if (is(w.std.op.Erase)) {
+    } else if (cell.isA(w.std.op.Erase)) {
         printOpErase(cell);
         return;
-    } else if (is(w.std.op.If)) {
+    } else if (cell.isA(w.std.op.If)) {
         printOpIf(cell);
         return;
-    } else if (is(w.std.op.Do)) {
+    } else if (cell.isA(w.std.op.Do)) {
         printOpDo(cell);
         return;
-    } else if (is(w.std.op.While)) {
+    } else if (cell.isA(w.std.op.While)) {
         printOpWhile(cell);
         return;
-    } else if (is(w.std.op.ConstVar)) {
+    } else if (cell.isA(w.std.op.ConstVar)) {
         printOpConstVar(cell);
         return;
-    } else if (is(w.std.op.Var)) {
+    } else if (cell.isA(w.std.op.Var)) {
         printOpVar(cell);
         return;
-    } else if (is(w.std.op.New)) {
+    } else if (cell.isA(w.std.op.New)) {
         printOpNew(cell);
         return;
-    } else if (is(w.std.op.Same)) {
+    } else if (cell.isA(w.std.op.Same)) {
         printOpSame(cell);
         return;
-    } else if (is(w.std.op.NotSame)) {
+    } else if (cell.isA(w.std.op.NotSame)) {
         printOpNotSame(cell);
         return;
-    } else if (is(w.std.op.Equal)) {
+    } else if (cell.isA(w.std.op.Equal)) {
         printOpEqual(cell);
         return;
-    } else if (is(w.std.op.NotEqual)) {
+    } else if (cell.isA(w.std.op.NotEqual)) {
         printOpNotEqual(cell);
         return;
-    } else if (is(w.std.op.Has)) {
+    } else if (cell.isA(w.std.op.Has)) {
         printOpHas(cell);
         return;
-    } else if (is(w.std.op.Missing)) {
+    } else if (cell.isA(w.std.op.Missing)) {
         printOpMissing(cell);
         return;
-    } else if (is(w.std.op.Get)) {
+    } else if (cell.isA(w.std.op.Get)) {
         printOpGet(cell);
         return;
-    } else if (is(w.std.op.And)) {
+    } else if (cell.isA(w.std.op.And)) {
         printOpAnd(cell);
         return;
-    } else if (is(w.std.op.Or)) {
+    } else if (cell.isA(w.std.op.Or)) {
         printOpOr(cell);
         return;
-    } else if (is(w.std.op.Not)) {
+    } else if (cell.isA(w.std.op.Not)) {
         printOpNot(cell);
         return;
-    } else if (is(w.std.op.Add)) {
+    } else if (cell.isA(w.std.op.Add)) {
         printOpAdd(cell);
         return;
-    } else if (is(w.std.op.Subtract)) {
+    } else if (cell.isA(w.std.op.Subtract)) {
         printOpSubtract(cell);
         return;
-    } else if (is(w.std.op.Multiply)) {
+    } else if (cell.isA(w.std.op.Multiply)) {
         printOpMultiply(cell);
         return;
-    } else if (is(w.std.op.Divide)) {
+    } else if (cell.isA(w.std.op.Divide)) {
         printOpDivide(cell);
         return;
-    } else if (is(w.std.op.LessThan)) {
+    } else if (cell.isA(w.std.op.LessThan)) {
         printOpLessThan(cell);
         return;
-    } else if (is(w.std.op.LessThanOrEqual)) {
+    } else if (cell.isA(w.std.op.LessThanOrEqual)) {
         printOpLessThanOrEqual(cell);
         return;
-    } else if (is(w.std.op.GreaterThan)) {
+    } else if (cell.isA(w.std.op.GreaterThan)) {
         printOpGreaterThan(cell);
         return;
-    } else if (is(w.std.op.GreaterThanOrEqual)) {
+    } else if (cell.isA(w.std.op.GreaterThanOrEqual)) {
         printOpGreaterThanOrEqual(cell);
         return;
-    } else if (is(w.std.op.Return)) {
+    } else if (cell.isA(w.std.op.Return)) {
         printOpReturn(cell);
         return;
-    } else if (is(w.std.ast.Cell)) {
+    } else if (cell.isA(w.std.ast.Cell)) {
         printAstCell(cell);
         return;
-    } else if (is(w.std.ast.Get)) {
+    } else if (cell.isA(w.std.ast.Get)) {
         printAstGet(cell);
         return;
-    } else if (is(w.std.ast.Parameter)) {
+    } else if (cell.isA(w.std.ast.Parameter)) {
         printAstParameter(cell);
         return;
-    } else if (is(w.std.ast.Var)) {
+    } else if (cell.isA(w.std.ast.Var)) {
         printAstVar(cell);
         return;
-    } else if (is(w.std.ast.Member)) {
+    } else if (cell.isA(w.std.ast.Member)) {
         printAstMember(cell);
         return;
-    } else if (is(w.std.ast.Subtract)) {
+    } else if (cell.isA(w.std.ast.Subtract)) {
         printAstSubtract(cell);
         return;
     }
@@ -814,26 +716,16 @@ void CellValuePrinter::printImpl(CellI& cell)
     m_ss << cell.__type__().label() << " { ";
 
     if (cell.__type__().has(w.id.slots)) {
-        visitList(cell.slotList(), [this, &w](CellI& slot, int i, bool&) {
+        Visitor::visitList(cell.slotList(), [this](CellI& slot, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }
             m_ss << ".";
-            slot.accept(*this);
+            printImpl(slot);
         });
     }
 
     m_ss << " }";
-}
-
-void CellValuePrinter::visit(Number& cell)
-{
-    m_ss << cell.value();
-}
-
-void CellValuePrinter::visit(String& cell)
-{
-    m_ss << "(String) \"" << cell.value() << "\"";
 }
 
 #if 0 // TODO
@@ -862,9 +754,10 @@ void CellValuePrinter::printIndent()
     }
 }
 
-std::string CellValuePrinter::print() const
+std::string CellValuePrinter::print(CellI& cell)
 {
     m_indent = 0;
+    printImpl(cell);
     return m_ss.str();
 }
 

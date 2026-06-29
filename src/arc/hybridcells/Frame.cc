@@ -165,11 +165,6 @@ void Frame::operator()()
     // Do nothing
 }
 
-void Frame::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 void Frame::process()
 {
     const int height = m_height.value();

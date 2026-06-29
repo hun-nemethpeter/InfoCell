@@ -58,11 +58,6 @@ CellI& Vector::operator[](CellI& key)
     throw "No such key!";
 }
 
-void Vector::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 } // namespace arc
 } // namespace cells
 } // namespace infocell

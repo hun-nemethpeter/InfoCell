@@ -104,12 +104,7 @@ void CellI::label(const std::string& label)
 
 bool CellI::isA(CellI& ptype)
 {
-    return &__type__() == &ptype || (has(w.id.memberOf) && (*this)[w.id.memberOf][w.id.index].has(ptype));
-}
-
-bool CellI::isA(CellI& cell, CellI& type) const
-{
-    return &cell == &type || (cell.has(w.id.memberOf) && cell[w.id.memberOf][w.id.index].has(type));
+    return &__type__() == &ptype || (__type__().has(w.id.memberOf) && __type__()[w.id.memberOf][w.id.index].has(ptype));
 }
 
 bool CellI::operator==(CellI& rhs)
@@ -1593,11 +1588,6 @@ CellI& Object::operator[](CellI& key)
     return *findIt->second;
 }
 
-void Object::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 void Object::destructor()
 {
     getMethod(w.id.destructor)();
@@ -1872,6 +1862,10 @@ void List::Node::operator()()
 CellI& List::Node::operator[](CellI& key)
 {
     if (&key == &w.id.__type__) {
+        if (w.initPhase() != InitPhase::FullyConstructed) {
+            // we give back a generic List before compilation
+            return w.std.List;
+        }
         if (!m_selfType) {
             m_selfType = &w.getStruct(w.templateId("std::ListNode", w.id.valueType, m_list.m_valueType));
         }
@@ -1894,11 +1888,6 @@ CellI& List::Node::operator[](CellI& key)
     }
 
     throw "No such key!";
-}
-
-void List::Node::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
 }
 #pragma endregion
 #pragma region List
@@ -1960,11 +1949,6 @@ CellI& List::operator[](CellI& key)
     }
 
     throw "No such key!";
-}
-
-void List::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
 }
 
 List::Node* List::add(CellI& value)
@@ -2144,11 +2128,6 @@ void Struct::removeSlot(CellI& key)
 {
     m_slots.remove(key);
 }
-
-void Struct::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
 #pragma endregion
 #pragma region Index
 // ============================================================================
@@ -2235,11 +2214,6 @@ bool Index::empty() const
 int Index::size()
 {
     return (int)m_slots.size();
-}
-
-void Index::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
 }
 #pragma endregion
 #pragma region Map
@@ -2362,11 +2336,6 @@ int Map::size()
 {
     return m_size;
 }
-
-void Map::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
 #pragma endregion
 #pragma region TrieMap
 // ============================================================================
@@ -2433,13 +2402,10 @@ CellI& TrieMap::operator[](CellI& key)
     throw "No such key!";
 }
 
+// assuming key is a List
 bool TrieMap::hasKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
-
-    if (isA(key, w.std.List)) {
-        throw "Key is not a list!";
-    }
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* children = nullptr;
@@ -2466,12 +2432,9 @@ bool TrieMap::hasKey(CellI& key)
     return true;
 }
 
+// assuming key is a List
 CellI& TrieMap::getValue(CellI& key)
 {
-    if (isA(key, w.std.List)) {
-        throw "Key is not a list!";
-    }
-
     CellI* currentNode = &m_rootNode;
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
@@ -2499,6 +2462,7 @@ CellI& TrieMap::getValue(CellI& key)
     return (*currentNode)[w.id.data][w.id.value][w.id.value];
 }
 
+// key can be anything we itarate over the members
 bool TrieMap::hasValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
@@ -2529,6 +2493,7 @@ bool TrieMap::hasValueWithDataKey(CellI& key)
     return true;
 }
 
+// key can be anything we itarate over the members
 CellI& TrieMap::getValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
@@ -2559,6 +2524,7 @@ CellI& TrieMap::getValueWithDataKey(CellI& key)
     return (*currentNode)[w.id.data][w.id.value][w.id.value];
 }
 
+// key can be anything we itarate over the members
 void TrieMap::addWithDataKey(CellI& key, CellI& value)
 {
     CellI* currentNode = &m_rootNode;
@@ -2585,12 +2551,9 @@ void TrieMap::addWithDataKey(CellI& key, CellI& value)
     ++m_size;
 }
 
+// assuming key is a List
 void TrieMap::add(CellI& key, CellI& value)
 {
-    if (isA(key, w.std.List)) {
-        throw "Key is not a list!";
-    }
-
     CellI* currentNode = &m_rootNode;
 
     Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
@@ -2614,12 +2577,9 @@ void TrieMap::add(CellI& key, CellI& value)
     ++m_size;
 }
 
+// assuming key is a List
 void TrieMap::remove(CellI& key)
 {
-    if (isA(key, w.std.List)) {
-        throw "Key is not a list!";
-    }
-
     if (&key[w.id.size] == &w._0_) {
         return;
     }
@@ -2683,11 +2643,6 @@ bool TrieMap::empty() const
 int TrieMap::size()
 {
     return m_size;
-}
-
-void TrieMap::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
 }
 #pragma endregion
 #pragma region Set
@@ -2784,11 +2739,6 @@ CellI& Set::first()
 {
     return m_index.slotList()["first"]["value"]["key"];
 }
-
-void Set::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
 #pragma endregion
 #pragma region Number
 // ============================================================================
@@ -2845,11 +2795,6 @@ CellI& Number::operator[](CellI& key)
     }
 
     throw "No such key!";
-}
-
-void Number::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
 }
 
 int Number::value() const
@@ -2943,11 +2888,6 @@ CellI& String::operator[](CellI& key)
     }
 }
 
-void String::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 const std::string& String::value() const
 {
     return m_value;
@@ -3012,11 +2952,6 @@ CellI& ActivationPointer::operator[](CellI& key)
     }
 
     throw "No such key!";
-}
-
-void ActivationPointer::accept(Visitor& visitor)
-{
-//    visitor.visit(*this);
 }
 
 } // namespace hybrid
@@ -3131,36 +3066,6 @@ void Visitor::visitListInReverse(CellI& list, std::function<void(CellI& value, i
 
         currentListNodePtr = &currentListNode[w.id.previous];
     }
-}
-
-bool tryVisitWith(CellI& cell, Visitor& visitor)
-{
-    World& w = cell.w;
-
-    if (&cell.__type__() == &w.std.Number) {
-        visitor.visit(static_cast<Number&>(cell));
-        return true;
-    }
-    if (&cell.__type__() == &w.std.String) {
-        visitor.visit(static_cast<String&>(cell));
-        return true;
-    }
-#if 0 // TODO
-    if (&cell.struct_() == &w.std.Color) {
-        visitor.visit(static_cast<hybrid::Color&>(cell));
-        return true;
-    }
-    if (&cell.struct_() == &w.std.Pixel) {
-        visitor.visit(static_cast<hybrid::Pixel&>(cell));
-        return true;
-    }
-    if (&cell.struct_() == &w.std.Grid) {
-        visitor.visit(static_cast<hybrid::Picture&>(cell));
-        return true;
-    }
-#endif
-
-    return false;
 }
 
 } // namespace cells

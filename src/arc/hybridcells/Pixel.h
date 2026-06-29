@@ -20,7 +20,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     const int color() const;
     const infocell::arc::ColorId colorId() const;

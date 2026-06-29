@@ -26,7 +26,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     void addShape(Vector& offset, Shape& shape);
     bool hasShape(Vector& offset, Shape& shape);

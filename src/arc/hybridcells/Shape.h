@@ -17,7 +17,6 @@ public:
     void erase(CellI& role) override;
     void operator()() override;
     CellI& operator[](CellI& role) override;
-    void accept(Visitor& visitor) override;
 
     Number& m_id;
     CellI& m_color;
@@ -47,7 +46,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     bool operator==(Shape& rhs);
     void addInternalEdge(Vector& offset, List& edge);

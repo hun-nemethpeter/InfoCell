@@ -661,14 +661,13 @@ SolverLib::SolverLib(World& w, Ast::Scope& parentScope, CellI& solverAst, const 
 
 static void PrintAsValue(CellI& cell, const std::string& label)
 {
-    CellValuePrinter valuePrinter;
-    cell.accept(valuePrinter);
+    CellValuePrinter valuePrinter(cell.w);
 
     if (!label.empty()) {
         std::cout << label << ": ";
     }
 
-    std::cout << valuePrinter.print() << std::endl;
+    std::cout << valuePrinter.print(cell) << std::endl;
 }
 
 CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint)

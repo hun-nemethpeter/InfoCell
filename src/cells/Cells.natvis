@@ -147,7 +147,7 @@
     <Expand>
     <LinkedListItems>
       <Size>m_size</Size>
-      <HeadPointer>m_firstItem</HeadPointer>
+      <HeadPointer>m_firstNode</HeadPointer>
       <NextPointer>m_next</NextPointer>
       <ValueNode>m_value</ValueNode>
     </LinkedListItems>

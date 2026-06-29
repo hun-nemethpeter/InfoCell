@@ -27,7 +27,6 @@ public:
     virtual void erase(CellI& key)             = 0;
     virtual void operator()()                  = 0;
     virtual CellI& operator[](CellI& key)      = 0;
-    virtual void accept(Visitor& visitor)      = 0;
 
     bool has(const std::string& key);
     void set(const std::string& key, CellI& value);
@@ -46,7 +45,6 @@ public:
     void label(const std::string& label);
 
     bool isA(CellI& type);
-    bool isA(CellI& cell, CellI& type) const;
 
     bool operator==(CellI& rhs);
     bool operator!=(CellI& rhs);
@@ -93,7 +91,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     CellI& method(const std::string& key);
 
@@ -170,7 +167,6 @@ public:
         void erase(CellI& key) override;
         void operator()() override;
         CellI& operator[](CellI& key) override;
-        void accept(Visitor& visitor) override;
 
         List& m_list;
         CellI& m_value;
@@ -211,7 +207,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     Node* add(CellI& value);
     template <typename... Args>
@@ -257,7 +252,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     void addSlot(CellI& key, CellI& slot);
     bool hasSlot(CellI& key);
@@ -290,7 +284,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     void insert(CellI& key, CellI& value);
     bool empty() const;
@@ -320,7 +313,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     bool hasKey(CellI& key);
     CellI& getValue(CellI& key);
@@ -363,7 +355,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     bool hasKey(CellI& key);
     CellI& getValue(CellI& key);
@@ -404,7 +395,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     bool contains(CellI& key);
 
@@ -438,7 +428,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     int value() const;
     void value(int newValue);
@@ -471,7 +460,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     const std::string& value() const;
 
@@ -496,7 +484,6 @@ public:
     void erase(CellI& key) override;
     void operator()() override;
     CellI& operator[](CellI& key) override;
-    void accept(Visitor& visitor) override;
 
     CellI* m_currentCell  = nullptr;
     CellI* m_previousCell = nullptr;
@@ -509,23 +496,9 @@ public:
 class Visitor
 {
 public:
-    virtual void visit(CellI&)      = 0;
-    virtual void visit(Object&)     = 0;
-    virtual void visit(Number&)     = 0;
-    virtual void visit(String&)     = 0;
-    virtual void visit(List::Node&) = 0;
-    virtual void visit(List&)       = 0;
-    virtual void visit(Struct&)     = 0;
-    virtual void visit(Index&)      = 0;
-    virtual void visit(Map&)        = 0;
-    virtual void visit(TrieMap&)    = 0;
-    virtual void visit(Set&)        = 0;
-
     static void visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
     static void visitListInReverse(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
 };
-
-bool tryVisitWith(CellI& cell, Visitor& visitor);
 
 } // namespace cells
 } // namespace infocell

@@ -150,11 +150,6 @@ CellI& RenderedShape::operator[](CellI& role)
     throw "No such role!";
 }
 
-void RenderedShape::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
-}
-
 Shape::Shape(World& w, cells::CellI& color, List& externalEdgeLine, cells::TrieMap& internalEdges) :
     cells::CellI(w),
     m_color(color),
@@ -212,11 +207,6 @@ CellI& Shape::operator[](CellI& key)
     }
 
     throw "No such key!";
-}
-
-void Shape::accept(Visitor& visitor)
-{
-    visitor.visit(*this);
 }
 
 bool Shape::operator==(Shape& rhs)
