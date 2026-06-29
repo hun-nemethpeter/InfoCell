@@ -152,17 +152,17 @@ TEST_F(CellTest, CompilerSmokeTest)
     TRACE(compiledSymbols, "All compiled symbols:");
 
     TRACE(compiledSymbols, "  structs:");
-    Visitor::visitList(testLib.structs()[id.list], [this](CellI& kv, int, bool&) {
+    forEach(testLib.structs()[id.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {}", kv[id.key].label());
     });
 
     TRACE(compiledSymbols, "  functions:");
-    Visitor::visitList(testLib.functions()[id.list], [this](CellI& kv, int, bool&) {
+    forEach(testLib.functions()[id.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
     });
 
     TRACE(compiledSymbols, "  variables:");
-    Visitor::visitList(testLib.variables()[id.list], [this](CellI& kv, int, bool&) {
+    forEach(testLib.variables()[id.list], [this](CellI& kv, int, bool&) {
         TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
     });
 
@@ -232,7 +232,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
     CellI& requestForSetAstList = toolFinder.serializeEffectAst(requestForSet);
     {
         std::stringstream ss;
-        Visitor::visitList(requestForSetAstList, [&ss](CellI& value, int, bool& stop) {
+        forEach(requestForSetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
         EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell pixel key green op pop rhs 5 ");
@@ -265,7 +265,7 @@ TEST_F(CellTest, ToolFinderTestForGet)
     CellI& requestForGetAstList = toolFinder.serializeEffectAst(requestForGet);
     {
         std::stringstream ss;
-        Visitor::visitList(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
+        forEach(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
         EXPECT_EQ(ss.str(), "__type__ ast::Return value op push __type__ ast::Get cell pixel key green op pop ");
@@ -311,7 +311,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     CellI& requestForSetWithGetAstList = toolFinder.serializeEffectAst(requestForSetWithGet);
     {
         std::stringstream ss;
-        Visitor::visitList(requestForSetWithGetAstList, [&ss](CellI& value, int, bool& stop) {
+        forEach(requestForSetWithGetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
         EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell op push __type__ ast::Get cell currentTheme key Color op pop key green op pop rhs 5 ");
@@ -353,7 +353,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGetWithAstHelper)
     CellI& serializedRequest = toolFinder.serializeEffectAst(request);
     {
         std::stringstream ss;
-        Visitor::visitList(serializedRequest, [&ss](CellI& value, int, bool& stop) {
+        forEach(serializedRequest, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
         EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell op push __type__ ast::Get cell currentTheme key arc::Color op pop key green op pop rhs 5 ");
@@ -392,7 +392,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     CellI& serializedRequest = toolFinder.serializeEffectAst(request);
     {
         std::stringstream ss;
-        Visitor::visitList(serializedRequest, [&ss](CellI& value, int, bool& stop) {
+        forEach(serializedRequest, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
         EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Add lhs op push __type__ ast::Get cell x key value op pop rhs 2 op pop rhs 4 ");
@@ -1650,7 +1650,7 @@ static void printVectorShape(CellI& shape)
     int minY    = y;
 
     CellI& vectorList = shape["vectors"];
-    Visitor::visitList(vectorList, [&board, &x, &y, &maxX, &maxY, &minX, &minY, shapeColor](CellI& vector, int i, bool&) {
+    forEach(vectorList, [&board, &x, &y, &maxX, &maxY, &minX, &minY, shapeColor](CellI& vector, int i, bool&) {
         x += static_cast<Number&>(vector["x"]).value();
         y += static_cast<Number&>(vector["y"]).value();
         if (x > maxX) {
@@ -1705,7 +1705,7 @@ static void printShapeList(CellI& shapeList)
     ftxui::Elements shapesInLine;
     const int listSize = static_cast<Number&>(shapeList["size"]).value();
     const int lastListIndex = listSize - 1;
-    Visitor::visitList(shapeList, [&shapesInLine, lastListIndex](CellI& shape, int i, bool&) {
+    forEach(shapeList, [&shapesInLine, lastListIndex](CellI& shape, int i, bool&) {
         auto renderedShape = renderShape(shape);
         if (i != lastListIndex) {
             shapesInLine.push_back(ftxui::hbox(renderedShape, ftxui::separator()));
@@ -1810,7 +1810,7 @@ TEST_F(CellTest, FrameTest)
 
     const auto& printPixels = [this](CellI& pixelList) -> std::string {
         std::stringstream ss;
-        Visitor::visitList(pixelList, [this, &ss](CellI& arcPixel, int, bool&) {
+        forEach(pixelList, [this, &ss](CellI& arcPixel, int, bool&) {
             ss << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
         });
 
@@ -2041,10 +2041,10 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
         int inputShapesNum   = static_cast<Number&>(inputShapes[id.size]).value();
         int outputShapesNum  = static_cast<Number&>(outputShapes[id.size]).value();
         if (inputGridWidth == outputGridWidth && inputGridHeight == outputGridHeight && outputShapesNum > inputShapesNum) {
-            Visitor::visitList(inputShapes, [](CellI& shape, int i, bool&) {
+            forEach(inputShapes, [](CellI& shape, int i, bool&) {
                 std::cout << "DDDD input shape color: " << getArcColorName(shape["color"]) << ", size: " << static_cast<Number&>(shape["pixels"]["size"]).value() << std::endl;
             });
-            Visitor::visitList(outputShapes, [](CellI& shape, int i, bool&) {
+            forEach(outputShapes, [](CellI& shape, int i, bool&) {
                 std::cout << "DDDD output shape color: " << getArcColorName(shape["color"]) << ", size: " << static_cast<Number&>(shape["pixels"]["size"]).value() << std::endl;
             });
         }
@@ -2066,13 +2066,13 @@ TEST_F(CellTest, LoadAllArcTask)
             ", examples num:" << static_cast<List&>(task.second.m_cellExamplesList).size() <<
             ", tests num:" << static_cast<List&>(task.second.m_cellTestsList).size() << std::endl;
         std::cout <<"   examples:" << std::endl;
-        Visitor::visitList(task.second.m_cellExamplesList, [](CellI& example, int i, bool&) {
+        forEach(task.second.m_cellExamplesList, [](CellI& example, int i, bool&) {
             std::cout <<
                 "    size " << static_cast<hybridarc::Grid&>(example["input"]).width() << "x" << static_cast<hybridarc::Grid&>(example["input"]).height() <<
                 " -> " << static_cast<hybridarc::Grid&>(example["output"]).width() << "x" << static_cast<hybridarc::Grid&>(example["output"]).height() << std::endl;
         });
         std::cout << "   tests:" << std::endl;
-        Visitor::visitList(task.second.m_cellTestsList, [](CellI& example, int i, bool&) {
+        forEach(task.second.m_cellTestsList, [](CellI& example, int i, bool&) {
             std::cout << "    size " << static_cast<hybridarc::Grid&>(example["input"]).width() << "x" << static_cast<hybridarc::Grid&>(example["input"]).height() << std::endl;
         });
     }
@@ -2084,7 +2084,7 @@ TEST_F(CellTest, LoadThoseArcTaskWhereInputSizeEqOutputSize)
     infocell::arc::TaskSet taskSet(w, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
     for (auto& task : taskSet.m_tasks) {
         bool allSameSize = false;
-        Visitor::visitList(task.second.m_cellExamplesList, [&allSameSize](CellI& example, int i, bool& stop) {
+        forEach(task.second.m_cellExamplesList, [&allSameSize](CellI& example, int i, bool& stop) {
             int inputWidth  = static_cast<hybridarc::Grid&>(example["input"]).width();
             int inputHeight = static_cast<hybridarc::Grid&>(example["input"]).height();
             int outputWidth = static_cast<hybridarc::Grid&>(example["output"]).width();
@@ -2158,7 +2158,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
             CellI& arcTask = *arcTaskPtr;
         }
         CellI& outputGrid = *arcTaskPtr;
-        Visitor::visitList(inputGrid["pixels"], [this, &outputGrid](CellI& arcPixel, int, bool&) {
+        forEach(inputGrid["pixels"], [this, &outputGrid](CellI& arcPixel, int, bool&) {
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
             List pixelContent(w, arc.Pixel);
@@ -2171,7 +2171,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
                 std::cout << "DDDD removedPixel: " << fmt::format("[{}, {}, {}]\n", arcPixel["x"].label(), arcPixel["y"].label(), arcPixel["color"].label());
             }
         });
-        Visitor::visitList(outputGrid["pixels"], [this, &inputGrid](CellI& arcPixel, int, bool&) {
+        forEach(outputGrid["pixels"], [this, &inputGrid](CellI& arcPixel, int, bool&) {
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
             List pixelContent(w, arc.Pixel);
@@ -2223,20 +2223,20 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
                     TrieMap<List, Pixel> inputPixelMap;
                     TrieMap<List, Pixel> outputPixelMap;
                     inputGridIt = inputGrid.GetEnumerator();
-                    Visitor::visitList(inputGrid["pixels"], [this](CellI& arcPixel, int, bool&) {
+                    forEach(inputGrid["pixels"], [this](CellI& arcPixel, int, bool&) {
                         pixelHashList = arcPixel.hashList();
                         inputPixelMap.insert(pixelHashList, pixel);
                     });
-                    Visitor::visitList(inputPixelMap["pixels"], [this](CellI& arcPixel, int, bool&) {
+                    forEach(inputPixelMap["pixels"], [this](CellI& arcPixel, int, bool&) {
                         pixelHashList = arcPixel.hashList();
                         outputPixelMap.insert(pixelHashList, pixel);
                     });
-                    Visitor::visitList(inputPixelMap["list"], [this](CellI& kvPair, int, bool&) {
+                    forEach(inputPixelMap["list"], [this](CellI& kvPair, int, bool&) {
                         if (not outputPixelMap.hasKey(kvPair.key)) {
                             removedPixels.insert(kvPair);
                         }
                     });
-                    Visitor::visitList(outputPixelMap["list"], [this](CellI& kvPair, int, bool&) {
+                    forEach(outputPixelMap["list"], [this](CellI& kvPair, int, bool&) {
                         if (not inputPixelMap.hasKey(kvPair.key)) {
                             addedPixels.insert(kvPair);
                         }

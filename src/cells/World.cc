@@ -179,17 +179,17 @@ World::World(std::function<void()> loggerLevelInit) :
         TRACE(compiledSymbols, "All compiled symbols:");
 
         TRACE(compiledSymbols, "  structs:");
-        Visitor::visitList(stdLib().structs()[id.list], [this](CellI& kv, int, bool&) {
+        forEach(stdLib().structs()[id.list], [this](CellI& kv, int, bool&) {
             TRACE(compiledSymbols, "    {}", kv[id.key].label());
         });
 
         TRACE(compiledSymbols, "  functions:");
-        Visitor::visitList(stdLib().functions()[id.list], [this](CellI& kv, int, bool&) {
+        forEach(stdLib().functions()[id.list], [this](CellI& kv, int, bool&) {
             TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
         });
 
         TRACE(compiledSymbols, "  variables:");
-        Visitor::visitList(stdLib().variables()[id.list], [this](CellI& kv, int, bool&) {
+        forEach(stdLib().variables()[id.list], [this](CellI& kv, int, bool&) {
             TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
         });
     }

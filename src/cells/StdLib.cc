@@ -1768,7 +1768,7 @@ void StdLibAst::createTrieMap()
             throw "Key is not a list!";
         }
 
-        Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+        forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
             if (currentNode->missing(w.id.children)) {
                 stop        = true;
@@ -1829,7 +1829,7 @@ void StdLibAst::createTrieMap()
 
         CellI* currentNode = &m_rootNode;
 
-        Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+        forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
             if (currentNode->missing(w.id.children)) {
                 stop        = true;
@@ -1890,7 +1890,7 @@ void StdLibAst::createTrieMap()
 
         CellI* currentNode = &m_rootNode;
 
-        Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+        forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* child = nullptr;
             if (currentNode->missing(w.id.children)) {
                 currentNode->set(w.id.children, *new Index(w));
@@ -1954,7 +1954,7 @@ void StdLibAst::createTrieMap()
 
         CellI* currentNode    = &m_rootNode;
 
-        Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+        forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
             if (currentNode->missing(w.id.children)) {
                 stop        = true;

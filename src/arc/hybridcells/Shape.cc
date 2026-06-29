@@ -223,7 +223,7 @@ bool Shape::operator==(Shape& rhs)
     List& rhsExternalEdgeLine = rhs.m_externalEdgeLine;
     CellI* rhsDirNodePtr      = &rhsExternalEdgeLine[w.id.first];
     bool result               = true;
-    Visitor::visitList(m_externalEdgeLine, [this, &rhsExternalEdgeLine, &rhsDirNodePtr, &result](CellI& dir, int i, bool& stop) {
+    forEach(m_externalEdgeLine, [this, &rhsExternalEdgeLine, &rhsDirNodePtr, &result](CellI& dir, int i, bool& stop) {
         CellI& rhsDir = (*rhsDirNodePtr)[w.id.value];
         if (&dir != &rhsDir) {
             stop   = true;

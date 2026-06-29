@@ -77,8 +77,8 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
         List& idCell = *new List(w, w.std.Cell);
         structIdPtr  = &idCell;
         std::stringstream ss;
-        Visitor::visitList(structAst[w.id.scopes], [this, &idCell, &ss](CellI& scope, int i, bool&) {
-            Visitor::visitList(scope, [this, &idCell, &ss](CellI& character, int, bool&) {
+        forEach(structAst[w.id.scopes], [this, &idCell, &ss](CellI& scope, int i, bool&) {
+            forEach(scope, [this, &idCell, &ss](CellI& character, int, bool&) {
                 idCell.add(character);
                 ss << character.label();
             });
@@ -86,13 +86,13 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
             idCell.add(w.pools.chars.get(':'));
             ss << "::";
         });
-        Visitor::visitList(structAst[w.id.id], [this, &idCell, &ss](CellI& character, int, bool&) {
+        forEach(structAst[w.id.id], [this, &idCell, &ss](CellI& character, int, bool&) {
             idCell.add(character);
             ss << character.label();
         });
 
         ss << "<";
-        Visitor::visitList(structAst[w.id.parameters], [this, &idCell, &ss](CellI& slot, int i, bool&) {
+        forEach(structAst[w.id.parameters], [this, &idCell, &ss](CellI& slot, int i, bool&) {
             if (i != 0) {
                 ss << ", ";
             }
@@ -141,7 +141,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
         for (int i = 0; i < sliced.size() - 1; ++i) {
             const auto& scopeName = sliced[i];
             currentScope          = &currentScope->getItem<Ast::Scope>(scopeName);
-            Visitor::visitList((*currentScope)["name"], [this, &idCell, &ss](CellI& character, int, bool&) {
+            forEach((*currentScope)["name"], [this, &idCell, &ss](CellI& character, int, bool&) {
                 idCell.add(character);
                 ss << character.label();
             });
@@ -162,7 +162,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     }
     Ast::StructBase& structBaseAst = *structBaseAstPtr;
 
-    Visitor::visitList(structBaseAst[w.id.name], [this, &idCell, &ss](CellI& character, int, bool&) {
+    forEach(structBaseAst[w.id.name], [this, &idCell, &ss](CellI& character, int, bool&) {
         idCell.add(character);
         ss << character.label();
     });
@@ -189,7 +189,7 @@ void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& comp
         for (int i = 0; i < sliced.size() - 2; ++i) {
             const auto& scopeName = sliced[i];
             currentScope          = &currentScope->getItem<Ast::Scope>(scopeName);
-            Visitor::visitList((*currentScope)["name"], [this, &enumIdCell](CellI& character, int, bool&) {
+            forEach((*currentScope)["name"], [this, &enumIdCell](CellI& character, int, bool&) {
                 enumIdCell.add(character);
             });
             enumIdCell.add(w.pools.chars.get(':'));
@@ -201,7 +201,7 @@ void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& comp
         throw "Invalid enum value!";
     }
     Ast::EnumValue& enumValueAst = static_cast<Ast::EnumValue&>(enumAst.values().getValue(enumValueIdCell));
-    Visitor::visitList(enumAst[w.id.name], [this, &enumIdCell](CellI& character, int, bool&) {
+    forEach(enumAst[w.id.name], [this, &enumIdCell](CellI& character, int, bool&) {
         enumIdCell.add(character);
     });
     enumIdCell.add(w.pools.chars.get(':'));
@@ -240,7 +240,7 @@ TrieMap& Compiler::compiledVariables()
 
 void Compiler::registerEarlyStructs()
 {
-    Visitor::visitList(m_earlyStructs[w.id.list], [this](CellI& earlyStructKV, int i, bool& stop) {
+    forEach(m_earlyStructs[w.id.list], [this](CellI& earlyStructKV, int i, bool& stop) {
         auto& structId       = earlyStructKV[w.id.key];
         auto& structRefAst   = earlyStructKV[w.id.value][w.id.key];
         auto& compiledStruct = earlyStructKV[w.id.value][w.id.type];
@@ -264,7 +264,7 @@ void Compiler::resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolve
     if (m_earlyStructs.empty()) {
         return;
     }
-    Visitor::visitList(m_earlyStructs[w.id.list], [this](CellI& earlyStructKV, int i, bool& stop) {
+    forEach(m_earlyStructs[w.id.list], [this](CellI& earlyStructKV, int i, bool& stop) {
         auto& structId       = earlyStructKV[w.id.key];
         auto& structRefAst   = earlyStructKV[w.id.value][w.id.key];
         auto& compiledStruct = earlyStructKV[w.id.value][w.id.type];
@@ -300,34 +300,34 @@ Ast::Scope& Compiler::resolveTypesInScope(Ast::Scope& scope)
 
     if (scope.has("functions")) {
         m_currentStruct = nullptr;
-        Visitor::visitList(scope.items<Ast::Function>()[w.id.list], [this, &resolvedScope](CellI& origAstFunctionCell, int i, bool& stop) {
+        forEach(scope.items<Ast::Function>()[w.id.list], [this, &resolvedScope](CellI& origAstFunctionCell, int i, bool& stop) {
             Ast::Function& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell[w.id.value]);
             Ast::Function& resolvedAstFunction = resolveTypesInFunction(origAstFunction);
             resolvedScope.add<Ast::Function>(resolvedAstFunction);
         });
     }
     if (scope.has("structs")) {
-        Visitor::visitList(scope.items<Ast::Struct>()[w.id.list], [this, &resolvedScope](CellI& origAstStructCell, int i, bool& stop) {
+        forEach(scope.items<Ast::Struct>()[w.id.list], [this, &resolvedScope](CellI& origAstStructCell, int i, bool& stop) {
             Ast::Struct& origAstStruct     = static_cast<Ast::Struct&>(origAstStructCell[w.id.value]);
             Ast::Struct& resolvedAstStruct = resolveTypesInStruct(origAstStruct);
             resolvedScope.add<Ast::Struct>(resolvedAstStruct);
         });
     }
     if (scope.has("enums")) {
-        Visitor::visitList(scope.items<Ast::Enum>()[w.id.list], [this, &resolvedScope](CellI& origAstEnumCell, int i, bool& stop) {
+        forEach(scope.items<Ast::Enum>()[w.id.list], [this, &resolvedScope](CellI& origAstEnumCell, int i, bool& stop) {
             Ast::Enum& origAstEnum     = static_cast<Ast::Enum&>(origAstEnumCell[w.id.value]);
             Ast::Enum& resolvedAstEnum = resolveTypesInEnum(origAstEnum);
             resolvedScope.add<Ast::Enum>(resolvedAstEnum);
         });
     }
     if (scope.has("variables")) {
-        Visitor::visitList(scope.items<Ast::Var>()[w.id.list], [this, &resolvedScope](CellI& origAstVarCell, int i, bool& stop) {
+        forEach(scope.items<Ast::Var>()[w.id.list], [this, &resolvedScope](CellI& origAstVarCell, int i, bool& stop) {
             Ast::Var& origAstVar = static_cast<Ast::Var&>(origAstVarCell[w.id.value]);
             resolvedScope.add<Ast::Var>(origAstVar);
         });
     }
     if (scope.has("scopes")) {
-        Visitor::visitList(scope.items<Ast::Scope>()[w.id.list], [this, &scope, &resolvedScope](CellI& origAstScopeCell, int i, bool& stop) {
+        forEach(scope.items<Ast::Scope>()[w.id.list], [this, &scope, &resolvedScope](CellI& origAstScopeCell, int i, bool& stop) {
             Ast::Scope& origAstScope     = static_cast<Ast::Scope&>(origAstScopeCell[w.id.value]);
             if (origAstScope.has("link")) {
                 return;
@@ -361,7 +361,7 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function)
     }
 
     if (function.has("parameters")) {
-        Visitor::visitList(function.parameters(), [this, &ret, &ss](CellI& param, int i, bool& stop) {
+        forEach(function.parameters(), [this, &ret, &ss](CellI& param, int i, bool& stop) {
             CellI& paramId           = param[w.id.key];
             CellI& paramType         = param[w.id.type];
             CellI& resolvedParamType = resolveType(paramType);
@@ -410,7 +410,7 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
 
             if (ast.has("parameters")) {
                 auto& newParameters = *new cells::List(w, w.std.ast.Slot);
-                Visitor::visitList(ast[w.id.parameters], [this, &newParameters, &resolveNode](CellI& slot, int, bool&) {
+                forEach(ast[w.id.parameters], [this, &newParameters, &resolveNode](CellI& slot, int, bool&) {
                     newParameters.add(w.ast.slot(slot[w.id.key], resolveNode(slot[w.id.type])));
                 });
                 ret.set("parameters", newParameters);
@@ -432,7 +432,7 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         Ast::Base& ret = *retPtr;
         if (ast.has("parameters")) {
             auto& newParameters = *new cells::List(w, w.std.ast.Slot);
-            Visitor::visitList(ast[w.id.parameters], [this, &newParameters, &resolveNode](CellI& slot, int, bool&) {
+            forEach(ast[w.id.parameters], [this, &newParameters, &resolveNode](CellI& slot, int, bool&) {
                 newParameters.add(w.ast.slot(slot[w.id.key], resolveNode(slot[w.id.type])));
             });
             ret.set("parameters", newParameters);
@@ -445,7 +445,7 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
     // do nothing just traverse and copy the AST nodes
     if (&ast.__type__() == &w.std.ast.Block) {
         auto& instantiedAsts = *new cells::List(w, w.std.ast.Base);
-        Visitor::visitList(ast[w.id.asts], [this, &instantiedAsts, &resolveNode](CellI& ast, int, bool&) {
+        forEach(ast[w.id.asts], [this, &instantiedAsts, &resolveNode](CellI& ast, int, bool&) {
             instantiedAsts.add(resolveNode(ast));
         });
         return *new Ast::Block(w, instantiedAsts);
@@ -487,7 +487,7 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         }
     } else if (&ast.__type__() == &w.std.ast.Match) {
         auto& ret = w.ast.match_(static_cast<Ast::Base&>(ast["enum"]));
-        Visitor::visitList(ast["cases"][w.id.list], [this, &resolveNode, &ret](CellI& kvpair, int, bool&) {
+        forEach(ast["cases"][w.id.list], [this, &resolveNode, &ret](CellI& kvpair, int, bool&) {
             auto& key = kvpair[w.id.key];
             auto& op  = resolveNode(kvpair[w.id.value]);
             ret.case_(key, op);
@@ -591,7 +591,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
 
     // resolve sub types
     if (astStruct.has("typeAliases")) {
-        Visitor::visitList(astStruct.typeAliases()[w.id.list], [this, &ret, &typeAliasesStrs](CellI& typeAliasSlot, int i, bool& stop) {
+        forEach(astStruct.typeAliases()[w.id.list], [this, &ret, &typeAliasesStrs](CellI& typeAliasSlot, int i, bool& stop) {
             CellI& alias        = typeAliasSlot[w.id.key];
             CellI& type         = typeAliasSlot[w.id.type];
             CellI& resolvedType = resolveType(type);
@@ -605,7 +605,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
     // resolve memberOf list
     if (astStruct.has("memberOf")) {
         ss << " : ";
-        Visitor::visitList(astStruct.memberOf(), [this, &ret, &ss](CellI& membershipType, int i, bool& stop) {
+        forEach(astStruct.memberOf(), [this, &ret, &ss](CellI& membershipType, int i, bool& stop) {
             CellI& resolvedMembershipType = resolveType(membershipType);
             if (i > 0) {
                 ss << ", ";
@@ -627,7 +627,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
 
     // resolve methods
     if (astStruct.has("methods")) {
-        Visitor::visitList(astStruct.methods()[w.id.list], [this, &ret](CellI& origAstFunctionCell, int i, bool& stop) {
+        forEach(astStruct.methods()[w.id.list], [this, &ret](CellI& origAstFunctionCell, int i, bool& stop) {
             auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction);
             ret.addMethod(resolvedAstFunction);
@@ -643,7 +643,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
     // resolve members
     if (astStruct.has("members")) {
         CellI& membersList = astStruct.members()[w.id.list];
-        Visitor::visitList(membersList, [this, &astStruct, &ret](CellI& memberCell, int i, bool& stop) {
+        forEach(membersList, [this, &astStruct, &ret](CellI& memberCell, int i, bool& stop) {
             CellI& memberId           = memberCell[w.id.key];
             CellI& memberType         = memberCell[w.id.type];
             CellI& resolvedMemberType = resolveType(memberType);
@@ -696,7 +696,7 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& astEnum)
 
     // resolve methods
     if (astEnum.has("methods")) {
-        Visitor::visitList(astEnum.methods()[w.id.list], [this, &ret](CellI& origAstFunctionCell, int i, bool& stop) {
+        forEach(astEnum.methods()[w.id.list], [this, &ret](CellI& origAstFunctionCell, int i, bool& stop) {
             auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction);
             ret.addMethod(resolvedAstFunction);
@@ -707,7 +707,7 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& astEnum)
     // resolve values
     if (astEnum.has("values")) {
         CellI& valuesList = astEnum.values()[w.id.list];
-        Visitor::visitList(valuesList, [this, &ret](CellI& kvPair, int i, bool& stop) {
+        forEach(valuesList, [this, &ret](CellI& kvPair, int i, bool& stop) {
             CellI& valueCell = kvPair[w.id.value];
             CellI& valueName = valueCell[w.id.name];
             std::stringstream ss;
@@ -775,7 +775,7 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
     CellI& scopeFullyQualifiedName = *scopeFullyQualifiedNamePtr;
 
     List& fullyQualifiedName = *new List(w, w.std.Char);
-    Visitor::visitList(scopeFullyQualifiedName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
+    forEach(scopeFullyQualifiedName, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
         fullyQualifiedName.add(character);
     });
     if (!fullyQualifiedName.empty()) {
@@ -785,7 +785,7 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
     if (!isEmptyName) {
         auto& name = base.get(w.id.name);
         std::cout << "";
-        Visitor::visitList(name, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
+        forEach(name, [this, &fullyQualifiedName](CellI& character, int i, bool& stop) {
             fullyQualifiedName.add(character);
         });
     }
@@ -795,7 +795,7 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
         int paramsLength                    = static_cast<List&>(base.get(w.id.templateParams)).size();
         templateParamPrintModeFromCharIndex = fullyQualifiedName.size() - paramsLength * 2;
     }
-    Visitor::visitList(fullyQualifiedName, [this, &fullyQualifiedName, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
+    forEach(fullyQualifiedName, [this, &fullyQualifiedName, &ss, &templateParamPrintModeFromCharIndex](CellI& character, int i, bool& stop) {
         if (i == templateParamPrintModeFromCharIndex) {
             stop = true;
             return;
@@ -804,7 +804,7 @@ CellI& Compiler::getFullyQualifiedName(Ast::Base& base)
     });
     if (base.has("instanceOf")) {
         ss << "<";
-        Visitor::visitList(base.get(w.id.templateParams), [this, &ss](CellI& slot, int i, bool& stop) {
+        forEach(base.get(w.id.templateParams), [this, &ss](CellI& slot, int i, bool& stop) {
             CellI& key  = slot[w.id.key];
             CellI& type = slot[w.id.type];
             if (i != 0) {
@@ -838,7 +838,7 @@ List& Compiler::generateFullyQualifiedIdFromTemplateId(Ast::Scope& scope, List& 
     for (Ast::Scope* currentScopePtr : scopes) {
         Ast::Scope& currentScope = *currentScopePtr;
         CellI& scopeName         = currentScope[w.id.name];
-        Visitor::visitList(scopeName, [this, &idCell, &ss](CellI& character, int, bool&) {
+        forEach(scopeName, [this, &idCell, &ss](CellI& character, int, bool&) {
             idCell.add(character);
             ss << character.label();
         });
@@ -850,7 +850,7 @@ List& Compiler::generateFullyQualifiedIdFromTemplateId(Ast::Scope& scope, List& 
     // The generated struct name for a template consist of the template name + parameters
     // Here the name contains the template name + (param1 + value1)+
     int nameLength = name.size() - templateParams.size() * 2;
-    Visitor::visitList(name, [this, &idCell, &ss, &nameLength](CellI& character, int i, bool&) {
+    forEach(name, [this, &idCell, &ss, &nameLength](CellI& character, int i, bool&) {
         if (i >= nameLength) {
             return;
         }
@@ -858,7 +858,7 @@ List& Compiler::generateFullyQualifiedIdFromTemplateId(Ast::Scope& scope, List& 
         ss << character.label();
     });
     ss << "<";
-    Visitor::visitList(templateParams, [this, &idCell, &ss](CellI& slot, int i, bool&) {
+    forEach(templateParams, [this, &idCell, &ss](CellI& slot, int i, bool&) {
         CellI& key          = slot[w.id.key];
         CellI& type         = slot[w.id.type];
         CellI& compiledType = getCompiledTypeFromResolvedType(type);
@@ -881,13 +881,13 @@ List& Compiler::generateTemplateId(CellI& id, CellI& parameters, List& resolvedP
 {
     List& idCell = *new List(w, w.std.Cell);
     std::stringstream ss;
-    Visitor::visitList(id, [this, &idCell, &ss](CellI& character, int, bool&) {
+    forEach(id, [this, &idCell, &ss](CellI& character, int, bool&) {
         idCell.add(character);
         ss << character.label();
     });
 
     ss << "<";
-    Visitor::visitList(parameters, [this, &idCell, &ss, &resolvedParams](CellI& slot, int i, bool&) {
+    forEach(parameters, [this, &idCell, &ss, &resolvedParams](CellI& slot, int i, bool&) {
         if (i != 0) {
             ss << ", ";
         }
@@ -1153,7 +1153,7 @@ Ast::Base* Compiler::findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList
 Ast::Base* Compiler::findAstByNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope&)> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb)
 {
     // resolve in local scope
-    Visitor::visitList(scopeList, [this, &currentScope](CellI& scopeId, int, bool& stop) {
+    forEach(scopeList, [this, &currentScope](CellI& scopeId, int, bool& stop) {
         if (currentScope->hasItem<Ast::Scope>(scopeId)) {
             currentScope = &currentScope->getItem<Ast::Scope>(scopeId);
             if (Ast::Scope* linkedScope = currentScope->getLinkedScope()) {
@@ -1175,12 +1175,12 @@ void Compiler::instantiateTemplateInstances()
 {
     // Sanity check we still referencing an unknown struct
     // Print all unknown references before bail out
-    Visitor::visitList(m_unknownStructs[w.id.list], [this](CellI& unknownStruct, int i, bool& stop) {
+    forEach(m_unknownStructs[w.id.list], [this](CellI& unknownStruct, int i, bool& stop) {
         WARN(compileStruct, "unknown struct: {}", unknownStruct[w.id.value][w.id.value].label());
     });
 
     int instantiedNum = 0;
-    Visitor::visitList(m_unknownInstances[w.id.list], [this, &instantiedNum](CellI& unknownInstanceSlot, int i, bool& stop) {
+    forEach(m_unknownInstances[w.id.list], [this, &instantiedNum](CellI& unknownInstanceSlot, int i, bool& stop) {
         CellI& unknownInstance  = unknownInstanceSlot[w.id.value];
         auto& unknownInstanceId = unknownInstance[w.id.id];
 
@@ -1203,7 +1203,7 @@ void Compiler::instantiateTemplateInstances()
 
         ss << fmt::format("        in scope: {}", getFullyQualifiedName(idScope).label());
         ss << fmt::format("  instantiate id: {}<", templateId.label());
-        Visitor::visitList(templateParams, [this, &ss](CellI& param, int i, bool& stop) {
+        forEach(templateParams, [this, &ss](CellI& param, int i, bool& stop) {
             CellI& paramId   = param[w.id.key];
             CellI& paramType = param[w.id.type];
             if (i > 0) {
@@ -1240,7 +1240,7 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     std::stringstream ss;
     Map inputParameters(w, w.std.Cell, w.std.Cell);
 
-    Visitor::visitList(inputParams, [this, &structT, &inputParameters, &ss](CellI& slot, int i, bool& stop) {
+    forEach(inputParams, [this, &structT, &inputParameters, &ss](CellI& slot, int i, bool& stop) {
         CellI& key  = slot[w.id.key];
         CellI& type = slot[w.id.type];
         inputParameters.add(key, type);
@@ -1254,7 +1254,7 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     // instantiate type aliases
     if (structT.has("typeAliases")) {
         Map& instantiatedTypeAliases = *new Map(w, w.std.Cell, w.std.ast.Base);
-        Visitor::visitList(structT.typeAliases()[w.id.list], [this, &inputParameters, &instantiatedTypeAliases, &ret](CellI& slot, int i, bool& stop) {
+        forEach(structT.typeAliases()[w.id.list], [this, &inputParameters, &instantiatedTypeAliases, &ret](CellI& slot, int i, bool& stop) {
             CellI& key               = slot[w.id.key];
             CellI& type              = slot[w.id.type];
             CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters);
@@ -1265,7 +1265,7 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
 
     // instantiate methods
     if (structT.has("methods")) {
-        Visitor::visitList(structT.methods()[w.id.list], [this, &inputParameters, &ret](CellI& astFunctionRef, int i, bool& stop) {
+        forEach(structT.methods()[w.id.list], [this, &inputParameters, &ret](CellI& astFunctionRef, int i, bool& stop) {
             auto& astFunction = static_cast<Ast::Function&>(astFunctionRef);
             instantiateFunctionInStructT(astFunction, ret, inputParameters);
          });
@@ -1274,7 +1274,7 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     // instantiate members
     if (structT.has("members")) {
         Map& instantiatedMembers = *new Map(w, w.std.Cell, w.std.Slot);
-        Visitor::visitList(structT.members()[w.id.list], [this, &inputParameters, &instantiatedMembers, &ret](CellI& slot, int i, bool& stop) {
+        forEach(structT.members()[w.id.list], [this, &inputParameters, &instantiatedMembers, &ret](CellI& slot, int i, bool& stop) {
             CellI& key               = slot[w.id.key];
             CellI& type              = slot[w.id.type];
             CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters);
@@ -1286,7 +1286,7 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     // instantiate memberOf list
     if (structT.has("memberOf")) {
         List& instantiatedMemberOfs = *new List(w, w.std.Struct);
-        Visitor::visitList(structT.memberOf(), [this, &inputParameters, &instantiatedMemberOfs, &ret](CellI& membershipType, int i, bool& stop) {
+        forEach(structT.memberOf(), [this, &inputParameters, &instantiatedMemberOfs, &ret](CellI& membershipType, int i, bool& stop) {
             CellI& instantiatedParam = instantiateTemplateParamType(membershipType, ret, inputParameters);
             instantiatedMemberOfs.add(instantiatedParam);
         });
@@ -1297,8 +1297,8 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     if (structT.has("traitImpls")) {
         CellI& traitImplsList = structT.traitImpls()[w.id.list];
 
-        Visitor::visitList(traitImplsList, [this, &structT, &ret, &inputParameters](CellI& traitImpl, int i, bool& stop) {
-            Visitor::visitList(traitImpl[w.id.methods][w.id.list], [this, &structT, &ret, &inputParameters, &traitImpl](CellI& astFunctionRef, int i, bool& stop) {
+        forEach(traitImplsList, [this, &structT, &ret, &inputParameters](CellI& traitImpl, int i, bool& stop) {
+            forEach(traitImpl[w.id.methods][w.id.list], [this, &structT, &ret, &inputParameters, &traitImpl](CellI& astFunctionRef, int i, bool& stop) {
                 Map* associatedTypesPtr = nullptr;
                 if (traitImpl.has("associatedTypes")) {
                     associatedTypesPtr = &static_cast<Map&>(traitImpl["associatedTypes"]);
@@ -1321,7 +1321,7 @@ void Compiler::instantiateFunctionInStructT(Ast::Function& astFunction, Ast::Str
     // parameters
     if (astFunction.has("parameters")) {
         List& instantiatedParameters = *new List(w, w.std.Slot);
-        Visitor::visitList(astFunction[w.id.parameters], [this, &inputParameters, &associatedTypesPtr, &instantiatedParameters, &compiledStruct](CellI& slot, int i, bool& stop) {
+        forEach(astFunction[w.id.parameters], [this, &inputParameters, &associatedTypesPtr, &instantiatedParameters, &compiledStruct](CellI& slot, int i, bool& stop) {
             CellI& key               = slot[w.id.key];
             CellI& type              = slot[w.id.type];
             CellI& instantiatedParam = instantiateTemplateParamType(type, compiledStruct, inputParameters, associatedTypesPtr);
@@ -1355,7 +1355,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
         auto& ret                   = *new Ast::TemplatedType(w, param[w.id.id], resolvedParameterList);
         auto& parametersList        = param[w.id.parameters];
 
-        Visitor::visitList(parametersList, [this, &resolvedParameterList, &selfType, &inputParameters, &associatedTypesPtr](CellI& slot, int, bool&) {
+        forEach(parametersList, [this, &resolvedParameterList, &selfType, &inputParameters, &associatedTypesPtr](CellI& slot, int, bool&) {
             CellI& key              = slot[w.id.key];
             CellI& type             = slot[w.id.type];
             CellI& resolvedSlotType = instantiateTemplateParamType(type, selfType, inputParameters, associatedTypesPtr);
@@ -1396,7 +1396,7 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
             Ast::Base& ret    = w.ast.new_(objectType, static_cast<Ast::Base&>(constructor));
             if (ast.has("parameters")) {
                 auto& newParameters = *new cells::List(w, w.std.ast.Slot);
-                Visitor::visitList(ast[w.id.parameters], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
+                forEach(ast[w.id.parameters], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
                     newParameters.add(w.ast.slot(slot[w.id.key], instantiate(slot[w.id.type])));
                 });
                 ret.set("parameters", newParameters);
@@ -1424,7 +1424,7 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
     // do nothing just traverse and copy the AST nodes
     if (&ast.__type__() == &w.std.ast.Block) {
         auto& instantiedAsts = *new cells::List(w, w.std.ast.Base);
-        Visitor::visitList(ast[w.id.asts], [this, &instantiedAsts, &instantiate](CellI& ast, int, bool&) {
+        forEach(ast[w.id.asts], [this, &instantiedAsts, &instantiate](CellI& ast, int, bool&) {
             instantiedAsts.add(instantiate(ast));
         });
         return *new Ast::Block(w, instantiedAsts);
@@ -1530,26 +1530,26 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
     m_resolvedScope = &resolvedScope;
 
     if (scope.has("functions")) {
-        Visitor::visitList(resolvedScope.items<Ast::Function>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
+        forEach(resolvedScope.items<Ast::Function>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(kvPair[w.id.value]);
             auto& compiledFunction = compileFunction(astFunction);
             compiledFunctions().add(getFullyQualifiedName(astFunction), compiledFunction);
         });
     }
     if (scope.has("structs")) {
-        Visitor::visitList(resolvedScope.items<Ast::Struct>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
+        forEach(resolvedScope.items<Ast::Struct>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
             Ast::Struct& astStruct = static_cast<Ast::Struct&>(kvPair[w.id.value]);
             compileStruct(astStruct);
         });
     }
     if (scope.has("enums")) {
-        Visitor::visitList(resolvedScope.items<Ast::Enum>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
+        forEach(resolvedScope.items<Ast::Enum>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
             Ast::Enum& astEnum = static_cast<Ast::Enum&>(kvPair[w.id.value]);
             compileEnum(astEnum);
         });
     }
     if (scope.has("variables")) {
-        Visitor::visitList(resolvedScope.items<Ast::Var>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
+        forEach(resolvedScope.items<Ast::Var>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
             Ast::Var& astVar = static_cast<Ast::Var&>(kvPair[w.id.value]);
             auto& varName    = getFullyQualifiedName(astVar);
             if (compiledVariables().hasKey(varName)) {
@@ -1560,7 +1560,7 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
         });
     }
     if (scope.has("scopes")) {
-        Visitor::visitList(scope.items<Ast::Scope>()[w.id.list], [this, &scope, &resolvedScope](CellI& kvPair, int i, bool& stop) {
+        forEach(scope.items<Ast::Scope>()[w.id.list], [this, &scope, &resolvedScope](CellI& kvPair, int i, bool& stop) {
             Ast::Scope& nextScope = static_cast<Ast::Scope&>(kvPair[w.id.value]);
             if (nextScope.has("link")) {
                 return;
@@ -1588,7 +1588,7 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
     // compile sub types
     if (astStruct.has("typeAliases")) {
         Map& compiledTypeAliases = *new Map(w, w.std.Cell, w.std.Struct, "typeAliases Map<Cell, Type>(...)");
-        Visitor::visitList(astStruct.typeAliases()[w.id.list], [this, &compiledTypeAliases](CellI& slot, int i, bool& stop) {
+        forEach(astStruct.typeAliases()[w.id.list], [this, &compiledTypeAliases](CellI& slot, int i, bool& stop) {
             CellI& key             = slot[w.id.key];
             CellI& type            = slot[w.id.type];
             auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
@@ -1596,16 +1596,16 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
         });
         compiledStruct.set("typeAliases", compiledTypeAliases);
         CellI& typeAliasesIndex = compiledTypeAliases[w.id.index];
-        Visitor::visitList(typeAliasesIndex.slotList(), [this, &compiledStructName, &typeAliasesIndex](CellI& typeAlias, int i, bool& stop) {
+        forEach(typeAliasesIndex.slotList(), [this, &compiledStructName, &typeAliasesIndex](CellI& typeAlias, int i, bool& stop) {
             CellI& key      = typeAlias["key"];
             CellI& value    = typeAliasesIndex[key][w.id.value];
             List& aliasName = *new List(w, w.std.Char);
-            Visitor::visitList(compiledStructName, [&aliasName](CellI& character, int i, bool& stop) {
+            forEach(compiledStructName, [&aliasName](CellI& character, int i, bool& stop) {
                 aliasName.add(character);
             });
             aliasName.add(w.pools.chars.get(':'));
             aliasName.add(w.pools.chars.get(':'));
-            Visitor::visitList(key, [&aliasName](CellI& character, int i, bool& stop) {
+            forEach(key, [&aliasName](CellI& character, int i, bool& stop) {
                 aliasName.add(character);
             });
             aliasName.label(compiledStructName.label() + "::" + key.label());
@@ -1619,7 +1619,7 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
     // compile methods
     if (astStruct.has("methods")) {
         Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
-        Visitor::visitList(astStruct.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
+        forEach(astStruct.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
             auto& compiledFunction = compileFunction(static_cast<Ast::Function&>(astFunction));
             compiledMethods.add(astFunction[w.id.name], compiledFunction);
         });
@@ -1629,7 +1629,7 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
     // compile members
     if (astStruct.has("members")) {
         Map& compiledMembers = *new Map(w, w.std.Cell, w.std.Slot, "members Map<Cell, Slot>(...)");
-        Visitor::visitList(astStruct.members()[w.id.list], [this, &compiledMembers, &compiledStruct](CellI& slot, int i, bool& stop) {
+        forEach(astStruct.members()[w.id.list], [this, &compiledMembers, &compiledStruct](CellI& slot, int i, bool& stop) {
             CellI& key             = slot[w.id.key];
             CellI& type            = slot[w.id.type];
             auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
@@ -1641,7 +1641,7 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
     // compile memberOf list
     if (astStruct.has("memberOf")) {
         Map& compiledMemberOfs = *new Map(w, w.std.Struct, w.std.Struct, "memberOf Map<Type, Type>(...)");
-        Visitor::visitList(astStruct.memberOf(), [this, &compiledMemberOfs](CellI& membershipType, int i, bool& stop) {
+        forEach(astStruct.memberOf(), [this, &compiledMemberOfs](CellI& membershipType, int i, bool& stop) {
             auto& compiledMembershipType = getCompiledTypeFromResolvedType(membershipType);
             compiledMemberOfs.add(compiledMembershipType, compiledMembershipType);
         });
@@ -1658,12 +1658,12 @@ void Compiler::compileEnum(Ast::Enum& astEnum)
         return;
     }
     compiledStruct.erase("incomplete");
-    compiledStruct.set("enum", w.true_);
+    compiledStruct.set(w.id.enum_, w.true_);
 
     // compile methods
     if (astEnum.has("methods")) {
         Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
-        Visitor::visitList(astEnum.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
+        forEach(astEnum.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
             auto& compiledFunction = compileFunction(static_cast<Ast::Function&>(astFunction));
             compiledMethods.add(astFunction[w.id.name], compiledFunction);
         });
@@ -1675,7 +1675,7 @@ void Compiler::compileEnum(Ast::Enum& astEnum)
         Map& compiledMembers = *new Map(w, w.std.Cell, w.std.Slot, "members Map<Cell, Slot>(...)");
         compiledMembers.add(w.id.tag, w.std.slot(w.id.tag, w.std.Cell));
         compiledStruct.set("slots", compiledMembers);
-        Visitor::visitList(astEnum.values()[w.id.list], [this, &astEnum, &compiledMembers, &compiledStruct](CellI& kvPair, int i, bool& stop) {
+        forEach(astEnum.values()[w.id.list], [this, &astEnum, &compiledMembers, &compiledStruct](CellI& kvPair, int i, bool& stop) {
             CellI& valueKey  = kvPair[w.id.key];
             CellI& valueCell = kvPair[w.id.value];
             CellI& valueName = valueCell[w.id.name];
@@ -1752,7 +1752,7 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& 
             structTypeStr = fmt::format("{}::", type.label());
         }
         if (astFunction.has(w.id.parameters)) {
-            Visitor::visitList(astFunction.parameters(), [this, &parameters, &iss](CellI& slot, int i, bool& stop) {
+            forEach(astFunction.parameters(), [this, &parameters, &iss](CellI& slot, int i, bool& stop) {
                 if (i > 0) {
                     iss << ", ";
                 }
@@ -1784,7 +1784,7 @@ std::string Compiler::shortFunctionName(Ast::Function& function)
     std::stringstream oss;
     if (function.has(w.id.parameters) || function.has(w.id.structType)) {
         if (function.has(w.id.parameters)) {
-            Visitor::visitList(function.parameters(), [this, &iss](CellI& slot, int i, bool& stop) {
+            forEach(function.parameters(), [this, &iss](CellI& slot, int i, bool& stop) {
                 if (i > 0) {
                     iss << ", ";
                 }
@@ -1817,7 +1817,7 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         CellI* currentOpBlockNode = nullptr;
         Object& opBlock           = *new Object(w, w.std.op.Block);
         m_lastBlock = &opBlock;
-        Visitor::visitList(list, [this, &compile, &opBlock, &firstOpBlockNode, &currentOpBlockNode](CellI& ast, int, bool&) {
+        forEach(list, [this, &compile, &opBlock, &firstOpBlockNode, &currentOpBlockNode](CellI& ast, int, bool&) {
             CellI& newOpBlockNode = *new Object(w, w.std.op.Activate);
             newOpBlockNode.set(w.id.cell, compile(ast));
             newOpBlockNode.set(w.id.parent, opBlock);
@@ -1952,7 +1952,7 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         auto& astCases       = *new cells::List(w, w.std.ast.Base);
         Ast::Block& astBlock = *new Ast::Block(w, astCases);
 
-        Visitor::visitList(caseList, [this, &compile, &ast, &function, &enumObj, &astCases](CellI& kvpair, int, bool&) {
+        forEach(caseList, [this, &compile, &ast, &function, &enumObj, &astCases](CellI& kvpair, int, bool&) {
             auto& kind    = kvpair[w.id.key];
             auto& op      = kvpair[w.id.value];
             auto& oneCase = w.ast.if_(w.ast.same(w.ast.get(enumObj, "tag"), w._(kind))).then_(static_cast<Ast::Base&>(op));
@@ -2085,7 +2085,7 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
             auto& parameterRole                 = astCell[w.id.key];
             auto& astFunctionParameters         = function[w.id.ast][w.id.parameters];
             Ast::Slot* astFunctionParameterSlot = nullptr;
-            Visitor::visitList(astFunctionParameters, [this, &parameterRole, &astFunctionParameterSlot](CellI& slot, int i, bool& stop) {
+            forEach(astFunctionParameters, [this, &parameterRole, &astFunctionParameterSlot](CellI& slot, int i, bool& stop) {
                 CellI& key  = slot[w.id.key];
                 CellI& type = slot[w.id.type];
                 if (&key == &parameterRole) {
@@ -2114,7 +2114,7 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         retOp.set(w.id.stack, compile(w.ast.get(_(function), _(w.id.stack))));
         if (ast.has(w.id.parameters)) {
             List& parameters = *new List(w, w.std.Slot);
-            Visitor::visitList(ast[w.id.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
+            forEach(ast[w.id.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
                 CellI& slot = *new Object(w, w.std.Slot);
                 slot.set(w.id.key, param[w.id.key]);
                 slot.set(w.id.type, compile(param[w.id.type]));
@@ -2267,7 +2267,7 @@ void Compiler::checkMethodCall(CellI& astType, CellI& astMethodId)
 void Compiler::processDescriptionsInScope(Ast::Scope& scope)
 {
     if (scope.has("structs")) {
-        Visitor::visitList(scope.items<Ast::Struct>()[w.id.list], [this](CellI& astStruct, int i, bool& stop) {
+        forEach(scope.items<Ast::Struct>()[w.id.list], [this](CellI& astStruct, int i, bool& stop) {
             auto& tool = static_cast<Ast::Struct&>(astStruct[w.id.value]);
             if (tool.has(w.id.description) && tool[w.id.description].has(w.id.asts)) {
                 auto& compiledAstStruct = compiledStructs().getValue(getFullyQualifiedName(tool));
@@ -2276,7 +2276,7 @@ void Compiler::processDescriptionsInScope(Ast::Scope& scope)
         });
     }
     if (scope.has("scopes")) {
-        Visitor::visitList(scope.items<Ast::Scope>()[w.id.list], [this, &scope](CellI& scopeItem, int i, bool& stop) {
+        forEach(scope.items<Ast::Scope>()[w.id.list], [this, &scope](CellI& scopeItem, int i, bool& stop) {
             Ast::Scope& nextScope = static_cast<Ast::Scope&>(scopeItem[w.id.value]);
             processDescriptionsInScope(nextScope);
             m_scope = &scope;

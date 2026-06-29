@@ -265,7 +265,7 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
 
 void EdgeDetector::sortShapePoints()
 {
-    Visitor::visitList(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
+    forEach(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
 
         ScanLineState scanLineState = ScanLineState::Up;
@@ -506,7 +506,7 @@ void EdgeDetector::sortShapePoints()
 void EdgeDetector::calculateEdgesForShapes()
 {
     DEBUG(edge, "calculateEdgesForShapes");
-    Visitor::visitList(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
+    forEach(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
         TRACE(edge, "  Shape id: {}", currentShape["id"].label());
 
         enum class ProcessingMode
@@ -1643,13 +1643,13 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
     }
     const int targetContainedShapeCount = shapesCount - 1;
     CellI* backgroundShapePtr           = nullptr;
-    Visitor::visitList(shapesList, [this, targetContainedShapeCount, &backgroundShapePtr](CellI& shape, int, bool&) {
+    forEach(shapesList, [this, targetContainedShapeCount, &backgroundShapePtr](CellI& shape, int, bool&) {
         int edgesCount = getShapeEdgesSize(shape);
         if (edgesCount == 1) {
             return;
         }
         int containedShapeCount = 0;
-        Visitor::visitList(shape["edges"]["list"], [this, &containedShapeCount](CellI& edge, int, bool&) {
+        forEach(shape["edges"]["list"], [this, &containedShapeCount](CellI& edge, int, bool&) {
             if (!(&edge["kind"] == &arc.ShapeEdgeKind.InternalEdge && edge.has("shapes"))) {
                 return;
             }
@@ -1662,7 +1662,7 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
             // some heuristic about the longest border
             CellI& externalEdge = shape["edges"]["list"]["first"]["value"];
             std::map<int, int> longestBorder;
-            Visitor::visitList(externalEdge["edgeNodes"], [this, &longestBorder](CellI& edgeNode, int i, bool& stop) {
+            forEach(externalEdge["edgeNodes"], [this, &longestBorder](CellI& edgeNode, int i, bool& stop) {
                 int externalShapeId;
                 if (edgeNode.has("externalShape")) {
                     externalShapeId = static_cast<Number&>(edgeNode["externalShape"]["id"]).value();
@@ -1750,7 +1750,7 @@ hybridarc::ShapeField& EdgeDetector::createResult()
     int height = static_cast<Number&>(frame().get(id.height)).value();
     auto& shapeField = *new hybridarc::ShapeField(w, width, height);
 
-    Visitor::visitList(frame()["shapes"], [this, &shapeField](CellI& currentShape, int, bool&) {
+    forEach(frame()["shapes"], [this, &shapeField](CellI& currentShape, int, bool&) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
         // offset
         CellI& firstPoint      = currentShape["shapePoints"][id.first][id.value];
@@ -1761,7 +1761,7 @@ hybridarc::ShapeField& EdgeDetector::createResult()
         List& externalEdgeLine = *new List(w, arc.Direction);
         TrieMap& internalEdges    = *new TrieMap(w, arc.Vector, w.tt_("std::List", "valueType", "Direction"));
 
-        Visitor::visitList(edgesList, [this, &externalEdgeLine, &internalEdges](CellI& currentEdge, int i, bool&) {
+        forEach(edgesList, [this, &externalEdgeLine, &internalEdges](CellI& currentEdge, int i, bool&) {
             List* outEdgePtr = nullptr;
             // the first edge is the external edge
             if (i == 0) {
@@ -1776,7 +1776,7 @@ hybridarc::ShapeField& EdgeDetector::createResult()
             }
             List& outEdge = *outEdgePtr;
 
-            Visitor::visitList(currentEdge["edgeNodes"], [this, &outEdge](CellI& node, int i, bool&) {
+            forEach(currentEdge["edgeNodes"], [this, &outEdge](CellI& node, int i, bool&) {
                 outEdge.add(node["direction"]);
             });
         });
@@ -1807,7 +1807,7 @@ hybridarc::ShapeField& EdgeDetector::createResult()
     } shapeFieldMaker(w, shapeField.m_width, shapeField.m_height);
     CellI& astNewShapeField = *shapeFieldMaker.ast;
     CellI& shapesMap        = shapeField["shapesMap"];
-    Visitor::visitList(shapesMap[id.list], [this, &printDirection, &shapesMap](CellI& kvPair, int, bool&) {
+    forEach(shapesMap[id.list], [this, &printDirection, &shapesMap](CellI& kvPair, int, bool&) {
         hybridarc::Vector& offset = static_cast<hybridarc::Vector&>(kvPair[id.key]);
         hybridarc::Shape& shape   = static_cast<hybridarc::Shape&>(kvPair[id.value]);
         std::cout << "shapeField.addShape({ " << shape.m_color.label() << ", [" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
@@ -1823,18 +1823,18 @@ hybridarc::ShapeField& EdgeDetector::createResult()
             }
         } getShapeAst(w, offset, shape);
 
-        Visitor::visitList(shape["externalEdgeLine"], [this, &printDirection](CellI& direction, int, bool&) {
+        forEach(shape["externalEdgeLine"], [this, &printDirection](CellI& direction, int, bool&) {
             printDirection(direction);
         });
         std::cout << "}";
         if (!shape.m_internalEdges.empty()) {
             std::cout << ", inEdges: {";
         }
-        Visitor::visitList(shape["internalEdges"][id.list], [this, &printDirection, &shape](CellI& kvPair, int, bool&) {
+        forEach(shape["internalEdges"][id.list], [this, &printDirection, &shape](CellI& kvPair, int, bool&) {
             hybridarc::Vector& offset = static_cast<hybridarc::Vector&>(kvPair[id.key]);
             List& internalEdge = static_cast<List&>(kvPair[id.value]);
             std::cout << "[" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
-            Visitor::visitList(internalEdge, [this, &printDirection](CellI& direction, int, bool&) {
+            forEach(internalEdge, [this, &printDirection](CellI& direction, int, bool&) {
                 printDirection(direction);
             });
             std::cout << "}";

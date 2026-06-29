@@ -50,7 +50,7 @@ void CellStructPrinter::printImpl(CellI& cell)
     m_ss << std::endl;
     if (type.has(w.id.slots)) {
         CellI& slotList = cell.slotList();
-        Visitor::visitList(slotList, [this, &cell, &needId](CellI& slot, int i, bool&) {
+        forEach(slotList, [this, &cell, &needId](CellI& slot, int i, bool&) {
             CellI& role = slot[w.id.key];
             if (!cell.has(role)) {
                 return;

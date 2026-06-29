@@ -43,7 +43,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                 m_ss << "(";
                 if (cell.has(w.id.parameters)) {
                     int paramNum = 0;
-                    Visitor::visitList(cell[w.id.parameters], [this, &paramNum](CellI& parameter, int, bool& stop) {
+                    forEach(cell[w.id.parameters], [this, &paramNum](CellI& parameter, int, bool& stop) {
                         if (paramNum++ > 0) {
                             m_ss << ", ";
                         }
@@ -89,7 +89,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         activeNodePtr = activeNode.has(w.id.next) ? &activeNode[w.id.next] : nullptr;
     }
 #if 0
-    Visitor::visitList(cell[w.ids.ops], [this](CellI& op, int, bool&) {
+    forEach(cell[w.ids.ops], [this](CellI& op, int, bool&) {
         printIndent();
         printImpl(op);
         m_ss << ";\n";
@@ -114,7 +114,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
 
     if (cell.has(w.id.parameters)) {
         CellI& parametersList = cell[w.id.parameters][w.id.list];
-        Visitor::visitList(parametersList, [this, &iss](CellI& slot, int i, bool& stop) {
+        forEach(parametersList, [this, &iss](CellI& slot, int i, bool& stop) {
             if (i > 0) {
                 iss << ", ";
             }
@@ -179,7 +179,7 @@ void CellValuePrinter::printOpCall(CellI& cell)
     m_ss << "(";
     if (cell.has(w.id.parameters)) {
         int paramNum = 0;
-        Visitor::visitList(cell[w.id.parameters], [this, &paramNum](CellI& parameter, int, bool& stop) {
+        forEach(cell[w.id.parameters], [this, &paramNum](CellI& parameter, int, bool& stop) {
             if (paramNum++ > 0) {
                 m_ss << ", ";
             }
@@ -539,7 +539,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         printTypeName(cell.__type__());
         m_ss << "[";
-        Visitor::visitList(cell, [this](CellI& value, int i, bool&) {
+        forEach(cell, [this](CellI& value, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }
@@ -554,7 +554,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         printTypeName(cell.__type__());
         m_ss << "{";
-        Visitor::visitList(cell[w.id.index].slotList(), [this, &cell](CellI& value, int i, bool&) {
+        forEach(cell[w.id.index].slotList(), [this, &cell](CellI& value, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }
@@ -570,7 +570,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         m_ss << "Type ";
         printTypeName(cell);
         if (type.has(w.id.memberOf)) {
-            Visitor::visitList(type[w.id.memberOf][w.id.list], [this](CellI& member, int i, bool&) {
+            forEach(type[w.id.memberOf][w.id.list], [this](CellI& member, int i, bool&) {
                 if (i != 0) {
                     m_ss << ", ";
                 } else {
@@ -581,7 +581,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         m_ss << " { ";
         if (type.has(w.id.slots)) {
-            Visitor::visitList(type[w.id.slots][w.id.list], [this](CellI& slot, int i, bool&) {
+            forEach(type[w.id.slots][w.id.list], [this](CellI& slot, int i, bool&) {
                 if (i != 0) {
                     m_ss << ", ";
                 }
@@ -590,6 +590,9 @@ void CellValuePrinter::printImpl(CellI& cell)
             });
         }
         m_ss << " }";
+        return;
+    } else if (cell.__type__().has(w.id.enum_)) {
+        m_ss << cell.label();
         return;
     } else if (&cell == &w.id.red || &cell == &w.id.green || &cell == &w.id.blue) {
         m_ss << cell.label();
@@ -716,7 +719,7 @@ void CellValuePrinter::printImpl(CellI& cell)
     m_ss << cell.__type__().label() << " { ";
 
     if (cell.__type__().has(w.id.slots)) {
-        Visitor::visitList(cell.slotList(), [this](CellI& slot, int i, bool&) {
+        forEach(cell.slotList(), [this](CellI& slot, int i, bool&) {
             if (i != 0) {
                 m_ss << ", ";
             }

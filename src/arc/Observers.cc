@@ -334,7 +334,7 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
             transformationPtr = &arc.LineSymmetry.vertical;
         }
         CellI& transformation = *transformationPtr;
-        Visitor::visitList(lhsEdges, [&w, &rhs, &getEdge, &result, &outerLhsEdge, &transformation](CellI& lhsEdge, int i, bool& stop) {
+        forEach(lhsEdges, [&w, &rhs, &getEdge, &result, &outerLhsEdge, &transformation](CellI& lhsEdge, int i, bool& stop) {
             if (&lhsEdge == &outerLhsEdge) {
                 return;
             }

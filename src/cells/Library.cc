@@ -28,17 +28,17 @@ void Library::include(Library& library)
 
 void Library::mergeTo(Library& target)
 {
-    Visitor::visitList(functions()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+    forEach(functions()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.functions().add(key, value);
     });
-    Visitor::visitList(structs()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+    forEach(structs()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.structs().add(key, value);
     });
-    Visitor::visitList(variables()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+    forEach(variables()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.variables().add(key, value);

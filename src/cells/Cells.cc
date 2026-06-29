@@ -117,7 +117,7 @@ bool CellI::operator==(CellI& rhs)
     }
 
     bool ret = true;
-    Visitor::visitList(slotList(), [this, &rhs, &ret](CellI& slot, int i, bool& stop) {
+    forEach(slotList(), [this, &rhs, &ret](CellI& slot, int i, bool& stop) {
         CellI& key = slot[w.id.key];
 
         bool hasLeftSlot = has(key);
@@ -728,7 +728,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& inputIndex = *new Object(w, w.std.Index);
         inputIndex.set(w.id.self, cell);
         if (self.has(w.id.parameters)) {
-            Visitor::visitList(self[w.id.parameters], [&self, &w, &inputIndex](CellI& parameter, int, bool& stop) {
+            forEach(self[w.id.parameters], [&self, &w, &inputIndex](CellI& parameter, int, bool& stop) {
                 inputIndex.set(parameter[w.id.key], parameter[w.id.type][w.id.value]);
 //                static_cast<Object&>(self).printIndent();
 //                std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.type][w.id.value].label() << std::endl;
@@ -739,7 +739,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         if (method.has(w.id.localVars)) {
             CellI& localVarsList  = method[w.id.localVars].slotList();
             auto& localVarsIndex = *new Object(w, method[w.id.localVars].__type__(), "StackLocalVarsIndex");
-            Visitor::visitList(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
+            forEach(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
                 localVarsIndex.set(slot[w.id.key], *new Object(w, w.std.op.Var));
             });
             stackFrame.set(w.id.localVars, localVarsIndex);
@@ -824,7 +824,7 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
 //        std::cout << "return " << std::endl;
 //        std::cout << "return " << self.label() << std::endl;
         if (stackFrame.has(w.id.ops)) {
-            Visitor::visitList(stackFrame[w.id.ops], [&w](CellI& opState, int, bool& stop) {
+            forEach(stackFrame[w.id.ops], [&w](CellI& opState, int, bool& stop) {
                 loadOpState(opState);
                 delete &opState;
             });
@@ -846,7 +846,7 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
             if (stackFrame.has(w.id.localVars)) {
                 CellI& localVarsList  = self[w.id.localVars].slotList();
                 CellI& localVarsIndex = stackFrame[w.id.localVars];
-                Visitor::visitList(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
+                forEach(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
                     delete &localVarsIndex[slot[w.id.key]];
                 });
                 delete &localVarsIndex;
@@ -1779,7 +1779,7 @@ void Object::initLocalVars(CellI& method)
     Object& localVarsIndex = *new Object(w, method[w.id.localVars].__type__(), "LocalVarsIndex");
     CellI& stackFrame      = method[w.id.stack][w.id.value];
     stackFrame.set(w.id.localVars, localVarsIndex);
-    Visitor::visitList(localVarsList, [this, &localVarsIndex](CellI& slot, int i, bool&) {
+    forEach(localVarsList, [this, &localVarsIndex](CellI& slot, int i, bool&) {
         auto& key        = slot[w.id.key];
         Object& localVar = *new Object(w, w.std.op.Var, fmt::format("var {}", key.label()));
         localVar.set(w.id.valueType, slot[w.id.type]);
@@ -2407,7 +2407,7 @@ bool TrieMap::hasKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+    forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             stop        = true;
@@ -2437,7 +2437,7 @@ CellI& TrieMap::getValue(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+    forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             stop        = true;
@@ -2467,7 +2467,7 @@ bool TrieMap::hasValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+    forEach(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
         CellI& keyNode  = key[slot[w.id.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
@@ -2498,7 +2498,7 @@ CellI& TrieMap::getValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+    forEach(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
         CellI& keyNode  = key[slot[w.id.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
@@ -2529,7 +2529,7 @@ void TrieMap::addWithDataKey(CellI& key, CellI& value)
 {
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+    forEach(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
         CellI& keyNode = key[slot[w.id.key]];
         CellI* child = nullptr;
         if (currentNode->missing(w.id.children)) {
@@ -2556,7 +2556,7 @@ void TrieMap::add(CellI& key, CellI& value)
 {
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+    forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* child = nullptr;
         if (currentNode->missing(w.id.children)) {
             currentNode->set(w.id.children, *new Index(w));
@@ -2586,7 +2586,7 @@ void TrieMap::remove(CellI& key)
 
     CellI* currentNode = &m_rootNode;
 
-    Visitor::visitList(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+    forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             stop        = true;
@@ -2956,32 +2956,7 @@ CellI& ActivationPointer::operator[](CellI& key)
 
 } // namespace hybrid
 
-#if 0
-void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
-{
-    Brain& w = list.w;
-    int i            = 0;
-
-    if (list.missing(w.ids.first)) {
-        return;
-    }
-
-    for (CellI* currentListNodePtr = &list[w.ids.first];;) {
-        CellI& currentListNode = *currentListNodePtr;
-        CellI& value           = currentListNode[w.ids.value];
-        bool stop              = false;
-
-        visitFn(value, i++, stop);
-        if (stop || currentListNode.missing(w.ids.next)) {
-            return;
-        }
-
-        currentListNodePtr = &currentListNode[w.ids.next];
-    };
-}
-#else
-
-void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
+void forEach(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
 {
     class ListIterator
     {
@@ -3042,30 +3017,6 @@ void Visitor::visitList(CellI& list, std::function<void(CellI& value, int i, boo
             return;
         }
     } while (true);
-}
-#endif
-
-void Visitor::visitListInReverse(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
-{
-    World& w = list.w;
-    int i            = 0;
-
-    if (list.missing(w.id.last)) {
-        return;
-    }
-
-    for (CellI* currentListNodePtr = &list[w.id.last];;) {
-        CellI& currentListNode = *currentListNodePtr;
-        CellI& value           = currentListNode[w.id.value];
-        bool stop              = false;
-
-        visitFn(value, i++, stop);
-        if (stop || currentListNode.missing(w.id.previous)) {
-            return;
-        }
-
-        currentListNodePtr = &currentListNode[w.id.previous];
-    }
 }
 
 } // namespace cells

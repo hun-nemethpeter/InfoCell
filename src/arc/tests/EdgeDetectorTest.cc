@@ -114,17 +114,17 @@ public:
     void printShapeRelations()
     {
         DEBUG(shapeRelations, "printShapeRelations");
-        Visitor::visitList(frame()["shapes"], [this](CellI& shape, int, bool&) {
+        forEach(frame()["shapes"], [this](CellI& shape, int, bool&) {
             int edgesCount = getShapeEdgesSize(shape);
             if (edgesCount == 1) {
                 TRACE(shapeRelations, "  shape id {} has only external edge", shape["id"].label());
             } else {
                 TRACE(shapeRelations, "  shape id {} has internal edge(s)", shape["id"].label());
-                Visitor::visitList(shape["edges"]["list"], [this](CellI& edge, int, bool&) {
+                forEach(shape["edges"]["list"], [this](CellI& edge, int, bool&) {
                     if (&edge["kind"] == &arc.ShapeEdgeKind.InternalEdge) {
                         if (edge.has("shapes")) {
                             std::stringstream ss;
-                            Visitor::visitList(edge["shapes"]["index"].slotList(), [this, &ss](CellI& slot, int, bool&) {
+                            forEach(edge["shapes"]["index"].slotList(), [this, &ss](CellI& slot, int, bool&) {
                                 CellI& shape = slot["key"];
                                 ss << fmt::format("shape({}) ", shape["id"].label());
                             });
@@ -161,9 +161,9 @@ public:
     void printEveryShapePixels()
     {
         TRACE(edge, "printEveryShapePixels");
-        Visitor::visitList(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
+        forEach(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
             TRACE(edge, "Shape id: {}, pixels: ", currentShape["id"].label());
-            Visitor::visitList(currentShape["shapePixels"], [this](CellI& shapePixel, int, bool&) {
+            forEach(currentShape["shapePixels"], [this](CellI& shapePixel, int, bool&) {
                 TRACE(edge, "[{}, {}]", shapePixel["pixel"]["x"].label(), shapePixel["pixel"]["y"].label());
             });
         });
@@ -486,11 +486,11 @@ public:
     void printAllShapePoints()
     {
         DEBUG(edge, "printAllShapePoints");
-        Visitor::visitList(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
+        forEach(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
             std::stringstream ss;
             int lastY = static_cast<Number&>(currentShape["shapePoints"]["first"]["value"]["y"]).value();
             TRACE(edge, "Shape id: {}", currentShape["id"].label());
-            Visitor::visitList(currentShape["shapePoints"], [this, &ss, &lastY](CellI& shapePoint, int, bool&) {
+            forEach(currentShape["shapePoints"], [this, &ss, &lastY](CellI& shapePoint, int, bool&) {
                 const int y = static_cast<Number&>(shapePoint["y"]).value();
                 if (lastY != y) {
                     TRACE(edge, "    {}", ss.str());
@@ -956,6 +956,8 @@ public:
         m_output.detect(outputJsonStr);
         cells::arc::ShapeField& inputShapeField = m_input.createResult();
         cells::arc::ShapeField& outputShapeField = m_output.createResult();
+
+        auto& type = inputShapeField.__type__();
 
         ToolFinder& toolFinder = w.arcLib().toolFinder();
         toolFinder.findConversionTools(w._2_, w._4_);
@@ -2069,7 +2071,7 @@ TEST_F(EdgeDetectorTest, EdgeTestWithAllArcTask)
     for (auto& task : taskSet.m_tasks) {
         INFO(grid, fmt::format("id: {}, examples num: {}, tests num: {}", task.first, static_cast<List&>(task.second.m_cellExamplesList).size(), static_cast<List&>(task.second.m_cellTestsList).size()));
         TRACE(grid, "   examples:");
-        Visitor::visitList(task.second.m_cellExamplesList, [this, &task](CellI& example, int i, bool&) {
+        forEach(task.second.m_cellExamplesList, [this, &task](CellI& example, int i, bool&) {
             const int humanIndex = i + 1;
             INFO(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
@@ -2083,7 +2085,7 @@ TEST_F(EdgeDetectorTest, EdgeTestWithAllArcTask)
             detect(static_cast<hybridarc::Grid&>(example["output"]));
         });
         TRACE(grid, "   tests:");
-        Visitor::visitList(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
+        forEach(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
             const int humanIndex = i + 1;
             INFO(grid, fmt::format("id: {}, test input: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Test", humanIndex, "Input"));

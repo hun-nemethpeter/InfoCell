@@ -159,7 +159,7 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
         // so this can be a conversion tool
         CellI& returnType     = tool[w.id.returnType][w.id.value];
         CellI& toolInputSlots = compiledToolType[w.id.slots][w.id.list];
-        Visitor::visitList(toolInputSlots, [this, &tool, &compiledToolType, &returnType](CellI& slot, int i, bool& stop) {
+        forEach(toolInputSlots, [this, &tool, &compiledToolType, &returnType](CellI& slot, int i, bool& stop) {
             CellI& inputType = slot[w.id.type];
             ConversionToolKey key(inputType, returnType);
             ConversionToolBlueprint blueprint(tool, compiledToolType, slot[w.id.key]);
@@ -173,7 +173,7 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
         ss << "" << tool.label() << "(";
 
         CellI& toolInputSlots = compiledToolType[w.id.slots][w.id.list];
-        Visitor::visitList(toolInputSlots, [this, &ss, &tool](CellI& slot, int i, bool& stop) {
+        forEach(toolInputSlots, [this, &ss, &tool](CellI& slot, int i, bool& stop) {
             if (i > 0) {
                 ss << ", ";
             }
@@ -187,7 +187,7 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
         }
         TRACE(toolFinder, "{} =>", ss.str());
     }
-    Visitor::visitList(effects, [this, &tool, &compiledToolType](CellI& effect, int i, bool& stop) {
+    forEach(effects, [this, &tool, &compiledToolType](CellI& effect, int i, bool& stop) {
         add(effect, tool, compiledToolType);
     });
 }
@@ -281,7 +281,7 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
     if (IS_LOG_ENABLED) {
         CellI& astAsList = serializeEffectAst(effect);
         std::stringstream ss;
-        Visitor::visitList(astAsList, [&ss](CellI& value, int, bool& stop) {
+        forEach(astAsList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
         TRACE(toolFinder, "  {}", ss.str());
@@ -543,7 +543,7 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
                     ret->set(unwrappedKey, *valuePtr);
                 } else if (&valueCell.__type__() == &ListOfCellStruct) {
                     valuePtr = &ast;
-                    Visitor::visitList(valueCell, [&valuePtr, &w](CellI& pathItem, int, bool& stop) {
+                    forEach(valueCell, [&valuePtr, &w](CellI& pathItem, int, bool& stop) {
                         CellI& currentValue = *valuePtr;
                         valuePtr            = &currentValue[pathItem];
                     });
@@ -617,7 +617,7 @@ static void fillMissingSlotsWithUnknown(CellI& tool, CellI& filledSlot, CellI& u
 {
     World& w = tool.w;
     CellI& slotList  = tool.slotList();
-    Visitor::visitList(slotList, [&w, &tool, &filledSlot, &unknownX, forConversion](CellI& slot, int i, bool& stop) {
+    forEach(slotList, [&w, &tool, &filledSlot, &unknownX, forConversion](CellI& slot, int i, bool& stop) {
         CellI& slotType = slot[w.id.type];
         CellI& slotKey = slot[w.id.key];
         if (&slotKey != &filledSlot) {
@@ -659,7 +659,7 @@ SolverLib::SolverLib(World& w, Ast::Scope& parentScope, CellI& solverAst, const 
 }
 
 
-static void PrintAsValue(CellI& cell, const std::string& label)
+static void printAsValue(CellI& cell, const std::string& label = "")
 {
     CellValuePrinter valuePrinter(cell.w);
 
@@ -714,7 +714,7 @@ CellI& ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, Too
         //        PrintAsValue(solverFn, "solverFn");
         //        std::cout << blueprint << '\n';
 
-        PrintAsValue(conversionToolFn2, "");
+        printAsValue(conversionToolFn2, "");
         std::cout << "" << std::endl;
     }
 
@@ -726,6 +726,8 @@ CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
 {
     CellI& inputType = from.__type__();
     CellI& outputType = to.__type__();
+
+    printAsValue(from);
 
     ConversionToolKey conversionToolKey(inputType, outputType);
 

@@ -493,12 +493,7 @@ public:
 } // namespace hybrid
 
 // ============================================================================
-class Visitor
-{
-public:
-    static void visitList(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
-    static void visitListInReverse(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
-};
+void forEach(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
 
 } // namespace cells
 } // namespace infocell

@@ -173,7 +173,7 @@ void Ast::Block::mergeFrom(Base& statement)
     List& toAstList = static_cast<List&>((*this)[w.id.asts]);
     if (&statement.__type__() == &w.std.ast.Block) {
         List& fromAstList = static_cast<List&>(statement[w.id.asts]);
-        Visitor::visitList(fromAstList, [&toAstList](CellI& ast, int, bool&) {
+        forEach(fromAstList, [&toAstList](CellI& ast, int, bool&) {
             toAstList.add(ast);
         });
     } else {
@@ -278,7 +278,7 @@ void Ast::Scope::mergeTo(Scope& targetScope, MergeMode mergeMode)
 
     TrieMap& toScopeMap = to.items<Ast::Scope>();
 
-    Visitor::visitList(from.items<Ast::Scope>()[w.id.list], [this, &mergeMode, &toScopeMap](CellI& kvPair, int i, bool& stop) {
+    forEach(from.items<Ast::Scope>()[w.id.list], [this, &mergeMode, &toScopeMap](CellI& kvPair, int i, bool& stop) {
         auto& libScopeKey   = kvPair[w.id.key];
         auto& libScopeValue = static_cast<Ast::Scope&>(kvPair[w.id.value]);
         switch (mergeMode) {
