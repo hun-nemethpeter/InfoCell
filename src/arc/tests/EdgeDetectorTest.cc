@@ -955,6 +955,7 @@ public:
         m_input.detect(inputJsonStr);
         m_output.detect(outputJsonStr);
         cells::arc::ShapeField& inputShapeField = m_input.createResult();
+        std::cout << std::endl;
         cells::arc::ShapeField& outputShapeField = m_output.createResult();
 
         auto& type = inputShapeField.__type__();
@@ -963,6 +964,25 @@ public:
         toolFinder.findConversionTools(w._2_, w._4_);
         toolFinder.findConversionTools(w.false_, w.true_);
         toolFinder.findConversionTools(inputShapeField, outputShapeField);
+        diffShapeFields(inputShapeField, outputShapeField);
+        std::cout << "";
+    }
+
+    void diffShapeFields(cells::arc::ShapeField& inputShapeField, cells::arc::ShapeField& outputShapeField)
+    {
+        forEach(inputShapeField["shapesMap"][w.id.list], [this, &outputShapeField](CellI& kvPair, int, bool&) {
+            auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
+            auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
+            if (outputShapeField.hasShape(offset)) {
+                cells::arc::Shape& outputShape = outputShapeField.getShape(offset);
+                if (shape == outputShape) {
+                    std::cout << "ok" << std::endl;
+                    return;
+                }
+            }
+            std::cout << "no" << std::endl;
+        });
+        std::cout << "";
     }
 
     World& w;

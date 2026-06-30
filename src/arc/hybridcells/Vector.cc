@@ -1,5 +1,6 @@
-﻿#include "Vector.h"
+﻿#include <sstream>
 
+#include "Vector.h"
 #include "cells/World.h"
 
 namespace infocell {
@@ -58,6 +59,18 @@ CellI& Vector::operator[](CellI& key)
     throw "No such key!";
 }
 
+std::string Vector::toString() const
+{
+    std::stringstream ss;
+    ss << "(" << m_x.value() << ", " << m_y.value() << ")";
+    return ss.str();
+}
+
+std::ostream& operator<<(std::ostream& os, const Vector& shape)
+{
+    os << shape.toString();
+    return os;
+}
 } // namespace arc
 } // namespace cells
 } // namespace infocell

@@ -17,9 +17,12 @@ public:
     void operator()() override;
     CellI& operator[](CellI& key) override;
 
+    std::string toString() const;
+
     Number& m_x;
     Number& m_y;
 };
+std::ostream& operator<<(std::ostream& os, const Vector& vector);
 
 } // namespace arc
 } // namespace cells

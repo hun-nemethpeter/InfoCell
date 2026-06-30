@@ -487,9 +487,9 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         }
     } else if (&ast.__type__() == &w.std.ast.Match) {
         auto& ret = w.ast.match_(static_cast<Ast::Base&>(ast["enum"]));
-        forEach(ast["cases"][w.id.list], [this, &resolveNode, &ret](CellI& kvpair, int, bool&) {
-            auto& key = kvpair[w.id.key];
-            auto& op  = resolveNode(kvpair[w.id.value]);
+        forEach(ast["cases"][w.id.list], [this, &resolveNode, &ret](CellI& kvPair, int, bool&) {
+            auto& key = kvPair[w.id.key];
+            auto& op  = resolveNode(kvPair[w.id.value]);
             ret.case_(key, op);
         });
         return ret;
@@ -1952,9 +1952,9 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         auto& astCases       = *new cells::List(w, w.std.ast.Base);
         Ast::Block& astBlock = *new Ast::Block(w, astCases);
 
-        forEach(caseList, [this, &compile, &ast, &function, &enumObj, &astCases](CellI& kvpair, int, bool&) {
-            auto& kind    = kvpair[w.id.key];
-            auto& op      = kvpair[w.id.value];
+        forEach(caseList, [this, &compile, &ast, &function, &enumObj, &astCases](CellI& kvPair, int, bool&) {
+            auto& kind    = kvPair[w.id.key];
+            auto& op      = kvPair[w.id.value];
             auto& oneCase = w.ast.if_(w.ast.same(w.ast.get(enumObj, "tag"), w._(kind))).then_(static_cast<Ast::Base&>(op));
             astCases.add(oneCase);
         });

@@ -507,7 +507,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
               .members(
                   member("width", _(std.Number)),
                   member("height", _(std.Number)),
-                  member("internalEdges", tt_("std::TrieMap", "keyType", "Vector", "valueType", "Shape")));
+                  member("shapesMap", tt_("std::TrieMap", "keyType", "Vector", "valueType", "Shape")));
 
     // struct Frame
     auto& frameStruct

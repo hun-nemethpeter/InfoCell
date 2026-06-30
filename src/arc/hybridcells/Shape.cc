@@ -1,4 +1,7 @@
-﻿#include "Shape.h"
+﻿#include <sstream>
+
+#include "Shape.h"
+#include "Vector.h"
 
 namespace infocell {
 namespace cells {
@@ -230,8 +233,31 @@ bool Shape::operator==(Shape& rhs)
             result = false;
             return;
         }
-        rhsDirNodePtr = &(*rhsDirNodePtr)[w.id.next];
+        if ((*rhsDirNodePtr).has(w.id.next)) {
+            rhsDirNodePtr = &(*rhsDirNodePtr)[w.id.next];
+        }
     });
+    if (!result) {
+        return false;
+    }
+
+    TrieMap& rhsInternalEdgeLine = rhs.m_internalEdges;
+    forEach(m_internalEdges[w.id.list], [this, &rhsInternalEdgeLine, &result](CellI& kvPair, int i, bool& stop) {
+        auto& offset   = kvPair[w.id.key];
+        auto& edgeLine = kvPair[w.id.value];
+        std::cout << "";
+        if (rhsInternalEdgeLine.hasValueWithDataKey(offset)) {
+            auto& rhsEdgeLine = rhsInternalEdgeLine.getValueWithDataKey(offset);
+            std::cout << " has value";
+        } else {
+            stop   = true;
+            result = false;
+            return;
+        }
+    });
+    if (!result) {
+        return false;
+    }
 
     return true;
 }
@@ -241,6 +267,54 @@ void Shape::addInternalEdge(Vector& offset, List& edge)
 {
     m_internalEdges.addWithDataKey(offset, edge);
 }
+
+std::string Shape::toString() const
+{
+    Shape& self = const_cast<Shape&>(*this);
+    std::stringstream ss;
+    auto printDirection = [this, &ss](CellI& direction, bool isFirst) {
+        if (!isFirst) {
+            ss << " ";
+        }
+        if (&direction == &w.arc.Direction.up) {
+            ss << "🡩";
+        } else if (&direction == &w.arc.Direction.down) {
+            ss << "🡫";
+        } else if (&direction == &w.arc.Direction.left) {
+            ss << "🡨";
+        } else if (&direction == &w.arc.Direction.right) {
+            ss << "🡪";
+        }
+    };
+    ss << "{ " << m_color.label() << ",";
+    forEach(self["externalEdgeLine"], [this, &printDirection](CellI& direction, int i, bool&) {
+        printDirection(direction, i == 0);
+    });
+    ss << "";
+    if (!m_internalEdges.empty()) {
+        ss << ", ";
+        forEach(self["internalEdges"][w.id.list], [this, &ss, &printDirection](CellI& kvPair, int i, bool&) {
+            Vector& offset     = static_cast<Vector&>(kvPair[w.id.key]);
+            List& internalEdge = static_cast<List&>(kvPair[w.id.value]);
+            if (i > 0) {
+                ss << ", ";
+            }
+            ss << "(" << offset.m_x.value() << "," << offset.m_y.value() << ")";
+            forEach(internalEdge, [this, &printDirection](CellI& direction, int i, bool&) {
+                printDirection(direction, i == 0);
+            });
+        });
+    }
+    ss << " }";
+    return ss.str();
+}
+
+std::ostream& operator<<(std::ostream& os, const Shape& shape)
+{
+    os << shape.toString();
+    return os;
+}
+
 
 } // namespace arc
 } // namespace cells

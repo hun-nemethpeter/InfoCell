@@ -28,8 +28,8 @@ public:
     CellI& operator[](CellI& key) override;
 
     void addShape(Vector& offset, Shape& shape);
-    bool hasShape(Vector& offset, Shape& shape);
-    Shape& getShape(const Vector& offset);
+    bool hasShape(Vector& offset);
+    Shape& getShape(Vector& offset);
 
     Number m_width;
     Number m_height;

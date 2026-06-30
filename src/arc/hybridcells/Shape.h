@@ -48,12 +48,16 @@ public:
     CellI& operator[](CellI& key) override;
 
     bool operator==(Shape& rhs);
+
     void addInternalEdge(Vector& offset, List& edge);
+    std::string toString() const;
 
     cells::CellI& m_color;
     List& m_externalEdgeLine;
     cells::TrieMap& m_internalEdges;
+
 };
+std::ostream& operator<<(std::ostream& os, const Shape& shape);
 
 } // namespace arc
 } // namespace cells

@@ -742,27 +742,7 @@ CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
         CellI& conversionTool = createConversionToolFromBlueprint(from, to, blueprint);
     }
     std::cout << "";
-#if 0
-2 -> 4
-Number -> Number
 
-Add(lhs: Number, rhs: Number): Number           // commutative so only Add(x, 2) == 4 is considered
-Divide(lhs: Number, rhs: Number): Number        // Divide(x, 2) == 4 and Divide(2, x) == 4
-Get(cell: ast::Base, key: ast::Base): ast::Base // Get(x, 2) == 4 and Get(2, x) == 4 are considered, but can not be solved with Set as that function is not a conversion tool
-Multiply(lhs: Number, rhs: Number): Number      // commutative so only Multiply(x, 2) == 4 is considered
-Subtract(lhs: Number, rhs: Number): Number      // Subtract(x, 2) == 4 and Divide(2, x) == 4
-
-
-Solving equations:
-
-Add(unknown1, 2) == 4
-
-solving with
-sub(lhs, rhs) solves [add(return(), rhs) == lhs] so [unknown1 == sub(4, 2)] so Add(Subtract(4, 2), lhs)
-
-
-
-#endif
     return from.w.id.emptyObject; // TODO
 }
 

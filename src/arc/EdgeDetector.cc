@@ -1783,126 +1783,16 @@ hybridarc::ShapeField& EdgeDetector::createResult()
         hybridarc::Shape& shape = *new hybridarc::Shape(w, currentShape["color"], externalEdgeLine, internalEdges);
         shapeField.addShape(offset, shape);
     });
-    auto printDirection = [this](CellI& direction) {
-        if (&direction == &arc.Direction.up) {
-            std::cout << "🡩 ";
-        } else if (&direction == &arc.Direction.down) {
-            std::cout << "🡫 ";
-        } else if (&direction == &arc.Direction.left) {
-            std::cout << "🡨 ";
-        } else if (&direction == &arc.Direction.right) {
-            std::cout << "🡪 ";
-        }
-    };
     std::cout << "ShapeField shapeField(width: " << static_cast<Number&>(shapeField.m_width).value() << ", height: " << static_cast<Number&>(shapeField.m_height).value() << ");" << std::endl;
-    class ShapeFieldMaker : public AstHelper
-    {
-    public:
-        Base* ast = nullptr;
-        ShapeFieldMaker(World& w, Number& width, Number& height) :
-            AstHelper(w)
-        {
-            ast = &(var_("shapeField") = new_("ShapeField", "new")("width", _(width))("height", _(height)));
-        }
-    } shapeFieldMaker(w, shapeField.m_width, shapeField.m_height);
-    CellI& astNewShapeField = *shapeFieldMaker.ast;
-    CellI& shapesMap        = shapeField["shapesMap"];
-    forEach(shapesMap[id.list], [this, &printDirection, &shapesMap](CellI& kvPair, int, bool&) {
+
+    CellI& shapesMap = shapeField["shapesMap"];
+    forEach(shapesMap[id.list], [this, &shapesMap](CellI& kvPair, int, bool&) {
         hybridarc::Vector& offset = static_cast<hybridarc::Vector&>(kvPair[id.key]);
         hybridarc::Shape& shape   = static_cast<hybridarc::Shape&>(kvPair[id.value]);
-        std::cout << "shapeField.addShape({ " << shape.m_color.label() << ", [" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
-
-        class GetShapeAst : public AstHelper
-        {
-        public:
-            Base* ast = nullptr;
-            GetShapeAst(World& w, CellI& offset, CellI& shape) :
-                AstHelper(w)
-            {
-                Base& var = equal(var_("shapeField")("getShape")("offset", _(offset)), _(shape));
-            }
-        } getShapeAst(w, offset, shape);
-
-        forEach(shape["externalEdgeLine"], [this, &printDirection](CellI& direction, int, bool&) {
-            printDirection(direction);
-        });
-        std::cout << "}";
-        if (!shape.m_internalEdges.empty()) {
-            std::cout << ", inEdges: {";
-        }
-        forEach(shape["internalEdges"][id.list], [this, &printDirection, &shape](CellI& kvPair, int, bool&) {
-            hybridarc::Vector& offset = static_cast<hybridarc::Vector&>(kvPair[id.key]);
-            List& internalEdge = static_cast<List&>(kvPair[id.value]);
-            std::cout << "[" << offset.m_x.value() << ", " << offset.m_y.value() << "], { ";
-            forEach(internalEdge, [this, &printDirection](CellI& direction, int, bool&) {
-                printDirection(direction);
-            });
-            std::cout << "}";
-        });
-        if (!shape.m_internalEdges.empty()) {
-            std::cout << "}";
-        }
-        std::cout << "});" << std::endl;
+        std::cout << "shapeField.addShape(at: " << offset << ", shape: " << shape << ");" << std::endl;
     });
 
     return shapeField;
-
-#if 0
-┌──┬──┬──┬──┐
-│  │██│██│██│
-├──┼──┼──┼──┤
-│██│██│  │██│
-├──┼──┼──┼──┤
-│  │██│██│██│
-└──┴──┴──┴──┘
-ShapeField shapeField(width: 4, height: 3);
-shapeField.addShape({[0, 0], { Color::black,  🡪 🡫 🡨 🡩 });
-shapeField.addShape({[1, 0], { Color::orange, 🡪 🡪 🡪 🡫 🡫 🡫 🡨 🡨 🡨 🡩 🡨 🡩 🡪 🡩 }, inEdges: {[1, 1], { 🡪 🡫 🡨 🡩 }});
-shapeField.addShape({[2, 1], { Color::black,  🡪 🡫 🡨 🡩 });
-shapeField.addShape({[0, 2], { Color::black,  🡪 🡫 🡨 🡩 });
-
-// shapeField = new ShapeField(.width = 4, .height = 3)
-// this.getShape([0, 0]) == { Color::black,  🡪 🡫 🡨 🡩 };
-// this.getShape([1, 0]) == { Color::orange, 🡪 🡫 🡨 🡩 }, inEdges: {[1, 1], { 🡪 🡫 🡨 🡩 }};
-// this.getShape([2, 1]) == { Color::black,  🡪 🡫 🡨 🡩 };
-// this.getShape([0, 2]) == { Color::black,  🡪 🡫 🡨 🡩 };
-
-description {
-var pos1 = new Point(1, 2);
-
-pos1.get(x) == 1;
-pos1.get(y) == 2;
-shape1.get(ids.color) == arc::Color::orange;
-shape1.get(ids.shapes) == { up, right, down, left }
-internalEdge.getShape(pos1) == shape1;
-internalEdge.getShape(new_("Vector", "constructor")("x", m_("x"))("y", m_("y"))) == shape1;
-
-// m_parentInternalEdge.getShape(m_pos) == m_shape
-struct SubShape {
-    InternalEdge m_parentInternalEdge;
-    Pos m_pos;
-    Shape m_shape;
-};
-
-result;
-lhsFrame, rhsFrame
-std::copy_if(lhs.begin(), lhs.end(), std::back_inserter(result),
-    [&rhs] (int needle) { return rhs.find(needle) == rhs.end(); });
-
-for (; first != last; ++first) {
-    if (pred(*first))
-    {
-        *d_first = *first;
-        ++d_first;
-    }
-}
-return d_first;
-
-for_("shape").in(p_("lhsFrame"))
-    (block(
-        if_(p_("rhsFrame")("hasShape")("shape", *var_("shape"))),
-
-#endif
 }
 
 } // namespace arc
@@ -1910,43 +1800,6 @@ for_("shape").in(p_("lhsFrame"))
 
     /*
 Tasks
-
-1. I want itarate through objects which contains elements. So I want to handle objects as containers.
-   Main use case is, the ArcGrid which contains ArcPixels. Connected same color ArcPixels can form some shape (line, box, etc..)
-   Other use case, processing elemnts in list.
-
-   So I want a cells::Iterator and cells::Iterable like thing which has at least a Next method (which gives back the current element AND steps the iterator).
-
-     - in Rust cells::Iterable is std::iter::IntoIterator trait which contains a fn into_iter(self) -> std::iter::Iterator<Item = Self::Item>
-     - in C# it is called IEnumerable which contains a IEnumerator GetEnumerator() method
-     - in Java it is called Iterable<T> which contains a Iterator<T> iterator() method
-
-   Three type of interfaces are possible.
-
-     - Normal interface without any extra type input
-     - Generic or templated interface which expects a type during usage and constructing, so it can create a unique type name for it
-     - Associated type parameter or type constructor where you can create Interface objects which are types. Every type instance will have the same type name.
-
-Interfaces
-
-   We can add an extra "interfaces" key to the struct description beside the "methods"
-   Current struct:
-    astScope.add<Struct>("Struct")
-        .members(
-            member("name", "std::Cell"),
-            ...
-            member("methods", MapOf(std.Cell, std.ast.Function)),
-
-    astScope.add<Struct>("Struct")
-        .members(
-            member("name", "std::Cell"),
-            ...
-            member("interfaces", MapOf(std.Cell, std.ast.Struct)), // interface name to Struct
-            member("methods", MapOf(std.Cell, std.ast.Function)),
-
-    I think the interface can be a struct in first, maybe we can change it later
-    If two interfaces require to implement the same method name then we shouldn't allow it now, as resolve it takes too much time now, I think this a nice to have feature
-      ... or it can be an enum like thing, so methods becames MapOf(std.Cell, enum<std.ast.Function, List<std.ast.Function>))
 
 Object uniqueness
 

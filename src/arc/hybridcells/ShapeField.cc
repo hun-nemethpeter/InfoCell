@@ -69,16 +69,20 @@ void ShapeField::addShape(Vector& offset, Shape& shape)
     m_shapesMap.addWithDataKey(offset, shape);
 }
 
-bool ShapeField::hasShape(Vector& offset, Shape& shape)
+bool ShapeField::hasShape(Vector& offset)
 {
     if (m_shapesMap.hasValueWithDataKey(offset)) {
-        Shape& storedShape = static_cast<Shape&>(m_shapesMap.getValueWithDataKey(offset));
-        if (storedShape == shape) {
-            return true;
-        }
+        return true;
     }
 
     return false;
+}
+
+Shape& ShapeField::getShape(Vector& offset)
+{
+    Shape& shape = static_cast<Shape&>(m_shapesMap.getValueWithDataKey(offset));
+
+    return shape;
 }
 
 } // namespace arc
