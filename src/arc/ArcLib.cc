@@ -194,6 +194,34 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
             m_("x") = p_("x"),
             m_("y") = p_("y"));
 
+#if 0
+    vectorStruct.addMethod("add")
+        .parameters(
+            parameter("rhs", "Vector"))
+        .description(
+            // self([1, 1]).add(rhs:[2, 2]) = return([3, 3])
+            // return([3, 3]) - self([1, 1]) == (rhs:[2, 2]) // 3 - 2 == 1
+            // return([3, 3]) - (rhs:[2, 2]) == self([1, 1]) // 3 - 1 == 2
+            equal(return_()("subtract")("rhs", self()), p_("rhs")),
+            equal(return_()("subtract")("rhs", p_("rhs")), self()),
+            return_(self()("add")("rhs", p_("rhs"))),
+            return_(p_("rhs")("add")("rhs", self())))
+        .returnType(__type__("Vector"))
+        .instructions(
+            return_(new_("Vector", "constructor")("x", add(m_("x"), p_("rhs") / "x"))("y", add(m_("y"), p_("rhs") / "y"))));
+
+    vectorStruct.addMethod("subtract")
+        .parameters(
+            parameter("rhs", "Vector"))
+        .description(
+            equal(self()("add")("x", return_())("y", m_("y")), m_("x")),
+            equal(self()("add")("x", m_("x"))("y", return_()), m_("y")),
+            return_(self()("subtract")("x", m_("x"))("y", m_("y"))))
+        .returnType(__type__("Vector"))
+        .instructions(
+            return_(new_("Vector", "constructor")("x", subtract(m_("x"), p_("rhs") / "x"))("y", subtract(m_("y"), p_("rhs") / "y"))));
+#endif
+
     // Vector rotate(RotationDir rotationDir) const;
     vectorStruct.addMethod("rotate")
         .parameters(

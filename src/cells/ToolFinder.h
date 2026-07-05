@@ -12,7 +12,7 @@ class ToolFinder
 {
     struct StackNode
     {
-        CellI& effectAst;
+        CellI& ast;
         CellI& slotItem;
     };
 
@@ -84,17 +84,19 @@ public:
     void add(CellI& effect, CellI& tool, CellI& compiledToolType);
     CellI* findToolByEffectAst(CellI& ast);
     CellI& findConversionTools(CellI& from, CellI& to);
-    void print();
 
 private:
     CellI* findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& outputEffectAst);
     void createTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& toolDesc);
     void addValue(Node*& node, CellI& value);
+    void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
     bool checkValue(FindContext& findContext, CellI& key, CellI& value);
     void handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::stack<StackNode>& stack);
-    void printCb(Node* node);
     CellI* processToolAst(CellI& toolAst, Map& memberIds, CellI& compiledToolType);
-    CellI& createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint);
+    void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
+    void findConversionToolsByValue(CellI& from, CellI& to, List& results);
+    void findConversionToolsByType(CellI& from, CellI& to, List& results);
+    void findConversionToolsByContainer(CellI& from, CellI& to, List& results);
 
 
     World& w;

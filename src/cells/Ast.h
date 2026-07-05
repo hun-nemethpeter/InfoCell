@@ -483,7 +483,7 @@ public:
         List& memberOf();
 
     protected:
-        void addBlock(Block& block);
+        void addDescriptionBlock(Block& block);
     };
 
     class Enum : public StructBase,
@@ -532,14 +532,15 @@ public:
         void instructions(Args&&... args);
 
         template <typename... Args>
-        void description(Args&&... args);
+        Function& description(Args&&... args);
 
         List& parameters();
         CellI& returnType();
         Base& instructions();
 
     protected:
-        void addBlock(Block& block);
+        void addDescriptionBlock(Block& block);
+        void addInstructionBlock(Block& block);
     };
 
     class FunctionT : public BaseT<FunctionT>

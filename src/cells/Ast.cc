@@ -450,7 +450,7 @@ Ast::Base& Ast::StructBase::getTypeAlias(CellI& name)
     return static_cast<Ast::Base&>(typeAliases().getValue(name)[w.id.type]);
 }
 
-void Ast::StructBase::addBlock(Block& block)
+void Ast::StructBase::addDescriptionBlock(Block& block)
 {
     set(w.id.description, block);
 }
@@ -682,7 +682,12 @@ Ast::Function& Ast::Function::returnType(CellI& type)
     return *this;
 }
 
-void Ast::Function::addBlock(Block& block)
+void Ast::Function::addDescriptionBlock(Block& block)
+{
+    set(w.id.description, block);
+}
+
+void Ast::Function::addInstructionBlock(Block& block)
 {
     set(w.id.instructions, block);
 }

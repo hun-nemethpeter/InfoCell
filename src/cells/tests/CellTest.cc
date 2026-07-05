@@ -367,27 +367,22 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     class RequestHelper : public AstHelper
     {
     public:
-        Base* varX = nullptr;
+        Base* varX    = nullptr;
         Base* request = nullptr;
         RequestHelper(World& w) :
             AstHelper(w)
         {
             Var& x = var_("x");
 
-#if 1 // TODO
             // test x + 2 = 4 => equal(add(get(x, value), 2)), 4)
             Base& ast = equal(add(_(x) / _(id.value), _(_2_)), _(_4_));
-#else
-            // test 2 + x = 4 => equal(add(2, get(x, value))), 4)
-            Base& ast = equal(add(_(_2_), _(x) / _(id.value)), _(_4_));
-#endif
             varX    = &x;
             request = &ast;
         }
     } requestHelper(w);
 
     CellI& request = *requestHelper.request;
-    CellI& varX = *requestHelper.varX;
+    CellI& varX    = *requestHelper.varX;
 
     CellI& serializedRequest = toolFinder.serializeEffectAst(request);
     {
@@ -412,6 +407,66 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     EXPECT_EQ(&resultToolAst[id.value][id.rhs].__type__(), &std.ast.Cell);
     EXPECT_EQ(&resultToolAst[id.value][id.rhs][id.value], &_2_);
 }
+
+#if 0
+TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
+{
+    ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
+
+    class RequestHelper : public AstHelper
+    {
+    public:
+        Base* varX    = nullptr;
+        Base* request = nullptr;
+        RequestHelper(World& w) :
+            AstHelper(w)
+        {
+            Var& x = var_("x");
+
+            // test 2 + x = 4 => equal(add(2, get(x, value))), 4)
+            Base& ast = equal(add(_(_2_), _(x) / _(id.value)), _(_4_));
+
+            varX    = &x;
+            request = &ast;
+        }
+    } requestHelper(w);
+
+    CellI& request = *requestHelper.request;
+    CellI& varX    = *requestHelper.varX;
+
+    CellI& serializedRequest = toolFinder.serializeEffectAst(request);
+    {
+        std::stringstream ss;
+        forEach(serializedRequest, [&ss](CellI& value, int, bool& stop) {
+            ss << value.label() << " ";
+        });
+        EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Add lhs 2 rhs op push __type__ ast::Get cell x key value op pop op pop rhs 4 ");
+    }
+#if 0
+Find:     equal(lhs: add(lhs: 2,         rhs: get(cell: x, value: value))), lhs: 4        )
+Subtract: equal(lhs: add(lhs: return_(), rhs: m_("rhs")                  ), lhs: m_("lhs")),
+
+[toolFinder][T] Subtract(lhs: Number, rhs: Number): Number =>
+[toolFinder][T]   __type__ ast::Equal lhs op push __type__ ast::Add lhs op return_ rhs op variable op pop rhs op variable
+[toolFinder][T]   __type__ ast::Equal lhs op push __type__ ast::Add lhs op variable rhs op return_ op pop rhs op variable
+
+#endif
+
+    CellI& resultToolAst = *toolFinder.findToolByEffectAst(request);
+
+    // set(_(x), _(id.value), subtract(_(4), _(2)))
+    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
+    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.cell][id.value], &varX);
+    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.value);
+    EXPECT_EQ(&resultToolAst[id.value].__type__(), &std.ast.Subtract);
+    EXPECT_EQ(&resultToolAst[id.value][id.lhs].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.value][id.lhs][id.value], &_4_);
+    EXPECT_EQ(&resultToolAst[id.value][id.rhs].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.value][id.rhs][id.value], &_2_);
+}
+#endif
 
 TEST_F(CellTest, Numbers)
 {

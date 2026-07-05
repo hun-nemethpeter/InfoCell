@@ -577,10 +577,9 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Number))
         .description(
-            subtract(return_(), m_("rhs")) == m_("lhs"),
-            subtract(return_(), m_("lhs")) == m_("rhs"),
-            return_(add(m_("lhs"), m_("rhs"))),
-            return_(add(m_("rhs"), m_("lhs"))))
+            equal(subtract(return_(), m_("rhs")), m_("lhs")),
+            equal(m_("lhs"), subtract(return_(), m_("rhs"))),
+            return_(add(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
@@ -591,6 +590,12 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
+#if 0
+            equal(and_(p_("lhs", std.Boolean.true_), p_("rhs", std.Boolean.true_)), _(std.Boolean.true_)),
+            equal(and_(p_("lhs", std.Boolean.true_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
+            equal(and_(p_("lhs", std.Boolean.false_), p_("rhs", std.Boolean.true_)), _(std.Boolean.false_)),
+            equal(and_(p_("lhs", std.Boolean.false_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
+#endif
             return_(and_(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Boolean)),
@@ -979,9 +984,12 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Number))
         .description(
-            add(return_(), m_("rhs")) == m_("lhs"),
-            add(m_("rhs"), return_()) == m_("lhs"),
-//            equal(m_("lhs"), add(return_(), m_("rhs"))),
+            equal(add(return_(), m_("rhs")), m_("lhs")),
+            equal(add(m_("rhs"), return_()), m_("lhs")),
+#if 0
+            equal(m_("lhs"), add(return_(), m_("rhs"))),
+            equal(m_("lhs"), add(m_("rhs"), return_())),
+#endif
             return_(subtract(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Number)),

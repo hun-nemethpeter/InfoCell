@@ -961,7 +961,7 @@ public:
         auto& type = inputShapeField.__type__();
 
         ToolFinder& toolFinder = w.arcLib().toolFinder();
-        toolFinder.findConversionTools(w._2_, w._4_);
+        toolFinder.findConversionTools(w._3_, w._7_);
         toolFinder.findConversionTools(w.false_, w.true_);
         toolFinder.findConversionTools(inputShapeField, outputShapeField);
         diffShapeFields(inputShapeField, outputShapeField);
@@ -970,19 +970,77 @@ public:
 
     void diffShapeFields(cells::arc::ShapeField& inputShapeField, cells::arc::ShapeField& outputShapeField)
     {
-        forEach(inputShapeField["shapesMap"][w.id.list], [this, &outputShapeField](CellI& kvPair, int, bool&) {
+        List toCopyList(w, w.std.List);
+        List fullSourceObjList(w, w.std.List);
+        List toTransformList(w, w.std.List);
+        forEach(inputShapeField["shapesMap"][w.id.list], [this, &outputShapeField, &toCopyList, &fullSourceObjList](CellI& kvPair, int, bool&) {
             auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
             auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
+            fullSourceObjList.add(kvPair);
             if (outputShapeField.hasShape(offset)) {
                 cells::arc::Shape& outputShape = outputShapeField.getShape(offset);
                 if (shape == outputShape) {
-                    std::cout << "ok" << std::endl;
+                    toCopyList.add(w.std.kvPair(w.true_, kvPair));
                     return;
                 }
             }
-            std::cout << "no" << std::endl;
+            toCopyList.add(w.std.kvPair(w.false_, kvPair));
         });
+        forEach(outputShapeField["shapesMap"][w.id.list], [this, &inputShapeField, &toTransformList](CellI& kvPair, int, bool&) {
+            auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
+            auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
+            if (inputShapeField.hasShape(offset)) {
+                cells::arc::Shape& outputShape = inputShapeField.getShape(offset);
+                if (shape == outputShape) {
+                    return;
+                }
+            }
+            toTransformList.add(kvPair);
+        });
+        forEach(toCopyList, [this](CellI& kvPair, int, bool&) {
+            auto& canCopy      = kvPair[w.id.key];
+            auto& resultKvPair = kvPair[w.id.value];
+            auto& offset       = static_cast<cells::arc::Vector&>(resultKvPair[w.id.key]);
+            auto& shape        = static_cast<cells::arc::Shape&>(resultKvPair[w.id.value]);
+            if (&canCopy == &w.std.Boolean.true_) {
+                std::cout << "     Copy: " << shape << std::endl;
+            }
+        });
+        forEach(toTransformList, [this](CellI& kvPair, int, bool&) {
+            auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
+            auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
+            std::cout << "Transform: " << shape << std::endl;
+        });
+        createFilterFunctionFor(toCopyList);
+        createFilterAndTransformFunctionFor(fullSourceObjList, toTransformList);
         std::cout << "";
+    }
+
+    void createFilterFunctionFor(List& objectList)
+    {
+        forEach(objectList, [this](CellI& kvPair, int, bool&) {
+            auto& isNeeded     = kvPair[w.id.key];
+            auto& resultKvPair = kvPair[w.id.value];
+            auto& offset       = static_cast<cells::arc::Vector&>(resultKvPair[w.id.key]);
+            auto& shape        = static_cast<cells::arc::Shape&>(resultKvPair[w.id.value]);
+            std::cout << "      Obj: " << isNeeded.label() << ": " << shape << std::endl;
+        });
+    }
+
+    void createFilterAndTransformFunctionFor(List& sourceObjList, List& targetObjectList)
+    {
+        forEach(targetObjectList, [this, &sourceObjList](CellI& targetKvPair, int, bool&) {
+            auto& tgtOffset = static_cast<cells::arc::Vector&>(targetKvPair[w.id.key]);
+            auto& tgtShape  = static_cast<cells::arc::Shape&>(targetKvPair[w.id.value]);
+            std::cout << "      for: " << tgtOffset << " " << tgtShape << std::endl;
+            forEach(sourceObjList, [this, &sourceObjList, &targetKvPair](CellI& sourceKvPair, int, bool&) {
+                auto& srcOffset = static_cast<cells::arc::Vector&>(sourceKvPair[w.id.key]);
+                auto& srcShape  = static_cast<cells::arc::Shape&>(sourceKvPair[w.id.value]);
+                auto& tgtOffset = static_cast<cells::arc::Vector&>(targetKvPair[w.id.key]);
+                auto& tgtShape  = static_cast<cells::arc::Shape&>(targetKvPair[w.id.value]);
+                std::cout << "         from: " << srcOffset << " " << srcShape << std::endl;
+            });
+        });
     }
 
     World& w;

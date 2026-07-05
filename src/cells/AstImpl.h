@@ -70,14 +70,21 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 template <typename... Args>
 Ast::StructBase& Ast::StructBase::description(Args&&... args)
 {
-    addBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
+    addDescriptionBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
     return *this;
 }
 
 template <typename... Args>
 void Ast::Function::instructions(Args&&... args)
 {
-    addBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
+    addInstructionBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
+}
+
+template <typename... Args>
+Ast::Function& Ast::Function::description(Args&&... args)
+{
+    addDescriptionBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
+    return *this;
 }
 #pragma endregion
 
