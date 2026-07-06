@@ -50,10 +50,12 @@ protected:
     void printOpReturn(CellI& cell);
     void printAstCell(CellI& cell);
     void printAstGet(CellI& cell);
-    void printAstParameter(CellI& cell);
-    void printAstVar(CellI& cell);
     void printAstMember(CellI& cell);
+    void printAstParameter(CellI& cell);
+    void printAstReturn(CellI& cell);
+    void printAstSet(CellI& cell);
     void printAstSubtract(CellI& cell);
+    void printAstVar(CellI& cell);
     void printIndent();
 
     std::stringstream m_ss;

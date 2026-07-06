@@ -5,6 +5,7 @@
 
 #pragma warning(disable : 4996)
 #include <utf8.h>
+#include "printers/ValuePrinter.h"
 
 namespace infocell {
 namespace cells {
@@ -100,6 +101,13 @@ std::string CellI::label() const
 void CellI::label(const std::string& label)
 {
     m_label = label;
+}
+
+std::string CellI::printAsValue()
+{
+    CellValuePrinter valuePrinter(w);
+
+    return valuePrinter.print(*this);
 }
 
 bool CellI::isA(CellI& ptype)

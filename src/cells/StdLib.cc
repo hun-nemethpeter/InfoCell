@@ -986,7 +986,7 @@ void StdLibAst::createAst()
         .description(
             equal(add(return_(), m_("rhs")), m_("lhs")),
             equal(add(m_("rhs"), return_()), m_("lhs")),
-#if 0
+#if 1
             equal(m_("lhs"), add(return_(), m_("rhs"))),
             equal(m_("lhs"), add(m_("rhs"), return_())),
 #endif

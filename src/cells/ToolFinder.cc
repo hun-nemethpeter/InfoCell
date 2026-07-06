@@ -15,13 +15,62 @@ namespace cells {
 // ============================================================================
 static void printAsValue(CellI& cell, const std::string& label = "")
 {
-    CellValuePrinter valuePrinter(cell.w);
-
     if (!label.empty()) {
         std::cout << label << ": ";
     }
 
-    std::cout << valuePrinter.print(cell) << std::endl;
+    std::cout << cell.printAsValue() << std::endl;
+}
+
+std::string ToolFinder::Node::print()
+{
+    std::deque<std::string> path;
+    Node* child = this;
+    Node* parent = m_parent;
+    while (parent) {
+        CellI* value = nullptr;
+        for (auto& pair : parent->m_children) {
+            if (pair.second == child) {
+                value = pair.first;
+                break;
+            }
+        }
+        path.push_front(value->label());
+        child  = parent;
+        parent = parent->m_parent;
+    }
+    std::stringstream ss;
+    for (auto& item : path) {
+        ss << item << " ";
+    }
+
+    return ss.str();
+}
+
+std::string ToolFinder::printTool(CellI& tool)
+{
+    std::stringstream ss;
+
+    if (tool[w.id.name].label() == "Add") {
+        ss << "m_lhs + m_rhs";
+    } else if (tool[w.id.name].label() == "Subtract") {
+        ss << "m_lhs - m_rhs";
+    } else if (tool.has("primitiveTool")) {
+        ss << tool[w.id.name].label() << "(";
+        if (tool.has("members")) {
+            forEach(tool[w.id.members][w.id.list], [this, &ss](CellI& slot, int i, bool& stop) {
+                if (i > 0) {
+                    ss << ", ";
+                }
+                ss << "m_" << slot[w.id.key].label();
+            });
+        }
+        ss << ")";
+//        if (tool.has("returnType")) {
+//            ss << " -> return";
+//        }
+    }
+    return ss.str();
 }
 
 // ============================================================================
@@ -127,6 +176,7 @@ void ToolFinder::addValue(Node*& node, CellI& value)
     Node*& childNode = node->m_children[&value];
     if (childNode == nullptr) {
         childNode = new Node();
+        childNode->m_parent = node;
     }
     node = childNode;
 }
@@ -310,7 +360,9 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
     if (currentNode->m_data != nullptr) {
         std::cout << "";
     }
-    currentNode->m_data = processToolAst(tool, memberIds, compiledToolType);
+    currentNode->m_data   = processToolAst(tool, memberIds, compiledToolType);
+    currentNode->m_tool   = &tool;
+    currentNode->m_effect = &effect;
 
     if (IS_LOG_ENABLED) {
         CellI& astAsList = serializeEffectAst(effect);
@@ -363,7 +415,7 @@ void ToolFinder::handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& no
         if (opFindIt == node->m_children.end()) {
             return;
         }
-//        std::cout << "MATCH: op" << std::endl;
+        TRACE(toolFinderLookup, "MATCH: op");
         Node* opNode   = opFindIt->second;
         auto popFindIt = opNode->m_children.find(&w.id.pop);
         if (popFindIt == opNode->m_children.end()) {
@@ -375,8 +427,7 @@ void ToolFinder::handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& no
         effectAstPtr = &stack.top().ast;
         stack.pop();
         slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
-//        std::cout << "--- pop --- " << std::endl;
-//        std::cout << "MATCH: pop" << std::endl;
+        TRACE(toolFinderLookup, "MATCH: pop");
     }
 }
 
@@ -394,7 +445,7 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
         node = nullptr;
         return false;
     } else {
-//        std::cout << "MATCH: " << key.label() << std::endl;
+        TRACE(toolFinderLookup, "MATCH: {}", key.label());
         node = keyFindIt->second;
     }
 
@@ -407,17 +458,17 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
         } else {
             // ok, so value not found but we have an op here
             Node* opNode = opFindIt->second;
-//            std::cout << "MATCH: op" << std::endl;
+            TRACE(toolFinderLookup, "MATCH: op");
 
             for (auto& [opKey, nextNode] : opNode->m_children) {
                 if (opKey == &w.id.variable) {
-//                    std::cout << "MATCH: variable" << std::endl;
+                    TRACE(toolFinderLookup, "MATCH: variable");
                     node = nextNode;
                     handleStep(effectAstPtr, slotItemPtr, node, stack);
                     return true;
                 }
                 if (opKey == &w.id.return_) {
-//                    std::cout << "MATCH: return_" << std::endl;
+                    TRACE(toolFinderLookup, "MATCH: return_");
                     if (findContext.toolKind == ToolKind::Expression) {
                         // TODO What to do if there are two "op return" in the effect description?
                         throw "Not implemented! Handling more then one op return is missing";
@@ -426,12 +477,11 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
                     handleStep(effectAstPtr, slotItemPtr, node, stack);
                     findContext.toolKind          = ToolKind::Expression;
                     findContext.expressionToolPtr = &(*effectAstPtr)[key];
-//                    std::cout << "return = " << printAsValue((*effectAstPtr)[key]) << std::endl;
+                    DEBUG(toolFinderLookup, "unify return with {}", (*effectAstPtr)[key].printAsValue());
                     return true;
                 }
                 if (opKey == &w.id.push && (&value.__type__() != &w.std.ast.Cell)) {
-//                    std::cout << "MATCH: push" << std::endl;
-//                    std::cout << "--- push --- " << std::endl;
+                    TRACE(toolFinderLookup, "MATCH: push");
                     stack.push({ .ast = *effectAstPtr, .slotItem = *slotItemPtr });
                     effectAstPtr = &(*effectAstPtr)[key];
                     slotItemPtr  = &value.slotList()[w.id.first];
@@ -440,14 +490,13 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
                     return true;
                 }
                 if (opKey == &w.id.pop) {
-//                    std::cout << "MATCH: pop" << std::endl;
+                    TRACE(toolFinderLookup, "MATCH: pop");
                     if (stack.empty()) {
                         return false;
                     }
                     slotItemPtr  = &stack.top().slotItem;
                     effectAstPtr = &stack.top().ast;
                     stack.pop();
-//                    std::cout << "--- pop --- " << std::endl;
                     slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
                     node        = nextNode;
                     if (!slotItemPtr) {
@@ -458,9 +507,10 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
             }
         }
     } else {
-//        std::cout << "MATCH: " << value.label() << std::endl;
+        TRACE(toolFinderLookup, "MATCH: {}", value.label());
         node = findIt->second;
     }
+
     // the first slot is the w.id.__type__ but it is not in the slot list
     if (slotKind == SlotKind::StructSlot) {
         slotKind = SlotKind::NormalSlot;
@@ -481,6 +531,7 @@ CellI* ToolFinder::findToolByEffectAst(CellI& effectAst)
     }
     Object retVal(w, w.std.ast.Cell);
     createTool(retVal, w.id.value, *toolAst, *tool);
+    DEBUG(toolFinderLookup, "result: {}", retVal[w.id.value].printAsValue());
 
     return &retVal[w.id.value];
 }
@@ -488,6 +539,7 @@ CellI* ToolFinder::findToolByEffectAst(CellI& effectAst)
 // ============================================================================
 CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& outputEffectAst)
 {
+    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
     CellI& slotList         = inputEffectAst.slotList();
     FindContext findContext = {
         .trieNode     = m_root.get(),
@@ -501,7 +553,6 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
         findContext.toolKind = ToolKind::Statement;
         while (findContext.slotItemPtr) {
             if (findContext.slotKind == SlotKind::StructSlot) {
-//                std::cout << w.id.__type__.label() << ":" << (*findContext.effectAstPtr).__type__().label() << std::endl;
                 if (!checkValue(findContext, w.id.__type__, (*findContext.effectAstPtr).__type__())) {
                     return nullptr;
                 }
@@ -509,14 +560,8 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
 
             CellI& key   = (*findContext.slotItemPtr)[w.id.value][w.id.key];
             CellI& value = (*findContext.effectAstPtr)[key];
-#if 0
-            if (&value.__type__() == &w.std.ast.Cell) {
-                std::cout << key.label() << ":" << value[w.id.value].label() << std::endl;
-            } else {
-                std::cout << key.label() << ":" << value.label() << std::endl;
-            }
-#endif
-            if ((*findContext.effectAstPtr).has(key) && !checkValue(findContext, key, (*findContext.effectAstPtr)[key])) {
+
+            if ((*findContext.effectAstPtr).has(key) && !checkValue(findContext, key, value)) {
                 return nullptr;
             }
         }
@@ -526,10 +571,15 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
             }
             CellI& newEffectAst = *new Object(w, w.std.ast.Equal); // TODO FIX memory leak
 
+//            std::cout << "lhs: " << (*findContext.expressionToolPtr).printAsValue() << std::endl;
+//            std::cout << "rhs: " << (*findContext.effectAstPtr).printAsValue() << std::endl;
+
             newEffectAst.set(w.id.lhs, *findContext.expressionToolPtr);
 //            std::cout << "--- createTool begin --- " << std::endl;
-            createTool(newEffectAst, w.id.rhs, *findContext.effectAstPtr, *findContext.trieNode->m_data);
-//            std::cout << "--- createTool end --- " << std::endl;
+            createTool(newEffectAst, w.id.rhs, (*findContext.effectAstPtr), *findContext.trieNode->m_data);
+            //            std::cout << "--- createTool end --- " << std::endl;
+//            std::cout << "tool: " << newEffectAst.printAsValue() << " found by " << findContext.trieNode->m_effect->printAsValue() << " (" << findContext.trieNode->print() << ")" << std::endl;
+            DEBUG(toolFinderLookup, "tool: {} found by {} => {}", newEffectAst.printAsValue(), printTool(*findContext.trieNode->m_tool), findContext.trieNode->m_effect->printAsValue());
 
             CellI& newSlotList = newEffectAst.slotList();
 

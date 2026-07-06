@@ -326,6 +326,7 @@ World::Logger::Logger(std::function<void()> loggerLevelInit)
     registerLogger("symbolResolver");
     registerLogger("compiledSymbols");
     registerLogger("toolFinder");
+    registerLogger("toolFinderLookup");
     loggerLevelInit();
 }
 

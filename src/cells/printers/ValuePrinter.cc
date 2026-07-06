@@ -504,6 +504,42 @@ void CellValuePrinter::printAstSubtract(CellI& cell)
     printImpl(cell[w.id.rhs]);
 }
 
+void CellValuePrinter::printAstReturn(CellI& cell)
+{
+    m_ss << "return";
+    if (cell.has(w.id.value)) {
+        m_ss << " ";
+        printImpl(cell[w.id.value]);
+    }
+}
+
+void CellValuePrinter::printAstSet(CellI& cell)
+{
+    if (&cell.__type__() == &w.std.ast.Member) {
+        m_ss << "m_" << cell[w.id.ast][w.id.key].label();
+        return;
+    }
+    if (&cell.__type__() == &w.std.ast.Self) {
+        m_ss << "self";
+        return;
+    }
+    if (&cell.__type__() == &w.std.ast.Parameter) {
+        m_ss << "p_" << cell[w.id.ast][w.id.key].label();
+        return;
+    }
+    if (&cell.__type__() == &w.std.ast.Var) {
+        m_ss << "var_" << cell[w.id.ast][w.id.key].label();
+        return;
+    }
+    m_ss << "set(";
+    printImpl(cell[w.id.cell]);
+    m_ss << ", ";
+    printImpl(cell[w.id.key]);
+    m_ss << ", ";
+    printImpl(cell[w.id.value]);
+    m_ss << ")";
+}
+
 void CellValuePrinter::printOpReturn(CellI& cell)
 {
     m_ss << "return";
@@ -565,6 +601,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         });
         m_ss << "}";
         return;
+#if 0
     } else if (cell.isA(w.std.Struct)) {
         CellI& type = cell;
         m_ss << "Type ";
@@ -591,6 +628,7 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         m_ss << " }";
         return;
+#endif
     } else if (cell.__type__().has(w.id.enum_)) {
         m_ss << cell.label();
         return;
@@ -702,11 +740,23 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (cell.isA(w.std.ast.Parameter)) {
         printAstParameter(cell);
         return;
+    } else if (cell.isA(w.std.ast.Set)) {
+        printAstSet(cell);
+        return;
     } else if (cell.isA(w.std.ast.Var)) {
         printAstVar(cell);
         return;
     } else if (cell.isA(w.std.ast.Member)) {
         printAstMember(cell);
+        return;
+    } else if (cell.isA(w.std.ast.Return)) {
+        printAstReturn(cell);
+        return;
+    } else if (cell.isA(w.std.ast.Add)) {
+        printOpAdd(cell);
+        return;
+    } else if (cell.isA(w.std.ast.Equal)) {
+        printOpEqual(cell);
         return;
     } else if (cell.isA(w.std.ast.Subtract)) {
         printAstSubtract(cell);

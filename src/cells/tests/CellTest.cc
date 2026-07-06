@@ -218,6 +218,8 @@ TEST_F(CellTest, StringSplitWithExtraChar)
 
 TEST_F(CellTest, ToolFinderTestForSet)
 {
+    spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
+
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     // test the pixel.set(green, 5)
     Object& pixel           = *new Object(w, test.Color, "pixel");
@@ -408,9 +410,10 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     EXPECT_EQ(&resultToolAst[id.value][id.rhs][id.value], &_2_);
 }
 
-#if 0
+#if 1
 TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
 {
+    spdlog::get("toolFinderLookup")->set_level(spdlog::level::debug);
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
 
     class RequestHelper : public AstHelper

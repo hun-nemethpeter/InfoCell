@@ -20,9 +20,14 @@ class ToolFinder
     {
         ~Node();
 
-        CellI* m_data = 0;
+        std::string print();
+
+        bool m_isLeaf   = false;
+        CellI* m_data   = nullptr;
+        CellI* m_effect = nullptr;
+        CellI* m_tool   = nullptr;
+        Node* m_parent  = nullptr;
         std::map<CellI*, Node*> m_children;
-        bool m_isLeaf = false;
     };
 
     enum class SlotKind
@@ -97,7 +102,7 @@ private:
     void findConversionToolsByValue(CellI& from, CellI& to, List& results);
     void findConversionToolsByType(CellI& from, CellI& to, List& results);
     void findConversionToolsByContainer(CellI& from, CellI& to, List& results);
-
+    std::string printTool(CellI& tool);
 
     World& w;
     std::unique_ptr<Node> m_root;
