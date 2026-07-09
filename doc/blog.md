@@ -1398,3 +1398,70 @@ How to prove that `1 + 2 + x` equals `x + 2 + 1`?
 - But how to prove that `1 + 2 + x` can be written as `add(1, add(2, x))` and also `add(add(1, 2), x)`?
   - `add(1, add(2, x))` with swapped lhs and rhs is `add(add(2, x), 1)`
   - `add(add(1, 2), x)` with swapped lhs and rhs is `add(x, add(1, 2))`
+
+
+2026-07-07
+==========
+
+Add
+    (1) return - m_rhs == m_lhs  => * - * == *  symmetry of (2)
+    (2) m_lhs == return - m_rhs  => * == * - *  symmetry of (1)
+	return m_lhs + m_rhs     => return * + *
+	return m_rhs + m_lhs     => return * + *
+
+Subtract
+    (1) return + m_rhs == m_lhs  => * + * == *  symmetry of (3)
+    (2) m_rhs + return == m_lhs  => * + * == *  symmetry of (4)
+    (3) m_lhs == return + m_rhs  => * == * + *  symmetry of (1)
+    (4) m_lhs == m_rhs + return  => * == * + *  symmetry of (2)
+    return m_lhs - m_rhs     => return * - *
+
+
+       k   u       == k
+input: 2 + x.value == 4
+
+  match in Subtract
+    *      + *       == *
+    return + m_rhs   == m_lhs
+
+    unify return with 2
+
+    created tool:
+	k    k   u
+    2 == 4 - x.value
+
+  match in Add
+    *     == *      - *
+    m_lhs == return - m_rhs
+
+    unify return with 4
+
+    created tool:
+	k    k   u
+    4 == 2 + x.value
+
+S1   ->      S2         ==   S3                  ==  S4
+Add.before   Add.after       Sub.after               Add.after
+m_lhs        m_lhs           m_lhs  = S2.return      m_lhs  = S3.return = S2.m_lhs
+m_rhs        m_rhs           m_rhs  = S2.m_rhs       m_rhs  = S3.m_rhs  = S2.m_rhs
+             return          return = S2.m_lhs       return = S3.m_lhs  = S2.return
+
+
+
+input: 2 + x.value == 4
+unify return with 2
+input: return x.value
+pattern match for return + m_rhs == m_lhs with tool m_lhs - m_rhs
+created tool: 2 == 4 - x.value
+unify return with 4
+input: return x.value
+pattern match for m_lhs == return - m_rhs with tool m_lhs + m_rhs
+created tool: 4 == 2 + x.value
+unify return with 2
+input: return x.value
+pattern match for m_lhs == return + m_rhs with tool m_lhs - m_rhs
+created tool: 2 == 4 - x.value
+unify return with 4
+input: return x.value
+pattern match for m_lhs == return - m_rhs with tool m_lhs + m_rhs
+created tool: 4 == 2 + x.value
