@@ -661,8 +661,6 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
                     throw "Tool description value is not a constant value or List!";
                 }
                 if (&(*valuePtr).__type__() != &w.std.ast.Cell) {
-                    CellI& retVal = *new Object(w, w.std.ast.Return); // TODO FIX memory leak
-                    retVal.set(w.id.value, *valuePtr);
                     subTools.add(w.ast.slot(*ret, unwrappedKey));
                 }
                 slotItemPtr = &nextSlotItem;
@@ -673,16 +671,14 @@ void ToolFinder::createTool(CellI& outCell, CellI& outKey, CellI& inputAst, Cell
             slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
         }
         CellI* subpToolItemPtr = &subTools[w.id.first];
-        CellI& retVal          = *new Object(w, w.std.ast.Return); // TODO FIX memory leak
         while (subpToolItemPtr) {
             CellI& slot       = (*subpToolItemPtr)[w.id.value];
             CellI& key        = slot[w.id.key];
             CellI& value      = slot[w.id.type];
             CellI& subToolAst = key[value];
 
-            retVal.set(w.id.value, subToolAst);
             CellI* toolAst     = nullptr;
-            CellI* subToolDesc = findToolByEffectAstImpl(retVal, toolAst);
+            CellI* subToolDesc = findToolByEffectAstImpl(subToolAst, toolAst);
 
             if (!subToolDesc) {
                 throw "Sub tool not found!";

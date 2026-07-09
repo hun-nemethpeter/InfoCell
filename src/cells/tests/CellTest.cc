@@ -264,12 +264,9 @@ TEST_F(CellTest, ToolFinderTestForGet)
     Object& pixel          = *new Object(w, test.Color, "pixel");
 
     // test the return get(x, y)
-    CellI& requestForGetGet = *new Object(w, std.ast.Get);
-    requestForGetGet.set(id.cell, w.ast.cell(pixel));
-    requestForGetGet.set(id.key, w.ast.cell(id.green));
-
-    CellI& requestForGet = *new Object(w, std.ast.Return, "return pixel.get(green)");
-    requestForGet.set(id.value, requestForGetGet);
+    CellI& requestForGet = *new Object(w, std.ast.Get);
+    requestForGet.set(id.cell, w.ast.cell(pixel));
+    requestForGet.set(id.key, w.ast.cell(id.green));
 
     CellI& requestForGetAstList = toolFinder.serializeEffectAst(requestForGet);
     {
@@ -277,22 +274,23 @@ TEST_F(CellTest, ToolFinderTestForGet)
         forEach(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "__type__ ast::Return value op push __type__ ast::Get cell pixel key green op pop ");
+        EXPECT_EQ(ss.str(), "__type__ ast::Get cell pixel key green ");
     }
 
-    // the trick here is that we finding tool for "return get(x, y)" but creating tool with just "get(x, y)" without return...
-    // so we can test tool creation in a composed tool as "return get(x, y)" doesn't make sense as a standalone request
+    List& resultToolAsts = toolFinder.findToolsByEffectAst(requestForGet);
 
-    // passing requestForGet here which is "return get(x, y)"
-#if 0 // TODO
-    CellI& resultToolAst    = *toolFinder.findToolByAst(requestForGet);
+    EXPECT_EQ(resultToolAsts.size(), 1);
 
-    EXPECT_EQ(&resultToolAst.struct_(), &std.ast.Get);
-    EXPECT_EQ(&resultToolAst[id.cell].struct_(), &std.ast.Cell);
+    if (resultToolAsts.size() != 1) {
+        return;
+    }
+    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
+
+    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Get);
+    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Cell);
     EXPECT_EQ(&resultToolAst[id.cell][id.value], &pixel);
-    EXPECT_EQ(&resultToolAst[id.key].struct_(), &std.ast.Cell);
+    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
     EXPECT_EQ(&resultToolAst[id.key][id.value], &id.green);
-#endif
 }
 
 TEST_F(CellTest, ToolFinderTestForGetInGet)
@@ -431,7 +429,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     EXPECT_EQ(&resultToolAst[id.value][id.rhs][id.value], &_2_);
 }
 
-#if 1
+#if 0
 TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;

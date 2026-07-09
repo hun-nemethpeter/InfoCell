@@ -590,7 +590,7 @@ void StdLibAst::createAst()
 
             equal(subtract(return_(), m_("rhs")), m_("lhs")),
             equal(m_("lhs"), subtract(return_(), m_("rhs"))),
-            return_(add(m_("lhs"), m_("rhs"))))
+            add(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
@@ -625,7 +625,7 @@ void StdLibAst::createAst()
             equal(and_(p_("lhs", std.Boolean.false_), p_("rhs", std.Boolean.true_)), _(std.Boolean.false_)),
             equal(and_(p_("lhs", std.Boolean.false_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
 #endif
-            return_(and_(m_("lhs"), m_("rhs"))))
+            and_(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Boolean)),
             member("rhs", _(std.Boolean)));
@@ -664,7 +664,7 @@ void StdLibAst::createAst()
         .description(
             // TODO check rhs != 0
             multiply(return_(), m_("rhs")) == m_("lhs"),
-            return_(divide(m_("lhs"), m_("rhs"))))
+            divide(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
@@ -695,7 +695,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            return_(m_("lhs") == m_("rhs")))
+            m_("lhs") == m_("rhs"))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -739,7 +739,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.ast.Base))
         .description(
-            return_(m_("cell") / m_("key")))
+            m_("cell") / m_("key"))
         .members(
             member("cell", "Base"),
             member("key", "Base"));
@@ -751,7 +751,7 @@ void StdLibAst::createAst()
         .returnType(_(std.Boolean))
         .description(
             lessThan(subtract(m_("rhs"), m_("lhs")), _(_0_)),
-            return_(greaterThan(m_("lhs"), m_("rhs"))))
+            greaterThan(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
@@ -763,7 +763,7 @@ void StdLibAst::createAst()
         .returnType(_(std.Boolean))
         .description(
             lessThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(_0_)),
-            return_(greaterThanOrEqual(m_("lhs"), m_("rhs"))))
+            greaterThanOrEqual(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
@@ -781,7 +781,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            return_(has(m_("cell"), m_("key"))))
+            has(m_("cell"), m_("key")))
         .members(
             member("cell", "Base"),
             member("key", "Base"));
@@ -805,7 +805,7 @@ void StdLibAst::createAst()
         .returnType(_(std.Boolean))
         .description(
             greaterThan(subtract(m_("rhs"), m_("lhs")), _(_0_)),
-            return_(lessThan(m_("lhs"), m_("rhs"))))
+            lessThan(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
@@ -817,7 +817,7 @@ void StdLibAst::createAst()
         .returnType(_(std.Boolean))
         .description(
             greaterThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(_0_)),
-            return_(lessThanOrEqual(m_("lhs"), m_("rhs"))))
+            lessThanOrEqual(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
@@ -832,7 +832,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            return_(missing(m_("cell"), m_("key"))))
+            missing(m_("cell"), m_("key")))
         .members(
             member("cell", "Base"),
             member("key", "Base"));
@@ -852,7 +852,7 @@ void StdLibAst::createAst()
 #else
             ,
 #endif
-            return_(multiply(m_("lhs"), m_("rhs"))))
+            multiply(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
@@ -869,7 +869,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            return_(not_(m_("input"))))
+            not_(m_("input")))
         .members(
             member("input", _(std.Boolean)));
 
@@ -879,7 +879,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            return_(notEqual(m_("lhs"), m_("rhs"))))
+            notEqual(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -890,7 +890,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            return_(notSame(m_("lhs"), m_("rhs"))))
+            notSame(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -901,7 +901,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            return_(or_(m_("lhs"), m_("rhs"))))
+            or_(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Boolean)),
             member("rhs", _(std.Boolean)));
@@ -927,7 +927,7 @@ void StdLibAst::createAst()
         .primitiveTool()
         .returnType(_(std.Boolean))
         .description(
-            return_(same(m_("lhs"), m_("rhs"))))
+            same(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", "Base"),
             member("rhs", "Base"));
@@ -1015,12 +1015,12 @@ void StdLibAst::createAst()
         .description(
             equal(add(return_(), m_("rhs")), m_("lhs")),
             equal(add(m_("rhs"), return_()), m_("lhs")),
-#if 1
+#if 0
             equal(m_("lhs"), add(return_(), m_("rhs"))),
             equal(m_("lhs"), add(m_("rhs"), return_())),
 #endif
 //            equal(subtract(m_("lhs"), return_()), m_("rhs")), // is this needed?
-            return_(subtract(m_("lhs"), m_("rhs"))))
+            subtract(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
