@@ -87,7 +87,7 @@ public:
     CellI& serializeEffectAst(CellI& ast);
     void add(CellI& tool, CellI& compiledToolType);
     void add(CellI& effect, CellI& tool, CellI& compiledToolType);
-    CellI* findToolByEffectAst(CellI& ast);
+    List& findToolsByEffectAst(CellI& ast);
     CellI& findConversionTools(CellI& from, CellI& to);
 
 private:

@@ -218,7 +218,7 @@ TEST_F(CellTest, StringSplitWithExtraChar)
 
 TEST_F(CellTest, ToolFinderTestForSet)
 {
-    spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
+    spdlog::get("toolFinderLookup")->set_level(spdlog::level::debug);
 
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     // test the pixel.set(green, 5)
@@ -240,7 +240,14 @@ TEST_F(CellTest, ToolFinderTestForSet)
         EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell pixel key green op pop rhs 5 ");
     }
 
-    CellI& resultToolAst = *toolFinder.findToolByEffectAst(requestForSet);
+    List& resultToolAsts = toolFinder.findToolsByEffectAst(requestForSet);
+
+    EXPECT_EQ(resultToolAsts.size(), 1);
+
+    if (resultToolAsts.size() != 1) {
+        return;
+    }
+    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
 
     EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
     EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Cell);
@@ -319,7 +326,14 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
         EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell op push __type__ ast::Get cell currentTheme key Color op pop key green op pop rhs 5 ");
     }
 
-    CellI& resultToolAst = *toolFinder.findToolByEffectAst(requestForSetWithGet);
+    List& resultToolAsts = toolFinder.findToolsByEffectAst(requestForSetWithGet);
+
+    EXPECT_EQ(resultToolAsts.size(), 1);
+
+    if (resultToolAsts.size() != 1) {
+        return;
+    }
+    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
 
     EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
     EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Get);
@@ -395,7 +409,14 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
         EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Add lhs op push __type__ ast::Get cell x key value op pop rhs 2 op pop rhs 4 ");
     }
 
-    CellI& resultToolAst = *toolFinder.findToolByEffectAst(request);
+    List& resultToolAsts = toolFinder.findToolsByEffectAst(request);
+
+    EXPECT_EQ(resultToolAsts.size(), 1);
+
+    if (resultToolAsts.size() != 1) {
+        return;
+    }
+    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
 
     // set(_(x), _(id.value), subtract(_(4), _(2)))
     EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
@@ -413,7 +434,6 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
 #if 1
 TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
 {
-    spdlog::get("toolFinderLookup")->set_level(spdlog::level::debug);
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
 
     class RequestHelper : public AstHelper
@@ -455,7 +475,14 @@ Subtract: equal(lhs: add(lhs: return_(), rhs: m_("rhs")                  ), lhs:
 
 #endif
 
-    CellI& resultToolAst = *toolFinder.findToolByEffectAst(request);
+    List& resultToolAsts = toolFinder.findToolsByEffectAst(request);
+
+    EXPECT_EQ(resultToolAsts.size(), 1);
+
+    if (resultToolAsts.size() != 1) {
+        return;
+    }
+    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
 
     // set(_(x), _(id.value), subtract(_(4), _(2)))
     EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);

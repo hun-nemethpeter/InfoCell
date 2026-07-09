@@ -522,18 +522,21 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
 }
 
 // ============================================================================
-CellI* ToolFinder::findToolByEffectAst(CellI& effectAst)
+List& ToolFinder::findToolsByEffectAst(CellI& effectAst)
 {
+    List& ret      = *new List(w, w.std.ast.Base);
     CellI* toolAst = nullptr;
     CellI* tool    = findToolByEffectAstImpl(effectAst, toolAst);
     if (!tool) {
-        return nullptr;
+        return ret;
     }
     Object retVal(w, w.std.ast.Cell);
     createTool(retVal, w.id.value, *toolAst, *tool);
     DEBUG(toolFinderLookup, "result: {}", retVal[w.id.value].printAsValue());
 
-    return &retVal[w.id.value];
+    ret.add(retVal[w.id.value]);
+
+    return ret;
 }
 
 // ============================================================================
@@ -571,15 +574,10 @@ CellI* ToolFinder::findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& output
             }
             CellI& newEffectAst = *new Object(w, w.std.ast.Equal); // TODO FIX memory leak
 
-//            std::cout << "lhs: " << (*findContext.expressionToolPtr).printAsValue() << std::endl;
-//            std::cout << "rhs: " << (*findContext.effectAstPtr).printAsValue() << std::endl;
-
             newEffectAst.set(w.id.lhs, *findContext.expressionToolPtr);
-//            std::cout << "--- createTool begin --- " << std::endl;
             createTool(newEffectAst, w.id.rhs, (*findContext.effectAstPtr), *findContext.trieNode->m_data);
-            //            std::cout << "--- createTool end --- " << std::endl;
-//            std::cout << "tool: " << newEffectAst.printAsValue() << " found by " << findContext.trieNode->m_effect->printAsValue() << " (" << findContext.trieNode->print() << ")" << std::endl;
-            DEBUG(toolFinderLookup, "tool: {} found by {} => {}", newEffectAst.printAsValue(), printTool(*findContext.trieNode->m_tool), findContext.trieNode->m_effect->printAsValue());
+            DEBUG(toolFinderLookup, "pattern match for {} with tool {}", findContext.trieNode->m_effect->printAsValue(), printTool(*findContext.trieNode->m_tool));
+            DEBUG(toolFinderLookup, "created tool: {}", newEffectAst.printAsValue());
 
             CellI& newSlotList = newEffectAst.slotList();
 
@@ -779,8 +777,6 @@ ConversionLib::ConversionLib(World& w, Ast::Scope& parentScope, const std::strin
 // ============================================================================
 void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint, List& results)
 {
-    World& w  = blueprint.m_tool->w;
-
     CellI& tool = *new Object(w, *blueprint.m_compiledToolType);
     tool.set(*blueprint.m_slotId, w.ast.cell(from));
 
@@ -799,12 +795,14 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     missingSlotEquation.set(w.id.lhs, tool);
     missingSlotEquation.set(w.id.rhs, w.ast.cell(to));
 
-    if (CellI* missingSlotSolver = findToolByEffectAst(missingSlotEquation)) {
-//        std::cout << blueprint << '\n';
+    List& missingSlotSolvers = findToolsByEffectAst(missingSlotEquation);
+
+    forEach(missingSlotSolvers, [&](CellI& missingSlotSolver, int i, bool&) {
+        //        std::cout << blueprint << '\n';
 
         Ast::Scope rootScope(w, "toolFinder");
         Compiler compiler(w);
-        SolverLib solverLib(w, rootScope, *missingSlotSolver);
+        SolverLib solverLib(w, rootScope, missingSlotSolver);
         solverLib.include(w.arcLib());
         compiler.compile(solverLib);
         auto& solverFn = solverLib.getFunction("solver::solverFunction");
@@ -813,7 +811,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         solverFn();
 
         CellI& solvedX = unknownX[w.id.value];
-//        std::cout << "unknownX.value = " << solvedX.label() << std::endl;
+        //        std::cout << "unknownX.value = " << solvedX.label() << std::endl;
 
         Ast::Scope rootScope2(w, "toolFinder");
         Compiler compiler2(w);
@@ -828,7 +826,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
 
         printAsValue(conversionToolFn, "");
         results.add(conversionToolFn);
-    }
+    });
 }
 
 // ============================================================================

@@ -571,18 +571,47 @@ void StdLibAst::createAst()
 {
     auto& astScope = stdScope.add<Scope>("ast");
     astScope.add<Struct>("Base");
-    astScope.add<Struct>("Add")
+    auto& addPrimitive = astScope.add<Struct>("Add");
+    addPrimitive
         .memberOf(
             _(std.ast.Base))
         .primitiveTool()
         .returnType(_(std.Number))
         .description(
+#if 0
+            if_(equal(m_("lhs") / "__type__", _(addPrimitive))).then_(
+                equal(add(add(p_("lhs") / _("lhs"), p_("lhs") / _("rhs")), p_("rhs")), add(p_("lhs") / _("lhs"), add(p_("lhs") / _("rhs"), p_("rhs")))))
+            )
+            if_(equal(m_("rhs") / "__type__", _(addPrimitive))).then_(
+                equal(add(add(p_("lhs"), p_("rhs") / _("lhs")), p_("rhs") / _("rhs")), add(p_("lhs"), add(p_("rhs") / _("lhs"), p_("rhs") / _("rhs")))))
+            )
+#endif
+//            equal(add(m_("rhs"), m_("lhs")), return_()),  // is this needed?
+
             equal(subtract(return_(), m_("rhs")), m_("lhs")),
             equal(m_("lhs"), subtract(return_(), m_("rhs"))),
             return_(add(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
+
+#if 0
+    test.addMethod("add")
+        .parameters(
+            parameter("lhs", _("Add")),
+            parameter("rhs", _(std.Number)))
+        .description(
+            equal(add(add(p_("lhs") / _("lhs"), p_("lhs") / _("rhs")), p_("rhs")), add(p_("lhs") / _("lhs"), add(p_("lhs") / _("rhs"), p_("rhs")))))
+        .returnType(_(std.Number));
+
+    test.addMethod("add")
+        .parameters(
+            parameter("lhs", _(std.Number)),
+            parameter("rhs", _("Add")))
+        .description(
+            equal(add(add(p_("lhs"), p_("rhs") / _("lhs")), p_("rhs") / _("rhs")), add(p_("lhs"), add(p_("rhs") / _("lhs"), p_("rhs") / _("rhs")))))
+        .returnType(_(std.Number));
+#endif
 
     astScope.add<Struct>("And")
         .memberOf(
@@ -990,6 +1019,7 @@ void StdLibAst::createAst()
             equal(m_("lhs"), add(return_(), m_("rhs"))),
             equal(m_("lhs"), add(m_("rhs"), return_())),
 #endif
+//            equal(subtract(m_("lhs"), return_()), m_("rhs")), // is this needed?
             return_(subtract(m_("lhs"), m_("rhs"))))
         .members(
             member("lhs", _(std.Number)),
