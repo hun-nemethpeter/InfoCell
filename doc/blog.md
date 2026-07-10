@@ -1465,3 +1465,79 @@ unify return with 4
 input: return x.value
 pattern match for m_lhs == return - m_rhs with tool m_lhs + m_rhs
 created tool: 4 == 2 + x.value
+
+2026-07-09
+==========
+
+Constant values can be readable but not writable, marked as c or const
+Variables are writable but not readable (they are unknown values). can be marked as v or var
+
+set(cell: v, key: c, value: c) => equal(get(cell: v, key: c), value: c)
+In case of a variable the key is always "value".
+
+We can write an algorith which calculates which equivalent transformations should be used to separate the variable from the constants.
+
+We can input the tools and the effects
+
+Add
+    return - m_rhs == m_lhs  => * - * == *  (builder #1)
+	m_lhs + m_rhs            => * + *       (builder #2)
+	m_rhs + m_lhs            => * + *       (builder #3)
+
+Subtract
+    return + m_rhs == m_lhs  => * + * == *  (builder #1)  // 3 - 2 = 1 => 1 + 2 = 3
+    m_rhs + return == m_lhs  => * + * == *  (builder #2)  // 3 - 2 = 1 => 2 + 1 = 3
+    m_lhs - m_rhs            => * - *       (builder #3)
+
+We can identify the inverse functions and we can identfy the transformation steps that needed to separate variables and constants
+
+S1   ->      S2         ==   S3
+Add.before   Add.after       Sub.after
+m_lhs        m_lhs           m_lhs  = S2.return
+m_rhs        m_rhs           m_rhs  = S2.m_rhs
+             return          return = S2.m_lhs
+
+Add
+---
+
+Let's consider the expression
+equal(lhs: add(lhs: v, rhs=2), rhs=3)   // x + 2 = 3
+
+if look it up this as an effect for a tool we can end up in tool Subtract
+we have two candidate effect Subtract effect #1 and #2.
+
+There are two case
+
+ - builder #1: equal(lhs: subtract(lhs=3, rhs=2), rhs: v)  // which is ok
+ - builder #2: equal(lhs: subtract(lhs=3, rhs: v), rhs=2)  // which is not ok
+
+For equal(lhs: add(lhs=1, rhs: v), rhs=3)   // 1 + x = 3
+
+ - builder #1: equal(lhs: subtract(lhs=3, rhs: v), rhs=1)  // which is not ok
+ - builder #2: equal(lhs: subtract(lhs=3, rhs=1), rhs: v)  // which is ok
+
+
+And we can calculate this things during adding the tools to ToolFinder
+So we can create a lookup table for
+
+equal(lhs: add(lhs: var, rhs: const), rhs: const) => Subtract.builder#1
+equal(lhs: add(lhs: const, rhs: var), rhs: const) => Subtract.builder#2
+
+Subtract
+--------
+
+equal(lhs: subtract(lhs: v, rhs: c), rhs: c)
+
+if look it up this as an effect for a tool we can end up in tool Add
+we have one candidate effect: return - m_rhs == m_lhs
+
+equal(lhs: add(lhs: c, rhs: c), rhs: v) // ok, separated
+so
+equal(lhs: add(lhs: c, rhs: c), rhs: v) => Add.builder#1
+
+but
+
+equal(lhs: subtract(lhs: c, rhs: v), rhs: c) // 3 - x = 2, leads to
+equal(lhs: add(lhs: c, rhs: v), rhs: c)      // 2 + x = 3 - only possible transform, but not enough, but in previous section we can see that this leads to
+  Subtract.builder#2 = m_rhs + return == m_lhs so we end up
+equal(lhs: subtract(lhs: c, rhs: c), rhs: v) // 3 - 2 = x  here we should detect that we can swap eq.rhs with subtract.rhs
