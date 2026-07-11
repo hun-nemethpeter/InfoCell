@@ -136,9 +136,9 @@ Ast::Cell& World::_(const std::string& nameStr)
     return ast.cell(name(nameStr));
 }
 
-Ast::StructName& World::__type__(const std::string& nameStr)
+Ast::TypeName& World::__type__(const std::string& nameStr)
 {
-    return ast.structName(nameStr);
+    return ast.typeName(nameStr);
 }
 
 World::World(std::function<void()> loggerLevelInit) :

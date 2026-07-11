@@ -117,9 +117,7 @@ Std::Ast::Ast(World& w) :
     Slot(w, w.std.Struct, "ast::Slot"),
     StaticCall(w, w.std.Struct, "ast::StaticCall"),
     Struct(w, w.std.Struct, "ast::Struct"),
-    StructName(w, w.std.Struct, "ast::StructName"),
     StructT(w, w.std.Struct, "ast::StructT"),
-    TypeAlias(w, w.std.Struct, "ast::TypeAlias"),
     Subtract(w, w.std.Struct, "ast::Subtract"),
     TemplatedType(w, w.std.Struct, "ast::TemplatedType"),
     TemplateParam(w, w.std.Struct, "ast::TemplateParam"),
@@ -127,7 +125,9 @@ Std::Ast::Ast(World& w) :
     Trait(w, w.std.Struct, "ast::Trait"),
     TraitImpl(w, w.std.Struct, "ast::TraitImpl"),
     Try(w, w.std.Struct, "ast::Try"),
+    TypeAlias(w, w.std.Struct, "ast::TypeAlias"),
     TypedEnumValue(w, w.std.Struct, "ast::TypedEnumValue"),
+    TypeName(w, w.std.Struct, "ast::TypeName"),
     Var(w, w.std.Struct, "ast::Var"),
     While(w, w.std.Struct, "ast::While")
 {
@@ -586,17 +586,45 @@ void StdLibAst::createAst()
                 equal(add(add(p_("lhs"), p_("rhs") / _("lhs")), p_("rhs") / _("rhs")), add(p_("lhs"), add(p_("rhs") / _("lhs"), p_("rhs") / _("rhs")))))
             )
 #endif
-//            equal(add(m_("rhs"), m_("lhs")), return_()),  // is this needed?
-
             equal(subtract(return_(), m_("rhs")), m_("lhs")),
+            equal(subtract(return_(), m_("lhs")), m_("rhs")),
             equal(m_("lhs"), subtract(return_(), m_("rhs"))),
-            add(m_("lhs"), m_("rhs")))
+            add(m_("lhs"), m_("rhs")),
+            add(m_("rhs"), m_("lhs")))
         .members(
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
 
+    auto& Number = stdScope.getItem<Ast::Struct>("Number");
+
+    Number.addPrimitiveFunction("+")
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            equal(return_()("subtract")("other", p_("other")), self()),
+            equal(return_()("subtract")("other", self()), p_("other")),
+            self()("add")("other", p_("other")),
+            p_("other")("add")("other", self()))
+        .description(
+            equal(subtract(return_(), p_("other")), self()),
+            equal(subtract(return_(), self()), p_("other")),
+            add(self(), p_("other")),
+            add(p_("other"), self()))
+        .returnType("Number");
+
+    addPrimitive.addPrimitiveFunction("add")
+        .parameters(
+            parameter("lhs", _(std.Number)),
+            parameter("rhs", _(std.Number)))
+        .description(
+            equal(subtract(return_(), p_("rhs")), p_("lhs")),
+            equal(subtract(return_(), p_("lhs")), p_("rhs")),
+            add(p_("lhs"), p_("rhs")),
+            add(p_("rhs"), p_("lhs")))
+        .returnType(_(std.Number));
+
 #if 0
-    test.addMethod("add")
+    addPrimitive.addMethod("add")
         .parameters(
             parameter("lhs", _("Add")),
             parameter("rhs", _(std.Number)))
@@ -604,7 +632,7 @@ void StdLibAst::createAst()
             equal(add(add(p_("lhs") / _("lhs"), p_("lhs") / _("rhs")), p_("rhs")), add(p_("lhs") / _("lhs"), add(p_("lhs") / _("rhs"), p_("rhs")))))
         .returnType(_(std.Number));
 
-    test.addMethod("add")
+    addPrimitive.addMethod("add")
         .parameters(
             parameter("lhs", _(std.Number)),
             parameter("rhs", _("Add")))
@@ -717,6 +745,7 @@ void StdLibAst::createAst()
         .members(
             member("name", "std::Cell"),
             member("fullyQualifiedName", "std::Cell"),
+            member("primitiveTool", _(std.Boolean)),
             member("structType", "std::Cell"),
             member("parameters", ListOf(std.Slot)),
             member("returnType", "std::Struct"),
@@ -846,7 +875,8 @@ void StdLibAst::createAst()
 #if 0 // we need a precondition secton for this if block
             if_(notSame(m_("lhs"), _(_0_))).then_(
 #endif
-            divide(return_(), m_("lhs")) == m_("rhs")
+            // input 6 / 2 == 3
+            divide(return_(), m_("lhs")) == m_("rhs")  // 2 * 3 = 6
 #if 0 // we need a precondition secton for this if block
             )
 #else
@@ -964,7 +994,8 @@ void StdLibAst::createAst()
     astScope.add<Struct>("Slot")
         .members(
             member("key", "Base"),
-            member("type", "Base"));
+            member("type", "Base"),
+            member("const", "Boolean"));
 
     astScope.add<Struct>("StaticCall")
         .members(
@@ -988,7 +1019,7 @@ void StdLibAst::createAst()
             member("typeAliases", ListOf(std.ast.Slot)),
             member("memberOf", ListOf(std.Struct)));
 
-    astScope.add<Struct>("StructName")
+    astScope.add<Struct>("TypeName")
         .members(
             member("name", "std::Cell"),
             member("scopes", "std::List"));
@@ -1015,11 +1046,39 @@ void StdLibAst::createAst()
         .description(
             equal(add(return_(), m_("rhs")), m_("lhs")),
             equal(add(m_("rhs"), return_()), m_("lhs")),
+
+    // for conclusion, the next state of this tool (after activation) can be measured with the tool add
+    // subtract(lhs:3, rhs:2) == return:1
+    // return + rhs = lhs means
+    // 1      + 2   = 3
+    // and
+    // rhs + return = lhs means
+    // 2   + 1      = 3
+
+    // for reason, the previous state of add, can be measured with this tool subtract
+    // add(lhs:1,   rhs:2) == return:3
+    //     return + rhs    =  lhs   means we can build a subtract expression from the add expression
+    // subtract.lhs    can be found in add.return:3
+    // subtract.rhs    can be found in add.rhs:2
+    // subtract.return can be found in add.lhs:1
+    // so we can build the following:
+    // subtract(lhs=add.return:3, rhs=add.rhs:2) == add.lhs:1
+    // 3 - 2 = 1
+    // the expression
+    // add(lhs:1,   rhs:2) == return:3
+    //     rhs +    return =  lhs
+    // means we can build a subtract expression from the add expression
+    // subtract lhs    can be found in add.return:3
+    // subtract rhs    can be found in add.lhs:1
+    // subtract return can be found in add.rhs:2
+    // so we can build the following:
+    // subtract(lhs=add.return:3, rhs=add.lhs:1) == add.rhs:2
+    // 3 - 1 = 2
 #if 0
             equal(m_("lhs"), add(return_(), m_("rhs"))),
             equal(m_("lhs"), add(m_("rhs"), return_())),
 #endif
-//            equal(subtract(m_("lhs"), return_()), m_("rhs")), // is this needed?
+            // equal(subtract(m_("lhs"), return_()), m_("rhs")), TODO maybe calculate this?!
             subtract(m_("lhs"), m_("rhs")))
         .members(
             member("lhs", _(std.Number)),
@@ -2123,10 +2182,6 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     stdScope(scope),
     traits(w, scope)
 {
-    createOp();
-    createAst();
-    createEnums();
-
     stdScope.add<Struct>("Cell");
 
     stdScope.add<Struct>("Char");
@@ -2215,6 +2270,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             member("parent", "TrieMapNode"));
 
     stdScope.add<Struct>("Void");
+
+    createOp();
+    createAst();
+    createEnums();
 }
 
 StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
@@ -2305,15 +2364,15 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::Slot", std.ast.Slot);
     compiler.registerBuiltInStruct("std::ast::StaticCall", std.ast.StaticCall);
     compiler.registerBuiltInStruct("std::ast::Struct", std.ast.Struct);
-    compiler.registerBuiltInStruct("std::ast::StructName", std.ast.StructName);
     compiler.registerBuiltInStruct("std::ast::StructT", std.ast.StructT);
     compiler.registerBuiltInStruct("std::ast::Subtract", std.ast.Subtract);
-    compiler.registerBuiltInStruct("std::ast::TypeAlias", std.ast.TypeAlias);
     compiler.registerBuiltInStruct("std::ast::TemplatedType", std.ast.TemplatedType);
     compiler.registerBuiltInStruct("std::ast::TemplateParam", std.ast.TemplateParam);
     compiler.registerBuiltInStruct("std::ast::Trait", std.ast.Trait);
     compiler.registerBuiltInStruct("std::ast::TraitImpl", std.ast.TraitImpl);
+    compiler.registerBuiltInStruct("std::ast::TypeAlias", std.ast.TypeAlias);
     compiler.registerBuiltInStruct("std::ast::TypedEnumValue", std.ast.TypedEnumValue);
+    compiler.registerBuiltInStruct("std::ast::TypeName", std.ast.TypeName);
     compiler.registerBuiltInStruct("std::ast::Var", std.ast.Var);
     compiler.registerBuiltInStruct("std::ast::While", std.ast.While);
 

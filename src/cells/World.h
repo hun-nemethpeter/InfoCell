@@ -110,7 +110,7 @@ public:
     Ast::Cell& _(const std::string& id);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
-    Ast::StructName& __type__(const std::string& name);
+    Ast::TypeName& __type__(const std::string& name);
 
 public:
     World(std::function<void()> loggerLevelInit = []() {});

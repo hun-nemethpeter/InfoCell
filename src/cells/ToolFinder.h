@@ -32,7 +32,7 @@ class ToolFinder
 
     enum class SlotKind
     {
-        StructSlot,
+        TypeSlot,
         NormalSlot
     };
 
@@ -51,7 +51,7 @@ class ToolFinder
         CellI* slotItemPtr;
         SlotKind slotKind;
         CellI* effectAstPtr;
-        std::stack<StackNode> stack;
+        std::deque<StackNode> stack;
         ToolKind toolKind;
         CellI* expressionToolPtr;
     };
@@ -89,15 +89,17 @@ public:
     void add(CellI& effect, CellI& tool, CellI& compiledToolType);
     List& findToolsByEffectAst(CellI& ast);
     CellI& findConversionTools(CellI& from, CellI& to);
+    void exploreSlotManipulations();
 
 private:
-    CellI* findToolByEffectAstImpl(CellI& inputEffectAst, CellI*& outputEffectAst);
-    void createTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& toolDesc);
+    CellI* findBuildersForEffectAst(CellI& inputEffectAst);
+    CellI* findBuilderForEffectAstOld(CellI& inputEffectAst, CellI*& outputEffectAst);
+    void buildTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& builder);
     void addValue(Node*& node, CellI& value);
     void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
     bool checkValue(FindContext& findContext, CellI& key, CellI& value);
-    void handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::stack<StackNode>& stack);
-    CellI* processToolAst(CellI& toolAst, Map& memberIds, CellI& compiledToolType);
+    void handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::deque<StackNode>& stack);
+    CellI* createBuilder(CellI& toolAst, Map& memberIds, CellI& compiledToolType);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
     void findConversionToolsByValue(CellI& from, CellI& to, List& results);
     void findConversionToolsByType(CellI& from, CellI& to, List& results);
@@ -106,6 +108,7 @@ private:
 
     World& w;
     std::unique_ptr<Node> m_root;
+    List m_tools;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;
 };
 

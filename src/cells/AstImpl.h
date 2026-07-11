@@ -60,7 +60,7 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 template <typename... Args>
 Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& key, const std::string& type, Args&&... args)
 {
-    auto& ret  = templatedType(id, w.ast.slot(key, w.ast.structName(type)));
+    auto& ret  = templatedType(id, w.ast.slot(key, w.ast.typeName(type)));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }

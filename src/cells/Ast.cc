@@ -102,8 +102,9 @@ Ast::Get& Ast::Cell::operator/(const std::string& key)
 {
     return Get::New(w, *this, w._(key));
 }
-Ast::StructName::StructName(World& w, CellI& name) :
-    BaseT<StructName>(w, w.std.ast.StructName, "ast.structName")
+
+Ast::TypeName::TypeName(World& w, CellI& name) :
+    BaseT<TypeName>(w, w.std.ast.TypeName, "ast.typeName")
 {
     set(w.id.name, name);
 }
@@ -160,6 +161,11 @@ Ast::Return::Return(World& w, CellI& value) :
     BaseT<Return>(w, w.std.ast.Return, "ast.return")
 {
     set(w.id.value, value);
+}
+
+Ast::Call& Ast::Return::operator()(const std::string& method)
+{
+    return w.ast.call(*this, method);
 }
 
 Ast::Block::Block(World& w, List& list) :
@@ -297,6 +303,15 @@ Ast::StructBase::StructBase(World& w, CellI& astType, CellI& name, const std::st
     Base(w, astType, nameStr)
 {
     set("name", name);
+}
+
+Ast::Function& Ast::StructBase::addPrimitiveFunction(const std::string& nameStr)
+{
+    Ast::Function& method = *new Ast::Function(w, nameStr);
+    method.set("primitiveTool", w.true_);
+    addMethod(method);
+
+    return method;
 }
 
 Ast::Function& Ast::StructBase::addMethod(const std::string& nameStr)
@@ -682,6 +697,11 @@ Ast::Function& Ast::Function::returnType(CellI& type)
     return *this;
 }
 
+Ast::Function& Ast::Function::returnType(const std::string& typeStr)
+{
+    return returnType(w.ast.typeName(typeStr));
+}
+
 void Ast::Function::addDescriptionBlock(Block& block)
 {
     set(w.id.description, block);
@@ -981,7 +1001,7 @@ void Ast::TemplatedType::addParam(const std::string& key, CellI& type)
 
 void Ast::TemplatedType::addParam(const std::string& key, const std::string& type)
 {
-    addParam(key, w.ast.structName(type));
+    addParam(key, w.ast.typeName(type));
 }
 
 Ast::TemplateParam::TemplateParam(World& w, CellI& key) :
@@ -1171,18 +1191,18 @@ Ast::Cell& Ast::cell(CellI& cell)
     return Cell::New(w, cell);
 }
 
-Ast::StructName& Ast::structName(CellI& id)
+Ast::TypeName& Ast::typeName(CellI& id)
 {
-    return StructName::New(w, id);
+    return TypeName::New(w, id);
 }
 
-Ast::StructName& Ast::structName(const std::string& idStr)
+Ast::TypeName& Ast::typeName(const std::string& idStr)
 {
     CellI& ret = processNamespacedName(idStr, [this](const std::string& outName) -> CellI& {
-        return StructName::New(w, w.name(outName));
+        return TypeName::New(w, w.name(outName));
     });
 
-    return static_cast<Ast::StructName&>(ret);
+    return static_cast<Ast::TypeName&>(ret);
 }
 
 Ast::Self& Ast::self()
@@ -1397,7 +1417,7 @@ Ast::New& Ast::new_(Base& objectType, Base& constructor)
 
 Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor)
 {
-    return New::NewT<Ast::New>::New(w, w.ast.structName(w.name(objectType)), w.ast.cell(w.name(constructor)));
+    return New::NewT<Ast::New>::New(w, w.ast.typeName(w.name(objectType)), w.ast.cell(w.name(constructor)));
 }
 
 Ast::Same& Ast::same(Base& lhs, Base& rhs)
@@ -1467,6 +1487,7 @@ Ast::Not& Ast::not_(Base& input)
 
 Ast::Add& Ast::add(Base& lhs, Base& rhs)
 {
+    CellI& test = w.ast.call(lhs, "+")("other", w. _(rhs));
     return Add::New(w, lhs, rhs);
 }
 
@@ -1687,9 +1708,9 @@ Ast::AssociatedType& AstHelper::at_(const std::string& nameStr)
     return associatedType(name(nameStr));
 }
 
-Ast::StructName& AstHelper::__type__(const std::string& nameStr)
+Ast::TypeName& AstHelper::__type__(const std::string& nameStr)
 {
-    return structName(nameStr);
+    return typeName(nameStr);
 }
 
 CellI& AstHelper::ListOf(CellI& type)

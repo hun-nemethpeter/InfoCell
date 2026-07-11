@@ -34,7 +34,7 @@ void Compiler::compile(Library& library)
 Compiler steps:
 Resolve template related references in normal functions or structs:
   - where templated types is used, for example tt_("List", id.valueType, _(type.Slot))
-    it must be resolved to a StructName, with id L,i,s,t,id.valueType,type.Slot
+    it must be resolved to a TypeName, with id L,i,s,t,id.valueType,type.Slot
   - create a shadow ast tree with subtituted nodes
   - create a list of candidates for template instantiation with method names
     instantiate structT without methods
@@ -106,7 +106,7 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
         });
         ss << ">";
         idCell.label(ss.str());
-    } else if (&structAst.__type__() == &w.std.ast.StructName) {
+    } else if (&structAst.__type__() == &w.std.ast.TypeName) {
         structIdPtr = &structAst[w.id.name];
     } else if (&structAst.__type__() == &w.std.ast.Cell) {
         return structAst[w.id.value];
@@ -135,7 +135,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     }
     std::stringstream ss;
     List& idCell             = *new List(w, w.std.Cell);
-    const auto& structName   = sliced.back();
+    const auto& typeName     = sliced.back();
     Ast::Scope* currentScope = parentScope ? parentScope : &w.globalScope;
     if (sliced.size() > 1) {
         for (int i = 0; i < sliced.size() - 1; ++i) {
@@ -152,10 +152,10 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     }
     Ast::StructBase* structBaseAstPtr = nullptr;
     if (&compiledStruct[w.id.__type__] == &w.std.Struct) {
-        Ast::Struct& structAst = currentScope->getItem<Ast::Struct>(structName);
+        Ast::Struct& structAst = currentScope->getItem<Ast::Struct>(typeName);
         structBaseAstPtr       = &structAst;
     } else if (&compiledStruct[w.id.__type__] == &w.std.Enum) {
-        Ast::Enum& enumAst = currentScope->getItem<Ast::Enum>(structName);
+        Ast::Enum& enumAst = currentScope->getItem<Ast::Enum>(typeName);
         structBaseAstPtr   = &enumAst;
     } else {
         throw "The compiled type not a struct or enum!";
@@ -253,7 +253,7 @@ void Compiler::registerEarlyStructs()
 
         if (&structRefAst.__type__() == &w.std.ast.TemplatedType) {
             m_unknownInstances.add(structId, structReference);
-        } else if (&structRefAst.__type__() == &w.std.ast.StructName) {
+        } else if (&structRefAst.__type__() == &w.std.ast.TypeName) {
             m_unknownStructs.add(structId, structReference);
         }
     });
@@ -283,7 +283,7 @@ void Compiler::resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolve
                 structReference.set("templateId", structRefAst["id"]);
                 structReference.set(w.id.templateParams, structRefAst[w.id.parameters]);
             }
-        } else if (&structRefAst.__type__() == &w.std.ast.StructName) {
+        } else if (&structRefAst.__type__() == &w.std.ast.TypeName) {
             if (m_unknownStructs.hasKey(structId)) {
                 CellI& structReference = m_unknownStructs.getValue(structId);
             }
@@ -384,8 +384,13 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function)
     }
     ret.label(ss.str());
 
-    CellI& resolvedinstructionsAst = resolveTypesInFunctionCode(function.instructions());
-    ret.set("instructions", resolvedinstructionsAst);
+    // primitve tools doesn't have instructions
+    if (function.has("primitiveTool")) {
+        ret.set("primitiveTool", w.true_);
+    } else {
+        CellI& resolvedinstructionsAst = resolveTypesInFunctionCode(function.instructions());
+        ret.set("instructions", resolvedinstructionsAst);
+    }
 
     return ret;
 }
@@ -438,7 +443,7 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
             ret.set("parameters", newParameters);
         }
         return ret;
-    } else if (&ast.__type__() == &w.std.ast.StructName) {
+    } else if (&ast.__type__() == &w.std.ast.TypeName) {
         return resolveType(ast);
     }
 
@@ -920,7 +925,7 @@ Ast::Base& Compiler::resolveType(CellI& typeAst)
     if (&typeAst.__type__() == &w.std.ast.ResolvedType) {
         return static_cast<Ast::ResolvedType&>(typeAst);
     }
-    if (&typeAst.__type__() == &w.std.ast.StructName) {
+    if (&typeAst.__type__() == &w.std.ast.TypeName) {
         auto& resolveAstStruct   = findEnumOrStructByAstStructName(*m_scope, typeAst);
         auto& name               = resolveAstStruct[w.id.name];
         auto& fullyQualifiedName = getFullyQualifiedName(resolveAstStruct);
@@ -1373,7 +1378,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
         return instantiateTemplateParamType(associatedTypes.getValue(paramValue), selfType, inputParameters, associatedTypesPtr);
     }
 
-    if (&param.__type__() == &w.std.ast.Cell || &param.__type__() == &w.std.ast.StructName || &param.__type__() == &w.std.ast.TypeAlias) {
+    if (&param.__type__() == &w.std.ast.Cell || &param.__type__() == &w.std.ast.TypeName || &param.__type__() == &w.std.ast.TypeAlias) {
         return param;
     }
 
@@ -1430,8 +1435,8 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         return *new Ast::Block(w, instantiedAsts);
     } else if (&ast.__type__() == &w.std.ast.Cell) {
         return w.ast.cell(ast[w.id.value]);
-    } else if (&ast.__type__() == &w.std.ast.StructName) {
-        auto& ret = w.ast.structName(ast[w.id.value]);
+    } else if (&ast.__type__() == &w.std.ast.TypeName) {
+        auto& ret = w.ast.typeName(ast[w.id.value]);
         if (ast.has(w.id.scopes)) {
             ret.set(w.id.scopes, ast[w.id.scopes]);
         }
@@ -1620,6 +1625,9 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
     if (astStruct.has("methods")) {
         Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
         forEach(astStruct.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
+            if (astFunction.has("primitiveTool")) {
+                return;
+            }
             auto& compiledFunction = compileFunction(static_cast<Ast::Function&>(astFunction));
             compiledMethods.add(astFunction[w.id.name], compiledFunction);
         });

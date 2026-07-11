@@ -290,6 +290,7 @@ public:
     public:
         Return(World& w);
         Return(World& w, CellI& value);
+        Call& operator()(const std::string& method);
     };
 
     class ResolvedType : public BaseT<ResolvedType>
@@ -337,10 +338,10 @@ public:
         StaticCall& operator()(const std::string& nameStr, CellI& value);
     };
 
-    class StructName : public BaseT<StructName>
+    class TypeName : public BaseT<TypeName>
     {
     public:
-        StructName(World& w, CellI& name);
+        TypeName(World& w, CellI& name);
     };
 
     class Subtract : public BaseT<Subtract>
@@ -433,6 +434,7 @@ public:
     public:
         StructBase(World& w, CellI& astType, CellI& name, const std::string& nameStr);
 
+        Function& addPrimitiveFunction(const std::string& nameStr);
         Function& addMethod(const std::string& nameStr);
         void addMethod(Function& method);
 
@@ -527,6 +529,7 @@ public:
         }
 
         Function& returnType(CellI& type);
+        Function& returnType(const std::string& typeStr);
 
         template <typename... Args>
         void instructions(Args&&... args);
@@ -814,8 +817,8 @@ public:
     Slot& slot(const std::string& key, CellI& type);
     StaticCall& scall(CellI& type, CellI& method);
     StaticCall& scall(CellI& type, const std::string& method);
-    StructName& structName(CellI& id);
-    StructName& structName(const std::string& idStr);
+    TypeName& typeName(CellI& id);
+    TypeName& typeName(const std::string& idStr);
     Subtract& subtract(Base& lhs, Base& rhs);
     TemplatedType& templatedType(const std::string& id, CellI& type);
     template <typename... Args>
@@ -874,11 +877,11 @@ protected:
     Ast::TypedEnumValue& tev_(const std::string& nameStr, const std::string& typeStr, const std::string& valueStr);
     template <typename... Args>
     Ast::TypeAlias& ta_(const std::string& nameStr, Args&&... args);
-    Ast::TemplateParam& tp_(const std::string& name);
-    Ast::AssociatedType& at_(const std::string& name);
+    Ast::TemplateParam& tp_(const std::string& nameStr);
+    Ast::AssociatedType& at_(const std::string& nameStr);
     template <typename... Args>
-    Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
-    Ast::StructName& __type__(const std::string& name);
+    Ast::TemplatedType& tt_(const std::string& nameStr, Args&&... args);
+    Ast::TypeName& __type__(const std::string& nameStr);
     CellI& ListOf(CellI& type);
     CellI& MapOf(CellI& keyType, CellI& valueType);
     template <typename... Args>
