@@ -448,7 +448,6 @@ class String : public CellI
 {
 public:
     explicit String(World& w, const std::string& str = "");
-    String(World& w, List& list, const std::string& str);
 
     using CellI::get;
     using CellI::has;
@@ -470,7 +469,6 @@ protected:
 
     std::string m_value;
     std::vector<Object*> m_characters;
-    List* m_charactersListPtr = nullptr;
     std::unique_ptr<List> m_charactersList;
 };
 

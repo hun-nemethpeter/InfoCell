@@ -2844,18 +2844,20 @@ String::String(World& w, const std::string& str) :
 {
 }
 
-String::String(World& w, List& list, const std::string& str) :
-    CellI(w),
-    m_value(str),
-    m_charactersListPtr(&list)
-{
-}
-
 bool String::has(CellI& key)
 {
+    calculateCharacters();
+
     if (&key == &w.id.__type__ || &key == &w.id.value) {
         return true;
     }
+    if (&key == &w.id.first && m_charactersList->has(key)) {
+        return true;
+    }
+    if (&key == &w.id.last && m_charactersList->has(key)) {
+        return true;
+    }
+
     return false;
 }
 
@@ -2876,24 +2878,25 @@ void String::operator()()
 
 CellI& String::operator[](CellI& key)
 {
+    calculateCharacters();
+
     if (&key == &w.id.__type__) {
         return w.std.String;
-    } else if (&key == &w.id.value) {
-        if (m_characters.empty()) {
-            calculateCharacters();
-            if (m_charactersListPtr) {
-                for (auto& character : m_characters) {
-                    m_charactersListPtr->add(*character);
-                }
-                return *m_charactersListPtr;
-            }
-            m_charactersList.reset(new List(w, m_characters, label()));
-        }
-
-        return m_charactersListPtr ? *m_charactersListPtr  : *m_charactersList;
-    } else {
-        throw "No such key!";
     }
+    if (&key == &w.id.first) {
+        return m_charactersList->get(key);
+    }
+    if (&key == &w.id.last) {
+        return m_charactersList->get(key);
+    }
+    if (&key == &w.id.size) {
+        return m_charactersList->get(key);
+    }
+    if (&key == &w.id.value) {
+        return *m_charactersList;
+    }
+
+    throw "No such key!";
 }
 
 const std::string& String::value() const
@@ -2903,13 +2906,20 @@ const std::string& String::value() const
 
 void String::calculateCharacters()
 {
+    if (!m_characters.empty()) {
+        return;
+    }
     utf8::iterator<const char*> valueIt(m_value.data(), m_value.data(), m_value.data() + m_value.size());
     utf8::iterator<const char*> valueEndIt(m_value.data() + m_value.size(), m_value.data(), m_value.data() + m_value.size());
 
     for (auto& it = valueIt; it != valueEndIt; ++valueIt) {
         char32_t unicodeValue = *it;
+        CellI& character      = w.pools.chars.get(unicodeValue);
+        CellI& test = character.__type__();
         m_characters.push_back(&w.pools.chars.get(unicodeValue));
     }
+
+    m_charactersList.reset(new List(w, m_characters, label()));
 }
 #pragma endregion
 namespace hybrid {

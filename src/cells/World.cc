@@ -11,6 +11,10 @@ namespace cells {
 Pools::Chars::Chars(World& w) :
     w(w)
 {
+}
+
+void Pools::Chars::init()
+{
     // These are enough for me currently
     registerUnicodeBlock(0x020, 0x07e); // Basic Latin - without the DEL (0x7f) control character
     registerUnicodeBlock(0x080, 0x0ff); // Latin-1 Supplement
@@ -47,7 +51,12 @@ void Pools::Chars::registerUnicodeBlock(char32_t from, char32_t to)
 }
 
 // ============================================================================
-Pools::Digits::Digits(World& w)
+Pools::Digits::Digits(World& w) :
+    w(w)
+{
+}
+
+void Pools::Digits::init()
 {
     m_digits.reserve(10);
     for (int i = 0; i < 10; ++i) {
@@ -83,16 +92,9 @@ Number& Pools::Numbers::get(int number)
 }
 
 // ============================================================================
-Pools::Strings::Strings(World& w, const std::map<List*, const char*>& ids) :
+Pools::Strings::Strings(World& w) :
     w(w)
 {
-    for (auto& listToStr : ids) {
-        List& list = *listToStr.first;
-        const char * str  = listToStr.second;
-        m_strings.emplace(std::piecewise_construct,
-                          std::forward_as_tuple(str),
-                          std::forward_as_tuple(w, list, str));
-    }
 }
 
 String& Pools::Strings::get(const std::string& str)
@@ -110,42 +112,27 @@ String& Pools::Strings::get(const std::string& str)
     }
 }
 
-List& Pools::Strings::getCharList(const std::string& str)
-{
-    auto& string = get(str);
-    auto& ret = static_cast<List&>(string[string.w.id.value]);
-
-    return ret;
-}
-
+// ============================================================================
 Pools::Pools(World& w) :
     chars(w),
     digits(w),
     numbers(w),
-    strings(w, w.id.m_ids)
+    strings(w)
 {
 }
 
-Ast::Cell& World::_(CellI& cell)
+void Pools::init()
 {
-    return ast.cell(cell);
+    chars.init();
+    digits.init();
 }
 
-Ast::Cell& World::_(const std::string& nameStr)
-{
-    return ast.cell(name(nameStr));
-}
-
-Ast::TypeName& World::__type__(const std::string& nameStr)
-{
-    return ast.typeName(nameStr);
-}
-
+// ============================================================================
 World::World(std::function<void()> loggerLevelInit) :
     m_initPhase(InitPhase::Init),
     logger(loggerLevelInit),
-    id(*this),
     pools(*this),
+    id(*this),
     globalScope(Ast::Scope(*this, "global")),
     std(*this),
     arc(*this),
@@ -265,9 +252,24 @@ CellI& World::getVariable(CellI& name)
     throw "Unhandled state!";
 }
 
-List& World::name(const std::string& str)
+Ast::Cell& World::_(CellI& cell)
 {
-    return pools.strings.getCharList(str);
+    return ast.cell(cell);
+}
+
+Ast::Cell& World::_(const std::string& nameStr)
+{
+    return ast.cell(name(nameStr));
+}
+
+Ast::TypeName& World::__type__(const std::string& nameStr)
+{
+    return ast.typeName(nameStr);
+}
+
+String& World::name(const std::string& str)
+{
+    return pools.strings.get(str);
 }
 
 CellI& World::ListOf(CellI& valueType)

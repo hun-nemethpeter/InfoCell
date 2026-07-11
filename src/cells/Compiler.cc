@@ -182,7 +182,7 @@ void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& comp
     const auto& enumName      = sliced[sliced.size() - 2];
     const auto& enumValueName = sliced.back();
     List& enumIdCell          = *new List(w, w.std.Cell);
-    List& enumValueIdCell     = w.name(enumValueName);
+    String& enumValueIdCell   = w.name(enumValueName);
     Ast::Scope* currentScope  = &w.globalScope;
 
     if (sliced.size() > 1) {

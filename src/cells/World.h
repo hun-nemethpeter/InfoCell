@@ -29,6 +29,7 @@ public:
     {
     public:
         Chars(World& w);
+        void init();
         Object& get(char32_t utf32Char);
 
     protected:
@@ -41,10 +42,12 @@ public:
     {
     public:
         Digits(World& w);
+        void init();
         Object& operator[](int digit);
 
     protected:
         std::vector<Object> m_digits;
+        World& w;
     };
 
     class Numbers
@@ -61,9 +64,8 @@ public:
     class Strings
     {
     public:
-        Strings(World& w, const std::map<List*, const char*>& ids);
+        Strings(World& w);
         String& get(const std::string& str);
-        List& getCharList(const std::string& str);
 
     protected:
         std::map<std::string, String> m_strings;
@@ -71,6 +73,7 @@ public:
     };
 
     Pools(World& w);
+    void init();
 
     Chars chars;
     Digits digits;
@@ -117,8 +120,8 @@ public:
     ~World();
 
     Logger logger;
-    ID id;
     Pools pools;
+    ID id;
     Ast::Scope globalScope;
     Std std;
     Arc arc;
@@ -153,7 +156,7 @@ public:
     CellI& getStruct(CellI& name);
     CellI& getVariable(const std::string& nameStr);
     CellI& getVariable(CellI& name);
-    List& name(const std::string& str);
+    String& name(const std::string& str);
     template <typename... Args>
     CellI& templateId(const std::string& str, Args&&... args);
     CellI& ListOf(CellI& type);
