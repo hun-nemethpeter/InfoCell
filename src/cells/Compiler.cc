@@ -438,7 +438,7 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         if (ast.has("parameters")) {
             auto& newParameters = *new cells::List(w, w.std.ast.Slot);
             forEach(ast[w.id.parameters], [this, &newParameters, &resolveNode](CellI& slot, int, bool&) {
-                newParameters.add(w.ast.slot(slot[w.id.key], resolveNode(slot[w.id.type])));
+                newParameters.add(w.ast.parameterInit(slot[w.id.key], resolveNode(slot[w.id.value])));
             });
             ret.set("parameters", newParameters);
         }
@@ -2044,6 +2044,27 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         }
         block.set(w.id.ops, *firstOpBlockNode);
         return block;
+    } else if ((&ast.__type__() == &w.std.ast.Call) && (&ast[w.id.method].__type__() == &w.std.ast.PrimitiveToolName)) {
+        CellI& primitiveTool = ast[w.id.method][w.id.name];
+        Object& retOp        = *new Object(w, primitiveTool);
+        retOp.set(w.id.ast, ast);
+
+        Map& membersMapping = static_cast<Map&>(primitiveTool[w.id.ast][w.id.memberMapping]);
+
+        CellI& self = ast[w.id.cell];
+        retOp.set(membersMapping.getValue(w.id.self), compile(self));
+
+        if (ast.has(w.id.parameters)) {
+            CellI& parameterList = ast[w.id.parameters];
+            forEach(parameterList, [this, &compile, &ast, &function, &retOp, &membersMapping](CellI& slot, int, bool&) {
+                CellI& key   = slot[w.id.key];
+                CellI& value = slot[w.id.value];
+                retOp.set(membersMapping.getValue(key), compile(value));
+                std::cout << "" << &key;
+            });
+        }
+
+        return retOp;
     } else if (&ast.__type__() == &w.std.ast.Call || &ast.__type__() == &w.std.ast.StaticCall) {
         Ast::Base& astCell   = static_cast<Ast::Base&>(ast[w.id.cell]);
         Ast::Base& astMethod = static_cast<Ast::Base&>(ast[w.id.method]);

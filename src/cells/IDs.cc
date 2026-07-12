@@ -63,6 +63,7 @@ ID::ID(World& w) :
     list(w.name("list")),
     listType(w.name("listType")),
     localVars(w.name("localVars")),
+    memberMapping(w.name("memberMapping")),
     memberOf(w.name("memberOf")),
     members(w.name("members")),
     method(w.name("method")),

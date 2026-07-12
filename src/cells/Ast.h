@@ -91,8 +91,12 @@ public:
     {
     public:
         Call(World& w, CellI& cell, CellI& method);
-
+        Call& operator/(Base& key);
+        Call& operator/(const std::string& key);
+        Call& operator()(const std::string& method);
         Call& operator()(const std::string& nameStr, CellI& value);
+
+        List& parameters();
     };
 
     class Continue : public BaseT<Continue>
@@ -194,6 +198,12 @@ public:
         If& else_(Base& elseBranch);
     };
 
+    class KVPair : public BaseT<KVPair>
+    {
+    public:
+        KVPair(World& w, CellI& key, CellI& value);
+    };
+
     class LessThan : public BaseT<LessThan>
     {
     public:
@@ -285,6 +295,12 @@ public:
         Call& operator()(const std::string& method);
     };
 
+    class PrimitiveToolName : public BaseT<PrimitiveToolName>
+    {
+    public:
+        PrimitiveToolName(World& w, CellI& name);
+    };
+
     class Return : public BaseT<Return>
     {
     public:
@@ -327,6 +343,7 @@ public:
     class Slot : public BaseT<Slot>
     {
     public:
+        Slot(World& w, CellI& key);
         Slot(World& w, CellI& key, CellI& value);
     };
 
@@ -434,7 +451,7 @@ public:
     public:
         StructBase(World& w, CellI& astType, CellI& name, const std::string& nameStr);
 
-        Function& addPrimitiveFunction(const std::string& nameStr);
+        Function& addPrimitiveFunction(CellI& name);
         Function& addMethod(const std::string& nameStr);
         void addMethod(Function& method);
 
@@ -517,6 +534,16 @@ public:
         Function(World& w, CellI& name);
         Function(World& w, const std::string& nameStr);
 
+        Function& memberMapping(KVPair& mapping);
+        template <typename... Args>
+        Function& memberMapping(KVPair& param, Args&&... args)
+        {
+            memberMapping(param);
+            memberMapping(std::forward<Args>(args)...);
+
+            return *this;
+        }
+
         Function& parameters(Slot& param);
 
         template <typename... Args>
@@ -537,6 +564,7 @@ public:
         template <typename... Args>
         Function& description(Args&&... args);
 
+        Map& memberMapping();
         List& parameters();
         CellI& returnType();
         Base& instructions();
@@ -763,8 +791,8 @@ public:
 // ============================================================================
     Ast(World& w);
 
-    Add& add(Base& lhs, Base& rhs);
-    And& and_(Base& lhs, Base& rhs);
+    Call& add(Base& lhs, Base& rhs);
+    Call& and_(Base& lhs, Base& rhs);
     AssociatedType& associatedType(CellI& key);
     template <typename... Args>
     Block& block(Args&&... args);
@@ -774,41 +802,47 @@ public:
     Cell& cell(CellI& value);
     Continue& continue_();
     Delete& delete_(Base& cell);
-    Divide& divide(Base& lhs, Base& rhs);
+    Call& divide(Base& lhs, Base& rhs);
     Do& do_(Base& condition);
     EnumValue& enumValue(const std::string& nameStr);
     EnumValue& enumValue(const std::string& nameStr, CellI& init);
-    Equal& equal(Base& lhs, Base& rhs);
+    Call& equal(Base& lhs, Base& rhs);
     Erase& erase(Base& cell, Base& key);
     Erase& erase(Base& cell, const std::string& key);
     For& for_(Base& var);
     For& for_(const std::string& varName);
-    Get& get(Base& cell, Base& key);
-    Get& get(Base& cell, const std::string& key);
-    GreaterThan& greaterThan(Base& lhs, Base& rhs);
-    GreaterThanOrEqual& greaterThanOrEqual(Base& lhs, Base& rhs);
-    Has& has(Base& cell, Base& key);
-    Has& has(Base& cell, const std::string& key);
+    Call& get(Base& cell, Base& key);
+    Call& get(Base& cell, const std::string& key);
+    Call& greaterThan(Base& lhs, Base& rhs);
+    Call& greaterThanOrEqual(Base& lhs, Base& rhs);
+    Call& has(Base& cell, Base& key);
+    Call& has(Base& cell, const std::string& key);
     If& if_(Base& condition);
-    LessThan& lessThan(Base& lhs, Base& rhs);
-    LessThanOrEqual& lessThanOrEqual(Base& lhs, Base& rhs);
+    KVPair& kvPair(CellI& key, CellI& value);
+    KVPair& kvPair(const std::string& keyStr, CellI& value);
+    KVPair& kvPair(CellI& key, const std::string& valueStr);
+    KVPair& kvPair(const std::string& keyStr, const std::string& valueStr);
+    Call& lessThan(Base& lhs, Base& rhs);
+    Call& lessThanOrEqual(Base& lhs, Base& rhs);
     Match& match_(Base& enum_);
     Member& member(CellI& key);
-    Missing& missing(Base& cell, Base& key);
-    Missing& missing(Base& cell, const std::string& id);
-    Multiply& multiply(Base& lhs, Base& rhs);
+    Call& missing(Base& cell, Base& key);
+    Call& missing(Base& cell, const std::string& id);
+    Call& multiply(Base& lhs, Base& rhs);
     New& new_(Base& objectType);
     New& new_(Base& objectType, Base& constructor);
     New& new_(Base& objectType, const std::string& constructor);
     New& new_(const std::string& objectType, const std::string& constructor);
-    Not& not_(Base& input);
-    NotEqual& notEqual(Base& lhs, Base& rhs);
-    NotSame& notSame(Base& lhs, Base& rhs);
-    Or& or_(Base& lhs, Base& rhs);
+    Call& not_(Base& input);
+    Call& notEqual(Base& lhs, Base& rhs);
+    Call& notSame(Base& lhs, Base& rhs);
+    Call& or_(Base& lhs, Base& rhs);
     Parameter& parameter(CellI& key);
+    Slot& parameterInit(CellI& key, CellI& value);
+    PrimitiveToolName& primitiveToolName(CellI& id);
     Return& return_();
     Return& return_(CellI& value);
-    Same& same(Base& lhs, Base& rhs);
+    Call& same(Base& lhs, Base& rhs);
     Self& self();
     SelfFn& selfFn();
     Set& set(Base& cell, Base& key, Base& value);
@@ -819,7 +853,7 @@ public:
     StaticCall& scall(CellI& type, const std::string& method);
     TypeName& typeName(CellI& id);
     TypeName& typeName(const std::string& idStr);
-    Subtract& subtract(Base& lhs, Base& rhs);
+    Call& subtract(Base& lhs, Base& rhs);
     TemplatedType& templatedType(const std::string& id, CellI& type);
     template <typename... Args>
     TemplatedType& templatedType(const std::string& id, const std::string& key, CellI& type, Args&&... args);

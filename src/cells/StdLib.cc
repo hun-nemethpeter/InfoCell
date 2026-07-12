@@ -107,6 +107,7 @@ Std::Ast::Ast(World& w) :
     NotSame(w, w.std.Struct, "ast::NotSame"),
     Or(w, w.std.Struct, "ast::Or"),
     Parameter(w, w.std.Struct, "ast::Parameter"),
+    PrimitiveToolName(w, w.std.Struct, "ast::PrimitiveToolName"),
     ResolvedType(w, w.std.Struct, "ast::ResolvedType"),
     Return(w, w.std.Struct, "ast::Return"),
     Same(w, w.std.Struct, "ast::Same"),
@@ -176,7 +177,7 @@ cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
 
 cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
 {
-    CellI& ret = *new Object(w, w.std.Slot);
+    CellI& ret = *new Object(w, w.std.Slot, "std.Slot");
     ret.set(w.id.key, w.name(key));
     ret.set(w.id.type, type);
 
@@ -185,7 +186,7 @@ cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
 
 cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
 {
-    CellI& ret = *new Object(w, w.std.KVPair);
+    CellI& ret = *new Object(w, w.std.KVPair, "std.KVPair");
     ret.set(w.id.key, key);
     ret.set(w.id.value, value);
 
@@ -595,9 +596,9 @@ void StdLibAst::createAst()
             member("lhs", _(std.Number)),
             member("rhs", _(std.Number)));
 
-    auto& Number = stdScope.getItem<Ast::Struct>("Number");
+    auto& astStdNumber = stdScope.getItem<Ast::Struct>("Number");
 
-    Number.addPrimitiveFunction("+")
+    astStdNumber.addPrimitiveFunction(w.std.op.Add)
         .parameters(
             parameter("other", "Number"))
         .description(
@@ -612,7 +613,7 @@ void StdLibAst::createAst()
             add(p_("other"), self()))
         .returnType("Number");
 
-    addPrimitive.addPrimitiveFunction("add")
+    addPrimitive.addPrimitiveFunction(w.std.op.Add)
         .parameters(
             parameter("lhs", _(std.Number)),
             parameter("rhs", _(std.Number)))
@@ -772,6 +773,18 @@ void StdLibAst::createAst()
         .members(
             member("cell", "Base"),
             member("key", "Base"));
+
+    auto& astStdCell = stdScope.getItem<Ast::Struct>("Cell");
+
+    astStdCell.addPrimitiveFunction(w.std.op.Get)
+        .memberMapping(
+            kvPair(w.id.self, "cell"),
+            kvPair("key", "key"))
+        .parameters(
+            parameter("key", "Cell"))
+        .description(
+            get(self(), p_("key")))
+        .returnType("Cell");
 
     astScope.add<Struct>("GreaterThan")
         .memberOf(
@@ -940,6 +953,10 @@ void StdLibAst::createAst()
         .members(
             member("key", "std::Cell"));
 
+    astScope.add<Struct>("PrimitiveToolName")
+        .members(
+            member("name", "std::Cell"));
+
     astScope.add<Struct>("ResolvedType")
         .members(
             member("ast", "std::Struct"),
@@ -994,6 +1011,7 @@ void StdLibAst::createAst()
     astScope.add<Struct>("Slot")
         .members(
             member("key", "Base"),
+            member("value", "Base"),
             member("type", "Base"),
             member("const", "Boolean"));
 
@@ -2354,6 +2372,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::NotSame", std.ast.NotSame);
     compiler.registerBuiltInStruct("std::ast::Or", std.ast.Or);
     compiler.registerBuiltInStruct("std::ast::Parameter", std.ast.Parameter);
+    compiler.registerBuiltInStruct("std::ast::PrimitiveToolName", std.ast.PrimitiveToolName);
     compiler.registerBuiltInStruct("std::ast::ResolvedType", std.ast.ResolvedType);
     compiler.registerBuiltInStruct("std::ast::Return", std.ast.Return);
     compiler.registerBuiltInStruct("std::ast::Same", std.ast.Same);

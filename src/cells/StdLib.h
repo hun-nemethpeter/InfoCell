@@ -98,6 +98,7 @@ public:
         Object NotSame;
         Object Or;
         Object Parameter;
+        Object PrimitiveToolName;
         Object ResolvedType;
         Object Return;
         Object Same;

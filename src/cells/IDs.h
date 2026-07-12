@@ -77,6 +77,7 @@ public:
     String& list;
     String& listType;
     String& localVars;
+    String& memberMapping;
     String& memberOf;
     String& members;
     String& method;

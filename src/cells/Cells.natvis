@@ -156,4 +156,7 @@
   <Type Name="infocell::cells::Number">
     <DisplayString>{m_value}</DisplayString>
   </Type>
+  <Type Name="infocell::cells::String">
+    <DisplayString>{m_value}</DisplayString>
+  </Type>
 </AutoVisualizer>
