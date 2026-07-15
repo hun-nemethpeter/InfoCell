@@ -8,8 +8,26 @@ namespace cells {
 // ============================================================================
 Std::EBoolean::EBoolean(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
+    And(w, w.std.ast.Function),
+    Not(w, w.std.ast.Function),
+    Or(w, w.std.ast.Function),
     true_(w, w.std.Boolean, "true"),
     false_(w, w.std.Boolean, "false")
+{
+}
+
+Std::SCell::SCell(World& w, CellI& type, const std::string& label) :
+    Object(w, type, label),
+    Delete(w, w.std.ast.Function),
+    Equal(w, w.std.ast.Function),
+    Erase(w, w.std.ast.Function),
+    Get(w, w.std.ast.Function),
+    Has(w, w.std.ast.Function),
+    Missing(w, w.std.ast.Function),
+    NotEqual(w, w.std.ast.Function),
+    NotSame(w, w.std.ast.Function),
+    Same(w, w.std.ast.Function),
+    Set(w, w.std.ast.Function)
 {
 }
 
@@ -26,6 +44,19 @@ Std::ENumberSign::ENumberSign(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     positive(w, w.std.NumberSign, "positive"),
     negative(w, w.std.NumberSign, "negative")
+{
+}
+
+Std::SNumber::SNumber(World& w, CellI& type, const std::string& label) :
+    Object(w, type, label),
+    Add(w, w.std.ast.Function),
+    Divide(w, w.std.ast.Function),
+    GreaterThan(w, w.std.ast.Function),
+    GreaterThanOrEqual(w, w.std.ast.Function),
+    LessThan(w, w.std.ast.Function),
+    LessThanOrEqual(w, w.std.ast.Function),
+    Multiply(w, w.std.ast.Function),
+    Subtract(w, w.std.ast.Function)
 {
 }
 
@@ -71,8 +102,6 @@ Std::Op::Op(World& w) :
 // ============================================================================
 Std::Ast::Ast(World& w) :
     w(w),
-    Add(w, w.std.Struct, "ast::Add"),
-    And(w, w.std.Struct, "ast::And"),
     AssociatedType(w, w.std.Struct, "ast::AssociatedType"),
     Base(w, w.std.Struct, "ast::Base"),
     Block(w, w.std.Struct, "ast::Block"),
@@ -80,46 +109,27 @@ Std::Ast::Ast(World& w) :
     Call(w, w.std.Struct, "ast::Call"),
     Cell(w, w.std.Struct, "ast::Cell"),
     Continue(w, w.std.Struct, "ast::Continue"),
-    Delete(w, w.std.Struct, "ast::Delete"),
-    Divide(w, w.std.Struct, "ast::Divide"),
     Do(w, w.std.Struct, "ast::Do"),
     Enum(w, w.std.Struct, "ast::Enum"),
     EnumValue(w, w.std.Struct, "ast::EnumValue"),
-    Equal(w, w.std.Struct, "ast::Equal"),
-    Erase(w, w.std.Struct, "ast::Erase"),
     For(w, w.std.Struct, "ast::For"),
     Function(w, w.std.Struct, "ast::Function"),
     FunctionT(w, w.std.Struct, "ast::FunctionT"),
-    Get(w, w.std.Struct, "ast::Get"),
-    GreaterThan(w, w.std.Struct, "ast::GreaterThan"),
-    GreaterThanOrEqual(w, w.std.Struct, "ast::GreaterThanOrEqual"),
-    Has(w, w.std.Struct, "ast::Has"),
     If(w, w.std.Struct, "ast::If"),
-    LessThan(w, w.std.Struct, "ast::LessThan"),
-    LessThanOrEqual(w, w.std.Struct, "ast::LessThanOrEqual"),
     Match(w, w.std.Struct, "ast::Match"),
     Member(w, w.std.Struct, "ast::Member"),
-    Missing(w, w.std.Struct, "ast::Missing"),
-    Multiply(w, w.std.Struct, "ast::Multiply"),
     New(w, w.std.Struct, "ast::New"),
-    Not(w, w.std.Struct, "ast::Not"),
-    NotEqual(w, w.std.Struct, "ast::NotEqual"),
-    NotSame(w, w.std.Struct, "ast::NotSame"),
-    Or(w, w.std.Struct, "ast::Or"),
     Parameter(w, w.std.Struct, "ast::Parameter"),
     PrimitiveToolName(w, w.std.Struct, "ast::PrimitiveToolName"),
     ResolvedType(w, w.std.Struct, "ast::ResolvedType"),
     Return(w, w.std.Struct, "ast::Return"),
-    Same(w, w.std.Struct, "ast::Same"),
     Scope(w, w.std.Struct, "ast::Scope"),
     Self(w, w.std.Struct, "ast::Self"),
-    SelfFn(w, w.std.Struct, "ast::SelfFn"),
-    Set(w, w.std.Struct, "ast::Set"),
+    SelfType(w, w.std.Struct, "ast::SelfType"),
     Slot(w, w.std.Struct, "ast::Slot"),
     StaticCall(w, w.std.Struct, "ast::StaticCall"),
     Struct(w, w.std.Struct, "ast::Struct"),
     StructT(w, w.std.Struct, "ast::StructT"),
-    Subtract(w, w.std.Struct, "ast::Subtract"),
     TemplatedType(w, w.std.Struct, "ast::TemplatedType"),
     TemplateParam(w, w.std.Struct, "ast::TemplateParam"),
     Throw(w, w.std.Struct, "ast::Throw"),
@@ -153,7 +163,6 @@ Std::Std(World& w) :
     Number(w, w.std.Struct, "Number"),
     NumberSign(w, w.std.Enum, "NumberSign"),
     OpState(w, w.std.Struct, "OpState"),
-    Slot(w, w.std.Struct, "Slot"),
     Stack(w, w.std.Struct, "Stack"),
     StackFrame(w, w.std.Struct, "StackFrame"),
     String(w, w.std.Struct, "String"),
@@ -164,24 +173,6 @@ Std::Std(World& w) :
     op(w),
     ast(w)
 {
-}
-
-cells::CellI& Std::slot(cells::CellI& key, cells::CellI& type)
-{
-    CellI& ret = *new Object(w, w.std.Slot);
-    ret.set(w.id.key, key);
-    ret.set(w.id.type, type);
-
-    return ret;
-}
-
-cells::CellI& Std::slot(const std::string& key, cells::CellI& type)
-{
-    CellI& ret = *new Object(w, w.std.Slot, "std.Slot");
-    ret.set(w.id.key, w.name(key));
-    ret.set(w.id.type, type);
-
-    return ret;
 }
 
 cells::CellI& Std::kvPair(cells::CellI& key, cells::CellI& value)
@@ -374,6 +365,7 @@ void StdLibAst::createOp()
         .members(
             member("ast", "ast::Base"),
             member("name", "std::Cell"),
+            member("description", "std::Cell"),
             member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "std::Slot")),
             member("localVars", "std::Index"),
             member("returnType", "std::Cell"),
@@ -572,92 +564,6 @@ void StdLibAst::createAst()
 {
     auto& astScope = stdScope.add<Scope>("ast");
     astScope.add<Struct>("Base");
-    auto& addPrimitive = astScope.add<Struct>("Add");
-    addPrimitive
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Number))
-        .description(
-#if 0
-            if_(equal(m_("lhs") / "__type__", _(addPrimitive))).then_(
-                equal(add(add(p_("lhs") / _("lhs"), p_("lhs") / _("rhs")), p_("rhs")), add(p_("lhs") / _("lhs"), add(p_("lhs") / _("rhs"), p_("rhs")))))
-            )
-            if_(equal(m_("rhs") / "__type__", _(addPrimitive))).then_(
-                equal(add(add(p_("lhs"), p_("rhs") / _("lhs")), p_("rhs") / _("rhs")), add(p_("lhs"), add(p_("rhs") / _("lhs"), p_("rhs") / _("rhs")))))
-            )
-#endif
-            equal(subtract(return_(), m_("rhs")), m_("lhs")),
-            equal(subtract(return_(), m_("lhs")), m_("rhs")),
-            equal(m_("lhs"), subtract(return_(), m_("rhs"))),
-            add(m_("lhs"), m_("rhs")),
-            add(m_("rhs"), m_("lhs")))
-        .members(
-            member("lhs", _(std.Number)),
-            member("rhs", _(std.Number)));
-
-    auto& astStdNumber = stdScope.getItem<Ast::Struct>("Number");
-
-    astStdNumber.addPrimitiveFunction(w.std.op.Add)
-        .parameters(
-            parameter("other", "Number"))
-        .description(
-            equal(return_()("subtract")("other", p_("other")), self()),
-            equal(return_()("subtract")("other", self()), p_("other")),
-            self()("add")("other", p_("other")),
-            p_("other")("add")("other", self()))
-        .description(
-            equal(subtract(return_(), p_("other")), self()),
-            equal(subtract(return_(), self()), p_("other")),
-            add(self(), p_("other")),
-            add(p_("other"), self()))
-        .returnType("Number");
-
-    addPrimitive.addPrimitiveFunction(w.std.op.Add)
-        .parameters(
-            parameter("lhs", _(std.Number)),
-            parameter("rhs", _(std.Number)))
-        .description(
-            equal(subtract(return_(), p_("rhs")), p_("lhs")),
-            equal(subtract(return_(), p_("lhs")), p_("rhs")),
-            add(p_("lhs"), p_("rhs")),
-            add(p_("rhs"), p_("lhs")))
-        .returnType(_(std.Number));
-
-#if 0
-    addPrimitive.addMethod("add")
-        .parameters(
-            parameter("lhs", _("Add")),
-            parameter("rhs", _(std.Number)))
-        .description(
-            equal(add(add(p_("lhs") / _("lhs"), p_("lhs") / _("rhs")), p_("rhs")), add(p_("lhs") / _("lhs"), add(p_("lhs") / _("rhs"), p_("rhs")))))
-        .returnType(_(std.Number));
-
-    addPrimitive.addMethod("add")
-        .parameters(
-            parameter("lhs", _(std.Number)),
-            parameter("rhs", _("Add")))
-        .description(
-            equal(add(add(p_("lhs"), p_("rhs") / _("lhs")), p_("rhs") / _("rhs")), add(p_("lhs"), add(p_("rhs") / _("lhs"), p_("rhs") / _("rhs")))))
-        .returnType(_(std.Number));
-#endif
-
-    astScope.add<Struct>("And")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-#if 0
-            equal(and_(p_("lhs", std.Boolean.true_), p_("rhs", std.Boolean.true_)), _(std.Boolean.true_)),
-            equal(and_(p_("lhs", std.Boolean.true_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
-            equal(and_(p_("lhs", std.Boolean.false_), p_("rhs", std.Boolean.true_)), _(std.Boolean.false_)),
-            equal(and_(p_("lhs", std.Boolean.false_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
-#endif
-            and_(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Boolean)),
-            member("rhs", _(std.Boolean)));
 
     astScope.add<Struct>("AssociatedType")
         .members(
@@ -673,7 +579,7 @@ void StdLibAst::createAst()
         .members(
             member("cell", "Base"),
             member("method", "Base"),
-            member("parameters", ListOf(std.Slot)));
+            member("parameters", ListOf(std.ast.Slot)));
 
     astScope.add<Struct>("Cell")
         .members(
@@ -684,19 +590,6 @@ void StdLibAst::createAst()
     astScope.add<Struct>("Delete")
         .members(
             member("cell", "Base"));
-
-    astScope.add<Struct>("Divide")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Number))
-        .description(
-            // TODO check rhs != 0
-            multiply(return_(), m_("rhs")) == m_("lhs"),
-            divide(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Number)),
-            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("Do")
         .members(
@@ -709,6 +602,7 @@ void StdLibAst::createAst()
             member("compiledStruct", "std::op::Base"),
             member("fullyQualifiedName", "std::Cell"),
             member("scope", "Scope"),
+            member("methods", MapOf(std.Cell, std.ast.Function)),
             member("values", "TrieMap"));
 
     astScope.add<Struct>("EnumValue")
@@ -717,24 +611,6 @@ void StdLibAst::createAst()
             member("fullyQualifiedName", "std::Cell"),
             member("enum", "Enum"),
             member("value", "std::Cell"));
-
-    astScope.add<Struct>("Equal")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            m_("lhs") == m_("rhs"))
-        .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
-
-    astScope.add<Struct>("Erase")
-        .description(
-            has(m_("cell"), m_("key")) == false_())
-        .members(
-            member("cell", "Base"),
-            member("key", "Base"));
 
     astScope.add<Struct>("For")
         .members(
@@ -746,18 +622,20 @@ void StdLibAst::createAst()
         .members(
             member("name", "std::Cell"),
             member("fullyQualifiedName", "std::Cell"),
+            member("compiledType", "std::Cell"),
             member("primitiveTool", _(std.Boolean)),
             member("structType", "std::Cell"),
-            member("parameters", ListOf(std.Slot)),
+            member("parameters", ListOf(std.ast.Slot)),
             member("returnType", "std::Struct"),
             member("instructions", "Base"),
+            member("description", "Base"),
             member("scope", "Base"),
             member("static_", "std::Boolean"));
 
     astScope.add<Struct>("FunctionT")
         .members(
             member("name", "std::Cell"),
-            member("parameters", ListOf(std.Slot)),
+            member("parameters", ListOf(std.ast.Slot)),
             member("returnType", "std::Struct"),
             member("instructions", "Base"),
             member("scope", "Base"),
@@ -766,49 +644,10 @@ void StdLibAst::createAst()
     astScope.add<Struct>("Get")
         .memberOf(
             _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.ast.Base))
-        .description(
-            m_("cell") / m_("key"))
         .members(
             member("cell", "Base"),
             member("key", "Base"));
 
-    auto& astStdCell = stdScope.getItem<Ast::Struct>("Cell");
-
-    astStdCell.addPrimitiveFunction(w.std.op.Get)
-        .memberMapping(
-            kvPair(w.id.self, "cell"),
-            kvPair("key", "key"))
-        .parameters(
-            parameter("key", "Cell"))
-        .description(
-            get(self(), p_("key")))
-        .returnType("Cell");
-
-    astScope.add<Struct>("GreaterThan")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            lessThan(subtract(m_("rhs"), m_("lhs")), _(_0_)),
-            greaterThan(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Number)),
-            member("rhs", _(std.Number)));
-
-    astScope.add<Struct>("GreaterThanOrEqual")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            lessThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(_0_)),
-            greaterThanOrEqual(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Number)),
-            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("Match")
         .memberOf(
@@ -816,17 +655,6 @@ void StdLibAst::createAst()
         .members(
             member("cases", _(std.List)),
             member("enum", _(std.ast.Base)));
-
-    astScope.add<Struct>("Has")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            has(m_("cell"), m_("key")))
-        .members(
-            member("cell", "Base"),
-            member("key", "Base"));
 
     astScope.add<Struct>("If")
 #if 0 // for the CellTrie we have to reference _every_ member but the else_ here is optional so this is a TODO
@@ -840,114 +668,16 @@ void StdLibAst::createAst()
             member("then", "Base"),
             member("else_", "Base"));
 
-    astScope.add<Struct>("LessThan")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            greaterThan(subtract(m_("rhs"), m_("lhs")), _(_0_)),
-            lessThan(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Number)),
-            member("rhs", _(std.Number)));
-
-    astScope.add<Struct>("LessThanOrEqual")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            greaterThanOrEqual(subtract(m_("rhs"), m_("lhs")), _(_0_)),
-            lessThanOrEqual(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Number)),
-            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("Member")
         .members(
             member("key", "Base"));
-
-    astScope.add<Struct>("Missing")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            missing(m_("cell"), m_("key")))
-        .members(
-            member("cell", "Base"),
-            member("key", "Base"));
-
-    astScope.add<Struct>("Multiply")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Number))
-        .description(
-#if 0 // we need a precondition secton for this if block
-            if_(notSame(m_("lhs"), _(_0_))).then_(
-#endif
-            // input 6 / 2 == 3
-            divide(return_(), m_("lhs")) == m_("rhs")  // 2 * 3 = 6
-#if 0 // we need a precondition secton for this if block
-            )
-#else
-            ,
-#endif
-            multiply(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Number)),
-            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("New")
         .members(
             member("objectType", "Base"),
             member("constructor", "Base"),
             member("parameters", ListOf(std.ast.Slot)));
-
-    astScope.add<Struct>("Not")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            not_(m_("input")))
-        .members(
-            member("input", _(std.Boolean)));
-
-    astScope.add<Struct>("NotEqual")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            notEqual(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
-
-    astScope.add<Struct>("NotSame")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            notSame(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
-
-    astScope.add<Struct>("Or")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            or_(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Boolean)),
-            member("rhs", _(std.Boolean)));
 
     astScope.add<Struct>("Parameter")
         .members(
@@ -968,17 +698,6 @@ void StdLibAst::createAst()
         .members(
             member("value", "std::Cell"));
 
-    astScope.add<Struct>("Same")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Boolean))
-        .description(
-            same(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", "Base"),
-            member("rhs", "Base"));
-
     astScope.add<Struct>("Scope")
         .members(
             member("link", "Scope"),
@@ -995,18 +714,7 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("Self");
 
-    astScope.add<Struct>("SelfFn");
-
-    astScope.add<Struct>("Set")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .description(
-            m_("cell") / m_("key") == m_("value"))
-        .members(
-            member("cell", "Base"),
-            member("key", "Base"),
-            member("value", "Base"));
+    astScope.add<Struct>("SelfType");
 
     astScope.add<Struct>("Slot")
         .members(
@@ -1019,7 +727,7 @@ void StdLibAst::createAst()
         .members(
             member("cell", "Base"),
             member("method", "Base"),
-            member("parameters", ListOf(std.Slot)));
+            member("parameters", ListOf(std.ast.Slot)));
 
     astScope.add<Struct>("Struct")
         .members(
@@ -1030,8 +738,6 @@ void StdLibAst::createAst()
             member("instanceOf", "Base"),
             member("templateParams", "std::List"),
             member("scope", "Scope"),
-            member("primitiveTool", _(std.Boolean)),
-            member("returnType", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("members", MapOf(std.Cell, std.ast.Slot)),
             member("typeAliases", ListOf(std.ast.Slot)),
@@ -1056,57 +762,12 @@ void StdLibAst::createAst()
         .members(
             member("name", "std::Cell"));
 
-    astScope.add<Struct>("Subtract")
-        .memberOf(
-            _(std.ast.Base))
-        .primitiveTool()
-        .returnType(_(std.Number))
-        .description(
-            equal(add(return_(), m_("rhs")), m_("lhs")),
-            equal(add(m_("rhs"), return_()), m_("lhs")),
-
-    // for conclusion, the next state of this tool (after activation) can be measured with the tool add
-    // subtract(lhs:3, rhs:2) == return:1
-    // return + rhs = lhs means
-    // 1      + 2   = 3
-    // and
-    // rhs + return = lhs means
-    // 2   + 1      = 3
-
-    // for reason, the previous state of add, can be measured with this tool subtract
-    // add(lhs:1,   rhs:2) == return:3
-    //     return + rhs    =  lhs   means we can build a subtract expression from the add expression
-    // subtract.lhs    can be found in add.return:3
-    // subtract.rhs    can be found in add.rhs:2
-    // subtract.return can be found in add.lhs:1
-    // so we can build the following:
-    // subtract(lhs=add.return:3, rhs=add.rhs:2) == add.lhs:1
-    // 3 - 2 = 1
-    // the expression
-    // add(lhs:1,   rhs:2) == return:3
-    //     rhs +    return =  lhs
-    // means we can build a subtract expression from the add expression
-    // subtract lhs    can be found in add.return:3
-    // subtract rhs    can be found in add.lhs:1
-    // subtract return can be found in add.rhs:2
-    // so we can build the following:
-    // subtract(lhs=add.return:3, rhs=add.lhs:1) == add.rhs:2
-    // 3 - 1 = 2
-#if 0
-            equal(m_("lhs"), add(return_(), m_("rhs"))),
-            equal(m_("lhs"), add(m_("rhs"), return_())),
-#endif
-            // equal(subtract(m_("lhs"), return_()), m_("rhs")), TODO maybe calculate this?!
-            subtract(m_("lhs"), m_("rhs")))
-        .members(
-            member("lhs", _(std.Number)),
-            member("rhs", _(std.Number)));
 
     astScope.add<Struct>("TemplatedType")
         .members(
             member("id", "Base"),
             member("scopes", "std::List"),
-            member("parameters", ListOf(std.Slot)));
+            member("parameters", ListOf(std.ast.Slot)));
 
     astScope.add<Struct>("TemplateParam")
         .members(
@@ -1163,11 +824,6 @@ void StdLibAst::createAst()
 // ============================================================================
 void StdLibAst::createEnums()
 {
-    stdScope.add<Enum>("Boolean")
-        .values(
-            ev_("false"),
-            ev_("true"));
-
     stdScope.add<Enum>("Direction")
         .values(
             ev_("up"),
@@ -1200,7 +856,7 @@ void StdLibAst::createIndex()
             parameter("indexType", _(std.Struct)))
         .instructions(
             if_(missing(p_("indexType"), _("sharedObject")))
-                .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.Slot))),
+                .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.ast.Slot))),
                              set(p_("indexType") / "sharedObject", "key", self()),
                              set(p_("indexType") / "sharedObject", "type", __type__("Index")))),
             set(p_("indexType"), "methods", m_("__type__") / "methods"),
@@ -1232,7 +888,7 @@ void StdLibAst::createIndex()
             set(self(), p_("key"), p_("value")),
             if_(and_(has(m_("__type__"), "sharedObject"), same(m_("__type__") / "sharedObject" / "key", self())))
                 .then_(return_()),
-            m_("__type__")("addSlot")("key", p_("key"))("type", _(std.Slot)));
+            m_("__type__")("addSlot")("key", p_("key"))("type", _(std.ast.Slot)));
 
     indexStruct.addMethod("empty")
         .returnType(_(std.Boolean))
@@ -1789,24 +1445,24 @@ void StdLibAst::createStruct()
     structStruct.addMethod("addSlot")
         .parameters(
             parameter("key", _(std.Cell)),
-            parameter("type", _(std.Slot)))
+            parameter("type", _(std.ast.Slot)))
         .instructions(
             if_(m_("slots").missing())
-                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
-            var_("slot") = new_(_(std.Slot)),
+                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.ast.Slot)), "constructor")),
+            var_("slot") = new_(_(std.ast.Slot)),
             set(*var_("slot"), "key", p_("key")),
             set(*var_("slot"), "type", p_("type")),
             m_("slots")("add")("key", p_("key"))("value", *var_("slot")));
 
     structStruct.addMethod("addSlots")
         .parameters(
-            parameter("list", tt_("List", "valueType", _(std.Slot))))
+            parameter("list", tt_("List", "valueType", _(std.ast.Slot))))
         .instructions(
             if_(equal(p_("list") / "size", _(_0_)))
                 .then_(return_()),
             var_("node") = p_("list") / "first",
             if_(m_("slots").missing())
-                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.Slot)), "constructor")),
+                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.ast.Slot)), "constructor")),
             do_(block(
                     var_("next") = true_(),
                     m_("slots")("add")("key", *var_("node") / "value" / "key")("value", *var_("node") / "value"),
@@ -2200,7 +1856,144 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     stdScope(scope),
     traits(w, scope)
 {
-    stdScope.add<Struct>("Cell");
+    auto& ast = w.std.ast;
+    auto& op  = w.std.op;
+
+    auto& Boolean = stdScope.add<Enum>("Boolean");
+    Boolean
+        .values(
+            ev_("false"),
+            ev_("true"));
+
+    Boolean.addPrimitiveFunction(std.Boolean.And, op.And, "and")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Boolean"))
+        .description(
+#if 0
+            equal(and_(self(std.Boolean.true_), p_("rhs", std.Boolean.true_)), _(std.Boolean.true_)),
+            equal(and_(self(std.Boolean.true_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
+            equal(and_(self(std.Boolean.false_), p_("rhs", std.Boolean.true_)), _(std.Boolean.false_)),
+            equal(and_(self(std.Boolean.false_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
+#endif
+            and_(self(), p_("other")),
+            and_(p_("other"), self()))
+        .returnType("Boolean");
+
+    Boolean.addPrimitiveFunction(std.Boolean.Not, op.Not, "not")
+        .memberMapping(
+            kvPair(w.id.self, "input"))
+        .description(
+            not_(self()))
+        .returnType("Boolean");
+
+    Boolean.addPrimitiveFunction(std.Boolean.Or, op.Or, "or")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Boolean"))
+        .description(
+            or_(self(), p_("other")),
+            or_(p_("other"), self()))
+        .returnType("Boolean");
+
+    auto& Cell = stdScope.add<Struct>("Cell");
+    Cell.addPrimitiveFunction(std.Cell.Delete, op.Delete, "delete")
+        .memberMapping(
+            kvPair(w.id.self, "input"));
+
+    Cell.addPrimitiveFunction(std.Cell.Equal, op.Equal, "equal")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Cell"))
+        .description(
+            equal(self(), p_("other")))
+        .returnType("Boolean");
+
+    Cell.addPrimitiveFunction(std.Cell.Erase, op.Erase, "erase")
+        .memberMapping(
+            kvPair(w.id.self, "cell"),
+            kvPair("key", "key"))
+        .parameters(
+            parameter("key", "Cell"))
+        .description(
+            equal(has(self(), p_("key")), false_()));
+
+    Cell.addPrimitiveFunction(std.Cell.Get, op.Get, "get")
+        .memberMapping(
+            kvPair(w.id.self, "cell"),
+            kvPair("key", "key"))
+        .parameters(
+            parameter("key", "Cell"))
+        .description(
+            get(self(), p_("key")))
+        .returnType("Cell");
+
+    Cell.addPrimitiveFunction(std.Cell.Has, op.Has, "has")
+        .memberMapping(
+            kvPair(w.id.self, "cell"),
+            kvPair("key", "key"))
+        .parameters(
+            parameter("key", "Cell"))
+        .description(
+            has(self(), p_("key")))
+        .returnType("Boolean");
+
+    Cell.addPrimitiveFunction(std.Cell.Missing, op.Missing, "missing")
+        .memberMapping(
+            kvPair(w.id.self, "cell"),
+            kvPair("key", "key"))
+        .parameters(
+            parameter("key", "Cell"))
+        .description(
+            missing(self(), p_("key")))
+        .returnType("Boolean");
+
+    Cell.addPrimitiveFunction(std.Cell.NotEqual, op.NotEqual, "notEqual")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Cell"))
+        .description(
+            notEqual(self(), p_("other")))
+        .returnType("Boolean");
+
+    Cell.addPrimitiveFunction(std.Cell.NotSame, op.NotSame, "notSame")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Cell"))
+        .description(
+            notSame(self(), p_("other")))
+        .returnType("Boolean");
+
+    Cell.addPrimitiveFunction(std.Cell.Same, op.Same, "same")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Cell"))
+        .description(
+            same(self(), p_("other")))
+        .returnType("Boolean");
+
+    Cell.addPrimitiveFunction(std.Cell.Set, op.Set, "set")
+        .memberMapping(
+            kvPair(w.id.self, "cell"),
+            kvPair("key", "key"),
+            kvPair("value", "value"))
+        .parameters(
+            parameter("key", "Cell"),
+            parameter("value", "Cell"))
+        .description(
+            equal(get(self(), p_("key")), p_("value")));
 
     stdScope.add<Struct>("Char");
 
@@ -2236,10 +2029,110 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     createListNode();
     createMap();
 
-    stdScope.add<Struct>("Number")
+    auto& Number = stdScope.add<Struct>("Number");
+    Number
         .members(
             member("value", ListOf(std.Digit)),
             member("sign", "NumberSign"));
+
+    Number.addPrimitiveFunction(std.Number.Add, op.Add, "add")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            equal(subtract(return_(), p_("other")), self()),
+            equal(subtract(return_(), self()), p_("other")),
+            add(self(), p_("other")),
+            add(p_("other"), self()))
+        .returnType("Number");
+
+    Number.addPrimitiveFunction(std.Number.Divide, op.Divide, "divide")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            // TODO check p_("other") != 0
+            equal(multiply(return_(), p_("other")), self()),
+            divide(self(), p_("other")))
+        .returnType("Number");
+
+    Number.addPrimitiveFunction(std.Number.GreaterThan, op.GreaterThan, "greaterThan")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            lessThan(subtract(p_("other"), self()), _(_0_)),
+            greaterThan(self(), p_("other")))
+        .returnType("Boolean");
+
+    Number.addPrimitiveFunction(std.Number.GreaterThanOrEqual, op.GreaterThanOrEqual, "greaterThanOrEqual")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            lessThanOrEqual(subtract(p_("other"), self()), _(_0_)),
+            greaterThanOrEqual(self(), p_("other")))
+        .returnType("Boolean");
+
+    Number.addPrimitiveFunction(std.Number.LessThan, op.LessThan, "lessThan")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            greaterThan(subtract(p_("other"), self()), _(_0_)),
+            lessThan(self(), p_("other")))
+        .returnType("Boolean");
+
+    Number.addPrimitiveFunction(std.Number.LessThanOrEqual, op.LessThanOrEqual, "lessThanOrEqual")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            greaterThanOrEqual(subtract(p_("other"), self()), _(_0_)),
+            lessThanOrEqual(self(), p_("other")))
+        .returnType("Boolean");
+
+    Number.addPrimitiveFunction(std.Number.Multiply, op.Multiply, "multiply")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            // TODO check p_("other") != 0
+            equal(divide(return_(), self()), p_("other")),
+            multiply(self(), p_("other")))
+        .returnType("Number");
+
+    Number.addPrimitiveFunction(std.Number.Subtract, op.Subtract, "subtract")
+        .memberMapping(
+            kvPair(w.id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .description(
+            equal(add(return_(), p_("other")), self()),
+            equal(add(p_("other"), return_()), self()),
+
+#if 0
+            equal(self(), add(return_(), p_("other"))),
+            equal(self(), add(p_("other"), return_())),
+#endif
+            // equal(subtract(self(), return_()), p_("other")), TODO maybe calculate this?!
+            subtract(self(), p_("other")))
+        .returnType("Number");
 
     stdScope.add<Struct>("OpState")
         .members(
@@ -2252,7 +2145,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     stdScope.add<Struct>("Slot")
         .members(
             member("key", "Cell"),
-            member("type", "Struct"));
+            member("value", "Cell"),
+            member("type", "Struct"),
+            member("const", "Boolean"));
 
     stdScope.add<Struct>("Stack");
 
@@ -2290,8 +2185,8 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     stdScope.add<Struct>("Void");
 
     createOp();
-    createAst();
     createEnums();
+    createAst();
 }
 
 StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
@@ -2336,8 +2231,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::op::Var", std.op.Var);
     compiler.registerBuiltInStruct("std::op::While", std.op.While);
 
-    compiler.registerBuiltInStruct("std::ast::Add", std.ast.Add);
-    compiler.registerBuiltInStruct("std::ast::And", std.ast.And);
     compiler.registerBuiltInStruct("std::ast::AssociatedType", std.ast.AssociatedType);
     compiler.registerBuiltInStruct("std::ast::Base", std.ast.Base);
     compiler.registerBuiltInStruct("std::ast::Block", std.ast.Block);
@@ -2345,46 +2238,27 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::Call", std.ast.Call);
     compiler.registerBuiltInStruct("std::ast::Cell", std.ast.Cell);
     compiler.registerBuiltInStruct("std::ast::Continue", std.ast.Continue);
-    compiler.registerBuiltInStruct("std::ast::Delete", std.ast.Delete);
-    compiler.registerBuiltInStruct("std::ast::Divide", std.ast.Divide);
     compiler.registerBuiltInStruct("std::ast::Do", std.ast.Do);
     compiler.registerBuiltInStruct("std::ast::Enum", std.ast.Enum);
     compiler.registerBuiltInStruct("std::ast::EnumValue", std.ast.EnumValue);
-    compiler.registerBuiltInStruct("std::ast::Equal", std.ast.Equal);
-    compiler.registerBuiltInStruct("std::ast::Erase", std.ast.Erase);
     compiler.registerBuiltInStruct("std::ast::For", std.ast.For);
     compiler.registerBuiltInStruct("std::ast::Function", std.ast.Function);
     compiler.registerBuiltInStruct("std::ast::FunctionT", std.ast.FunctionT);
-    compiler.registerBuiltInStruct("std::ast::Get", std.ast.Get);
-    compiler.registerBuiltInStruct("std::ast::GreaterThan", std.ast.GreaterThan);
-    compiler.registerBuiltInStruct("std::ast::GreaterThanOrEqual", std.ast.GreaterThanOrEqual);
-    compiler.registerBuiltInStruct("std::ast::Has", std.ast.Has);
     compiler.registerBuiltInStruct("std::ast::If", std.ast.If);
-    compiler.registerBuiltInStruct("std::ast::LessThan", std.ast.LessThan);
-    compiler.registerBuiltInStruct("std::ast::LessThanOrEqual", std.ast.LessThanOrEqual);
     compiler.registerBuiltInStruct("std::ast::Match", std.ast.Match);
     compiler.registerBuiltInStruct("std::ast::Member", std.ast.Member);
-    compiler.registerBuiltInStruct("std::ast::Missing", std.ast.Missing);
-    compiler.registerBuiltInStruct("std::ast::Multiply", std.ast.Multiply);
     compiler.registerBuiltInStruct("std::ast::New", std.ast.New);
-    compiler.registerBuiltInStruct("std::ast::Not", std.ast.Not);
-    compiler.registerBuiltInStruct("std::ast::NotEqual", std.ast.NotEqual);
-    compiler.registerBuiltInStruct("std::ast::NotSame", std.ast.NotSame);
-    compiler.registerBuiltInStruct("std::ast::Or", std.ast.Or);
     compiler.registerBuiltInStruct("std::ast::Parameter", std.ast.Parameter);
     compiler.registerBuiltInStruct("std::ast::PrimitiveToolName", std.ast.PrimitiveToolName);
     compiler.registerBuiltInStruct("std::ast::ResolvedType", std.ast.ResolvedType);
     compiler.registerBuiltInStruct("std::ast::Return", std.ast.Return);
-    compiler.registerBuiltInStruct("std::ast::Same", std.ast.Same);
     compiler.registerBuiltInStruct("std::ast::Scope", std.ast.Scope);
     compiler.registerBuiltInStruct("std::ast::Self", std.ast.Self);
-    compiler.registerBuiltInStruct("std::ast::SelfFn", std.ast.SelfFn);
-    compiler.registerBuiltInStruct("std::ast::Set", std.ast.Set);
+    compiler.registerBuiltInStruct("std::ast::SelfType", std.ast.SelfType);
     compiler.registerBuiltInStruct("std::ast::Slot", std.ast.Slot);
     compiler.registerBuiltInStruct("std::ast::StaticCall", std.ast.StaticCall);
     compiler.registerBuiltInStruct("std::ast::Struct", std.ast.Struct);
     compiler.registerBuiltInStruct("std::ast::StructT", std.ast.StructT);
-    compiler.registerBuiltInStruct("std::ast::Subtract", std.ast.Subtract);
     compiler.registerBuiltInStruct("std::ast::TemplatedType", std.ast.TemplatedType);
     compiler.registerBuiltInStruct("std::ast::TemplateParam", std.ast.TemplateParam);
     compiler.registerBuiltInStruct("std::ast::Trait", std.ast.Trait);
@@ -2424,7 +2298,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::Map", std.Map);
     compiler.registerBuiltInStruct("std::Number", std.Number);
     compiler.registerBuiltInStruct("std::OpState", std.OpState);
-    compiler.registerBuiltInStruct("std::Slot", std.Slot);
+    compiler.registerBuiltInStruct("std::Slot", std.ast.Slot);
     compiler.registerBuiltInStruct("std::Stack", std.Stack);
     compiler.registerBuiltInStruct("std::StackFrame", std.StackFrame);
     compiler.registerBuiltInStruct("std::String", std.String);

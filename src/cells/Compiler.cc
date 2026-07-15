@@ -58,10 +58,8 @@ Library& Compiler::compile(Ast::Scope& scope)
     instantiateTemplateInstances();
 
     // The actual compilation
-    compileScope(scope, resolvedScope);
-
-    // Process the descriptions
-    processDescriptionsInScope(scope);
+    compileInstructionsInScope(scope, resolvedScope);
+    compileDescriptionInScope(scope, resolvedScope);
 
     m_libraryPtr->set(w.id.scope, scope);
     m_libraryPtr->set(w.id.resolvedScope, resolvedScope);
@@ -120,7 +118,7 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
         auto& unresolvedStruct = *new Object(w, w.std.Struct, fmt::format("{}", structId.label()));
         unresolvedStruct.set("incomplete", w.true_);
 
-        m_earlyStructs.add(structId, w.std.slot(structAst, unresolvedStruct));
+        m_earlyStructs.add(structId, w.ast.slot(structAst, unresolvedStruct));
         return unresolvedStruct;
     }
 }
@@ -168,7 +166,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     });
     idCell.label(ss.str());
     compiledStruct.set("incomplete", w.true_);
-    m_earlyStructs.add(idCell, w.std.slot(w.__type__(fullName), compiledStruct));
+    m_earlyStructs.add(idCell, w.ast.slot(w.__type__(fullName), compiledStruct));
 }
 
 void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& compiledEnumValue)
@@ -347,6 +345,9 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function)
     m_currentFn = &ret;
     std::stringstream ss;
 
+    if (function.has(w.id.description)) {
+        ret.set(w.id.description, function.get(w.id.description));
+    }
     if (function.has("static_")) {
         ret.set("static_", function.get("static_"));
         ss << "static ";
@@ -414,9 +415,9 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
             Ast::Base& ret    = w.ast.new_(resolvedObjectType, static_cast<Ast::Base&>(ast[w.id.constructor]));
 
             if (ast.has("parameters")) {
-                auto& newParameters = *new cells::List(w, w.std.ast.Slot);
+                auto& newParameters = *new List(w, w.std.ast.Slot);
                 forEach(ast[w.id.parameters], [this, &newParameters, &resolveNode](CellI& slot, int, bool&) {
-                    newParameters.add(w.ast.slot(slot[w.id.key], resolveNode(slot[w.id.type])));
+                    newParameters.add(w.ast.parameterInit(slot[w.id.key], resolveNode(slot[w.id.value])));
                 });
                 ret.set("parameters", newParameters);
             }
@@ -436,7 +437,7 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         }
         Ast::Base& ret = *retPtr;
         if (ast.has("parameters")) {
-            auto& newParameters = *new cells::List(w, w.std.ast.Slot);
+            auto& newParameters = *new List(w, w.std.ast.Slot);
             forEach(ast[w.id.parameters], [this, &newParameters, &resolveNode](CellI& slot, int, bool&) {
                 newParameters.add(w.ast.parameterInit(slot[w.id.key], resolveNode(slot[w.id.value])));
             });
@@ -449,15 +450,13 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
 
     // do nothing just traverse and copy the AST nodes
     if (&ast.__type__() == &w.std.ast.Block) {
-        auto& instantiedAsts = *new cells::List(w, w.std.ast.Base);
+        auto& instantiedAsts = *new List(w, w.std.ast.Base);
         forEach(ast[w.id.asts], [this, &instantiedAsts, &resolveNode](CellI& ast, int, bool&) {
             instantiedAsts.add(resolveNode(ast));
         });
         return *new Ast::Block(w, instantiedAsts);
     } else if (&ast.__type__() == &w.std.ast.Cell) {
         return w.ast.cell(ast[w.id.value]);
-    } else if (&ast.__type__() == &w.std.ast.SelfFn) {
-        return w.ast.selfFn();
     } else if (&ast.__type__() == &w.std.ast.Self) {
         return w.ast.self();
     } else if (&ast.__type__() == &w.std.ast.Continue) {
@@ -476,12 +475,6 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         return w.ast.parameter(ast[w.id.key]);
     } else if (&ast.__type__() == &w.std.ast.Var) {
         return w.ast.var(ast[w.id.name]);
-    } else if (&ast.__type__() == &w.std.ast.Delete) {
-        return w.ast.delete_(resolveNode(ast[w.id.cell]));
-    } else if (&ast.__type__() == &w.std.ast.Set) {
-        return w.ast.set(resolveNode(ast[w.id.cell]), resolveNode(ast[w.id.key]), resolveNode(ast[w.id.value]));
-    } else if (&ast.__type__() == &w.std.ast.Erase) {
-        return w.ast.erase(resolveNode(ast[w.id.cell]), resolveNode(ast[w.id.key]));
     } else if (&ast.__type__() == &w.std.ast.If) {
         if (ast.has("else_")) {
             return w.ast.if_(resolveNode(ast[w.id.condition]))
@@ -504,42 +497,6 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         return w.ast.while_(resolveNode(ast[w.id.condition])).do_(resolveNode(ast[w.id.statement]));
     } else if (&ast.__type__() == &w.std.ast.For) {
         return w.ast.for_(resolveNode(ast[w.id.variable])).in(resolveNode(ast[w.id.container]))(resolveNode(ast[w.id.statement]));
-    } else if (&ast.__type__() == &w.std.ast.And) {
-        return w.ast.and_(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Or) {
-        return w.ast.or_(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Not) {
-        return w.ast.not_(resolveNode(ast[w.id.input]));
-    } else if (&ast.__type__() == &w.std.ast.Add) {
-        return w.ast.add(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Subtract) {
-        return w.ast.subtract(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Multiply) {
-        return w.ast.multiply(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Divide) {
-        return w.ast.divide(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.LessThan) {
-        return w.ast.lessThan(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.LessThanOrEqual) {
-        return w.ast.lessThanOrEqual(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.GreaterThan) {
-        return w.ast.greaterThan(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.GreaterThanOrEqual) {
-        return w.ast.greaterThanOrEqual(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Same) {
-        return w.ast.same(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.NotSame) {
-        return w.ast.notSame(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Equal) {
-        return w.ast.equal(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.NotEqual) {
-        return w.ast.notEqual(resolveNode(ast[w.id.lhs]), resolveNode(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Has) {
-        return w.ast.has(resolveNode(ast[w.id.cell]), resolveNode(ast[w.id.key]));
-    } else if (&ast.__type__() == &w.std.ast.Missing) {
-        return w.ast.missing(resolveNode(ast[w.id.cell]), resolveNode(ast[w.id.key]));
-    } else if (&ast.__type__() == &w.std.ast.Get) {
-        return w.ast.get(resolveNode(ast[w.id.cell]), resolveNode(ast[w.id.key]));
     } else if (&ast.__type__() == &w.std.ast.Member) {
         return w.ast.member(ast[w.id.key]);
     } else if (&ast.__type__() == &w.std.ast.Return) {
@@ -635,7 +592,7 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
         forEach(astStruct.methods()[w.id.list], [this, &ret](CellI& origAstFunctionCell, int i, bool& stop) {
             auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction);
-            ret.addMethod(resolvedAstFunction);
+            ret.addMethod(resolvedAstFunction, Ast::StructBase::ParameterModification::NoChange);
             TRACE(compileStruct, "    {};", shortFunctionName(resolvedAstFunction));
         });
         if (IS_LOG_ENABLED) {
@@ -704,7 +661,7 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& astEnum)
         forEach(astEnum.methods()[w.id.list], [this, &ret](CellI& origAstFunctionCell, int i, bool& stop) {
             auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
             auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction);
-            ret.addMethod(resolvedAstFunction);
+            ret.addMethod(resolvedAstFunction, Ast::StructBase::ParameterModification::NoChange);
             TRACE(compileStruct, "    {};", shortFunctionName(resolvedAstFunction));
         });
     }
@@ -924,6 +881,9 @@ Ast::Base& Compiler::resolveType(CellI& typeAst)
     }
     if (&typeAst.__type__() == &w.std.ast.ResolvedType) {
         return static_cast<Ast::ResolvedType&>(typeAst);
+    }
+    if (&typeAst.__type__() == &w.std.ast.SelfType) {
+        return w._(*m_currentStruct);
     }
     if (&typeAst.__type__() == &w.std.ast.TypeName) {
         auto& resolveAstStruct   = findEnumOrStructByAstStructName(*m_scope, typeAst);
@@ -1278,7 +1238,7 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
 
     // instantiate members
     if (structT.has("members")) {
-        Map& instantiatedMembers = *new Map(w, w.std.Cell, w.std.Slot);
+        Map& instantiatedMembers = *new Map(w, w.std.Cell, w.std.ast.Slot);
         forEach(structT.members()[w.id.list], [this, &inputParameters, &instantiatedMembers, &ret](CellI& slot, int i, bool& stop) {
             CellI& key               = slot[w.id.key];
             CellI& type              = slot[w.id.type];
@@ -1321,11 +1281,11 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
 void Compiler::instantiateFunctionInStructT(Ast::Function& astFunction, Ast::Struct& compiledStruct, Map& inputParameters, Map* associatedTypesPtr)
 {
     Ast::Function& instantiedFunction = *new Ast::Function(w, astFunction[w.id.name]);
-    compiledStruct.addMethod(instantiedFunction);
+    compiledStruct.addMethod(instantiedFunction, Ast::StructBase::ParameterModification::NoChange);
 
     // parameters
     if (astFunction.has("parameters")) {
-        List& instantiatedParameters = *new List(w, w.std.Slot);
+        List& instantiatedParameters = *new List(w, w.std.ast.Slot);
         forEach(astFunction[w.id.parameters], [this, &inputParameters, &associatedTypesPtr, &instantiatedParameters, &compiledStruct](CellI& slot, int i, bool& stop) {
             CellI& key               = slot[w.id.key];
             CellI& type              = slot[w.id.type];
@@ -1356,7 +1316,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
         return inputParameters.getValue(paramValue);
     }
     if (&param.__type__() == &w.std.ast.TemplatedType) {
-        List& resolvedParameterList = *new List(w, w.std.Slot);
+        List& resolvedParameterList = *new List(w, w.std.ast.Slot);
         auto& ret                   = *new Ast::TemplatedType(w, param[w.id.id], resolvedParameterList);
         auto& parametersList        = param[w.id.parameters];
 
@@ -1378,7 +1338,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
         return instantiateTemplateParamType(associatedTypes.getValue(paramValue), selfType, inputParameters, associatedTypesPtr);
     }
 
-    if (&param.__type__() == &w.std.ast.Cell || &param.__type__() == &w.std.ast.TypeName || &param.__type__() == &w.std.ast.TypeAlias) {
+    if (&param.__type__() == &w.std.ast.Cell || &param.__type__() == &w.std.ast.TypeName || &param.__type__() == &w.std.ast.TypeAlias || &param.__type__() == &w.std.ast.SelfType) {
         return param;
     }
 
@@ -1400,9 +1360,9 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
             auto& constructor = ast[w.id.constructor];
             Ast::Base& ret    = w.ast.new_(objectType, static_cast<Ast::Base&>(constructor));
             if (ast.has("parameters")) {
-                auto& newParameters = *new cells::List(w, w.std.ast.Slot);
+                auto& newParameters = *new List(w, w.std.ast.Slot);
                 forEach(ast[w.id.parameters], [this, &newParameters, &instantiate](CellI& slot, int, bool&) {
-                    newParameters.add(w.ast.slot(slot[w.id.key], instantiate(slot[w.id.type])));
+                    newParameters.add(w.ast.parameterInit(slot[w.id.key], instantiate(slot[w.id.value])));
                 });
                 ret.set("parameters", newParameters);
             }
@@ -1428,7 +1388,7 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
 
     // do nothing just traverse and copy the AST nodes
     if (&ast.__type__() == &w.std.ast.Block) {
-        auto& instantiedAsts = *new cells::List(w, w.std.ast.Base);
+        auto& instantiedAsts = *new List(w, w.std.ast.Base);
         forEach(ast[w.id.asts], [this, &instantiedAsts, &instantiate](CellI& ast, int, bool&) {
             instantiedAsts.add(instantiate(ast));
         });
@@ -1441,8 +1401,6 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
             ret.set(w.id.scopes, ast[w.id.scopes]);
         }
         return ret;
-    } else if (&ast.__type__() == &w.std.ast.SelfFn) {
-        return w.ast.selfFn();
     } else if (&ast.__type__() == &w.std.ast.Self) {
         return w.ast.self();
     } else if (&ast.__type__() == &w.std.ast.Continue) {
@@ -1461,12 +1419,6 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         return w.ast.parameter(ast[w.id.key]);
     } else if (&ast.__type__() == &w.std.ast.Var) {
         return w.ast.var(ast[w.id.name]);
-    } else if (&ast.__type__() == &w.std.ast.Delete) {
-        return w.ast.delete_(instantiate(ast[w.id.cell]));
-    } else if (&ast.__type__() == &w.std.ast.Set) {
-        return w.ast.set(instantiate(ast[w.id.cell]), instantiate(ast[w.id.key]), instantiate(ast[w.id.value]));
-    } else if (&ast.__type__() == &w.std.ast.Erase) {
-        return w.ast.erase(instantiate(ast[w.id.cell]), instantiate(ast[w.id.key]));
     } else if (&ast.__type__() == &w.std.ast.If) {
         if (ast.has("else_")) {
             return w.ast.if_(instantiate(ast[w.id.condition]))
@@ -1481,42 +1433,6 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         return w.ast.while_(instantiate(ast[w.id.condition])).do_(instantiate(ast[w.id.statement]));
     } else if (&ast.__type__() == &w.std.ast.For) {
         return w.ast.for_(instantiate(ast[w.id.variable])).in(instantiate(ast[w.id.container]))(instantiate(ast[w.id.statement]));
-    } else if (&ast.__type__() == &w.std.ast.And) {
-        return w.ast.and_(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Or) {
-        return w.ast.or_(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Not) {
-        return w.ast.not_(instantiate(ast[w.id.input]));
-    } else if (&ast.__type__() == &w.std.ast.Add) {
-        return w.ast.add(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Subtract) {
-        return w.ast.subtract(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Multiply) {
-        return w.ast.multiply(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Divide) {
-        return w.ast.divide(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.LessThan) {
-        return w.ast.lessThan(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.LessThanOrEqual) {
-        return w.ast.lessThanOrEqual(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.GreaterThan) {
-        return w.ast.greaterThan(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.GreaterThanOrEqual) {
-        return w.ast.greaterThanOrEqual(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Same) {
-        return w.ast.same(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.NotSame) {
-        return w.ast.notSame(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Equal) {
-        return w.ast.equal(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.NotEqual) {
-        return w.ast.notEqual(instantiate(ast[w.id.lhs]), instantiate(ast[w.id.rhs]));
-    } else if (&ast.__type__() == &w.std.ast.Has) {
-        return w.ast.has(instantiate(ast[w.id.cell]), instantiate(ast[w.id.key]));
-    } else if (&ast.__type__() == &w.std.ast.Missing) {
-        return w.ast.missing(instantiate(ast[w.id.cell]), instantiate(ast[w.id.key]));
-    } else if (&ast.__type__() == &w.std.ast.Get) {
-        return w.ast.get(instantiate(ast[w.id.cell]), instantiate(ast[w.id.key]));
     } else if (&ast.__type__() == &w.std.ast.Member) {
         return w.ast.member(ast[w.id.key]);
     } else if (&ast.__type__() == &w.std.ast.Return) {
@@ -1529,7 +1445,7 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
     throw "Unknown AST to instantiate!";
 }
 
-void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
+void Compiler::compileInstructionsInScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
 {
     m_scope         = &scope;
     m_resolvedScope = &resolvedScope;
@@ -1537,20 +1453,20 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
     if (scope.has("functions")) {
         forEach(resolvedScope.items<Ast::Function>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
             Ast::Function& astFunction = static_cast<Ast::Function&>(kvPair[w.id.value]);
-            auto& compiledFunction = compileFunction(astFunction);
+            auto& compiledFunction     = compileInstructionsInFunction(astFunction);
             compiledFunctions().add(getFullyQualifiedName(astFunction), compiledFunction);
         });
     }
     if (scope.has("structs")) {
         forEach(resolvedScope.items<Ast::Struct>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
             Ast::Struct& astStruct = static_cast<Ast::Struct&>(kvPair[w.id.value]);
-            compileStruct(astStruct);
+            compileInstructionsInStruct(astStruct);
         });
     }
     if (scope.has("enums")) {
         forEach(resolvedScope.items<Ast::Enum>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
             Ast::Enum& astEnum = static_cast<Ast::Enum&>(kvPair[w.id.value]);
-            compileEnum(astEnum);
+            compileInstructionsInEnum(astEnum);
         });
     }
     if (scope.has("variables")) {
@@ -1572,7 +1488,7 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
             }
             auto& nextResolvedScope = resolvedScope.getItem<Ast::Scope>(nextScope[w.id.name]);
 
-            compileScope(nextScope, nextResolvedScope);
+            compileInstructionsInScope(nextScope, nextResolvedScope);
 
             m_scope         = &scope;
             m_resolvedScope = &resolvedScope;
@@ -1580,7 +1496,7 @@ void Compiler::compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
     }
 }
 
-void Compiler::compileStruct(Ast::Struct& astStruct)
+void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
 {
     CellI& compiledStruct = astStruct["compiledStruct"];
     if (compiledStruct.missing("incomplete")) {
@@ -1625,10 +1541,7 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
     if (astStruct.has("methods")) {
         Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
         forEach(astStruct.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
-            if (astFunction.has("primitiveTool")) {
-                return;
-            }
-            auto& compiledFunction = compileFunction(static_cast<Ast::Function&>(astFunction));
+            auto& compiledFunction = compileInstructionsInFunction(static_cast<Ast::Function&>(astFunction));
             compiledMethods.add(astFunction[w.id.name], compiledFunction);
         });
         compiledStruct.set("methods", compiledMethods);
@@ -1636,12 +1549,12 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
 
     // compile members
     if (astStruct.has("members")) {
-        Map& compiledMembers = *new Map(w, w.std.Cell, w.std.Slot, "members Map<Cell, Slot>(...)");
+        Map& compiledMembers = *new Map(w, w.std.Cell, w.std.ast.Slot, "members Map<Cell, Slot>(...)");
         forEach(astStruct.members()[w.id.list], [this, &compiledMembers, &compiledStruct](CellI& slot, int i, bool& stop) {
             CellI& key             = slot[w.id.key];
             CellI& type            = slot[w.id.type];
             auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
-            compiledMembers.add(key, w.std.slot(key, compiledSlotType));
+            compiledMembers.add(key, w.ast.slot(key, compiledSlotType));
         });
         compiledStruct.set("slots", compiledMembers);
     }
@@ -1659,7 +1572,7 @@ void Compiler::compileStruct(Ast::Struct& astStruct)
     compiledStructs().add(compiledStructName, compiledStruct);
 }
 
-void Compiler::compileEnum(Ast::Enum& astEnum)
+void Compiler::compileInstructionsInEnum(Ast::Enum& astEnum)
 {
     CellI& compiledStruct = astEnum["compiledStruct"];
     if (compiledStruct.missing("incomplete")) {
@@ -1672,7 +1585,7 @@ void Compiler::compileEnum(Ast::Enum& astEnum)
     if (astEnum.has("methods")) {
         Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
         forEach(astEnum.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
-            auto& compiledFunction = compileFunction(static_cast<Ast::Function&>(astFunction));
+            auto& compiledFunction = compileInstructionsInFunction(static_cast<Ast::Function&>(astFunction));
             compiledMethods.add(astFunction[w.id.name], compiledFunction);
         });
         compiledStruct.set("methods", compiledMethods);
@@ -1680,8 +1593,8 @@ void Compiler::compileEnum(Ast::Enum& astEnum)
 
     // compile values
     if (astEnum.has("values")) {
-        Map& compiledMembers = *new Map(w, w.std.Cell, w.std.Slot, "members Map<Cell, Slot>(...)");
-        compiledMembers.add(w.id.tag, w.std.slot(w.id.tag, w.std.Cell));
+        Map& compiledMembers = *new Map(w, w.std.Cell, w.std.ast.Slot, "members Map<Cell, Slot>(...)");
+        compiledMembers.add(w.id.tag, w.ast.slot(w.id.tag, w.std.Cell));
         compiledStruct.set("slots", compiledMembers);
         forEach(astEnum.values()[w.id.list], [this, &astEnum, &compiledMembers, &compiledStruct](CellI& kvPair, int i, bool& stop) {
             CellI& valueKey  = kvPair[w.id.key];
@@ -1705,10 +1618,10 @@ void Compiler::compileEnum(Ast::Enum& astEnum)
                     auto& resolvedValue = resolveTypeInEnumValue(value);
                     auto& valueType     = resolvedValue.__type__();
 
-                    compiledMembers.add(valueKey, w.std.slot(valueKey, valueType));
+                    compiledMembers.add(valueKey, w.ast.slot(valueKey, valueType));
                     compiledValue.set(valueName, value[w.id.value]);
                 } else {
-                    compiledMembers.add(valueKey, w.std.slot(valueKey, compiledStruct));
+                    compiledMembers.add(valueKey, w.ast.slot(valueKey, compiledStruct));
                     compiledValue.set(valueName, w.id.emptyObject);
                 }
             } else if (&valueCell.__type__() == &w.std.ast.TypedEnumValue) {
@@ -1716,17 +1629,18 @@ void Compiler::compileEnum(Ast::Enum& astEnum)
                 auto& enumValueType         = valueCell["enumType"];
                 auto& compiledEnumValueType = getCompiledTypeFromResolvedType(enumValueType);
                 auto& fullName              = getFullyQualifiedName(enumValue);
-                compiledMembers.add(valueKey, w.std.slot(valueKey, compiledEnumValueType));
+                compiledMembers.add(valueKey, w.ast.slot(valueKey, compiledEnumValueType));
             }
         });
     }
     compiledStructs().add(getFullyQualifiedName(astEnum), compiledStruct);
 }
 
-CellI& Compiler::compileFunction(Ast::Function& astFunction)
+CellI& Compiler::compileInstructionsInFunction(Ast::Function& astFunction)
 {
-    cells::Object& compiledFunction = *new cells::Object(w, w.std.op.Function);
+    Object& compiledFunction = *new Object(w, w.std.op.Function);
     compiledFunction.set(w.id.name, astFunction.get(w.id.name));
+    astFunction.set("compiledType", compiledFunction);
 
     // is this function a method?
     if (astFunction.has(w.id.structType)) {
@@ -1737,7 +1651,10 @@ CellI& Compiler::compileFunction(Ast::Function& astFunction)
     compileFunctionParams(astFunction, compiledFunction);
 
     compiledFunction.set(w.id.ast, astFunction);
-    compiledFunction.set(w.id.op, compileFunctionAst(astFunction, astFunction.instructions(), compiledFunction));
+
+    if (astFunction.missing("primitiveTool")) {
+        compiledFunction.set(w.id.op, compileInstructionsInFunctionAst(astFunction, astFunction.instructions(), compiledFunction));
+    }
     if (astFunction.has(w.id.static_)) {
         compiledFunction.set(w.id.static_, astFunction.get(w.id.static_));
     }
@@ -1745,18 +1662,15 @@ CellI& Compiler::compileFunction(Ast::Function& astFunction)
     return compiledFunction;
 }
 
-void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction)
+void Compiler::compileFunctionParams(Ast::Function& astFunction, Object& compiledFunction)
 {
     std::stringstream iss;
     std::stringstream oss;
     std::string structTypeStr;
     if (astFunction.has("parameters") || astFunction.has("structType")) {
-        Map& parameters = *new Map(w, w.std.Cell, w.std.Slot);
+        Map& parameters = *new Map(w, w.std.Cell, w.std.ast.Slot);
         if (astFunction.has("structType")) {
             CellI& type = astFunction.get("structType");
-            Object& var = *new Object(w, w.std.op.Var, "self");
-            var.set("valueType", type);
-            parameters.add(w.id.self, w.std.slot("self", type));
             structTypeStr = fmt::format("{}::", type.label());
         }
         if (astFunction.has(w.id.parameters)) {
@@ -1768,7 +1682,7 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, cells::Object& 
                 auto& type         = slot[w.id.type];
                 auto& compiledType = getCompiledTypeFromResolvedType(type);
                 iss << "p_" << key.label() << ": " << compiledType.label();
-                parameters.add(key, w.std.slot(key, compiledType));
+                parameters.add(key, w.ast.slot(key, compiledType));
             });
         }
         compiledFunction.set(w.id.parameters, parameters);
@@ -1810,9 +1724,9 @@ std::string Compiler::shortFunctionName(Ast::Function& function)
     }
 }
 
-CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cells::Object& function)
+CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, CellI& ast, Object& function)
 {
-    auto compile = [this, &astFunction, &function](CellI& ast) -> CellI& { return compileFunctionAst(astFunction, ast, function); };
+    auto compile = [this, &astFunction, &function](CellI& ast) -> CellI& { return compileInstructionsInFunctionAst(astFunction, ast, function); };
     const auto _ = [this](auto& cell) -> Ast::Cell& { return w._(cell); };
 
     if (&ast.__type__() == &w.std.ast.Block) {
@@ -1858,11 +1772,6 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         Object& constVar = *new Object(w, w.std.op.ConstVar);
         constVar.set(w.id.ast, ast);
         constVar.set(w.id.value, ast[w.id.compiled]);
-        return constVar;
-    } else if (&ast.__type__() == &w.std.ast.SelfFn) {
-        Object& constVar = *new Object(w, w.std.op.ConstVar);
-        constVar.set(w.id.ast, ast);
-        constVar.set(w.id.value, function);
         return constVar;
     } else if (&ast.__type__() == &w.std.ast.Self) {
         CellI& retOp = compile(w.ast.get(_(function), _(w.id.stack)) / _(w.id.value) / _(w.id.input) / _(w.id.self));
@@ -1919,29 +1828,11 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
 
         Index &localVarsIndex = *localVarsIndexPtr;
         if (!localVarsIndex.has(ast[w.id.name])) {
-            localVarsIndex.insert(ast[w.id.name], w.std.slot(ast[w.id.name], w.std.op.Var));
+            localVarsIndex.insert(ast[w.id.name], w.ast.slot(ast[w.id.name], w.std.op.Var));
         }
 
         CellI& retOp = compile(w.ast.get(_(function), _(w.id.stack)) / _(w.id.value) / _(w.id.localVars) / _(ast[w.id.name]));
         retOp.set(w.id.ast, ast);
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Delete) {
-        Object& retOp = *new Object(w, w.std.op.Delete);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.input, compile(ast[w.id.cell]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Set) {
-        Object& retOp = *new Object(w, w.std.op.Set);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.cell, compile(ast[w.id.cell]));
-        retOp.set(w.id.key, compile(ast[w.id.key]));
-        retOp.set(w.id.value, compile(ast[w.id.value]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Erase) {
-        Object& retOp = *new Object(w, w.std.op.Erase);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.cell, compile(ast[w.id.cell]));
-        retOp.set(w.id.key, compile(ast[w.id.key]));
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.If) {
         Object& retOp = *new Object(w, w.std.op.If);
@@ -1957,7 +1848,7 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
     } else if (&ast.__type__() == &w.std.ast.Match) {
         auto& enumObj        = static_cast<Ast::Base&>(ast["enum"]);
         auto& caseList       = ast["cases"][w.id.list];
-        auto& astCases       = *new cells::List(w, w.std.ast.Base);
+        auto& astCases       = *new List(w, w.std.ast.Base);
         Ast::Block& astBlock = *new Ast::Block(w, astCases);
 
         forEach(caseList, [this, &compile, &ast, &function, &enumObj, &astCases](CellI& kvPair, int, bool&) {
@@ -2060,7 +1951,6 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
                 CellI& key   = slot[w.id.key];
                 CellI& value = slot[w.id.value];
                 retOp.set(membersMapping.getValue(key), compile(value));
-                std::cout << "" << &key;
             });
         }
 
@@ -2073,6 +1963,7 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         bool checked = false;
         // New<T>.constructor(...)
         std::stringstream ss;
+#if 0
         if (&astCell.__type__() == &w.std.ast.Get && &astCell[w.id.cell].__type__() == &w.std.ast.Cell && &astCell[w.id.cell][w.id.value].__type__() == &w.std.op.Block) {
             auto& opBlock    = astCell[w.id.cell][w.id.value];
             auto& opBlockAst = opBlock[w.id.ast];
@@ -2086,7 +1977,9 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
             auto& astVar = astCell[w.id.cell];
             ss << "In " << astVar.label() << " ";
             // m_xxx.method(...)
-        } else if (&astCell.__type__() == &w.std.ast.Member) {
+        } else
+#endif
+        if (&astCell.__type__() == &w.std.ast.Member) {
             auto& astMemberId    = astCell[w.id.key];
             auto& astMembersType = function[w.id.ast][w.id.structType];
             if (&astMemberId == &w.id.__type__) {
@@ -2142,123 +2035,16 @@ CellI& Compiler::compileFunctionAst(Ast::Function& astFunction, CellI& ast, cell
         retOp.set(w.id.method, compile(ast[w.id.method]));
         retOp.set(w.id.stack, compile(w.ast.get(_(function), _(w.id.stack))));
         if (ast.has(w.id.parameters)) {
-            List& parameters = *new List(w, w.std.Slot);
+            List& parameters = *new List(w, w.std.ast.Slot);
             forEach(ast[w.id.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
-                CellI& slot = *new Object(w, w.std.Slot);
+                CellI& slot = *new Object(w, w.std.ast.Slot);
                 slot.set(w.id.key, param[w.id.key]);
-                slot.set(w.id.type, compile(param[w.id.type]));
+                slot.set(w.id.value, compile(param[w.id.value]));
                 parameters.add(slot);
             });
             retOp.set(w.id.parameters, parameters);
         }
 
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.And) {
-        Object& retOp = *new Object(w, w.std.op.And);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Or) {
-        Object& retOp = *new Object(w, w.std.op.Or);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Not) {
-        Object& retOp = *new Object(w, w.std.op.Not);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.input, compile(ast[w.id.input]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Add) {
-        Object& retOp = *new Object(w, w.std.op.Add);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Subtract) {
-        Object& retOp = *new Object(w, w.std.op.Subtract);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Multiply) {
-        Object& retOp = *new Object(w, w.std.op.Multiply);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Divide) {
-        Object& retOp = *new Object(w, w.std.op.Divide);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.LessThan) {
-        Object& retOp = *new Object(w, w.std.op.LessThan);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.LessThanOrEqual) {
-        Object& retOp = *new Object(w, w.std.op.LessThanOrEqual);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.GreaterThan) {
-        Object& retOp = *new Object(w, w.std.op.GreaterThan);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.GreaterThanOrEqual) {
-        Object& retOp = *new Object(w, w.std.op.GreaterThanOrEqual);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Same) {
-        Object& retOp = *new Object(w, w.std.op.Same);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.NotSame) {
-        Object& retOp = *new Object(w, w.std.op.NotSame);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Equal) {
-        Object& retOp = *new Object(w, w.std.op.Equal);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.NotEqual) {
-        Object& retOp = *new Object(w, w.std.op.NotEqual);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.lhs, compile(ast[w.id.lhs]));
-        retOp.set(w.id.rhs, compile(ast[w.id.rhs]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Has) {
-        Object& retOp = *new Object(w, w.std.op.Has);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.cell, compile(ast[w.id.cell]));
-        retOp.set(w.id.key, compile(ast[w.id.key]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Missing) {
-        Object& retOp = *new Object(w, w.std.op.Missing);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.cell, compile(ast[w.id.cell]));
-        retOp.set(w.id.key, compile(ast[w.id.key]));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Get) {
-        Object& retOp = *new Object(w, w.std.op.Get);
-        retOp.set(w.id.ast, ast);
-        retOp.set(w.id.cell, compile(ast[w.id.cell]));
-        retOp.set(w.id.key, compile(ast[w.id.key]));
         return retOp;
     }
 
@@ -2293,24 +2079,114 @@ void Compiler::checkMethodCall(CellI& astType, CellI& astMethodId)
     }
 }
 
-void Compiler::processDescriptionsInScope(Ast::Scope& scope)
+void Compiler::compileDescriptionInScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
 {
+    if (scope.has("functions")) {
+        forEach(resolvedScope.items<Ast::Function>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
+            Ast::Function& astFunction = static_cast<Ast::Function&>(kvPair[w.id.value]);
+            compileDescriptionInFunction(astFunction);
+        });
+    }
     if (scope.has("structs")) {
-        forEach(scope.items<Ast::Struct>()[w.id.list], [this](CellI& astStruct, int i, bool& stop) {
-            auto& tool = static_cast<Ast::Struct&>(astStruct[w.id.value]);
-            if (tool.has(w.id.description) && tool[w.id.description].has(w.id.asts)) {
-                auto& compiledAstStruct = compiledStructs().getValue(getFullyQualifiedName(tool));
-                m_toolFinder.add(tool, compiledAstStruct);
+        forEach(resolvedScope.items<Ast::Struct>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
+            Ast::Struct& astStruct = static_cast<Ast::Struct&>(kvPair[w.id.value]);
+            if (astStruct.has("methods")) {
+                Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
+                forEach(astStruct.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
+                    compileDescriptionInFunction(static_cast<Ast::Function&>(astFunction));
+                });
+            }
+        });
+    }
+    if (scope.has("enums")) {
+        forEach(resolvedScope.items<Ast::Enum>()[w.id.list], [this](CellI& kvPair, int i, bool& stop) {
+            Ast::Enum& astEnum = static_cast<Ast::Enum&>(kvPair[w.id.value]);
+            if (astEnum.has("methods")) {
+                Map& compiledMethods = *new Map(w, w.std.Cell, w.std.ast.Function);
+                forEach(astEnum.methods()[w.id.list], [this, &compiledMethods](CellI& astFunction, int i, bool& stop) {
+                    compileDescriptionInFunction(static_cast<Ast::Function&>(astFunction));
+                });
             }
         });
     }
     if (scope.has("scopes")) {
-        forEach(scope.items<Ast::Scope>()[w.id.list], [this, &scope](CellI& scopeItem, int i, bool& stop) {
-            Ast::Scope& nextScope = static_cast<Ast::Scope&>(scopeItem[w.id.value]);
-            processDescriptionsInScope(nextScope);
-            m_scope = &scope;
+        forEach(scope.items<Ast::Scope>()[w.id.list], [this, &scope, &resolvedScope](CellI& kvPair, int i, bool& stop) {
+            Ast::Scope& nextScope = static_cast<Ast::Scope&>(kvPair[w.id.value]);
+            if (nextScope.has("link")) {
+                return;
+            }
+            auto& nextResolvedScope = resolvedScope.getItem<Ast::Scope>(nextScope[w.id.name]);
+
+            compileDescriptionInScope(nextScope, nextResolvedScope);
+
+            m_scope         = &scope;
+            m_resolvedScope = &resolvedScope;
         });
     }
+}
+
+void Compiler::compileDescriptionInFunction(Ast::Function& astFunction)
+{
+    if (astFunction.missing("compiledType")) {
+        return;
+    }
+    Object& compiledFunction = static_cast<Object&>(astFunction["compiledType"]);
+
+    if (astFunction.has(w.id.description)) {
+        compiledFunction.set(w.id.description, compileDescriptionInFunctionAst(astFunction, astFunction.description(), compiledFunction));
+        m_toolFinder.add(compiledFunction);
+    }
+}
+
+CellI& Compiler::compileDescriptionInFunctionAst(Ast::Function& astFunction, CellI& ast, Object& function)
+{
+    auto compile = [this, &astFunction, &function](CellI& ast) -> CellI& { return compileDescriptionInFunctionAst(astFunction, ast, function); };
+
+    if (&ast.__type__() == &w.std.ast.Block) {
+        CellI& list   = ast[w.id.asts];
+        List& retList = *new List(w, w.std.Cell, "description");
+        forEach(list, [this, &compile, &retList](CellI& ast, int, bool&) {
+            retList.add(compile(ast));
+        });
+
+        return retList;
+    } else if (&ast.__type__() == &w.std.ast.Cell) {
+        Object& constVar = *new Object(w, w.std.op.ConstVar);
+        constVar.set(w.id.ast, ast);
+        constVar.set(w.id.value, ast[w.id.value]);
+        return constVar;
+    } else if (&ast.__type__() == &w.std.ast.ResolvedType) {
+        Object& constVar = *new Object(w, w.std.op.ConstVar);
+        constVar.set(w.id.ast, ast);
+        constVar.set(w.id.value, ast[w.id.compiled]);
+        return constVar;
+    } else if (&ast.__type__() == &w.std.ast.Self) {
+        return ast;
+    } else if (&ast.__type__() == &w.std.ast.Parameter) {
+        return ast;
+    } else if (&ast.__type__() == &w.std.ast.Return) {
+        return ast;
+    } else if ((&ast.__type__() == &w.std.ast.Call) && (&ast[w.id.method].__type__() == &w.std.ast.PrimitiveToolName)) {
+        Object& retOp = *new Object(w, w.std.op.Call);
+        retOp.set(w.id.ast, ast);
+        retOp.set(w.id.cell, compile(ast[w.id.cell]));
+        retOp.set(w.id.method, ast[w.id.method][w.id.name]);
+        if (ast.has(w.id.parameters)) {
+            List& parameters = *new List(w, w.std.ast.Slot);
+            forEach(ast[w.id.parameters], [this, &parameters, &compile](CellI& param, int, bool&) {
+                CellI& slot = *new Object(w, w.std.ast.Slot);
+                slot.set(w.id.key, param[w.id.key]);
+                // slot.set(w.id.type, compile(param[w.id.type])); TODO
+                slot.set(w.id.value, compile(param[w.id.value]));
+                parameters.add(slot);
+            });
+            retOp.set(w.id.parameters, parameters);
+        }
+
+        return retOp;
+    }
+
+    throw "Unknown function AST!";
 }
 
 } // namespace cells

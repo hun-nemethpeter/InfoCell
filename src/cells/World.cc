@@ -262,6 +262,11 @@ Ast::Cell& World::_(const std::string& nameStr)
     return ast.cell(name(nameStr));
 }
 
+Ast::Cell& World::_(int number)
+{
+    return _(pools.numbers.get(number));
+}
+
 Ast::TypeName& World::__type__(const std::string& nameStr)
 {
     return ast.typeName(nameStr);

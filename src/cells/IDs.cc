@@ -75,6 +75,7 @@ ID::ID(World& w) :
     objectType(w.name("objectType")),
     op(w.name("op")),
     ops(w.name("ops")),
+    other(w.name("other")),
     output(w.name("output")),
     parameters(w.name("parameters")),
     parent(w.name("parent")),

@@ -68,13 +68,6 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 }
 
 template <typename... Args>
-Ast::StructBase& Ast::StructBase::description(Args&&... args)
-{
-    addDescriptionBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
-    return *this;
-}
-
-template <typename... Args>
 void Ast::Function::instructions(Args&&... args)
 {
     addInstructionBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
@@ -116,14 +109,14 @@ template <class MapType, class TAst>
 TAst& Ast::Items<MapType, TAst>::get(CellI& name)
 {
     if (m_parent.missing(m_mapName)) {
-        throw "No such scope";
+        throw "No such item";
     }
 
     if (items().hasKey(name)) {
         return static_cast<TAst&>(items().getValue(name));
     }
 
-    throw "No such scope";
+    throw "No such item";
 }
 
 template <class MapType, class TAst>

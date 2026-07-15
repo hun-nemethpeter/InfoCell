@@ -710,7 +710,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
             }
         }
         if (paramNodePtr) {
-            CellI& param = (*paramNodePtr)[w.id.value][w.id.type];
+            CellI& param = (*paramNodePtr)[w.id.value][w.id.value];
             self.set(w.id.currentParam, *paramNodePtr);
             previousCell = currentCell;
             currentCell  = &param;
@@ -737,9 +737,9 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         inputIndex.set(w.id.self, cell);
         if (self.has(w.id.parameters)) {
             forEach(self[w.id.parameters], [&self, &w, &inputIndex](CellI& parameter, int, bool& stop) {
-                inputIndex.set(parameter[w.id.key], parameter[w.id.type][w.id.value]);
-//                static_cast<Object&>(self).printIndent();
-//                std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.type][w.id.value].label() << std::endl;
+                inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
+                // static_cast<Object&>(self).printIndent();
+                // std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.value][w.id.value].label() << std::endl;
             });
         }
         stackFrame.set(w.id.input, inputIndex);
@@ -2038,13 +2038,13 @@ void List::clear()
 // ============================================================================
 Struct::Struct(World& w, const std::string& label) :
     CellI(w, label),
-    m_slots(*new Map(w, w.std.Cell, w.std.Slot))
+    m_slots(*new Map(w, w.std.Cell, w.std.ast.Slot))
 {
 }
 
 Struct::Struct(World& w, WithRecursiveType recursiveType, const std::string& label) :
     CellI(w, label),
-    m_slots(*new Map(w, w.std.Cell, w.std.Slot, *this))
+    m_slots(*new Map(w, w.std.Cell, w.std.ast.Slot, *this))
 {
 }
 
@@ -2208,9 +2208,9 @@ void Index::insert(CellI& key, CellI& value)
     if (m_recursiveType) {
         return;
     }
-    Object& slot = *new Object(w, w.std.Slot);
+    Object& slot = *new Object(w, w.std.ast.Slot);
     slot.set(w.id.key, key);
-    slot.set(w.id.type, w.std.Slot);
+    slot.set(w.id.type, w.std.ast.Slot);
     m_type->addSlot(key, slot);
 }
 

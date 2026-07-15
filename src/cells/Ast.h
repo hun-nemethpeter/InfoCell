@@ -55,18 +55,6 @@ public:
     };
 
 // ============================================================================
-    class Add : public BaseT<Add>
-    {
-    public:
-        Add(World& w, Base& lhs, Base& rhs);
-    };
-
-    class And : public BaseT<And>
-    {
-    public:
-        And(World& w, Base& lhs, Base& rhs);
-    };
-
     class AssociatedType : public BaseT<AssociatedType>
     {
     public:
@@ -95,6 +83,7 @@ public:
         Call& operator/(const std::string& key);
         Call& operator()(const std::string& method);
         Call& operator()(const std::string& nameStr, CellI& value);
+        Call& operator()(const std::string& nameStr, const std::string& valueStr);
 
         List& parameters();
     };
@@ -105,25 +94,12 @@ public:
         Continue(World& w);
     };
 
-    class Get;
     class Cell : public BaseT<Cell>
     {
     public:
         Cell(World& w, CellI& value);
-        Get& operator/(Base& key);
-        Get& operator/(const std::string& key);
-    };
-
-    class Delete : public BaseT<Delete>
-    {
-    public:
-        Delete(World& w, Base& cell);
-    };
-
-    class Divide : public BaseT<Divide>
-    {
-    public:
-        Divide(World& w, Base& lhs, Base& rhs);
+        Call& operator/(Base& key);
+        Call& operator/(const std::string& key);
     };
 
     class Do : public BaseT<Do>
@@ -140,51 +116,12 @@ public:
         EnumValue(World& w, const std::string& nameStr, CellI& value);
     };
 
-    class Equal : public BaseT<Equal>
-    {
-    public:
-        Equal(World& w, Base& lhs, Base& rhs);
-    };
-
-    class Erase : public BaseT<Erase>
-    {
-    public:
-        Erase(World& w, Base& cell, Base& key);
-    };
-
     class For : public BaseT<For>
     {
     public:
         For(World& w, Base& var);
         For& in(Base& container);
         For& operator()(Base& statement);
-    };
-
-    class Get : public BaseT<Get>
-    {
-    public:
-        Get(World& w, Base& cell, Base& key);
-        Get& operator/(Base& key);
-        Get& operator/(const std::string& key);
-        Call& operator()(const std::string& method);
-    };
-
-    class GreaterThan : public BaseT<GreaterThan>
-    {
-    public:
-        GreaterThan(World& w, Base& lhs, Base& rhs);
-    };
-
-    class GreaterThanOrEqual : public BaseT<GreaterThanOrEqual>
-    {
-    public:
-        GreaterThanOrEqual(World& w, Base& lhs, Base& rhs);
-    };
-
-    class Has : public BaseT<Has>
-    {
-    public:
-        Has(World& w, Base& cell, Base& key);
     };
 
     class If : public BaseT<If>
@@ -204,18 +141,6 @@ public:
         KVPair(World& w, CellI& key, CellI& value);
     };
 
-    class LessThan : public BaseT<LessThan>
-    {
-    public:
-        LessThan(World& w, Base& lhs, Base& rhs);
-    };
-
-    class LessThanOrEqual : public BaseT<LessThanOrEqual>
-    {
-    public:
-        LessThanOrEqual(World& w, Base& lhs, Base& rhs);
-    };
-
     class Match : public BaseT<Match>
     {
     public:
@@ -233,24 +158,12 @@ public:
     public:
         Member(const Member&) = delete;
         Member(World& w, CellI& key);
-        Set& operator=(Base& value);
-        Get& operator/(Base& key);
-        Get& operator/(const std::string& key);
-        Has& exist();
-        Missing& missing();
+        Call& operator=(Base& value);
+        Call& operator/(Base& key);
+        Call& operator/(const std::string& key);
+        Call& exist();
+        Call& missing();
         Call& operator()(const std::string& method);
-    };
-
-    class Missing : public BaseT<Missing>
-    {
-    public:
-        Missing(World& w, Base& cell, Base& key);
-    };
-
-    class Multiply : public BaseT<Multiply>
-    {
-    public:
-        Multiply(World& w, Base& lhs, Base& rhs);
     };
 
     class New : public BaseT<New>
@@ -260,38 +173,15 @@ public:
         New(World& w, Base& objectType, Base& constructor);
 
         New& operator()(const std::string& nameStr, CellI& value);
-    };
-
-    class Not : public BaseT<Not>
-    {
-    public:
-        Not(World& w, Base& input);
-    };
-
-    class NotEqual : public BaseT<NotEqual>
-    {
-    public:
-        NotEqual(World& w, Base& lhs, Base& rhs);
-    };
-
-    class NotSame : public BaseT<NotSame>
-    {
-    public:
-        NotSame(World& w, Base& lhs, Base& rhs);
-    };
-
-    class Or : public BaseT<Or>
-    {
-    public:
-        Or(World& w, Base& lhs, Base& rhs);
+        List& parameters();
     };
 
     class Parameter : public BaseT<Parameter>
     {
     public:
         Parameter(World& w, CellI& key);
-        Get& operator/(Base& key);
-        Get& operator/(const std::string& key);
+        Call& operator/(Base& key);
+        Call& operator/(const std::string& key);
         Call& operator()(const std::string& method);
     };
 
@@ -315,12 +205,6 @@ public:
         ResolvedType(World& w, CellI& astType, CellI& compiledType);
     };
 
-    class Same : public BaseT<Same>
-    {
-    public:
-        Same(World& w, Base& lhs, Base& rhs);
-    };
-
     class Self : public BaseT<Self>
     {
     public:
@@ -328,16 +212,10 @@ public:
         Call& operator()(const std::string& method);
     };
 
-    class SelfFn : public BaseT<SelfFn>
+    class SelfType : public BaseT<SelfType>
     {
     public:
-        SelfFn(World& w);
-    };
-
-    class Set : public BaseT<Set>
-    {
-    public:
-        Set(World& w, Base& cell, Base& key, Base& value);
+        SelfType(World& w);
     };
 
     class Slot : public BaseT<Slot>
@@ -359,12 +237,6 @@ public:
     {
     public:
         TypeName(World& w, CellI& name);
-    };
-
-    class Subtract : public BaseT<Subtract>
-    {
-    public:
-        Subtract(World& w, Base& lhs, Base& rhs);
     };
 
     class TemplatedType : public BaseT<TemplatedType>
@@ -431,8 +303,8 @@ public:
         Var(World& w, const std::string& nameStr);
         Var(World& w, CellI& name);
 
-        Set& operator=(Base& value);
-        Get& operator*();
+        Call& operator=(Base& value);
+        Call& operator*();
         Call& operator()(const std::string& method);
     };
 
@@ -449,21 +321,22 @@ public:
     class StructBase : public Base
     {
     public:
+        enum class ParameterModification
+        {
+            AddSelfParam,
+            NoChange
+        };
         StructBase(World& w, CellI& astType, CellI& name, const std::string& nameStr);
 
-        Function& addPrimitiveFunction(CellI& name);
+        Function& addPrimitiveFunction(CellI& ast, CellI& op, const std::string& nameStr);
         Function& addMethod(const std::string& nameStr);
-        void addMethod(Function& method);
+        void addMethod(Function& method, ParameterModification parameterModification = ParameterModification::AddSelfParam);
 
         TraitImpl& addTraitImpl(const std::string& nameStr);
         void addTraitImpl(TraitImpl& traitImpl);
 
     public:
-        StructBase& primitiveTool();
         StructBase& returnType(CellI& type);
-
-        template <typename... Args>
-        StructBase& description(Args&&... args);
 
         StructBase& members(Slot& slot);
         template <typename... Args>
@@ -500,9 +373,6 @@ public:
         Map& members();
         Map& typeAliases();
         List& memberOf();
-
-    protected:
-        void addDescriptionBlock(Block& block);
     };
 
     class Enum : public StructBase,
@@ -568,6 +438,7 @@ public:
         List& parameters();
         CellI& returnType();
         Base& instructions();
+        Base& description();
 
     protected:
         void addDescriptionBlock(Block& block);
@@ -801,14 +672,14 @@ public:
     Call& call(CellI& object, const std::string& method);
     Cell& cell(CellI& value);
     Continue& continue_();
-    Delete& delete_(Base& cell);
+    Call& delete_(Base& cell);
     Call& divide(Base& lhs, Base& rhs);
     Do& do_(Base& condition);
     EnumValue& enumValue(const std::string& nameStr);
     EnumValue& enumValue(const std::string& nameStr, CellI& init);
-    Call& equal(Base& lhs, Base& rhs);
-    Erase& erase(Base& cell, Base& key);
-    Erase& erase(Base& cell, const std::string& key);
+    Call& equal(CellI& lhs, Base& rhs);
+    Call& erase(Base& cell, Base& key);
+    Call& erase(Base& cell, const std::string& key);
     For& for_(Base& var);
     For& for_(const std::string& varName);
     Call& get(Base& cell, Base& key);
@@ -844,9 +715,9 @@ public:
     Return& return_(CellI& value);
     Call& same(Base& lhs, Base& rhs);
     Self& self();
-    SelfFn& selfFn();
-    Set& set(Base& cell, Base& key, Base& value);
-    Set& set(Base& cell, const std::string& key, Base& value);
+    SelfType& selfType();
+    Call& set(Base& cell, Base& key, Base& value);
+    Call& set(Base& cell, const std::string& key, Base& value);
     Slot& slot(CellI& key, CellI& type);
     Slot& slot(const std::string& key, CellI& type);
     StaticCall& scall(CellI& type, CellI& method);

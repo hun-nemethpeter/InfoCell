@@ -62,8 +62,6 @@ public:
         World& w;
 
     public:
-        Object Add;
-        Object And;
         Object AssociatedType;
         Object Base;
         Object Block;
@@ -71,46 +69,27 @@ public:
         Object Call;
         Object Cell;
         Object Continue;
-        Object Delete;
-        Object Divide;
         Object Do;
         Object Enum;
         Object EnumValue;
-        Object Equal;
-        Object Erase;
         Object For;
         Object Function;
         Object FunctionT;
-        Object Get;
-        Object GreaterThan;
-        Object GreaterThanOrEqual;
-        Object Has;
         Object If;
-        Object LessThan;
-        Object LessThanOrEqual;
         Object Match;
         Object Member;
-        Object Missing;
-        Object Multiply;
         Object New;
-        Object Not;
-        Object NotEqual;
-        Object NotSame;
-        Object Or;
         Object Parameter;
         Object PrimitiveToolName;
         Object ResolvedType;
         Object Return;
-        Object Same;
         Object Scope;
         Object Self;
-        Object SelfFn;
-        Object Set;
+        Object SelfType;
         Object Slot;
         Object StaticCall;
         Object Struct;
         Object StructT;
-        Object Subtract;
         Object TemplatedType;
         Object TemplateParam;
         Object Throw;
@@ -132,6 +111,28 @@ public:
     public:
         Object false_;
         Object true_;
+
+        Object And;
+        Object Not;
+        Object Or;
+    };
+
+    class SCell : public Object
+    {
+        SCell(World& w, CellI& type, const std::string& label);
+        friend class Std;
+
+    public:
+        Object Delete;
+        Object Equal;
+        Object Erase;
+        Object Get;
+        Object Has;
+        Object Missing;
+        Object NotEqual;
+        Object NotSame;
+        Object Same;
+        Object Set;
     };
 
     class EDirection : public Object
@@ -156,10 +157,24 @@ public:
         Object negative;
     };
 
+    class SNumber : public Object
+    {
+        SNumber(World& w, CellI& type, const std::string& label);
+        friend class Std;
+
+    public:
+        Object Add;
+        Object Divide;
+        Object GreaterThan;
+        Object GreaterThanOrEqual;
+        Object LessThan;
+        Object LessThanOrEqual;
+        Object Multiply;
+        Object Subtract;
+    };
+
     Std(World& w);
 
-    cells::CellI& slot(const std::string& key, cells::CellI& type);
-    cells::CellI& slot(cells::CellI& key, cells::CellI& type);
     cells::CellI& kvPair(cells::CellI& key, cells::CellI& value);
 
 protected:
@@ -167,7 +182,7 @@ protected:
 
 public:
     EBoolean Boolean;
-    Object Cell;
+    SCell Cell;
     Object Char;
     Object Container;
     Object Digit;
@@ -179,10 +194,9 @@ public:
     Object List;
     Object ListNode;
     Object Map;
-    Object Number;
+    SNumber Number;
     ENumberSign NumberSign;
     Object OpState;
-    Object Slot;
     Object Stack;
     Object StackFrame;
     Object String;

@@ -2,6 +2,7 @@
 #include <stack>
 #include <memory>
 
+#include "Ast.h"
 #include "Cells.h"
 
 namespace infocell {
@@ -14,6 +15,12 @@ class ToolFinder
     {
         CellI& ast;
         CellI& slotItem;
+    };
+    struct StackNodeNew
+    {
+        CellI& ast;
+        CellI& slotItem;
+        CellI& paramItem;
     };
 
     struct Node
@@ -71,12 +78,11 @@ public:
     class ConversionToolBlueprint
     {
     public:
-        ConversionToolBlueprint(CellI& tool, CellI& compiledToolType, CellI& slotId);
+        ConversionToolBlueprint(CellI& tool, CellI& slotId);
 
         bool operator<(const ConversionToolBlueprint& blueprint) const;
 
         CellI* m_tool;
-        CellI* m_compiledToolType;
         CellI* m_slotId;
     };
 
@@ -84,32 +90,34 @@ public:
     ToolFinder(World& w);
 
     bool empty();
-    CellI& serializeEffectAst(CellI& ast);
-    void add(CellI& tool, CellI& compiledToolType);
-    void add(CellI& effect, CellI& tool, CellI& compiledToolType);
-    List& findToolsByEffectAst(CellI& ast);
+    CellI& serializeEffect(CellI& effect);
+    void add(Object& tool);
+    void add(CellI& effect, CellI& tool);
+    List& findToolsByEffect(CellI& effect);
     CellI& findConversionTools(CellI& from, CellI& to);
     void exploreSlotManipulations();
 
 private:
-    CellI* findBuildersForEffectAst(CellI& inputEffectAst);
+    CellI* findBuildersForEffect(CellI& effect);
     CellI* findBuilderForEffectAstOld(CellI& inputEffectAst, CellI*& outputEffectAst);
     void buildTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& builder);
     void addValue(Node*& node, CellI& value);
-    void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
+    void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNodeNew>& stack);
     bool checkValue(FindContext& findContext, CellI& key, CellI& value);
     void handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::deque<StackNode>& stack);
-    CellI* createBuilder(CellI& toolAst, Map& memberIds, CellI& compiledToolType);
+    CellI* createBuilder(CellI& tool, Map& memberIds);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
     void findConversionToolsByValue(CellI& from, CellI& to, List& results);
     void findConversionToolsByType(CellI& from, CellI& to, List& results);
     void findConversionToolsByContainer(CellI& from, CellI& to, List& results);
     std::string printTool(CellI& tool);
+    List& callSlotKeyList();
 
     World& w;
     std::unique_ptr<Node> m_root;
     List m_tools;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;
+    std::unique_ptr<List> m_callSlotKeyList;
 };
 
 std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolKey& key);

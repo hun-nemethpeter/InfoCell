@@ -27,29 +27,19 @@ Ast::ResolvedType::ResolvedType(World& w, CellI& astType, CellI& compiledType) :
     set(w.id.compiled, compiledType);
 }
 
-Ast::Get& Ast::Parameter::operator/(Base& key)
+Ast::Call& Ast::Parameter::operator/(Base& key)
 {
-    return Get::New(w, *this, key);
+    return w.ast.get(*this, key);
 }
 
-Ast::Get& Ast::Parameter::operator/(const std::string& key)
+Ast::Call& Ast::Parameter::operator/(const std::string& key)
 {
-    return Get::New(w, *this, w._(key));
+    return w.ast.get(*this, key);
 }
 
 Ast::Call& Ast::Parameter::operator()(const std::string& method)
 {
     return w.ast.call(*this, method);
-}
-
-Ast::Call& Ast::Call::operator/(Base& key)
-{
-    return w.ast.call(*this, w.ast.primitiveToolName(w.std.op.Get))("key", w._(key));
-}
-
-Ast::Call& Ast::Call::operator/(const std::string& key)
-{
-    return w.ast.call(*this, w.ast.primitiveToolName(w.std.op.Get))("key", w._(key));
 }
 
 Ast::KVPair::KVPair(World& w, CellI& key, CellI& value) :
@@ -60,13 +50,13 @@ Ast::KVPair::KVPair(World& w, CellI& key, CellI& value) :
 }
 
 Ast::Slot::Slot(World& w, CellI& key) :
-    BaseT<Slot>(w, w.std.Slot, "std.Slot")
+    BaseT<Slot>(w, w.std.ast.Slot, "ast.Slot")
 {
     set(w.id.key, key);
 }
 
 Ast::Slot::Slot(World& w, CellI& key, CellI& type) :
-    BaseT<Slot>(w, w.std.Slot, "std.Slot")
+    BaseT<Slot>(w, w.std.ast.Slot, "std.Slot")
 {
     set(w.id.key, key);
     set(w.id.type, type);
@@ -79,6 +69,21 @@ Ast::Call::Call(World& w, CellI& cell, CellI& method) :
     set(w.id.method, method);
 }
 
+Ast::Call& Ast::Call::operator/(Base& key)
+{
+    return w.ast.get(*this, key);
+}
+
+Ast::Call& Ast::Call::operator/(const std::string& key)
+{
+    return w.ast.get(*this, key);
+}
+
+Ast::Call& Ast::Call::operator()(const std::string& method)
+{
+    return w.ast.call(*this, method);
+}
+
 Ast::Call& Ast::Call::operator()(const std::string& nameStr, CellI& value)
 {
     Slot& parameter = w.ast.parameterInit(w.name(nameStr), value);
@@ -88,6 +93,11 @@ Ast::Call& Ast::Call::operator()(const std::string& nameStr, CellI& value)
         parameters().add(parameter);
     }
     return *this;
+}
+
+Ast::Call& Ast::Call::operator()(const std::string& nameStr, const std::string& valueStr)
+{
+    return operator()(nameStr, w._(valueStr));
 }
 
 List& Ast::Call::parameters()
@@ -120,14 +130,14 @@ Ast::Cell::Cell(World& w, CellI& value) :
     set(w.id.value, value);
 }
 
-Ast::Get& Ast::Cell::operator/(Base& key)
+Ast::Call& Ast::Cell::operator/(Base& key)
 {
-    return Get::New(w, *this, key);
+    return w.ast.get(*this, key);
 }
 
-Ast::Get& Ast::Cell::operator/(const std::string& key)
+Ast::Call& Ast::Cell::operator/(const std::string& key)
 {
-    return Get::New(w, *this, w._(key));
+    return w.ast.get(*this, key);
 }
 
 Ast::TypeName::TypeName(World& w, CellI& name) :
@@ -146,8 +156,8 @@ Ast::Call& Ast::Self::operator()(const std::string& method)
     return w.ast.call(*this, method);
 }
 
-Ast::SelfFn::SelfFn(World& w) :
-    BaseT<SelfFn>(w, w.std.ast.SelfFn, "ast.selfFn")
+Ast::SelfType::SelfType(World& w) :
+    BaseT<SelfType>(w, w.std.ast.SelfType, "ast.selfType")
 {
 }
 
@@ -338,15 +348,17 @@ Ast::StructBase::StructBase(World& w, CellI& astType, CellI& name, const std::st
     set("name", name);
 }
 
-Ast::Function& Ast::StructBase::addPrimitiveFunction(CellI& name)
+Ast::Function& Ast::StructBase::addPrimitiveFunction(CellI& ast, CellI& op, const std::string& nameStr)
 {
-    Ast::Function& method = *new Ast::Function(w, name.label());
+    Ast::Function& method = static_cast<Ast::Function&>(ast);
+    method.label(nameStr);
+    method.set("name", w.name(nameStr));
     method.set("primitiveTool", w.true_);
     List& fullyQualifiedName = *new List(w, w.std.Cell);
-    fullyQualifiedName.add(name);
+    fullyQualifiedName.add(op);
     method.set("fullyQualifiedName", fullyQualifiedName);
     addMethod(method);
-    name.set(w.id.ast, method);
+    op.set(w.id.ast, method);
 
     return method;
 }
@@ -359,9 +371,24 @@ Ast::Function& Ast::StructBase::addMethod(const std::string& nameStr)
     return method;
 }
 
-void Ast::StructBase::addMethod(Function& method)
+void Ast::StructBase::addMethod(Function& method, ParameterModification parameterModification)
 {
     auto& name = method[w.id.name];
+
+    if (parameterModification == ParameterModification::AddSelfParam) {
+        CellI* selfTypePtr = nullptr;
+        if (&__type__() == &w.std.ast.TraitImpl) {
+            selfTypePtr = &w.ast.associatedType(w.id.self);
+        } else {
+            selfTypePtr = &w.ast.selfType();
+        }
+        Slot& selfSlot = w.ast.slot(w.id.self, *selfTypePtr);
+        if (method.has(w.id.parameters)) {
+            method.parameters().addFront(selfSlot);
+        } else {
+            method.parameters(selfSlot);
+        }
+    }
 
     if (missing("methods")) {
         set("methods", *new Map(w, w.std.Cell, w.std.ast.Function, "Map<Cell, Type::Ast::Function>(...)"));
@@ -376,6 +403,7 @@ void Ast::StructBase::addMethod(Function& method)
 Ast::TraitImpl& Ast::StructBase::addTraitImpl(const std::string& nameStr)
 {
     Ast::TraitImpl& traitImpl = *new Ast::TraitImpl(w, nameStr);
+    traitImpl.associatedTypes(w.ast.slot(w.id.self, w.ast.selfType()));
     addTraitImpl(traitImpl);
 
     return traitImpl;
@@ -393,15 +421,6 @@ void Ast::StructBase::addTraitImpl(Ast::TraitImpl& traitImpl)
     }
     traitImpl.set("structType", *this);
     traitImpls().add(name, traitImpl);
-}
-
-Ast::StructBase& Ast::StructBase::primitiveTool()
-{
-    if (missing("primitiveTool")) {
-        set("primitiveTool", w.true_);
-    }
-
-    return *this;
 }
 
 Ast::StructBase& Ast::StructBase::returnType(CellI& type)
@@ -500,11 +519,6 @@ CellI& Ast::StructBase::name()
 Ast::Base& Ast::StructBase::getTypeAlias(CellI& name)
 {
     return static_cast<Ast::Base&>(typeAliases().getValue(name)[w.id.type]);
-}
-
-void Ast::StructBase::addDescriptionBlock(Block& block)
-{
-    set(w.id.description, block);
 }
 
 Ast::Struct::Struct(World& w, const std::string& nameStr) :
@@ -730,7 +744,7 @@ Ast::Function& Ast::Function::memberMapping(KVPair& mapping)
 Ast::Function& Ast::Function::parameters(Slot& param)
 {
     if (missing("parameters")) {
-        set("parameters", *new List(w, w.std.Slot));
+        set("parameters", *new List(w, w.std.ast.Slot));
     }
     parameters().add(param);
 
@@ -795,6 +809,15 @@ Ast::Base& Ast::Function::instructions()
     }
 }
 
+Ast::Base& Ast::Function::description()
+{
+    if (missing(w.id.description)) {
+        throw "No description!";
+    } else {
+        return static_cast<Ast::Base&>(get(w.id.description));
+    }
+}
+
 Ast::FunctionT::FunctionT(World& w, CellI& name, const std::string& nameStr) :
     BaseT<FunctionT>(w, w.std.ast.FunctionT, nameStr)
 {
@@ -812,7 +835,7 @@ Ast::FunctionT::FunctionT(World& w, const std::string& nameStr) :
 void Ast::FunctionT::parameters(Slot& param)
 {
     if (missing(w.id.parameters)) {
-        set(w.id.parameters, *new List(w, w.std.Slot));
+        set(w.id.parameters, *new List(w, w.std.ast.Slot));
     }
     parameters().add(param);
 }
@@ -852,27 +875,6 @@ Ast::Base& Ast::FunctionT::instructions()
     } else {
         return static_cast<Ast::Base&>(get(w.id.instructions));
     }
-}
-
-Ast::Delete::Delete(World& w, Base& cell) :
-    BaseT<Delete>(w, w.std.ast.Delete, "ast.delete")
-{
-    set(w.id.cell, cell);
-}
-
-Ast::Set::Set(World& w, Base& cell, Base& key, Base& value) :
-    BaseT<Set>(w, w.std.ast.Set, "ast.set")
-{
-    set(w.id.cell, cell);
-    set(w.id.key, key);
-    set(w.id.value, value);
-}
-
-Ast::Erase::Erase(World& w, Base& cell, Base& key) :
-    BaseT<Erase>(w, w.std.ast.Erase, "ast.erase")
-{
-    set(w.id.cell, cell);
-    set(w.id.key, key);
 }
 
 Ast::If::If(World& w, Base& condition) :
@@ -984,14 +986,14 @@ Ast::Var::Var(World& w, CellI& name) :
     set(w.id.name, name);
 }
 
-Ast::Set& Ast::Var::operator=(Base& value)
+Ast::Call& Ast::Var::operator=(Base& value)
 {
-    return Set::New(w, *this, Cell::New(w, w.id.value), value);
+    return w.ast.set(*this, w._(w.id.value), value);
 }
 
-Ast::Get& Ast::Var::operator*()
+Ast::Call& Ast::Var::operator*()
 {
-    return Get::New(w, *this, Cell::New(w, w.id.value));
+    return w.ast.get(*this, w._(w.id.value));
 }
 
 Ast::Call& Ast::Var::operator()(const std::string& method)
@@ -1005,30 +1007,29 @@ Ast::Member::Member(World& w, CellI& key) :
     set(w.id.key, key);
 }
 
-Ast::Set& Ast::Member::operator=(Base& value)
+Ast::Call& Ast::Member::operator=(Base& value)
 {
-    Ast::Set& ret = Set::New(w, Self::New(w), Cell::New(w, get(w.id.key)), value);
-    return ret;
+    return w.ast.set(w.ast.self(), w._(get(w.id.key)), value);
 }
 
-Ast::Get& Ast::Member::operator/(Base& key)
+Ast::Call& Ast::Member::operator/(Base& key)
 {
-    return Get::New(w, *this, key);
+    return w.ast.get(*this, key);
 }
 
-Ast::Get& Ast::Member::operator/(const std::string& key)
+Ast::Call& Ast::Member::operator/(const std::string& key)
 {
-    return Get::New(w, *this, w._(key));
+    return w.ast.get(*this, key);
 }
 
-Ast::Has& Ast::Member::exist()
+Ast::Call& Ast::Member::exist()
 {
-    return Has::New(w, Self::New(w), Cell::New(w, get(w.id.key)));
+    return w.ast.has(w.ast.self(), w._(get(w.id.key)));
 }
 
-Ast::Missing& Ast::Member::missing()
+Ast::Call& Ast::Member::missing()
 {
-    return Missing::New(w, Self::New(w), Cell::New(w, get(w.id.key)));
+    return w.ast.missing(w.ast.self(), Cell::New(w, get(w.id.key)));
 }
 
 Ast::Call& Ast::Member::operator()(const std::string& method)
@@ -1087,154 +1088,19 @@ Ast::New::New(World& w, Base& objectType, Base& constructor) :
 
 Ast::New& Ast::New::operator()(const std::string& nameStr, CellI& value)
 {
-    Slot& slot = Slot::New(w, w.name(nameStr), value);
+    Slot& parameter = w.ast.parameterInit(w.name(nameStr), value);
     if (missing(w.id.parameters)) {
-        set(w.id.parameters, w.list(slot));
+        set(w.id.parameters, w.list(parameter));
     } else {
-        List& paramList = static_cast<List&>(get(w.id.parameters));
-        paramList.add(slot);
+        parameters().add(parameter);
     }
 
     return *this;
 }
 
-Ast::Same::Same(World& w, Base& lhs, Base& rhs) :
-    BaseT<Same>(w, w.std.ast.Same, "ast.same")
+List& Ast::New::parameters()
 {
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::NotSame::NotSame(World& w, Base& lhs, Base& rhs) :
-    BaseT<NotSame>(w, w.std.ast.NotSame, "ast.notSame")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::Equal::Equal(World& w, Base& lhs, Base& rhs) :
-    BaseT<Equal>(w, w.std.ast.Equal, "ast.equal")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::NotEqual::NotEqual(World& w, Base& lhs, Base& rhs) :
-    BaseT<NotEqual>(w, w.std.ast.NotEqual, "ast.notEqual")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::Has::Has(World& w, Base& cell, Base& key) :
-    BaseT<Has>(w, w.std.ast.Has, "ast.has")
-{
-    set(w.id.cell, cell);
-    set(w.id.key, key);
-}
-
-Ast::Missing::Missing(World& w, Base& cell, Base& key) :
-    BaseT<Missing>(w, w.std.ast.Missing, "ast.missing")
-{
-    set(w.id.cell, cell);
-    set(w.id.key, key);
-}
-
-Ast::Get::Get(World& w, Base& cell, Base& key) :
-    BaseT<Get>(w, w.std.ast.Get, "ast.get")
-{
-    set(w.id.cell, cell);
-    set(w.id.key, key);
-}
-
-Ast::Get& Ast::Get::operator/(Base& key)
-{
-    return Get::New(w, *this, key);
-}
-Ast::Get& Ast::Get::operator/(const std::string& key)
-{
-    return Get::New(w, *this, w._(key));
-}
-
-Ast::Call& Ast::Get::operator()(const std::string& method)
-{
-    return w.ast.call(*this, method);
-}
-
-Ast::And::And(World& w, Base& lhs, Base& rhs) :
-    BaseT<And>(w, w.std.ast.And, "ast.and")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::Or::Or(World& w, Base& lhs, Base& rhs) :
-    BaseT<Or>(w, w.std.ast.Or, "ast.or")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::Not::Not(World& w, Base& input) :
-    BaseT<Not>(w, w.std.ast.Not, "ast.not")
-{
-    set(w.id.input, input);
-}
-
-Ast::Add::Add(World& w, Base& lhs, Base& rhs) :
-    BaseT<Add>(w, w.std.ast.Add, "ast.add")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::Subtract::Subtract(World& w, Base& lhs, Base& rhs) :
-    BaseT<Subtract>(w, w.std.ast.Subtract, "ast.subtract")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::Multiply::Multiply(World& w, Base& lhs, Base& rhs) :
-    BaseT<Multiply>(w, w.std.ast.Multiply, "ast.multiply")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::Divide::Divide(World& w, Base& lhs, Base& rhs) :
-    BaseT<Divide>(w, w.std.ast.Divide, "ast.divide")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::LessThan::LessThan(World& w, Base& lhs, Base& rhs) :
-    BaseT<LessThan>(w, w.std.ast.LessThan, "ast.lessThan")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::LessThanOrEqual::LessThanOrEqual(World& w, Base& lhs, Base& rhs) :
-    BaseT<LessThanOrEqual>(w, w.std.ast.LessThanOrEqual, "ast.lessThanOrEqual")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::GreaterThan::GreaterThan(World& w, Base& lhs, Base& rhs) :
-    BaseT<GreaterThan>(w, w.std.ast.GreaterThan, "ast.greaterThan")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
-}
-
-Ast::GreaterThanOrEqual::GreaterThanOrEqual(World& w, Base& lhs, Base& rhs) :
-    BaseT<GreaterThanOrEqual>(w, w.std.ast.GreaterThanOrEqual, "ast.greaterThanOrEqual")
-{
-    set(w.id.lhs, lhs);
-    set(w.id.rhs, rhs);
+    return static_cast<List&>(get(w.id.parameters));
 }
 
 Ast::Ast(World& w) :
@@ -1291,9 +1157,9 @@ Ast::Try& Ast::try_(Base& tryBranch, Base& catchBranch)
     return Try::New(w, tryBranch, catchBranch);
 }
 
-Ast::SelfFn& Ast::selfFn()
+Ast::SelfType& Ast::selfType()
 {
-    return SelfFn::New(w);
+    return SelfType::New(w);
 }
 
 Ast::Return& Ast::return_()
@@ -1376,7 +1242,7 @@ Ast::TypedEnumValue& Ast::typedEnumValue(const std::string& nameStr, CellI& type
 
 Ast::Call& Ast::call(CellI& object, const std::string& method)
 {
-    return Call::New(w, object, w.ast.cell(w.name(method)));
+    return Call::New(w, object, w._(method));
 }
 
 Ast::Call& Ast::call(CellI& cell, CellI& method)
@@ -1391,32 +1257,32 @@ Ast::StaticCall& Ast::scall(CellI& cell, CellI& method)
 
 Ast::StaticCall& Ast::scall(CellI& type, const std::string& method)
 {
-    return scall(type, w.ast.cell(w.name(method)));
+    return scall(type, w._(method));
 }
 
-Ast::Delete& Ast::delete_(Base& ast)
+Ast::Call& Ast::delete_(Base& ast)
 {
-    return Delete::New(w, ast);
+    return w.ast.call(ast, w.ast.primitiveToolName(w.std.op.Delete));
 }
 
-Ast::Set& Ast::set(Base& cell, Base& key, Base& value)
+Ast::Call& Ast::set(Base& cell, Base& key, Base& value)
 {
-    return Set::New(w, cell, key, value);
+    return w.ast.call(cell, w.ast.primitiveToolName(w.std.op.Set))("key", key)("value", value);
 }
 
-Ast::Set& Ast::set(Base& cell, const std::string& key, Base& value)
+Ast::Call& Ast::set(Base& cell, const std::string& key, Base& value)
 {
-    return Set::New(w, cell, w._(key), value);
+    return set(cell, w._(key), value);
 }
 
-Ast::Erase& Ast::erase(Base& cell, Base& key)
+Ast::Call& Ast::erase(Base& cell, Base& key)
 {
-    return Erase::New(w, cell, key);
+    return w.ast.call(cell, w.ast.primitiveToolName(w.std.op.Erase))("key", key);
 }
 
-Ast::Erase& Ast::erase(Base& cell, const std::string& key)
+Ast::Call& Ast::erase(Base& cell, const std::string& key)
 {
-    return Erase::New(w, cell, w._(key));
+    return erase(cell, w._(key));
 }
 
 Ast::If& Ast::if_(Base& condition)
@@ -1495,7 +1361,7 @@ Ast::New& Ast::new_(Base& objectType)
 
 Ast::New& Ast::new_(Base& objectType, const std::string& constructor)
 {
-    return New::NewT<Ast::New>::New(w, objectType, w.ast.cell(w.name(constructor)));
+    return New::NewT<Ast::New>::New(w, objectType, w._(constructor));
 }
 
 Ast::New& Ast::new_(Base& objectType, Base& constructor)
@@ -1505,112 +1371,112 @@ Ast::New& Ast::new_(Base& objectType, Base& constructor)
 
 Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor)
 {
-    return New::NewT<Ast::New>::New(w, w.ast.typeName(w.name(objectType)), w.ast.cell(w.name(constructor)));
+    return New::NewT<Ast::New>::New(w, w.ast.typeName(w.name(objectType)), w._(constructor));
 }
 
 Ast::Call& Ast::same(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.Same))("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.Same))("other", rhs);
 }
 
 Ast::Call& Ast::notSame(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.NotSame)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.NotSame))("other", rhs);
 }
 
-Ast::Call& Ast::equal(Base& lhs, Base& rhs)
+Ast::Call& Ast::equal(CellI& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.Equal)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.Equal))("other", rhs);
 }
 
 Ast::Call& Ast::notEqual(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.NotEqual)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.NotEqual))("other", rhs);
 }
 
 Ast::Call& Ast::has(Base& cell, Base& key)
 {
-    return w.ast.call(cell, w.std.op.Has)("key", w._(key));
+    return w.ast.call(cell, w.ast.primitiveToolName(w.std.op.Has))("key", key);
 }
 
 Ast::Call& Ast::has(Base& cell, const std::string& key)
 {
-    return w.ast.call(cell, w.std.op.Has)("key", w._(key));
+    return has(cell, w._(key));
 }
 
 Ast::Call& Ast::missing(Base& cell, Base& key)
 {
-    return w.ast.call(cell, w.std.op.Missing)("key", w._(key));
+    return w.ast.call(cell, w.ast.primitiveToolName(w.std.op.Missing))("key", key);
 }
 
 Ast::Call& Ast::missing(Base& cell, const std::string& key)
 {
-    return w.ast.call(cell, w.std.op.Missing)("key", w._(key));
+    return missing(cell, w._(key));
 }
 
 Ast::Call& Ast::get(Base& cell, const std::string& key)
 {
-    return w.ast.call(cell, w.ast.primitiveToolName(w.std.op.Get))("key", w._(key));
+    return get(cell, w._(key));
 }
 
 Ast::Call& Ast::get(Base& cell, Base& key)
 {
-    return w.ast.call(cell, w.ast.primitiveToolName(w.std.op.Get))("key", w._(key));
+    return w.ast.call(cell, w.ast.primitiveToolName(w.std.op.Get))("key", key);
 }
 
 Ast::Call& Ast::and_(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.And)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.And))("other", rhs);
 }
 
 Ast::Call& Ast::or_(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.Or)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.Or))("other", rhs);
 }
 
 Ast::Call& Ast::not_(Base& input)
 {
-    return w.ast.call(input, w.std.op.Not);
+    return w.ast.call(input, w.ast.primitiveToolName(w.std.op.Not));
 }
 
 Ast::Call& Ast::add(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.Add)("other", w. _(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.Add))("other", rhs);
 }
 
 Ast::Call& Ast::subtract(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.Subtract)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.Subtract))("other", rhs);
 }
 
 Ast::Call& Ast::multiply(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.Multiply)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.Multiply))("other", rhs);
 }
 
 Ast::Call& Ast::divide(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.Divide)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.Divide))("other", rhs);
 }
 
 Ast::Call& Ast::lessThan(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.LessThan)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.LessThan))("other", rhs);
 }
 
 Ast::Call& Ast::lessThanOrEqual(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.LessThanOrEqual)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.LessThanOrEqual))("other", rhs);
 }
 
 Ast::Call& Ast::greaterThan(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.GreaterThan)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.GreaterThan))("other", rhs);
 }
 
 Ast::Call& Ast::greaterThanOrEqual(Base& lhs, Base& rhs)
 {
-    return w.ast.call(lhs, w.std.op.GreaterThanOrEqual)("other", w._(rhs));
+    return w.ast.call(lhs, w.ast.primitiveToolName(w.std.op.GreaterThanOrEqual))("other", rhs);
 }
 
 void splitNamespacedString(std::vector<std::string>& out, const std::string& input)

@@ -63,16 +63,18 @@ protected:
     CellI& instantiateTemplateParamType(CellI& param, CellI& selfType, Map& inputParameters, Map* associatedTypesPtr = nullptr);
     Ast::Base& instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, Map* associatedTypesPtr = nullptr);
 
-    void compileScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
-    void compileStruct(Ast::Struct& __type__);
-    void compileEnum(Ast::Enum& enum_);
-    CellI& compileFunction(Ast::Function& function);
+    void compileInstructionsInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
+    void compileInstructionsInStruct(Ast::Struct& __type__);
+    void compileInstructionsInEnum(Ast::Enum& enum_);
+    CellI& compileInstructionsInFunction(Ast::Function& function);
     void compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction);
     std::string shortFunctionName(Ast::Function& function);
-    CellI& compileFunctionAst(Ast::Function& astFunction, CellI& ast, cells::Object& function);
+    CellI& compileInstructionsInFunctionAst(Ast::Function& astFunction, CellI& ast, cells::Object& function);
     void checkMethodCall(CellI& astType, CellI& astMethodId);
 
-    void processDescriptionsInScope(Ast::Scope& scope);
+    void compileDescriptionInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
+    void compileDescriptionInFunction(Ast::Function& function);
+    CellI& compileDescriptionInFunctionAst(Ast::Function& astFunction, CellI& ast, cells::Object& function);
 
     World& w;
     ToolFinder& m_toolFinder;

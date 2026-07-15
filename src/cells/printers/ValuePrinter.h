@@ -57,6 +57,7 @@ protected:
     void printAstSubtract(CellI& cell);
     void printAstVar(CellI& cell);
     void printIndent();
+    bool isThisCallAGetter(CellI& callAst);
 
     std::stringstream m_ss;
     mutable int m_indent = 0;

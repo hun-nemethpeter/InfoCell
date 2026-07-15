@@ -24,7 +24,7 @@ void CellStructPrinter::printImpl(CellI& cell)
             m_ss << cell.label() << ": ";
         }
     }
-    if (&type == &w.std.Slot) {
+    if (&type == &w.std.ast.Slot) {
         if (cell.label().empty()) {
             m_ss << cell[w.id.key].label() << ": ";
         } else {

@@ -89,6 +89,7 @@ public:
     String& objectType;
     String& op;
     String& ops;
+    String& other;
     String& output;
     String& parameters;
     String& parent;

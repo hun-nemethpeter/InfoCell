@@ -19,6 +19,7 @@ protected:
     World& w;
 
     ID& id   = w.id;
+    Ast& ast = w.ast;
     Std& std = w.std;
     Arc& arc = w.arc;
 

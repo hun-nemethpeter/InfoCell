@@ -83,6 +83,20 @@ std::string ToolFinder::printTool(CellI& tool)
     return ss.str();
 }
 
+List& ToolFinder::callSlotKeyList()
+{
+    if (!m_callSlotKeyList) {
+        m_callSlotKeyList = std::make_unique<List>(w, w.std.ast.Slot);
+        m_callSlotKeyList->add(w.id.__type__);
+        m_callSlotKeyList->add(w.id.method);
+        m_callSlotKeyList->add(w.id.cell);
+        m_callSlotKeyList->add(w.id.parameters);
+    }
+
+    return *m_callSlotKeyList;
+}
+
+
 // ============================================================================
 ToolFinder::Node::~Node()
 {
@@ -94,7 +108,7 @@ ToolFinder::Node::~Node()
 // ============================================================================
 ToolFinder::ToolFinder(World& w) :
     w(w),
-    m_tools(w, w.std.ast.Base)
+    m_tools(w, w.std.String)
 {
     m_root = std::make_unique<Node>();
 }
@@ -106,72 +120,92 @@ bool ToolFinder::empty()
 }
 
 // ============================================================================
-CellI& ToolFinder::serializeEffectAst(CellI& effectAst)
+CellI& ToolFinder::serializeEffect(CellI& effect)
 {
-    CellI& slotList    = effectAst.slotList();
-    CellI* slotItemPtr = slotList.has(w.id.first) ? &slotList[w.id.first] : nullptr;
-    List& ret          = *new List(w, w.std.Cell);
-    ret.label(effectAst.label());
-    struct Context
-    {
-        CellI& ast;
-        CellI& slotItem;
-    };
-    std::stack<Context> stack;
-    bool first        = true;
-    CellI* currentPtr = &effectAst;
+    std::deque<StackNodeNew> stack;
+
+    List& ret           = *new List(w, w.std.Cell);
+    CellI* slotItemPtr  = &callSlotKeyList()[w.id.first];
+    CellI* paramItemPtr = nullptr;
+    CellI* currentPtr   = &effect;
+
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
-        CellI& slot     = slotItem[w.id.value];
-        CellI& key      = slot[w.id.key];
         CellI& current  = *currentPtr;
+        CellI& key      = slotItem[w.id.value];
 
-        if (first) {
-            first = false;
-            ret.add(w.id.__type__);
+        if (&key == &w.id.__type__) {
+            ret.add(w.id.op);
+            ret.add(w.id.type);
             ret.add(current.__type__());
-        }
-
-        if (current.has(key)) {
-            CellI& value = current[key];
+        } else if (&key == &w.id.method) {
             ret.add(key);
-            if (&key == &w.id.__type__) {
-                ret.add(value);
-                if (&key == &w.id.op) {
-                    ret.add(value);
+            ret.add(current[key]);
+        } else {
+            CellI* keyPtr   = nullptr;
+            CellI* valuePtr = nullptr;
+
+            if (&key == &w.id.cell) {
+                keyPtr   = &key;
+                valuePtr = &current[key];
+            } else if (&key == &w.id.parameters && current.has(key)) {
+                if (!paramItemPtr) {
+                    paramItemPtr = &current[w.id.parameters][w.id.first];
                 }
-            } else if (&value.__type__() == &w.std.ast.Cell) {
-                ret.add(value[w.id.value]);
-                if (&value[w.id.value] == &w.id.op) {
-                    ret.add(value[w.id.value]);
+                CellI& paramSlot = (*paramItemPtr)[w.id.value];
+                keyPtr           = &paramSlot[w.id.key];
+                valuePtr         = &paramSlot[w.id.value];
+            }
+            if (keyPtr && valuePtr) {
+                CellI& paramKey   = *keyPtr;
+                CellI& paramValue = *valuePtr;
+
+                ret.add(paramKey);
+                if (&paramValue.__type__() == &w.std.ast.Cell) {
+                    ret.add(paramValue[w.id.value]);
+                    if (&paramValue[w.id.value] == &w.id.op) {
+                        // handling the _(op) case, where op is a constant
+                        // it will be op op, so the escaping character here is op
+                        ret.add(paramValue[w.id.value]);
+                    }
+                } else if (&paramValue.__type__() == &w.std.ast.Self || &paramValue.__type__() == &w.std.ast.Return || &paramValue.__type__() == &w.std.ast.Parameter) {
+                    ret.add(w.id.op);
+                    if (&paramValue.__type__() == &w.std.ast.Self) {
+                        ret.add(w.id.variable);
+                    } else if (&paramValue.__type__() == &w.std.ast.Return) {
+                        ret.add(w.id.variable);
+                    } else if (&paramValue.__type__() == &w.std.ast.Parameter) {
+                        ret.add(w.id.variable);
+                    } else {
+                        throw "Unknow param type!";
+                    }
+                } else if (&paramValue.__type__() == &w.std.op.Call) {
+                    ret.add(w.id.op);
+                    ret.add(w.id.push);
+                    stack.push_back({ current, *slotItemPtr, *paramItemPtr });
+                    currentPtr   = &paramValue;
+                    slotItemPtr  = &callSlotKeyList()[w.id.first];
+                    paramItemPtr = nullptr;
+                    continue;
                 }
-#if 0
-            } else if (&value.__type__() == &w.std.ast.Slot) {
-                ret.add(value[w.id.type]);
-#endif
-            } else if (&value.__type__() == &w.std.ast.Member || &value.__type__() == &w.std.ast.Return) {
-                ret.add(w.id.op);
-                if (&value.__type__() == &w.std.ast.Member) {
-                    ret.add(w.id.variable);
-                } else {
-                    ret.add(w.id.return_);
-                }
-            } else if ((&key != &w.id.__type__) && value.__type__()[w.id.memberOf][w.id.index].has(w.std.ast.Base)) {
-                ret.add(w.id.op);
-                ret.add(w.id.push);
-                stack.push({ current, *slotItemPtr });
-                first       = true;
-                currentPtr  = &value;
-                slotItemPtr = &value.slotList()[w.id.first];
-                continue;
             }
         }
 
+        if (&key == &w.id.parameters && paramItemPtr) {
+            CellI& paramItem = *paramItemPtr;
+            paramItemPtr     = paramItem.has(w.id.next) ? &paramItem[w.id.next] : nullptr;
+            if (paramItemPtr) {
+                continue;
+            } else {
+                paramItemPtr = nullptr;
+            }
+        }
         slotItemPtr = slotItem.has(w.id.next) ? &slotItem[w.id.next] : nullptr;
         while (!slotItemPtr && !stack.empty()) {
-            slotItemPtr = &stack.top().slotItem;
-            currentPtr  = &stack.top().ast;
-            stack.pop();
+            currentPtr   = &stack.back().ast;
+            slotItemPtr  = &stack.back().slotItem;
+            paramItemPtr = &stack.back().paramItem;
+            stack.pop_back();
             ret.add(w.id.op);
             ret.add(w.id.pop);
             slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
@@ -210,9 +244,8 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolKey& 
     return os;
 }
 
-ToolFinder::ConversionToolBlueprint::ConversionToolBlueprint(CellI& tool, CellI& compiledToolType, CellI& slotId) :
+ToolFinder::ConversionToolBlueprint::ConversionToolBlueprint(CellI& tool, CellI& slotId) :
     m_tool(&tool),
-    m_compiledToolType(&compiledToolType),
     m_slotId(&slotId)
 {
 }
@@ -229,47 +262,26 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBluep
 }
 
 // ============================================================================
-void ToolFinder::add(CellI& tool, CellI& compiledToolType)
+void ToolFinder::add(Object& tool)
 {
-    auto& effects = tool[w.id.description][w.id.asts];
+    auto& effects = tool[w.id.description];
     if (tool.has(w.id.returnType)) {
         // so this can be a conversion tool
-        CellI& returnType     = tool[w.id.returnType][w.id.value];
-        CellI& toolInputSlots = compiledToolType[w.id.slots][w.id.list];
-        forEach(toolInputSlots, [this, &tool, &compiledToolType, &returnType](CellI& slot, int i, bool& stop) {
-            CellI& inputType = slot[w.id.type];
-            ConversionToolKey key(inputType, returnType);
-            ConversionToolBlueprint blueprint(tool, compiledToolType, slot[w.id.key]);
-            m_conversionTools.insert({ key, blueprint });
-        });
-    }
-    Index& toolInfo = *new Index(w);
-    toolInfo.insert(w.name("tool"), tool);
-    toolInfo.insert(w.name("compiledToolType"), compiledToolType);
-    m_tools.add(toolInfo);
-
-    if (IS_LOG_ENABLED) {
-        std::stringstream ss;
-
-        ss << "" << tool.label() << "(";
-
-        CellI& toolInputSlots = compiledToolType[w.id.slots][w.id.list];
-        forEach(toolInputSlots, [this, &ss, &tool](CellI& slot, int i, bool& stop) {
-            if (i > 0) {
-                ss << ", ";
-            }
-            CellI& inputType = slot[w.id.type];
-            ss << slot[w.id.key].label() << ": " << inputType.label();
-        });
-        ss << ")";
-        if (tool.has(w.id.returnType)) {
-            CellI& returnType = tool[w.id.returnType][w.id.value];
-            ss << ": " << returnType.label();
+        CellI& returnType = tool[w.id.returnType];
+        if (tool.has(w.id.parameters)) {
+            forEach(tool[w.id.parameters][w.id.list], [this, &tool, &returnType](CellI& parameter, int i, bool& stop) {
+                CellI& inputType = parameter[w.id.type];
+                ConversionToolKey key(inputType, returnType);
+                ConversionToolBlueprint blueprint(tool, parameter[w.id.key]);
+                m_conversionTools.insert({ key, blueprint });
+            });
         }
-        TRACE(toolFinder, "{} =>", ss.str());
     }
-    forEach(effects, [this, &tool, &compiledToolType](CellI& effect, int i, bool& stop) {
-        add(effect, tool, compiledToolType);
+    m_tools.add(tool);
+
+    TRACE(toolFinder, "{} =>", tool.label());
+    forEach(effects, [this, &tool](CellI& effect, int i, bool& stop) {
+        add(effect, tool);
 #if 0
         if (&effect.__type__() == &w.std.ast.Equal) {
             Object symmetricEffectAst(w, w.std.ast.Equal, "symmetric effect");
@@ -282,7 +294,7 @@ void ToolFinder::add(CellI& tool, CellI& compiledToolType)
 }
 
 // ============================================================================
-void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack)
+void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNodeNew>& stack)
 {
     if (!memberIds.hasKey(memberKey)) {
         List& path = *new List(w, w.std.Cell, fmt::format("path for {}", memberKey.label()));
@@ -290,7 +302,7 @@ void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, s
             if (&stackItem.ast.__type__() == &w.std.ast.Return) {
                 continue;
             }
-            path.add(stackItem.slotItem[w.id.value][w.id.key]);
+            path.add(stackItem.slotItem[w.id.value]);
         }
         path.add(key);
         memberIds.add(memberKey, path);
@@ -298,72 +310,99 @@ void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, s
 }
 
 // ============================================================================
-void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
+void ToolFinder::add(CellI& effect, CellI& tool)
 {
-    std::deque<StackNode> stack;
+    std::deque<StackNodeNew> stack;
 
-    Node* currentNode  = m_root.get();
-    CellI& slotList    = effect.slotList();
-    CellI* slotItemPtr = slotList.has(w.id.first) ? &slotList[w.id.first] : nullptr;
-    bool first         = true;
-    CellI* currentPtr  = &effect;
+    Node* currentNode   = m_root.get();
+    CellI* slotItemPtr  = &callSlotKeyList()[w.id.first];
+    CellI* paramItemPtr = nullptr;
+    CellI* currentPtr   = &effect;
     Map memberIds(w, w.std.Cell, w.std.Cell);
 
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
-        CellI& slot     = slotItem[w.id.value];
-        CellI& key      = slot[w.id.key];
         CellI& current  = *currentPtr;
+        CellI& key      = slotItem[w.id.value];
 
-        if (first) {
-            first = false;
-            addValue(currentNode, w.id.__type__);
+        if (&key == &w.id.__type__) {
+            addValue(currentNode, w.id.op);
+            addValue(currentNode, w.id.type);
             addValue(currentNode, current.__type__());
-        }
-
-        if (current.has(key)) {
-            CellI& value = current[key];
+        } else if (&key == &w.id.method) {
             addValue(currentNode, key);
-            if (&value.__type__() == &w.std.ast.Cell) {
-                addValue(currentNode, value[w.id.value]);
-                if (&value[w.id.value] == &w.id.op) {
-                    addValue(currentNode, value[w.id.value]);
+            addValue(currentNode, current[key]);
+        } else {
+            CellI* keyPtr   = nullptr;
+            CellI* valuePtr = nullptr;
+
+            if (&key == &w.id.cell) {
+                keyPtr   = &key;
+                valuePtr = &current[key];
+            } else if (&key == &w.id.parameters && current.has(key)) {
+                if (!paramItemPtr) {
+                    paramItemPtr = &current[w.id.parameters][w.id.first];
                 }
-#if 0
-            } else if (&value.__type__() == &w.std.ast.Slot) {
-                addValue(currentNode, value[w.id.type]);
-                memberIds.add(key, value);
-//                ConversionToolKey conversionToolKey(value, returnType);
-//                ConversionToolBlueprint blueprint(tool, compiledToolType, key);
-//                m_conversionTools.insert({ conversionToolKey, blueprint });
-#endif
-            } else if (&value.__type__() == &w.std.ast.Member || &value.__type__() == &w.std.ast.Return) {
-                addValue(currentNode, w.id.op);
-                CellI* memberKeyPtr = nullptr;
-                if (&value.__type__() == &w.std.ast.Member) {
-                    addValue(currentNode, w.id.variable);
-                    memberKeyPtr = &value[w.id.key];
-                } else {
-                    addValue(currentNode, w.id.return_);
-                    // TODO w.id.return_ can not be a member name
-                    memberKeyPtr = &w.id.return_;
+                CellI& paramSlot = (*paramItemPtr)[w.id.value];
+                keyPtr           = &paramSlot[w.id.key];
+                valuePtr         = &paramSlot[w.id.value];
+            }
+            if (keyPtr && valuePtr) {
+                CellI& paramKey   = *keyPtr;
+                CellI& paramValue = *valuePtr;
+
+                addValue(currentNode, paramKey);
+                if (&paramValue.__type__() == &w.std.ast.Cell) {
+                    addValue(currentNode, paramValue[w.id.value]);
+                    if (&paramValue[w.id.value] == &w.id.op) {
+                        // handling the _(op) case, where op is a constant
+                        // it will be op op, so the escaping character here is op
+                        addValue(currentNode, paramValue[w.id.value]);
+                    }
+                } else if (&paramValue.__type__() == &w.std.ast.Self ||
+                           &paramValue.__type__() == &w.std.ast.Return ||
+                           &paramValue.__type__() == &w.std.ast.Parameter) {
+                    addValue(currentNode, w.id.op);
+                    CellI* memberKeyPtr = nullptr;
+                    if (&paramValue.__type__() == &w.std.ast.Self) {
+                        addValue(currentNode, w.id.variable);
+                        memberKeyPtr = &w.id.self;
+                    } else if (&paramValue.__type__() == &w.std.ast.Return) {
+                        addValue(currentNode, w.id.variable);
+                        memberKeyPtr = &w.id.return_;
+                    } else if (&paramValue.__type__() == &w.std.ast.Parameter) {
+                        addValue(currentNode, w.id.variable);
+                        memberKeyPtr = &paramValue[w.id.key];
+                    } else {
+                        throw "Unknow param type!";
+                    }
+                    saveCurrentPath(paramKey, *memberKeyPtr, memberIds, stack);
+                } else if (&paramValue.__type__() == &w.std.op.Call) {
+                    addValue(currentNode, w.id.op);
+                    addValue(currentNode, w.id.push);
+                    stack.push_back({ current, *slotItemPtr, *paramItemPtr });
+                    currentPtr   = &paramValue;
+                    slotItemPtr  = &callSlotKeyList()[w.id.first];
+                    paramItemPtr = nullptr;
+                    continue;
                 }
-                saveCurrentPath(key, *memberKeyPtr, memberIds, stack);
-            } else if ((&key != &w.id.__type__) && value.__type__()[w.id.memberOf][w.id.index].has(w.std.ast.Base)) {
-                addValue(currentNode, w.id.op);
-                addValue(currentNode, w.id.push);
-                stack.push_back({ current, *slotItemPtr });
-                first       = true;
-                currentPtr  = &value;
-                slotItemPtr = &value.slotList()[w.id.first];
-                continue;
             }
         }
 
+        if (&key == &w.id.parameters && paramItemPtr) {
+            CellI& paramItem = *paramItemPtr;
+            paramItemPtr     = paramItem.has(w.id.next) ? &paramItem[w.id.next] : nullptr;
+            if (paramItemPtr) {
+                continue;
+            } else {
+                paramItemPtr = nullptr;
+            }
+        }
         slotItemPtr = slotItem.has(w.id.next) ? &slotItem[w.id.next] : nullptr;
         while (!slotItemPtr && !stack.empty()) {
-            currentPtr  = &stack.back().ast;
-            slotItemPtr = &stack.back().slotItem;
+            currentPtr   = &stack.back().ast;
+            slotItemPtr  = &stack.back().slotItem;
+            paramItemPtr = &stack.back().paramItem;
             stack.pop_back();
             addValue(currentNode, w.id.op);
             addValue(currentNode, w.id.pop);
@@ -375,12 +414,12 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
     if (currentNode->m_data != nullptr) {
         std::cout << "";
     }
-    currentNode->m_data   = createBuilder(tool, memberIds, compiledToolType);
+    currentNode->m_data   = createBuilder(tool, memberIds);
     currentNode->m_tool   = &tool;
     currentNode->m_effect = &effect;
 
     if (IS_LOG_ENABLED) {
-        CellI& astAsList = serializeEffectAst(effect);
+        CellI& astAsList = serializeEffect(effect);
         std::stringstream ss;
         forEach(astAsList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
@@ -390,29 +429,21 @@ void ToolFinder::add(CellI& effect, CellI& tool, CellI& compiledToolType)
 }
 
 // ============================================================================
-CellI* ToolFinder::createBuilder(CellI& toolAst, Map& memberIds, CellI& compiledToolType)
+CellI* ToolFinder::createBuilder(CellI& tool, Map& memberIds)
 {
-    CellI& membersList = toolAst[w.id.members][w.id.list];
-    CellI* slotItemPtr = membersList.has(w.id.first) ? &membersList[w.id.first] : nullptr;
-    bool first         = true;
-    List& builder      = *new List(w, w.std.Cell, fmt::format("builder for {}", toolAst.label()));
+    List& builder = *new List(w, w.std.Cell, fmt::format("builder for {}", tool.label()));
 
-    while (slotItemPtr) {
-        CellI& slotItem = *slotItemPtr;
-        CellI& slot     = slotItem[w.id.value];
-        CellI& key      = slot[w.id.key];
+    builder.add(w._(w.id.__type__));
+    builder.add(w._(w.std.op.Call));
 
-        if (first) {
-            first = false;
-            builder.add(w.ast.cell(w.id.__type__));
-            builder.add(w.ast.cell(compiledToolType));
-            continue;
-        }
+    builder.add(w._(w.id.method));
+    builder.add(w._(tool));
+
+    forEach(tool[w.id.parameters][w.id.list], [this, &memberIds, &builder](CellI& slot, int, bool&) {
+        CellI& key = slot[w.id.key];
         builder.add(w.ast.cell(key));
         builder.add(memberIds.getValue(key));
-
-        slotItemPtr = slotItem.has(w.id.next) ? &slotItem[w.id.next] : nullptr;
-    }
+    });
 
     return &builder;
 }
@@ -476,6 +507,12 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
             TRACE(toolFinderLookup, "MATCH: op");
 
             for (auto& [opKey, nextNode] : opNode->m_children) {
+                if (opKey == &w.id.type) {
+                    TRACE(toolFinderLookup, "MATCH: type");
+                    node = nextNode;
+                    handleStep(effectAstPtr, slotItemPtr, node, stack);
+                    return true;
+                }
                 if (opKey == &w.id.variable) {
                     TRACE(toolFinderLookup, "MATCH: variable");
                     node = nextNode;
@@ -493,7 +530,7 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
                         return false;
                     }
                     CellI& prevAst = stack.back().ast;
-                    if (&prevAst.__type__() != &w.std.ast.Equal) {
+                    if (&prevAst.__type__() != &w.std.Cell.Equal) {
                         return false;
                     }
                     CellI& prevSlotKey  = stack.back().slotItem[w.id.value][w.id.key];
@@ -549,7 +586,7 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
 }
 
 // ============================================================================
-List& ToolFinder::findToolsByEffectAst(CellI& effectAst)
+List& ToolFinder::findToolsByEffect(CellI& effectAst)
 {
     List& ret              = *new List(w, w.std.ast.Base);
     CellI* outputEffectAst = nullptr;
@@ -569,7 +606,7 @@ List& ToolFinder::findToolsByEffectAst(CellI& effectAst)
 // ============================================================================
 CellI* ToolFinder::findBuilderForEffectAstOld(CellI& inputEffectAst, CellI*& outputEffectAst)
 {
-    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
+//    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
     CellI& slotList         = inputEffectAst.slotList();
     FindContext findContext = {
         .trieNode     = m_root.get(),
@@ -599,7 +636,7 @@ CellI* ToolFinder::findBuilderForEffectAstOld(CellI& inputEffectAst, CellI*& out
             if (!(findContext.trieNode && findContext.trieNode->m_isLeaf)) {
                 return nullptr;
             }
-            CellI& newEffectAst = *new Object(w, w.std.ast.Equal); // TODO FIX memory leak
+            CellI& newEffectAst = *new Object(w, w.std.Cell.Equal); // TODO FIX memory leak
 
             newEffectAst.set(w.id.lhs, *findContext.expressionToolPtr);
             buildTool(newEffectAst, w.id.rhs, (*findContext.effectAstPtr), *findContext.trieNode->m_data);
@@ -626,7 +663,7 @@ CellI* ToolFinder::findBuilderForEffectAstOld(CellI& inputEffectAst, CellI*& out
 }
 
 // ============================================================================
-CellI* ToolFinder::findBuildersForEffectAst(CellI& inputEffectAst)
+CellI* ToolFinder::findBuildersForEffect(CellI& inputEffectAst)
 {
     DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
     CellI& slotList         = inputEffectAst.slotList();
@@ -837,7 +874,7 @@ ConversionLib::ConversionLib(World& w, Ast::Scope& parentScope, const std::strin
 // ============================================================================
 void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint, List& results)
 {
-    CellI& tool = *new Object(w, *blueprint.m_compiledToolType);
+    CellI& tool = *new Object(w, w.std.ast.Function);
     tool.set(*blueprint.m_slotId, w.ast.cell(from));
 
     Object unknownX(w, w.std.op.ConstVar, "unknownX");
@@ -851,11 +888,10 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     // this is the from in "tool(from, x) == to"
     tool.set(missingSlotId, w.ast.get(w._(unknownX), w._(w.id.value)));
 
-    CellI& missingSlotEquation = *new Object(w, w.std.ast.Equal, "tool(from, x) == to");
-    missingSlotEquation.set(w.id.lhs, tool);
-    missingSlotEquation.set(w.id.rhs, w.ast.cell(to));
+    CellI& missingSlotEquation = w.ast.equal(tool, w._(to));
+    missingSlotEquation.label("tool(from, x) == to");
 
-    List& missingSlotSolvers = findToolsByEffectAst(missingSlotEquation);
+    List& missingSlotSolvers = findToolsByEffect(missingSlotEquation);
 
     forEach(missingSlotSolvers, [&](CellI& missingSlotSolver, int i, bool&) {
         //        std::cout << blueprint << '\n';
@@ -876,7 +912,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         Ast::Scope rootScope2(w, "toolFinder");
         Compiler compiler2(w);
         std::string conversionToolName = fmt::format("conversionToolFor{}", blueprint.m_tool->label());
-        CellI& conversionToolAst       = *new Object(w, *blueprint.m_compiledToolType);
+        CellI& conversionToolAst       = *new Object(w, w.std.ast.Function);
         conversionToolAst.set(*blueprint.m_slotId, w.ast.parameter(w.name("from")));
         conversionToolAst.set(missingSlotId, w._(solvedX));
         ConversionLib conversionLib(w, rootScope2, conversionToolName, conversionToolAst, from.__type__(), to.__type__());
@@ -924,15 +960,14 @@ void ToolFinder::exploreSlotManipulations()
         }
 
         CellI& astTool = *new Object(w, compiledToolType);
-        astTool.set(w.id.lhs, w.ast.cell(w._1_));
-        astTool.set(w.id.rhs, w.ast.cell(w._2_));
+        astTool.set(w.id.lhs, w._(1));
+        astTool.set(w.id.rhs, w._(2));
 
-        CellI& astEqual = *new Object(w, w.std.ast.Equal, fmt::format("{}(x, y) == z", tool.label()));
-        astEqual.set(w.id.lhs, astTool);
-        astEqual.set(w.id.rhs, w.ast.cell(w._3_));
+        CellI& astEqual = w.ast.equal(astTool, w._(3));
+        astEqual.label(fmt::format("{}(x, y) == z", tool.label()));
 
         CellI* outputEffect = nullptr;
-        CellI* builder      = findBuildersForEffectAst(astEqual);
+        CellI* builder      = findBuildersForEffect(astEqual);
         if (!builder) {
             return;
         }

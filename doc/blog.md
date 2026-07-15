@@ -1541,3 +1541,57 @@ equal(lhs: subtract(lhs: c, rhs: v), rhs: c) // 3 - x = 2, leads to
 equal(lhs: add(lhs: c, rhs: v), rhs: c)      // 2 + x = 3 - only possible transform, but not enough, but in previous section we can see that this leads to
   Subtract.builder#2 = m_rhs + return == m_lhs so we end up
 equal(lhs: subtract(lhs: c, rhs: c), rhs: v) // 3 - 2 = x  here we should detect that we can swap eq.rhs with subtract.rhs
+
+2026-07-12
+==========
+
+// TODO
+            if_(equal(m_("lhs") / "__type__", _(addPrimitive))).then_(
+                equal(add(add(p_("lhs") / _("lhs"), p_("lhs") / _("rhs")), p_("rhs")), add(p_("lhs") / _("lhs"), add(p_("lhs") / _("rhs"), p_("rhs")))))
+            )
+            if_(equal(m_("rhs") / "__type__", _(addPrimitive))).then_(
+                equal(add(add(p_("lhs"), p_("rhs") / _("lhs")), p_("rhs") / _("rhs")), add(p_("lhs"), add(p_("rhs") / _("lhs"), p_("rhs") / _("rhs")))))
+            )
+    addPrimitive.addMethod("add")
+        .parameters(
+            parameter("lhs", _("Add")),
+            parameter("rhs", _(std.Number)))
+        .description(
+            equal(add(add(p_("lhs") / _("lhs"), p_("lhs") / _("rhs")), p_("rhs")), add(p_("lhs") / _("lhs"), add(p_("lhs") / _("rhs"), p_("rhs")))))
+        .returnType(_(std.Number));
+
+    addPrimitive.addMethod("add")
+        .parameters(
+            parameter("lhs", _(std.Number)),
+            parameter("rhs", _("Add")))
+        .description(
+            equal(add(add(p_("lhs"), p_("rhs") / _("lhs")), p_("rhs") / _("rhs")), add(p_("lhs"), add(p_("rhs") / _("lhs"), p_("rhs") / _("rhs")))))
+        .returnType(_(std.Number));
+
+for conclusion, the next state of this tool (after activation) can be measured with the tool add
+subtract(lhs:3, rhs:2) == return:1
+return + rhs = lhs means
+1      + 2   = 3
+and
+rhs + return = lhs means
+2   + 1      = 3
+
+for reason, the previous state of add, can be measured with this tool subtract
+add(lhs:1,   rhs:2) == return:3
+    return + rhs    =  lhs   means we can build a subtract expression from the add expression
+subtract.lhs    can be found in add.return:3
+subtract.rhs    can be found in add.rhs:2
+subtract.return can be found in add.lhs:1
+so we can build the following:
+subtract(lhs=add.return:3, rhs=add.rhs:2) == add.lhs:1
+3 - 2 = 1
+the expression
+add(lhs:1,   rhs:2) == return:3
+    rhs +    return =  lhs
+means we can build a subtract expression from the add expression
+subtract lhs    can be found in add.return:3
+subtract rhs    can be found in add.lhs:1
+subtract return can be found in add.rhs:2
+so we can build the following:
+subtract(lhs=add.return:3, rhs=add.lhs:1) == add.rhs:2
+3 - 1 = 2
