@@ -623,6 +623,7 @@ void StdLibAst::createAst()
             member("name", "std::Cell"),
             member("fullyQualifiedName", "std::Cell"),
             member("compiledType", "std::Cell"),
+            member("memberMapping", MapOf(std.String, std.ast.Base)),
             member("primitiveTool", _(std.Boolean)),
             member("structType", "std::Cell"),
             member("parameters", ListOf(std.ast.Slot)),

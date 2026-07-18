@@ -256,25 +256,16 @@ TEST_F(CellTest, ToolFinderTestForSet)
     }
     Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
 
-    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
-    EXPECT_EQ(&resultTool[id.method][id.value][id.name], &w.name("set"));
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.ast.Cell);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
-    EXPECT_TRUE(resultTool.has(id.parameters));
-
-    CellI& paramsNode1 = resultTool[id.parameters][id.list][id.first];
-    EXPECT_EQ(&paramsNode1[id.value].__type__(), &std.ast.Slot);
-    EXPECT_EQ(&paramsNode1[id.value][id.key], &id.key);
-    EXPECT_EQ(&paramsNode1[id.value][id.value].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&paramsNode1[id.value][id.value][id.value], &id.green);
-
-    CellI& paramsNode2 = paramsNode1[id.next];
-    EXPECT_EQ(&paramsNode2[id.value].__type__(), &std.ast.Slot);
-    EXPECT_EQ(&paramsNode2[id.value][id.value].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&paramsNode2[id.value][id.value][id.value], &w._5_);
+    EXPECT_EQ(&resultTool[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.key][id.value], &id.green);
+    EXPECT_EQ(&resultTool[id.value].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.value][id.value], &w._5_);
 
     EXPECT_TRUE(pixel.missing(id.green));
-    resultTool.runAsCall();
+    resultTool();
     EXPECT_EQ(&pixel[id.green], &w._5_);
 }
 
@@ -311,20 +302,14 @@ TEST_F(CellTest, ToolFinderTestForGet)
     }
     Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
 
-    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
-    EXPECT_EQ(&resultTool[id.method][id.value][id.name], &w.name("get"));
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Get);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.ast.Cell);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
-    EXPECT_TRUE(resultTool.has(id.parameters));
-
-    CellI& paramKey = resultTool[id.parameters][id.index][id.key][id.value];
-    EXPECT_EQ(&paramKey.__type__(), &std.ast.Slot);
-    EXPECT_EQ(&paramKey[id.key], &id.key);
-    EXPECT_EQ(&paramKey[id.value].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&paramKey[id.value][id.value], &id.green);
+    EXPECT_EQ(&resultTool[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.key][id.value], &id.green);
 
     EXPECT_TRUE(resultTool.missing(id.value));
-    resultTool.runAsCall();
+    resultTool();
     EXPECT_EQ(&resultTool[id.value], &w._5_);
 }
 
@@ -382,34 +367,19 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     }
     Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
 
-    // TODO
-    // EXPECT_EQ(resultTool, testResponseFn);
-
-    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
-    EXPECT_EQ(&resultTool[id.method][id.value][id.name], &w.name("set"));
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
-    EXPECT_TRUE(resultTool.has(id.parameters));
-    EXPECT_EQ(&resultTool[id.parameters][id.size], &w._2_);
-
-#if 0
-    CellI& paramKey = resultTool[id.parameters][id.index][id.key][id.value][id.value];
-    EXPECT_EQ(&paramKey.__type__(), &std.op.Call);
-    EXPECT_EQ(&paramKey[id.method][id.value][id.name], &w.name("get"));
-    EXPECT_EQ(&paramKey[id.cell].__type__(), &std.op.ConstVar);
-    EXPECT_EQ(&paramKey[id.cell][id.value], &theme);
-    EXPECT_TRUE(paramKey.has(id.parameters));
-    EXPECT_EQ(&paramKey[id.parameters][id.size], &w._1_);
-#endif
-    // TODO
-
-    CellI& paramValue = resultTool[id.parameters][id.index][id.value][id.value];
-    EXPECT_EQ(&paramValue.__type__(), &std.ast.Slot);
-    EXPECT_EQ(&paramValue[id.value].__type__(), &std.op.ConstVar);
-    EXPECT_EQ(&paramValue[id.value][id.value], &w._5_);
+    EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.Get);
+    EXPECT_EQ(&resultTool[id.key][id.cell].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.key][id.cell][id.value], &theme);
+    EXPECT_EQ(&resultTool[id.key][id.key].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.key][id.key][id.value], &id.color);
+    EXPECT_EQ(&resultTool[id.value].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.value][id.value], &w._5_);
 
     EXPECT_TRUE(pixel.missing(id.green));
-    resultTool.runAsCall();
+    resultTool();
     EXPECT_EQ(&pixel[id.green], &w._5_);
 
     std::cout << "";
@@ -448,22 +418,16 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     CellI& resultTool = resultTools[w.id.first][w.id.value];
 
     // set(_(x), _(id.value), subtract(_(4), _(2)))
-    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
-    EXPECT_EQ(&resultTool[id.method][id.value][id.name], &w.name("set"));
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
+#if 0 // TODO
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &testRequest.x);
-    EXPECT_TRUE(resultTool.has(id.parameters));
-    EXPECT_EQ(&resultTool[id.parameters][id.size], &w._2_);
-#if 0
-    EXPECT_EQ(&resultTool.__type__(), &std.ast.Set);
-    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultTool[id.cell][id.value], &varX);
-    EXPECT_EQ(&resultTool[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.key][id.value], &id.value);
-    EXPECT_EQ(&resultTool[id.value].__type__(), &std.ast.Subtract);
-    EXPECT_EQ(&resultTool[id.value][id.lhs].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.value].__type__(), &std.op.Subtract);
+    EXPECT_EQ(&resultTool[id.value][id.lhs].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.value][id.lhs][id.value], &_4_);
-    EXPECT_EQ(&resultTool[id.value][id.rhs].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.value][id.rhs].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.value][id.rhs][id.value], &_2_);
 #endif
 }

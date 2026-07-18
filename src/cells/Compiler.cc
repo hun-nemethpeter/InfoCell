@@ -399,6 +399,7 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function)
     // we have now enough information to auto-generate the instruction(s) for primitve tools here
     if (function.has("primitiveTool")) {
         ret.set("primitiveTool", function["primitiveTool"]);
+        ret.set(w.id.memberMapping, function[w.id.memberMapping]);
 
         Ast::Call& instructionCall = w.ast.call(w.ast.self(), w.ast.primitiveToolName(function["primitiveTool"]));
         if (function.has(w.id.parameters)) {
