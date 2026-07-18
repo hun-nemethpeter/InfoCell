@@ -15,11 +15,6 @@ class ToolFinder
     {
         CellI& ast;
         CellI& slotItem;
-    };
-    struct StackNodeNew
-    {
-        CellI& ast;
-        CellI& slotItem;
         CellI& paramItem;
     };
 
@@ -53,14 +48,9 @@ class ToolFinder
 
     struct FindContext
     {
-        Node* trieNode;
-        CellI* slotList;
+        CellI* effectPtr;
         CellI* slotItemPtr;
-        SlotKind slotKind;
-        CellI* effectAstPtr;
-        std::deque<StackNode> stack;
-        ToolKind toolKind;
-        CellI* expressionToolPtr;
+        CellI* paramItemPtr;
     };
 
 public:
@@ -99,12 +89,10 @@ public:
 
 private:
     CellI* findBuildersForEffect(CellI& effect);
-    CellI* findBuilderForEffectAstOld(CellI& inputEffectAst, CellI*& outputEffectAst);
-    void buildTool(CellI& outCell, CellI& outRole, CellI& ast, CellI& builder);
+    void buildTool(CellI& outCell, CellI& outRole, CellI& matchedEffect, CellI& builder);
     void addValue(Node*& node, CellI& value);
-    void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNodeNew>& stack);
-    bool checkValue(FindContext& findContext, CellI& key, CellI& value);
-    void handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::deque<StackNode>& stack);
+    void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
+    bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush);
     CellI* createBuilder(CellI& tool, Map& memberIds);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
     void findConversionToolsByValue(CellI& from, CellI& to, List& results);
@@ -114,6 +102,7 @@ private:
     List& callSlotKeyList();
 
     World& w;
+    ID& id;
     std::unique_ptr<Node> m_root;
     List m_tools;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;

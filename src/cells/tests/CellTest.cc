@@ -216,23 +216,27 @@ TEST_F(CellTest, StringSplitWithExtraChar)
     EXPECT_EQ(sliced[2], "Cell");
 }
 
+// Given:   empty pixel
+// Request: get(pixel, green) == 5
+// Result:  set(pixel, green, 5)
 TEST_F(CellTest, ToolFinderTestForSet)
 {
     spdlog::get("toolFinderLookup")->set_level(spdlog::level::trace);
 
+    ;
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
-    // test the pixel.set(green, 5)
     Object& pixel           = *new Object(w, test.Color, "pixel");
 
     CellI& requestForSetGet = *new Object(w, std.op.Call);
     requestForSetGet.set(id.method, std.op.Get);
     requestForSetGet.set(id.cell, w._(pixel));
-    requestForSetGet.set(id.parameters, w.list(w.ast.parameterInit(w.id.key, w._(id.green))));
+    requestForSetGet.set(id.parameters, parameters(w.id.key, w._(id.green)));
 
     CellI& requestForSet = *new Object(w, std.op.Call, "pixel.get(green) == 5");
     requestForSet.set(id.method, std.op.Equal);
     requestForSet.set(id.cell, requestForSetGet);
-    requestForSet.set(id.parameters, w.list(w.ast.parameterInit(w.id.other, w._(5))));
+
+    requestForSet.set(id.parameters, parameters(w.id.other, w._(5)));
 
     CellI& requestForSetAstList = toolFinder.serializeEffect(requestForSet);
     {
@@ -243,198 +247,227 @@ TEST_F(CellTest, ToolFinderTestForSet)
         EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Get cell pixel key green op pop other 5 ");
     }
 
-    List& resultToolAsts = toolFinder.findToolsByEffect(requestForSet);
+    List& resultTools = toolFinder.findToolsByEffect(requestForSet);
 
-    EXPECT_EQ(resultToolAsts.size(), 1);
+    EXPECT_EQ(resultTools.size(), 1);
 
-    if (resultToolAsts.size() != 1) {
+    if (resultTools.size() != 1) {
         return;
     }
-    CellI& resultToolCall = resultToolAsts[w.id.first][w.id.value];
+    Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
 
-    EXPECT_EQ(&resultToolCall.__type__(), &std.op.Call);
-    EXPECT_EQ(&resultToolCall[id.method], &std.op.Set);
-    EXPECT_EQ(&resultToolCall[id.cell].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolCall[id.cell][id.value], &pixel);
-    EXPECT_TRUE(resultToolCall.has(id.parameters));
-    EXPECT_EQ(&resultToolCall[id.parameters][id.index][id.key].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolCall[id.parameters][id.index][id.key][id.value], &id.green);
-    EXPECT_EQ(&resultToolCall[id.parameters][id.index][id.value].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolCall[id.parameters][id.index][id.value][id.value], &w._5_);
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
+    EXPECT_EQ(&resultTool[id.method][id.value][id.name], &w.name("set"));
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
+    EXPECT_TRUE(resultTool.has(id.parameters));
+
+    CellI& paramsNode1 = resultTool[id.parameters][id.list][id.first];
+    EXPECT_EQ(&paramsNode1[id.value].__type__(), &std.ast.Slot);
+    EXPECT_EQ(&paramsNode1[id.value][id.key], &id.key);
+    EXPECT_EQ(&paramsNode1[id.value][id.value].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&paramsNode1[id.value][id.value][id.value], &id.green);
+
+    CellI& paramsNode2 = paramsNode1[id.next];
+    EXPECT_EQ(&paramsNode2[id.value].__type__(), &std.ast.Slot);
+    EXPECT_EQ(&paramsNode2[id.value][id.value].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&paramsNode2[id.value][id.value][id.value], &w._5_);
+
+    EXPECT_TRUE(pixel.missing(id.green));
+    resultTool.runAsCall();
+    EXPECT_EQ(&pixel[id.green], &w._5_);
 }
 
-#if 0 // TODO
+// Given:   pixel.color = 5
+// Request: get(pixel, green)
+// Result:  get(pixel, green) after activation the value in get is 5
 TEST_F(CellTest, ToolFinderTestForGet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     Object& pixel          = *new Object(w, test.Color, "pixel");
+    pixel.set(id.green, w._5_);
 
-    // test the return get(x, y)
-    CellI& requestForGet = *new Object(w, std.ast.Get);
-    requestForGet.set(id.cell, w.ast.cell(pixel));
-    requestForGet.set(id.key, w.ast.cell(id.green));
+    // test the get(pixel, green)
+    CellI& requestForGet = *new Object(w, std.op.Call);
+    requestForGet.set(id.method, std.op.Get);
+    requestForGet.set(id.cell, w._(pixel));
+    requestForGet.set(id.parameters, parameters(w.id.key, w._(id.green)));
 
-    CellI& requestForGetAstList = toolFinder.serializeEffectAst(requestForGet);
+    CellI& requestForGetAstList = toolFinder.serializeEffect(requestForGet);
     {
         std::stringstream ss;
         forEach(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "__type__ ast::Get cell pixel key green ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Get cell pixel key green ");
     }
 
-    List& resultToolAsts = toolFinder.findToolsByEffectAst(requestForGet);
+    List& resultTools = toolFinder.findToolsByEffect(requestForGet);
 
-    EXPECT_EQ(resultToolAsts.size(), 1);
+    EXPECT_EQ(resultTools.size(), 1);
 
-    if (resultToolAsts.size() != 1) {
+    if (resultTools.size() != 1) {
         return;
     }
-    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
+    Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
 
-    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Get);
-    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.cell][id.value], &pixel);
-    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.green);
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
+    EXPECT_EQ(&resultTool[id.method][id.value][id.name], &w.name("get"));
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
+    EXPECT_TRUE(resultTool.has(id.parameters));
+
+    CellI& paramKey = resultTool[id.parameters][id.index][id.key][id.value];
+    EXPECT_EQ(&paramKey.__type__(), &std.ast.Slot);
+    EXPECT_EQ(&paramKey[id.key], &id.key);
+    EXPECT_EQ(&paramKey[id.value].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&paramKey[id.value][id.value], &id.green);
+
+    EXPECT_TRUE(resultTool.missing(id.value));
+    resultTool.runAsCall();
+    EXPECT_EQ(&resultTool[id.value], &w._5_);
 }
 
+// Given:   empty pixel
+//          theme.color = green
+// Request: get(pixel, theme.color) == 5
+// Result:  set(pixel, theme.color, 5)
 TEST_F(CellTest, ToolFinderTestForGetInGet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
 
-    // currentTheme is a test structure to be able to test a nested get. So instead of pixel.get(green) we can replace the "green" node with "currentTheme / std.Color" so we can write
-    // currentTheme.get(std.Color).get(green) == 5
-    Index currentTheme(w, "currentTheme");
-    currentTheme.set(test.Color, id.green);
+    Object& pixel = *new Object(w, test.Color, "pixel");
+    Index theme(w, "theme");
+    theme.set(id.color, id.green);
 
-    // test the return currentTheme.get(std.Color).get(green) == 5
-    CellI& requestForSetWithGetGetGet = *new Object(w, std.ast.Get, "currentTheme.get(std.Color)");
-    requestForSetWithGetGetGet.set(id.cell, w.ast.cell(currentTheme));
-    requestForSetWithGetGetGet.set(id.key, w.ast.cell(test.Color));
+    struct TestRequest : public AstHelper
+    {
+        Base* astPtr = nullptr;
+        TestRequest(World& w, CellI& pixel, CellI& theme) :
+            AstHelper(w)
+        {
+            astPtr = &equal(get(_(pixel), _(theme) / _(id.color)), _(5));
+        }
+    } testRequest(w, pixel, theme);
 
-    CellI& requestForSetWithGetGet = *new Object(w, std.ast.Get, "currentTheme.get(std.Color).get(green)");
-    requestForSetWithGetGet.set(id.cell, requestForSetWithGetGetGet);
-    requestForSetWithGetGet.set(id.key, w.ast.cell(id.green));
+    struct TestResponse : public AstHelper
+    {
+        Base* astPtr = nullptr;
+        TestResponse(World& w, CellI& pixel, CellI& theme) :
+            AstHelper(w)
+        {
+            astPtr = &set(_(pixel), _(theme) / _(id.color), _(5));
+        }
+    } testResponse(w, pixel, theme);
 
-    CellI& requestForSetWithGet = *new Object(w, std.ast.Equal, "currentTheme.get(std.Color).get(green) == 5");
-    requestForSetWithGet.set(id.lhs, requestForSetWithGetGet);
-    requestForSetWithGet.set(id.rhs, w.ast.cell(w._5_));
-
-    CellI& requestForSetWithGetAstList = toolFinder.serializeEffectAst(requestForSetWithGet);
+    LibraryTester libraryTester(w, testLib);
+    auto& testRequestFn = libraryTester.compile("getInGet", "request", *testRequest.astPtr);
+    auto& testResponseFn = libraryTester.compile("getInGet", "response", *testResponse.astPtr);
+    //    printAs.value(testRequestFn);
+    CellI& requestForSetWithGetAstList = toolFinder.serializeEffect(testRequestFn);
     {
         std::stringstream ss;
         forEach(requestForSetWithGetAstList, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell op push __type__ ast::Get cell currentTheme key Color op pop key green op pop rhs 5 ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Get cell pixel key op push op type op::Call method op::Get cell theme key color op pop op pop other 5 ");
     }
 
-    List& resultToolAsts = toolFinder.findToolsByEffectAst(requestForSetWithGet);
+    List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
 
-    EXPECT_EQ(resultToolAsts.size(), 1);
+    EXPECT_EQ(resultTools.size(), 1);
 
-    if (resultToolAsts.size() != 1) {
+    if (resultTools.size() != 1) {
         return;
     }
-    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
+    Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
 
-    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
-    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Get);
-    EXPECT_EQ(&resultToolAst[id.cell][id.cell].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.cell][id.cell][id.value], &currentTheme);
-    EXPECT_EQ(&resultToolAst[id.cell][id.key].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.cell][id.key][id.value], &test.Color);
-    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.green);
-    EXPECT_EQ(&resultToolAst[id.value].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.value][id.value], &w._5_);
+    // TODO
+    // EXPECT_EQ(resultTool, testResponseFn);
+
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
+    EXPECT_EQ(&resultTool[id.method][id.value][id.name], &w.name("set"));
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
+    EXPECT_TRUE(resultTool.has(id.parameters));
+    EXPECT_EQ(&resultTool[id.parameters][id.size], &w._2_);
+
+#if 0
+    CellI& paramKey = resultTool[id.parameters][id.index][id.key][id.value][id.value];
+    EXPECT_EQ(&paramKey.__type__(), &std.op.Call);
+    EXPECT_EQ(&paramKey[id.method][id.value][id.name], &w.name("get"));
+    EXPECT_EQ(&paramKey[id.cell].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&paramKey[id.cell][id.value], &theme);
+    EXPECT_TRUE(paramKey.has(id.parameters));
+    EXPECT_EQ(&paramKey[id.parameters][id.size], &w._1_);
+#endif
+    // TODO
+
+    CellI& paramValue = resultTool[id.parameters][id.index][id.value][id.value];
+    EXPECT_EQ(&paramValue.__type__(), &std.ast.Slot);
+    EXPECT_EQ(&paramValue[id.value].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&paramValue[id.value][id.value], &w._5_);
+
+    EXPECT_TRUE(pixel.missing(id.green));
+    resultTool.runAsCall();
+    EXPECT_EQ(&pixel[id.green], &w._5_);
+
     std::cout << "";
-}
-
-TEST_F(CellTest, ToolFinderTestForGetInGetWithAstHelper)
-{
-    ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
-
-    class RequestHelper : public AstHelper
-    {
-    public:
-        Base* value = nullptr;
-        RequestHelper(World& w) :
-            AstHelper(w)
-        {
-            // currentTheme.get(std.Color).get(green) == 5
-            Var& currentTheme = var_("currentTheme");
-            Base& ast = equal(_(currentTheme) / _(arc.Color) / _(id.green), _(_5_));
-            value     = &ast;
-        }
-    } requestHelper(w);
-    CellI& request = *requestHelper.value;
-    CellI& serializedRequest = toolFinder.serializeEffectAst(request);
-    {
-        std::stringstream ss;
-        forEach(serializedRequest, [&ss](CellI& value, int, bool& stop) {
-            ss << value.label() << " ";
-        });
-        EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Get cell op push __type__ ast::Get cell currentTheme key arc::Color op pop key green op pop rhs 5 ");
-    }
 }
 
 TEST_F(CellTest, ToolFinderTestForMathAdd)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
 
-    class RequestHelper : public AstHelper
-    {
-    public:
-        Base* varX    = nullptr;
-        Base* request = nullptr;
-        RequestHelper(World& w) :
-            AstHelper(w)
-        {
-            Var& x = var_("x");
+    struct RequestHelper : public AstHelper { RequestHelper(World& w) : AstHelper(w) { }
 
-            // test x + 2 = 4 => equal(add(get(x, value), 2)), 4)
-            Base& ast = equal(add(_(x) / _(id.value), _(_2_)), _(_4_));
-            varX    = &x;
-            request = &ast;
-        }
-    } requestHelper(w);
+        Var& x    = var_("x");
+        Base& ast = equal(add(_(x) / _(id.value), _(_2_)), _(_4_));
 
-    CellI& request = *requestHelper.request;
-    CellI& varX    = *requestHelper.varX;
+    } testRequest(w);
 
-    CellI& serializedRequest = toolFinder.serializeEffectAst(request);
+    LibraryTester libraryTester(w, testLib);
+    auto& testRequestFn = libraryTester.compile("getInGet", "request", testRequest.ast);
+
+    CellI& serializedRequest = toolFinder.serializeEffect(testRequestFn);
     {
         std::stringstream ss;
         forEach(serializedRequest, [&ss](CellI& value, int, bool& stop) {
             ss << value.label() << " ";
         });
-        EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Add lhs op push __type__ ast::Get cell x key value op pop rhs 2 op pop rhs 4 ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Add cell op push op type op::Call method op::Get cell x key value op pop other 2 op pop other 4 ");
     }
 
-    List& resultToolAsts = toolFinder.findToolsByEffectAst(request);
+    List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
 
-    EXPECT_EQ(resultToolAsts.size(), 1);
+    EXPECT_EQ(resultTools.size(), 1);
 
-    if (resultToolAsts.size() != 1) {
+    if (resultTools.size() != 1) {
         return;
     }
-    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
+    CellI& resultTool = resultTools[w.id.first][w.id.value];
 
     // set(_(x), _(id.value), subtract(_(4), _(2)))
-    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
-    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.cell][id.value], &varX);
-    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.value);
-    EXPECT_EQ(&resultToolAst[id.value].__type__(), &std.ast.Subtract);
-    EXPECT_EQ(&resultToolAst[id.value][id.lhs].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.value][id.lhs][id.value], &_4_);
-    EXPECT_EQ(&resultToolAst[id.value][id.rhs].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.value][id.rhs][id.value], &_2_);
-}
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
+    EXPECT_EQ(&resultTool[id.method][id.value][id.name], &w.name("set"));
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.cell][id.value], &testRequest.x);
+    EXPECT_TRUE(resultTool.has(id.parameters));
+    EXPECT_EQ(&resultTool[id.parameters][id.size], &w._2_);
+#if 0
+    EXPECT_EQ(&resultTool.__type__(), &std.ast.Set);
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.cell][id.value], &varX);
+    EXPECT_EQ(&resultTool[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.key][id.value], &id.value);
+    EXPECT_EQ(&resultTool[id.value].__type__(), &std.ast.Subtract);
+    EXPECT_EQ(&resultTool[id.value][id.lhs].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.value][id.lhs][id.value], &_4_);
+    EXPECT_EQ(&resultTool[id.value][id.rhs].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.value][id.rhs][id.value], &_2_);
 #endif
+}
+
 #if 0
 TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
 {
@@ -644,8 +677,10 @@ TEST_F(CellTest, RecursiveCall)
     EXPECT_EQ(&testNumber.method(w.name("factorial"), { id.input, _3_ }), &_6_);
     EXPECT_EQ(&testNumber.method(w.name("factorial"), { id.input, _4_ }), &w.pools.numbers.get(24));
     EXPECT_EQ(&testNumber.method(w.name("factorial"), { id.input, _5_ }), &w.pools.numbers.get(120));
+    // intentionally repeat the exact previous
+    EXPECT_EQ(&testNumber.method(w.name("factorial"), { id.input, _5_ }), &w.pools.numbers.get(120));
 
-    int liveCells                 = CellI::s_constructed - CellI::s_destructed;
+    int liveCells = CellI::s_constructed - CellI::s_destructed;
     for (int i = 0; i < 10; ++i) {
         EXPECT_EQ(&testNumber.method(w.name("factorial"), { id.input, _5_ }), &w.pools.numbers.get(120));
         testNumber.clearStack(factorialMethod);

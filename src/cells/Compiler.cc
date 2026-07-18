@@ -68,6 +68,17 @@ Library& Compiler::compile(Ast::Scope& scope)
     return *m_libraryPtr;
 }
 
+Object& Compiler::compileAsPrompt(Ast::Function& prompt)
+{
+    auto& resolvedPrompt = resolveTypesInFunction(prompt);
+
+    instantiateTemplateInstances();
+    Object& compiledPrompt = *new Object(w, w.std.op.Function);
+
+    return static_cast<Object&>(compileDescriptionInFunctionAst(prompt[w.id.instructions][w.id.asts][w.id.first][w.id.value], compiledPrompt));
+}
+
+
 CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
 {
     CellI* structIdPtr = nullptr;
@@ -385,10 +396,28 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function)
     }
     ret.label(ss.str());
 
-    // primitve tools doesn't have instructions
+    // we have now enough information to auto-generate the instruction(s) for primitve tools here
     if (function.has("primitiveTool")) {
-        ret.set("primitiveTool", w.true_);
-    } else {
+        ret.set("primitiveTool", function["primitiveTool"]);
+
+        Ast::Call& instructionCall = w.ast.call(w.ast.self(), w.ast.primitiveToolName(function["primitiveTool"]));
+        if (function.has(w.id.parameters)) {
+            forEach(function[w.id.parameters], [this, &instructionCall](CellI& parameter, int i, bool&) {
+                CellI& key = parameter[w.id.key];
+                instructionCall(key.label(), w.ast.parameter(key));
+            });
+        }
+        CellI* generatedInstructionsPtr = nullptr;
+        if (function.has(w.id.returnType)) {
+            Ast::Return& returnInstruction = w.ast.return_(instructionCall);
+            generatedInstructionsPtr       = &returnInstruction;
+        } else {
+            generatedInstructionsPtr = &instructionCall;
+        }
+        CellI& resolvedinstructionsAst = resolveTypesInFunctionCode(*generatedInstructionsPtr);
+        ret.set("instructions", resolvedinstructionsAst);
+    }
+    if (function.has("instructions")) {
         CellI& resolvedinstructionsAst = resolveTypesInFunctionCode(function.instructions());
         ret.set("instructions", resolvedinstructionsAst);
     }
@@ -1652,7 +1681,7 @@ CellI& Compiler::compileInstructionsInFunction(Ast::Function& astFunction)
 
     compiledFunction.set(w.id.ast, astFunction);
 
-    if (astFunction.missing("primitiveTool")) {
+    if (astFunction.has(w.id.instructions)) {
         compiledFunction.set(w.id.op, compileInstructionsInFunctionAst(astFunction, astFunction.instructions(), compiledFunction));
     }
     if (astFunction.has(w.id.static_)) {
@@ -1730,7 +1759,10 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
     const auto _ = [this](auto& cell) -> Ast::Cell& { return w._(cell); };
 
     if (&ast.__type__() == &w.std.ast.Block) {
-        CellI& list      = ast[w.id.asts];
+        CellI& list = ast[w.id.asts];
+        if (&list[w.id.size] == &w._1_) {
+            return compile(list[w.id.first][w.id.value]);
+        }
         CellI* prevBlock = nullptr;
         if (m_lastBlock) {
             prevBlock = m_lastBlock;
@@ -2033,14 +2065,16 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         retOp.set(w.id.ast, ast);
         retOp.set(w.id.cell, compile(ast[w.id.cell]));
         retOp.set(w.id.method, compile(ast[w.id.method]));
-        retOp.set(w.id.stack, compile(w.ast.get(_(function), _(w.id.stack))));
+        retOp.set(w.id.stack, function);
         if (ast.has(w.id.parameters)) {
-            List& parameters = *new List(w, w.std.ast.Slot);
+            Map& parameters  = *new Map(w, w.std.Cell, w.std.ast.Slot);
             forEach(ast[w.id.parameters], [this, &parameters, &compile, &_](CellI& param, int, bool&) {
                 CellI& slot = *new Object(w, w.std.ast.Slot);
-                slot.set(w.id.key, param[w.id.key]);
-                slot.set(w.id.value, compile(param[w.id.value]));
-                parameters.add(slot);
+                CellI& key   = param[w.id.key];
+                CellI& value = param[w.id.value];
+                slot.set(w.id.key, key);
+                slot.set(w.id.value, compile(value));
+                parameters.add(key, slot);
             });
             retOp.set(w.id.parameters, parameters);
         }
@@ -2133,14 +2167,14 @@ void Compiler::compileDescriptionInFunction(Ast::Function& astFunction)
     Object& compiledFunction = static_cast<Object&>(astFunction["compiledType"]);
 
     if (astFunction.has(w.id.description)) {
-        compiledFunction.set(w.id.description, compileDescriptionInFunctionAst(astFunction, astFunction.description(), compiledFunction));
+        compiledFunction.set(w.id.description, compileDescriptionInFunctionAst(astFunction.description(), compiledFunction));
         m_toolFinder.add(compiledFunction);
     }
 }
 
-CellI& Compiler::compileDescriptionInFunctionAst(Ast::Function& astFunction, CellI& ast, Object& function)
+CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Object& compiledFunction)
 {
-    auto compile = [this, &astFunction, &function](CellI& ast) -> CellI& { return compileDescriptionInFunctionAst(astFunction, ast, function); };
+    auto compile = [this, &compiledFunction](CellI& astFunction) -> CellI& { return compileDescriptionInFunctionAst(astFunction, compiledFunction); };
 
     if (&ast.__type__() == &w.std.ast.Block) {
         CellI& list   = ast[w.id.asts];
@@ -2172,13 +2206,15 @@ CellI& Compiler::compileDescriptionInFunctionAst(Ast::Function& astFunction, Cel
         retOp.set(w.id.cell, compile(ast[w.id.cell]));
         retOp.set(w.id.method, ast[w.id.method][w.id.name]);
         if (ast.has(w.id.parameters)) {
-            List& parameters = *new List(w, w.std.ast.Slot);
+            Map& parameters = *new Map(w, w.std.Cell, w.std.ast.Slot);
             forEach(ast[w.id.parameters], [this, &parameters, &compile](CellI& param, int, bool&) {
-                CellI& slot = *new Object(w, w.std.ast.Slot);
-                slot.set(w.id.key, param[w.id.key]);
+                CellI& slot  = *new Object(w, w.std.ast.Slot);
+                CellI& key   = param[w.id.key];
+                CellI& value = param[w.id.value];
+                slot.set(w.id.key, key);
                 // slot.set(w.id.type, compile(param[w.id.type])); TODO
-                slot.set(w.id.value, compile(param[w.id.value]));
-                parameters.add(slot);
+                slot.set(w.id.value, compile(value));
+                parameters.add(key, slot);
             });
             retOp.set(w.id.parameters, parameters);
         }

@@ -49,7 +49,9 @@ public:
     bool isA(CellI& type);
 
     bool operator==(CellI& rhs);
+    bool operator==(const CellI& rhs) const;
     bool operator!=(CellI& rhs);
+    bool operator!=(const CellI& rhs) const;
 
     World& w;            // world model
     std::string m_label; // for comments
@@ -87,6 +89,7 @@ public:
     using CellI::get;
     using CellI::missing;
     using CellI::operator[];
+    using CellI::operator==;
 
     bool has(CellI& key) override;
     void set(CellI& key, CellI& value) override;
@@ -110,6 +113,7 @@ public:
     void printIndent();
     void resetIndent();
     void createSelfStack();
+    void runAsCall();
     static void clearStack(CellI& method);
 
 protected:
@@ -134,8 +138,10 @@ protected:
 
     static int s_indent;
     static bool s_debugFunctionCalls;
+    static bool s_worldConstructedAndAlive;
     CellI& m_type;
     std::map<CellI*, CellI*> m_slots;
+    friend class World;
 };
 
 namespace util {

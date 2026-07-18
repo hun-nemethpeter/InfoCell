@@ -353,7 +353,7 @@ Ast::Function& Ast::StructBase::addPrimitiveFunction(CellI& ast, CellI& op, cons
     Ast::Function& method = static_cast<Ast::Function&>(ast);
     method.label(nameStr);
     method.set("name", w.name(nameStr));
-    method.set("primitiveTool", w.true_);
+    method.set("primitiveTool", op);
     List& fullyQualifiedName = *new List(w, w.std.Cell);
     fullyQualifiedName.add(op);
     method.set("fullyQualifiedName", fullyQualifiedName);
@@ -1549,6 +1549,11 @@ Ast::Cell& AstHelper::_(CellI& cell)
 Ast::Cell& AstHelper::_(const std::string& nameStr)
 {
     return cell(name(nameStr));
+}
+
+Ast::Cell& AstHelper::_(int number)
+{
+    return w._(w.pools.numbers.get(number));
 }
 
 Ast::Cell& AstHelper::true_()

@@ -42,6 +42,7 @@ public:
     String& asts;
     String& blue;
     String& break_;
+    String& builder;
     String& cell;
     String& children;
     String& color;
@@ -56,6 +57,7 @@ public:
     String& data;
     String& description;
     String& destructor;
+    String& effect;
     String& else_;
     String& emptyObject;
     String& enum_;

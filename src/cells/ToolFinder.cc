@@ -61,18 +61,18 @@ std::string ToolFinder::printTool(CellI& tool)
 {
     std::stringstream ss;
 
-    if (tool[w.id.name].label() == "Add") {
+    if (tool[id.name].label() == "Add") {
         ss << "m_lhs + m_rhs";
-    } else if (tool[w.id.name].label() == "Subtract") {
+    } else if (tool[id.name].label() == "Subtract") {
         ss << "m_lhs - m_rhs";
     } else if (tool.has("primitiveTool")) {
-        ss << tool[w.id.name].label() << "(";
+        ss << tool[id.name].label() << "(";
         if (tool.has("members")) {
-            forEach(tool[w.id.members][w.id.list], [this, &ss](CellI& slot, int i, bool& stop) {
+            forEach(tool[id.members][id.list], [this, &ss](CellI& slot, int i, bool& stop) {
                 if (i > 0) {
                     ss << ", ";
                 }
-                ss << "m_" << slot[w.id.key].label();
+                ss << "m_" << slot[id.key].label();
             });
         }
         ss << ")";
@@ -87,10 +87,10 @@ List& ToolFinder::callSlotKeyList()
 {
     if (!m_callSlotKeyList) {
         m_callSlotKeyList = std::make_unique<List>(w, w.std.ast.Slot);
-        m_callSlotKeyList->add(w.id.__type__);
-        m_callSlotKeyList->add(w.id.method);
-        m_callSlotKeyList->add(w.id.cell);
-        m_callSlotKeyList->add(w.id.parameters);
+        m_callSlotKeyList->add(id.__type__);
+        m_callSlotKeyList->add(id.method);
+        m_callSlotKeyList->add(id.cell);
+        m_callSlotKeyList->add(id.parameters);
     }
 
     return *m_callSlotKeyList;
@@ -108,6 +108,7 @@ ToolFinder::Node::~Node()
 // ============================================================================
 ToolFinder::ToolFinder(World& w) :
     w(w),
+    id(w.id),
     m_tools(w, w.std.String)
 {
     m_root = std::make_unique<Node>();
@@ -122,93 +123,95 @@ bool ToolFinder::empty()
 // ============================================================================
 CellI& ToolFinder::serializeEffect(CellI& effect)
 {
-    std::deque<StackNodeNew> stack;
+    std::deque<StackNode> stack;
 
     List& ret           = *new List(w, w.std.Cell);
-    CellI* slotItemPtr  = &callSlotKeyList()[w.id.first];
+    CellI* slotItemPtr  = &callSlotKeyList()[id.first];
     CellI* paramItemPtr = nullptr;
     CellI* currentPtr   = &effect;
 
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& current  = *currentPtr;
-        CellI& key      = slotItem[w.id.value];
+        CellI& key      = slotItem[id.value];
 
-        if (&key == &w.id.__type__) {
-            ret.add(w.id.op);
-            ret.add(w.id.type);
+        if (&key == &id.__type__) {
+            ret.add(id.op);
+            ret.add(id.type);
             ret.add(current.__type__());
-        } else if (&key == &w.id.method) {
+        } else if (&key == &id.method) {
             ret.add(key);
             ret.add(current[key]);
         } else {
             CellI* keyPtr   = nullptr;
             CellI* valuePtr = nullptr;
 
-            if (&key == &w.id.cell) {
+            if (&key == &id.cell) {
                 keyPtr   = &key;
                 valuePtr = &current[key];
-            } else if (&key == &w.id.parameters && current.has(key)) {
+            } else if (&key == &id.parameters && current.has(key)) {
                 if (!paramItemPtr) {
-                    paramItemPtr = &current[w.id.parameters][w.id.first];
+                    paramItemPtr = &current[id.parameters][id.list][id.first];
                 }
-                CellI& paramSlot = (*paramItemPtr)[w.id.value];
-                keyPtr           = &paramSlot[w.id.key];
-                valuePtr         = &paramSlot[w.id.value];
+                CellI& paramSlot = (*paramItemPtr)[id.value];
+                keyPtr           = &paramSlot[id.key];
+                valuePtr         = &paramSlot[id.value];
             }
             if (keyPtr && valuePtr) {
                 CellI& paramKey   = *keyPtr;
                 CellI& paramValue = *valuePtr;
 
                 ret.add(paramKey);
-                if (&paramValue.__type__() == &w.std.ast.Cell) {
-                    ret.add(paramValue[w.id.value]);
-                    if (&paramValue[w.id.value] == &w.id.op) {
+                if (&paramValue.__type__() == &w.std.ast.Cell || &paramValue.__type__() == &w.std.op.ConstVar) {
+                    ret.add(paramValue[id.value]);
+                    if (&paramValue[id.value] == &id.op) {
                         // handling the _(op) case, where op is a constant
                         // it will be op op, so the escaping character here is op
-                        ret.add(paramValue[w.id.value]);
+                        ret.add(paramValue[id.value]);
                     }
                 } else if (&paramValue.__type__() == &w.std.ast.Self || &paramValue.__type__() == &w.std.ast.Return || &paramValue.__type__() == &w.std.ast.Parameter) {
-                    ret.add(w.id.op);
+                    ret.add(id.op);
                     if (&paramValue.__type__() == &w.std.ast.Self) {
-                        ret.add(w.id.variable);
+                        ret.add(id.variable);
                     } else if (&paramValue.__type__() == &w.std.ast.Return) {
-                        ret.add(w.id.variable);
+                        ret.add(id.variable);
                     } else if (&paramValue.__type__() == &w.std.ast.Parameter) {
-                        ret.add(w.id.variable);
+                        ret.add(id.variable);
                     } else {
                         throw "Unknow param type!";
                     }
                 } else if (&paramValue.__type__() == &w.std.op.Call) {
-                    ret.add(w.id.op);
-                    ret.add(w.id.push);
+                    ret.add(id.op);
+                    ret.add(id.push);
                     stack.push_back({ current, *slotItemPtr, *paramItemPtr });
                     currentPtr   = &paramValue;
-                    slotItemPtr  = &callSlotKeyList()[w.id.first];
+                    slotItemPtr  = &callSlotKeyList()[id.first];
                     paramItemPtr = nullptr;
                     continue;
+                } else {
+                    std::cout << "";
                 }
             }
         }
 
-        if (&key == &w.id.parameters && paramItemPtr) {
+        if (&key == &id.parameters && paramItemPtr) {
             CellI& paramItem = *paramItemPtr;
-            paramItemPtr     = paramItem.has(w.id.next) ? &paramItem[w.id.next] : nullptr;
+            paramItemPtr     = paramItem.has(id.next) ? &paramItem[id.next] : nullptr;
             if (paramItemPtr) {
                 continue;
             } else {
                 paramItemPtr = nullptr;
             }
         }
-        slotItemPtr = slotItem.has(w.id.next) ? &slotItem[w.id.next] : nullptr;
+        slotItemPtr = slotItem.has(id.next) ? &slotItem[id.next] : nullptr;
         while (!slotItemPtr && !stack.empty()) {
             currentPtr   = &stack.back().ast;
             slotItemPtr  = &stack.back().slotItem;
             paramItemPtr = &stack.back().paramItem;
             stack.pop_back();
-            ret.add(w.id.op);
-            ret.add(w.id.pop);
-            slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
+            ret.add(id.op);
+            ret.add(id.pop);
+            slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
         }
     }
 
@@ -264,15 +267,15 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBluep
 // ============================================================================
 void ToolFinder::add(Object& tool)
 {
-    auto& effects = tool[w.id.description];
-    if (tool.has(w.id.returnType)) {
+    auto& effects = tool[id.description];
+    if (tool.has(id.returnType)) {
         // so this can be a conversion tool
-        CellI& returnType = tool[w.id.returnType];
-        if (tool.has(w.id.parameters)) {
-            forEach(tool[w.id.parameters][w.id.list], [this, &tool, &returnType](CellI& parameter, int i, bool& stop) {
-                CellI& inputType = parameter[w.id.type];
+        CellI& returnType = tool[id.returnType];
+        if (tool.has(id.parameters)) {
+            forEach(tool[id.parameters][id.list], [this, &tool, &returnType](CellI& parameter, int i, bool& stop) {
+                CellI& inputType = parameter[id.type];
                 ConversionToolKey key(inputType, returnType);
-                ConversionToolBlueprint blueprint(tool, parameter[w.id.key]);
+                ConversionToolBlueprint blueprint(tool, parameter[id.key]);
                 m_conversionTools.insert({ key, blueprint });
             });
         }
@@ -285,8 +288,8 @@ void ToolFinder::add(Object& tool)
 #if 0
         if (&effect.__type__() == &w.std.ast.Equal) {
             Object symmetricEffectAst(w, w.std.ast.Equal, "symmetric effect");
-            symmetricEffectAst.set(w.id.rhs, effect[w.id.lhs]);
-            symmetricEffectAst.set(w.id.lhs, effect[w.id.rhs]);
+            symmetricEffectAst.set(id.rhs, effect[id.lhs]);
+            symmetricEffectAst.set(id.lhs, effect[id.rhs]);
             add(symmetricEffectAst, tool, compiledToolType);
         }
 #endif
@@ -294,17 +297,21 @@ void ToolFinder::add(Object& tool)
 }
 
 // ============================================================================
-void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNodeNew>& stack)
+void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack)
 {
+    auto getSlotForKey = [this](CellI& key) -> CellI& {
+        if (&key == &id.cell) {
+            return w.ast.member(id.cell);
+        } else {
+            return w.ast.parameter(key);
+        }
+    };
     if (!memberIds.hasKey(memberKey)) {
         List& path = *new List(w, w.std.Cell, fmt::format("path for {}", memberKey.label()));
         for (auto& stackItem : stack) {
-            if (&stackItem.ast.__type__() == &w.std.ast.Return) {
-                continue;
-            }
-            path.add(stackItem.slotItem[w.id.value]);
+            path.add(getSlotForKey(stackItem.slotItem[id.value]));
         }
-        path.add(key);
+        path.add(getSlotForKey(key));
         memberIds.add(memberKey, path);
     }
 }
@@ -312,10 +319,10 @@ void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, s
 // ============================================================================
 void ToolFinder::add(CellI& effect, CellI& tool)
 {
-    std::deque<StackNodeNew> stack;
+    std::deque<StackNode> stack;
 
     Node* currentNode   = m_root.get();
-    CellI* slotItemPtr  = &callSlotKeyList()[w.id.first];
+    CellI* slotItemPtr  = &callSlotKeyList()[id.first];
     CellI* paramItemPtr = nullptr;
     CellI* currentPtr   = &effect;
     Map memberIds(w, w.std.Cell, w.std.Cell);
@@ -323,29 +330,29 @@ void ToolFinder::add(CellI& effect, CellI& tool)
     while (slotItemPtr) {
         CellI& slotItem = *slotItemPtr;
         CellI& current  = *currentPtr;
-        CellI& key      = slotItem[w.id.value];
+        CellI& key      = slotItem[id.value];
 
-        if (&key == &w.id.__type__) {
-            addValue(currentNode, w.id.op);
-            addValue(currentNode, w.id.type);
+        if (&key == &id.__type__) {
+            addValue(currentNode, id.op);
+            addValue(currentNode, id.type);
             addValue(currentNode, current.__type__());
-        } else if (&key == &w.id.method) {
+        } else if (&key == &id.method) {
             addValue(currentNode, key);
             addValue(currentNode, current[key]);
         } else {
             CellI* keyPtr   = nullptr;
             CellI* valuePtr = nullptr;
 
-            if (&key == &w.id.cell) {
+            if (&key == &id.cell) {
                 keyPtr   = &key;
                 valuePtr = &current[key];
-            } else if (&key == &w.id.parameters && current.has(key)) {
+            } else if (&key == &id.parameters && current.has(key)) {
                 if (!paramItemPtr) {
-                    paramItemPtr = &current[w.id.parameters][w.id.first];
+                    paramItemPtr = &current[id.parameters][id.list][id.first];
                 }
-                CellI& paramSlot = (*paramItemPtr)[w.id.value];
-                keyPtr           = &paramSlot[w.id.key];
-                valuePtr         = &paramSlot[w.id.value];
+                CellI& paramSlot = (*paramItemPtr)[id.value];
+                keyPtr           = &paramSlot[id.key];
+                valuePtr         = &paramSlot[id.value];
             }
             if (keyPtr && valuePtr) {
                 CellI& paramKey   = *keyPtr;
@@ -353,60 +360,60 @@ void ToolFinder::add(CellI& effect, CellI& tool)
 
                 addValue(currentNode, paramKey);
                 if (&paramValue.__type__() == &w.std.ast.Cell) {
-                    addValue(currentNode, paramValue[w.id.value]);
-                    if (&paramValue[w.id.value] == &w.id.op) {
+                    addValue(currentNode, paramValue[id.value]);
+                    if (&paramValue[id.value] == &id.op) {
                         // handling the _(op) case, where op is a constant
                         // it will be op op, so the escaping character here is op
-                        addValue(currentNode, paramValue[w.id.value]);
+                        addValue(currentNode, paramValue[id.value]);
                     }
                 } else if (&paramValue.__type__() == &w.std.ast.Self ||
                            &paramValue.__type__() == &w.std.ast.Return ||
                            &paramValue.__type__() == &w.std.ast.Parameter) {
-                    addValue(currentNode, w.id.op);
+                    addValue(currentNode, id.op);
                     CellI* memberKeyPtr = nullptr;
                     if (&paramValue.__type__() == &w.std.ast.Self) {
-                        addValue(currentNode, w.id.variable);
-                        memberKeyPtr = &w.id.self;
+                        addValue(currentNode, id.variable);
+                        memberKeyPtr = &id.self;
                     } else if (&paramValue.__type__() == &w.std.ast.Return) {
-                        addValue(currentNode, w.id.variable);
-                        memberKeyPtr = &w.id.return_;
+                        addValue(currentNode, id.variable);
+                        memberKeyPtr = &id.return_;
                     } else if (&paramValue.__type__() == &w.std.ast.Parameter) {
-                        addValue(currentNode, w.id.variable);
-                        memberKeyPtr = &paramValue[w.id.key];
+                        addValue(currentNode, id.variable);
+                        memberKeyPtr = &paramValue[id.key];
                     } else {
                         throw "Unknow param type!";
                     }
                     saveCurrentPath(paramKey, *memberKeyPtr, memberIds, stack);
                 } else if (&paramValue.__type__() == &w.std.op.Call) {
-                    addValue(currentNode, w.id.op);
-                    addValue(currentNode, w.id.push);
+                    addValue(currentNode, id.op);
+                    addValue(currentNode, id.push);
                     stack.push_back({ current, *slotItemPtr, *paramItemPtr });
                     currentPtr   = &paramValue;
-                    slotItemPtr  = &callSlotKeyList()[w.id.first];
+                    slotItemPtr  = &callSlotKeyList()[id.first];
                     paramItemPtr = nullptr;
                     continue;
                 }
             }
         }
 
-        if (&key == &w.id.parameters && paramItemPtr) {
+        if (&key == &id.parameters && paramItemPtr) {
             CellI& paramItem = *paramItemPtr;
-            paramItemPtr     = paramItem.has(w.id.next) ? &paramItem[w.id.next] : nullptr;
+            paramItemPtr     = paramItem.has(id.next) ? &paramItem[id.next] : nullptr;
             if (paramItemPtr) {
                 continue;
             } else {
                 paramItemPtr = nullptr;
             }
         }
-        slotItemPtr = slotItem.has(w.id.next) ? &slotItem[w.id.next] : nullptr;
+        slotItemPtr = slotItem.has(id.next) ? &slotItem[id.next] : nullptr;
         while (!slotItemPtr && !stack.empty()) {
             currentPtr   = &stack.back().ast;
             slotItemPtr  = &stack.back().slotItem;
             paramItemPtr = &stack.back().paramItem;
             stack.pop_back();
-            addValue(currentNode, w.id.op);
-            addValue(currentNode, w.id.pop);
-            slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
+            addValue(currentNode, id.op);
+            addValue(currentNode, id.pop);
+            slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
         }
     }
 
@@ -433,15 +440,19 @@ CellI* ToolFinder::createBuilder(CellI& tool, Map& memberIds)
 {
     List& builder = *new List(w, w.std.Cell, fmt::format("builder for {}", tool.label()));
 
-    builder.add(w._(w.id.__type__));
+    builder.add(w.ast.member(id.__type__));
     builder.add(w._(w.std.op.Call));
 
-    builder.add(w._(w.id.method));
+    builder.add(w.ast.member(id.method));
     builder.add(w._(tool));
 
-    forEach(tool[w.id.parameters][w.id.list], [this, &memberIds, &builder](CellI& slot, int, bool&) {
-        CellI& key = slot[w.id.key];
-        builder.add(w.ast.cell(key));
+    forEach(tool[id.parameters][id.list], [this, &memberIds, &builder](CellI& slot, int, bool&) {
+        CellI& key = slot[id.key];
+        if (&key == &id.self) {
+            builder.add(w.ast.member(id.cell));
+        } else {
+            builder.add(w.ast.parameter(key));
+        }
         builder.add(memberIds.getValue(key));
     });
 
@@ -449,57 +460,43 @@ CellI* ToolFinder::createBuilder(CellI& tool, Map& memberIds)
 }
 
 // ============================================================================
-void ToolFinder::handleStep(CellI*& effectAstPtr, CellI*& slotItemPtr, Node*& node, std::deque<StackNode>& stack)
+bool ToolFinder::checkValue(Node*& node, CellI & key, CellI& value, bool& needPush)
 {
-    slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
-    while (!slotItemPtr) {
-        if (stack.empty()) {
-            return;
+    // __type__ is a special key as it can not be a key in a trie node so escaped with "op type"
+    if (&key == &id.__type__) {
+        auto opFindIt = node->m_children.find(&id.op);
+        if (opFindIt != node->m_children.end()) {
+            Node* opNode = opFindIt->second;
+            for (auto& [opKey, nextNode] : opNode->m_children) {
+                if (opKey == &id.type) {
+                    node = nextNode;
+                    auto valueFindIt = node->m_children.find(&value);
+                    if (valueFindIt != node->m_children.end()) {
+                        TRACE(toolFinderLookup, "MATCH: op");
+                        TRACE(toolFinderLookup, "MATCH: type");
+                        TRACE(toolFinderLookup, "MATCH: {}", value.label());
+                        node = valueFindIt->second;
+                        return true;
+                    }
+                }
+            }
         }
-
-        auto opFindIt = node->m_children.find(&w.id.op);
-        if (opFindIt == node->m_children.end()) {
-            return;
-        }
-        TRACE(toolFinderLookup, "MATCH: op");
-        Node* opNode   = opFindIt->second;
-        auto popFindIt = opNode->m_children.find(&w.id.pop);
-        if (popFindIt == opNode->m_children.end()) {
-            return;
-        }
-        node = popFindIt->second;
-
-        slotItemPtr  = &stack.back().slotItem;
-        effectAstPtr = &stack.back().ast;
-        stack.pop_back();
-        slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
-        TRACE(toolFinderLookup, "MATCH: pop");
-    }
-}
-
-// ============================================================================
-bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
-{
-    Node*& node                  = findContext.trieNode;
-    CellI*& slotItemPtr          = findContext.slotItemPtr;
-    SlotKind& slotKind           = findContext.slotKind;
-    CellI*& effectAstPtr         = findContext.effectAstPtr;
-    std::deque<StackNode>& stack = findContext.stack;
-
-    auto keyFindIt = node->m_children.find(&key);
-    if (keyFindIt == node->m_children.end()) {
-        node = nullptr;
         return false;
     } else {
-        TRACE(toolFinderLookup, "MATCH: {}", key.label());
-        node = keyFindIt->second;
+        auto keyFindIt = node->m_children.find(&key);
+        if (keyFindIt == node->m_children.end()) {
+            return false;
+        } else {
+            TRACE(toolFinderLookup, "MATCH: {}", key.label());
+            node = keyFindIt->second;
+        }
     }
 
+    // ok, key was found, now check the value
     auto findIt = node->m_children.find(&value);
     if (findIt == node->m_children.end()) {
-        auto opFindIt = node->m_children.find(&w.id.op);
+        auto opFindIt = node->m_children.find(&id.op);
         if (opFindIt == node->m_children.end()) {
-            node = nullptr;
             return false;
         } else {
             // ok, so value not found but we have an op here
@@ -507,65 +504,24 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
             TRACE(toolFinderLookup, "MATCH: op");
 
             for (auto& [opKey, nextNode] : opNode->m_children) {
-                if (opKey == &w.id.type) {
-                    TRACE(toolFinderLookup, "MATCH: type");
-                    node = nextNode;
-                    handleStep(effectAstPtr, slotItemPtr, node, stack);
-                    return true;
-                }
-                if (opKey == &w.id.variable) {
+                if (opKey == &id.variable) {
                     TRACE(toolFinderLookup, "MATCH: variable");
                     node = nextNode;
-                    handleStep(effectAstPtr, slotItemPtr, node, stack);
                     return true;
                 }
-                if (opKey == &w.id.return_) {
-                    TRACE(toolFinderLookup, "MATCH: return_");
-                    if (findContext.toolKind == ToolKind::Expression) {
-                        // TODO What to do if there are two "op return" in the effect description?
-                        throw "Not implemented! Handling more then one op return is missing";
-                    }
-                    if (stack.empty()) {
-                        // we matched with a return but we are not inside an equal expression
-                        return false;
-                    }
-                    CellI& prevAst = stack.back().ast;
-                    if (&prevAst.__type__() != &w.std.Cell.Equal) {
-                        return false;
-                    }
-                    CellI& prevSlotKey  = stack.back().slotItem[w.id.value][w.id.key];
-                    CellI& otherSlotKey = (&prevSlotKey == &w.id.lhs) ? w.id.rhs : w.id.lhs;
-                    CellI& returnValue  = prevAst[otherSlotKey];
-
-                    node = nextNode;
-                    handleStep(effectAstPtr, slotItemPtr, node, stack);
-                    findContext.toolKind          = ToolKind::Expression;
-                    findContext.expressionToolPtr = &(*effectAstPtr)[key];
-                    DEBUG(toolFinderLookup, "unify return with {}", (*effectAstPtr)[key].printAsValue());
-                    return true;
-                }
-                if (opKey == &w.id.push && (&value.__type__() != &w.std.ast.Cell)) {
+                if (opKey == &id.push && (&value.__type__() != &w.std.ast.Cell)) {
                     TRACE(toolFinderLookup, "MATCH: push");
-                    stack.push_back({ .ast = *effectAstPtr, .slotItem = *slotItemPtr });
-                    effectAstPtr = &(*effectAstPtr)[key];
-                    slotItemPtr  = &value.slotList()[w.id.first];
-                    node         = nextNode;
-                    slotKind     = SlotKind::TypeSlot;
+
+                    if (&value.__type__() != &w.std.op.Call) {
+                        throw "Not supported type!";
+                    }
+                    node     = nextNode;
+                    needPush = true;
                     return true;
                 }
-                if (opKey == &w.id.pop) {
+                if (opKey == &id.pop) {
                     TRACE(toolFinderLookup, "MATCH: pop");
-                    if (stack.empty()) {
-                        return false;
-                    }
-                    slotItemPtr  = &stack.back().slotItem;
-                    effectAstPtr = &stack.back().ast;
-                    stack.pop_back();
-                    slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
-                    node        = nextNode;
-                    if (!slotItemPtr) {
-                        handleStep(effectAstPtr, slotItemPtr, node, stack);
-                    }
+                    node = nextNode;
                     return true;
                 }
             }
@@ -573,126 +529,121 @@ bool ToolFinder::checkValue(FindContext& findContext, CellI& key, CellI& value)
     } else {
         TRACE(toolFinderLookup, "MATCH: {}", value.label());
         node = findIt->second;
-    }
-
-    // the first slot is the w.id.__type__ but it is not in the slot list
-    if (slotKind == SlotKind::TypeSlot) {
-        slotKind = SlotKind::NormalSlot;
         return true;
     }
-    handleStep(effectAstPtr, slotItemPtr, node, stack);
 
-    return true;
+    return false;
 }
 
 // ============================================================================
-List& ToolFinder::findToolsByEffect(CellI& effectAst)
+List& ToolFinder::findToolsByEffect(CellI& effect)
 {
-    List& ret              = *new List(w, w.std.ast.Base);
-    CellI* outputEffectAst = nullptr;
-    CellI* builder         = findBuilderForEffectAstOld(effectAst, outputEffectAst);
+    List& ret      = *new List(w, w.std.ast.Base);
+    CellI* builder = findBuildersForEffect(effect);
     if (!builder) {
         return ret;
     }
     Object retVal(w, w.std.ast.Cell);
-    buildTool(retVal, w.id.value, *outputEffectAst, *builder);
-    DEBUG(toolFinderLookup, "result: {}", retVal[w.id.value].printAsValue());
+    buildTool(retVal, w.ast.member(id.value), effect, *builder);
+//    DEBUG(toolFinderLookup, "result: {}", retVal[id.value].printAsValue());
 
-    ret.add(retVal[w.id.value]);
+    ret.add(retVal[id.value]);
 
     return ret;
 }
 
 // ============================================================================
-CellI* ToolFinder::findBuilderForEffectAstOld(CellI& inputEffectAst, CellI*& outputEffectAst)
+CellI* ToolFinder::findBuildersForEffect(CellI& inputEffect)
 {
-//    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
-    CellI& slotList         = inputEffectAst.slotList();
-    FindContext findContext = {
-        .trieNode     = m_root.get(),
-        .slotList     = &slotList,
-        .slotItemPtr  = slotList.has(w.id.first) ? &slotList[w.id.first] : nullptr,
-        .slotKind     = SlotKind::TypeSlot,
-        .effectAstPtr = &inputEffectAst,
-    };
+    //    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
+    Node* node          = m_root.get();
+    CellI* effectPtr    = &inputEffect;
+    CellI* slotItemPtr  = &callSlotKeyList()[id.first];
+    CellI* paramItemPtr = nullptr;
 
-    do {
-        findContext.toolKind = ToolKind::Statement;
-        while (findContext.slotItemPtr) {
-            if (findContext.slotKind == SlotKind::TypeSlot) {
-                if (!checkValue(findContext, w.id.__type__, (*findContext.effectAstPtr).__type__())) {
-                    return nullptr;
-                }
+    std::deque<FindContext> stack;
+
+    while (slotItemPtr || paramItemPtr) {
+        CellI& effect   = *effectPtr;
+        CellI* keyPtr   = &(*slotItemPtr)[id.value];
+        CellI* valuePtr = nullptr;
+        if (keyPtr == &id.parameters && effect.has(id.parameters)) {
+            if (!paramItemPtr) {
+                paramItemPtr = &effect[id.parameters][id.list][id.first];
             }
-
-            CellI& key   = (*findContext.slotItemPtr)[w.id.value][w.id.key];
-            CellI& value = (*findContext.effectAstPtr)[key];
-
-            if ((*findContext.effectAstPtr).has(key) && !checkValue(findContext, key, value)) {
+            CellI& paramSlot = (*paramItemPtr)[id.value];
+            keyPtr           = &paramSlot[id.key];
+            valuePtr         = &paramSlot[id.value];
+        } else {
+            keyPtr   = &(*slotItemPtr)[id.value];
+            if (effect.missing(*keyPtr)) {
                 return nullptr;
             }
-        }
-        if (findContext.toolKind == ToolKind::Expression) {
-            if (!(findContext.trieNode && findContext.trieNode->m_isLeaf)) {
-                return nullptr;
-            }
-            CellI& newEffectAst = *new Object(w, w.std.Cell.Equal); // TODO FIX memory leak
-
-            newEffectAst.set(w.id.lhs, *findContext.expressionToolPtr);
-            buildTool(newEffectAst, w.id.rhs, (*findContext.effectAstPtr), *findContext.trieNode->m_data);
-            DEBUG(toolFinderLookup, "pattern match for {} with tool {}", findContext.trieNode->m_effect->printAsValue(), printTool(*findContext.trieNode->m_tool));
-            DEBUG(toolFinderLookup, "created tool: {}", newEffectAst.printAsValue());
-
-            CellI& newSlotList = newEffectAst.slotList();
-
-            findContext.trieNode     = m_root.get();
-            findContext.slotList     = &newSlotList;
-            findContext.slotItemPtr  = newSlotList.has(w.id.first) ? &newSlotList[w.id.first] : nullptr;
-            findContext.slotKind     = SlotKind::TypeSlot;
-            findContext.effectAstPtr = &newEffectAst;
-        }
-    } while (findContext.toolKind == ToolKind::Expression);
-
-    if (findContext.trieNode && findContext.trieNode->m_isLeaf) {
-        outputEffectAst = findContext.effectAstPtr;
-        CellI* result   = findContext.trieNode->m_data;
-        return result;
-    }
-
-    return nullptr;
-}
-
-// ============================================================================
-CellI* ToolFinder::findBuildersForEffect(CellI& inputEffectAst)
-{
-    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
-    CellI& slotList         = inputEffectAst.slotList();
-    FindContext findContext = {
-        .trieNode     = m_root.get(),
-        .slotList     = &slotList,
-        .slotItemPtr  = slotList.has(w.id.first) ? &slotList[w.id.first] : nullptr,
-        .slotKind     = SlotKind::TypeSlot,
-        .effectAstPtr = &inputEffectAst,
-    };
-
-        findContext.toolKind = ToolKind::Statement;
-    while (findContext.slotItemPtr) {
-        if (findContext.slotKind == SlotKind::TypeSlot) {
-            if (!checkValue(findContext, w.id.__type__, (*findContext.effectAstPtr).__type__())) {
-                return nullptr;
-            }
+            valuePtr = &effect[*keyPtr];
         }
 
-        CellI& key   = (*findContext.slotItemPtr)[w.id.value][w.id.key];
-        CellI& value = (*findContext.effectAstPtr)[key];
+        CellI& key   = *keyPtr;
+        CellI& value = *valuePtr;
 
-        if ((*findContext.effectAstPtr).has(key) && !checkValue(findContext, key, value)) {
+        bool needPush = false;
+        if (checkValue(node, key, value, needPush) == false) {
             return nullptr;
         }
+        if (needPush) {
+            stack.push_back({ effectPtr, slotItemPtr, paramItemPtr });
+            effectPtr    = &effect[key];
+            slotItemPtr  = &callSlotKeyList()[id.first];
+            paramItemPtr = nullptr;
+            continue;
+        }
+
+        // step parameters first if possible
+        if (&(*slotItemPtr)[id.value] == &id.parameters && paramItemPtr) {
+            CellI& paramItem = *paramItemPtr;
+            paramItemPtr     = paramItem.has(id.next) ? &paramItem[id.next] : nullptr;
+            if (paramItemPtr) {
+                continue;
+            }
+        }
+
+        // step slots then if possible
+        slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
+        if (slotItemPtr) {
+            continue;
+        }
+
+        // pop stack if possible
+        while (!slotItemPtr && !stack.empty()) {
+            // check that stack pop is in the matcher
+            auto opFindIt = node->m_children.find(&id.op);
+            if (opFindIt == node->m_children.end()) {
+                return nullptr;
+            }
+            TRACE(toolFinderLookup, "MATCH: op");
+            Node* opNode   = opFindIt->second;
+            auto popFindIt = opNode->m_children.find(&id.pop);
+            if (popFindIt == opNode->m_children.end()) {
+                return nullptr;
+            }
+            TRACE(toolFinderLookup, "MATCH: pop");
+            node = popFindIt->second;
+
+            effectPtr    = stack.back().effectPtr;
+            slotItemPtr  = stack.back().slotItemPtr;
+            paramItemPtr = stack.back().paramItemPtr;
+            stack.pop_back();
+
+            // step after stack pop
+            if (paramItemPtr == nullptr) {
+                slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
+            } else {
+                paramItemPtr = (*paramItemPtr).has(id.next) ? &(*paramItemPtr)[id.next] : nullptr;
+            }
+        }
     }
 
-    if (findContext.trieNode && findContext.trieNode->m_isLeaf) {
-        CellI* result   = findContext.trieNode->m_data;
+    if (node && node->m_isLeaf) {
+        CellI* result = node->m_data;
         return result;
     }
 
@@ -700,103 +651,153 @@ CellI* ToolFinder::findBuildersForEffect(CellI& inputEffectAst)
 }
 
 // ============================================================================
-void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& inputAst, CellI& builder)
+void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, CellI& builder)
 {
-    auto& ListOfCellStruct = w.getStruct(w.templateId("std::List", w.id.valueType, w.std.Cell));
+    auto& ListOfCellStruct = w.getStruct(w.templateId("std::List", id.valueType, w.std.Cell));
 
-    World& w                = this->w;
     List& toCreate          = *new List(w, w.std.Cell);
     Index& toCreateItemRoot = *new Index(w);
-    toCreateItemRoot.set(w.id.ast, inputAst);
-    toCreateItemRoot.set(w.id.description, builder);
-    toCreateItemRoot.set(w.id.cell, outCell);
-    toCreateItemRoot.set(w.id.key, outKey);
+    toCreateItemRoot.set(id.effect, matchedEffect);
+    toCreateItemRoot.set(id.builder, builder);
+    toCreateItemRoot.set(id.cell, outCell);
+    toCreateItemRoot.set(id.key, outKey);
+
+    auto getValuePtrFromValueCell = [this, &ListOfCellStruct](CellI& matchedEffect, CellI& valueCell) -> CellI* {
+        if (&valueCell.__type__() == &w.std.ast.Cell) {
+            return &valueCell;
+        } else if (&valueCell.__type__() == &ListOfCellStruct) {
+            CellI* valuePtr = &matchedEffect;
+            forEach(valueCell, [this, &valuePtr](CellI& pathItem, int, bool& stop) {
+                CellI& currentValue = *valuePtr;
+                if (&pathItem.__type__() == &w.std.ast.Member) {
+                    valuePtr = &currentValue[pathItem[id.key]];
+                } else if (&pathItem.__type__() == &w.std.ast.Parameter) {
+                    Map& parameters = static_cast<Map&>(currentValue[id.parameters]);
+                    CellI& key      = pathItem[id.key];
+                    valuePtr        = &parameters.getValue(key)[id.value];
+                    if (!valuePtr) {
+                        stop = true;
+                        return;
+                    }
+                    std::cout << "";
+                }
+            });
+            return valuePtr;
+        } else {
+            throw "Unknown builder path item type!";
+        }
+    };
 
     toCreate.add(toCreateItemRoot);
-    CellI* toCreateItemPtr = &toCreate[w.id.first];
+    CellI* toCreateItemPtr = &toCreate[id.first];
     while (toCreateItemPtr) {
-        CellI& toCreateItem = (*toCreateItemPtr)[w.id.value];
-        CellI& ast          = toCreateItem[w.id.ast];
-        CellI& toolDesc     = toCreateItem[w.id.description];
-        CellI* ret          = &toCreateItem[w.id.cell];
-        CellI& retKey       = toCreateItem[w.id.key];
+        CellI& toCreateItem  = (*toCreateItemPtr)[id.value];
+        CellI& matchedEffect = toCreateItem[id.effect];
+        CellI& builders      = toCreateItem[id.builder];
+        CellI* retPtr        = &toCreateItem[id.cell];
+        CellI& retKey        = toCreateItem[id.key];
 
-        CellI* slotItemPtr = &toolDesc[w.id.first];
+        CellI* slotItemPtr = &builders[id.first];
         bool first         = true;
-        List& subTools     = *new List(w, w.std.Cell);
+        List& subEffects     = *new List(w, w.std.Cell);
         while (slotItemPtr) {
-            CellI& key = (*slotItemPtr)[w.id.value];
+            CellI& ret = *retPtr;
+            CellI& key = (*slotItemPtr)[id.value];
 
             if (first) {
-                if (&key.__type__() != &w.std.ast.Cell && (&key[w.id.value] != &w.id.__type__)) {
-                    throw "Tool description without type!";
+                if (&key.__type__() != &w.std.ast.Member || (&key[id.key] != &id.__type__)) {
+                    throw "The first item in a builder must be a member with a value of __type__!";
                 }
                 first               = false;
-                CellI& nextSlotItem = (*slotItemPtr)[w.id.next];
-                CellI& valueCell    = nextSlotItem[w.id.value];
+                CellI& nextSlotItem = (*slotItemPtr)[id.next];
+                CellI& valueCell    = nextSlotItem[id.value];
                 if (&valueCell.__type__() != &w.std.ast.Cell) {
-                    throw "Tool description type is not constant value!";
+                    throw "Builder type is not a constant value!";
                 }
-                CellI& type   = valueCell[w.id.value];
-                CellI* newObj = new Object(w, type, fmt::format("built from {}", toolDesc.label()));
-                ret->set(retKey, *newObj);
-                ret = newObj;
+                CellI& type   = valueCell[id.value];
+                CellI* newObj = new Object(w, type, fmt::format("built from {}", builders.label()));
+                if (&retKey.__type__() == &w.std.ast.Member) {
+                    retPtr->set(retKey[id.key], *newObj);
+                } else if (&retKey.__type__() == &w.std.ast.Parameter) {
+                    CellI& paramKey = retKey[id.key];
+                    CellI& slot     = *new Object(w, w.std.ast.Slot);
+                    slot.set(w.id.key, paramKey);
+                    slot.set(w.id.value, (*newObj));
+                    (*newObj).set(w.id.stack, (*retPtr)[id.method][id.value]);
+                    (*retPtr)[id.parameters].set(paramKey, slot);
+                } else {
+                    throw "Unknown builder item type";
+                }
+                retPtr = newObj;
+                TRACE(toolFinderLookup, "BUILD: __type__:{}", type.label());
 
                 slotItemPtr = &nextSlotItem;
-            } else if (&key.__type__() == &w.std.ast.Cell) {
-                CellI& unwrappedKey = key[w.id.value];
-                CellI& nextSlotItem = (*slotItemPtr)[w.id.next];
-                CellI& valueCell    = nextSlotItem[w.id.value];
-                CellI* valuePtr     = nullptr;
-                if (&valueCell.__type__() == &w.std.ast.Cell) {
-                    valuePtr = &ast[unwrappedKey];
-                    ret->set(unwrappedKey, *valuePtr);
-                } else if (&valueCell.__type__() == &ListOfCellStruct) {
-                    valuePtr = &ast;
-                    forEach(valueCell, [&valuePtr, &w](CellI& pathItem, int, bool& stop) {
-                        CellI& currentValue = *valuePtr;
-                        valuePtr            = &currentValue[pathItem];
-                    });
-                    ret->set(unwrappedKey, *valuePtr);
+            } else if (&key.__type__() == &w.std.ast.Member) {
+                CellI& unwrappedKey = key[id.key];
+                CellI& nextSlotItem = (*slotItemPtr)[id.next];
+                CellI& valueCell    = nextSlotItem[id.value];
+                CellI* valuePtr     = getValuePtrFromValueCell(matchedEffect, valueCell);
+
+                if (!(&(*valuePtr).__type__() == &w.std.ast.Cell || &(*valuePtr).__type__() == &w.std.op.ConstVar)) {
+                    subEffects.add(w.std.kvPair(key, *valuePtr));
+                    TRACE(toolFinderLookup, "BUILD: '{}' is a sub effect", unwrappedKey.label());
                 } else {
-                    throw "Tool description value is not a constant value or List!";
+                    ret.set(unwrappedKey, *valuePtr);
+                    TRACE(toolFinderLookup, "BUILD: '{}':{}", unwrappedKey.label(), (*valuePtr).label());
                 }
-                if (&(*valuePtr).__type__() != &w.std.ast.Cell) {
-                    subTools.add(w.ast.slot(*ret, unwrappedKey));
+                slotItemPtr = &nextSlotItem;
+            } else if (&key.__type__() == &w.std.ast.Parameter) {
+                CellI& unwrappedKey = key[id.key];
+                CellI& nextSlotItem = (*slotItemPtr)[id.next];
+                CellI& valueCell    = nextSlotItem[id.value];
+                CellI* valuePtr     = getValuePtrFromValueCell(matchedEffect, valueCell);
+
+                if (ret.missing(id.parameters)) {
+                    ret.set(id.parameters, *new Map(w, w.std.Cell, w.std.ast.Slot));
+                    TRACE(toolFinderLookup, "BUILD: parameters");
+                }
+                auto& parameters = static_cast<Map&>(ret[id.parameters]);
+                if (!(&(*valuePtr).__type__() == &w.std.ast.Cell || &(*valuePtr).__type__() == &w.std.op.ConstVar)) {
+                    subEffects.add(w.std.kvPair(key, *valuePtr));
+                    TRACE(toolFinderLookup, "BUILD: param: '{}' is a sub effect", unwrappedKey.label());
+                } else {
+                    CellI& slot = *new Object(w, w.std.ast.Slot);
+                    slot.set(w.id.key, unwrappedKey);
+                    slot.set(w.id.value, *valuePtr);
+                    parameters.add(unwrappedKey, slot);
+                    TRACE(toolFinderLookup, "BUILD: param: '{}':{}", unwrappedKey.label(), (*valuePtr).label());
                 }
                 slotItemPtr = &nextSlotItem;
             } else {
-                throw "Tool description key is not constant value!";
+                throw "Unknown builder item!";
             }
 
-            slotItemPtr = (*slotItemPtr).has(w.id.next) ? &(*slotItemPtr)[w.id.next] : nullptr;
+            slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
         }
-        CellI* subpToolItemPtr = &subTools[w.id.first];
-        while (subpToolItemPtr) {
-            CellI& slot       = (*subpToolItemPtr)[w.id.value];
-            CellI& key        = slot[w.id.key];
-            CellI& value      = slot[w.id.type];
-            CellI& subToolAst = key[value];
+        CellI* subEffectNodePtr = &subEffects[id.first];
+        while (subEffectNodePtr) {
+            CellI& kvPair     = (*subEffectNodePtr)[id.value];
+            CellI& key        = kvPair[id.key];
+            CellI& subEffect  = kvPair[id.value];
 
-            CellI* toolAst        = nullptr;
-            CellI* subToolBuilder = findBuilderForEffectAstOld(subToolAst, toolAst);
+            CellI* subToolBuilder = findBuildersForEffect(subEffect);
 
             if (!subToolBuilder) {
-                throw "Sub tool not found!";
+                throw "Sub effect not found!";
             }
             Index& toCreateItemSub = *new Index(w);
-            toCreateItemSub.set(w.id.ast, subToolAst);
-            toCreateItemSub.set(w.id.description, *subToolBuilder);
-            toCreateItemSub.set(w.id.cell, (*ret));
-            toCreateItemSub.set(w.id.key, value);
+            toCreateItemSub.set(id.effect, subEffect);
+            toCreateItemSub.set(id.builder, *subToolBuilder);
+            toCreateItemSub.set(id.cell, *retPtr);
+            toCreateItemSub.set(id.key, key);
             toCreate.add(toCreateItemSub);
 
-            CellI* toDelete = subpToolItemPtr;
-            subpToolItemPtr = (*subpToolItemPtr).has(w.id.next) ? &(*subpToolItemPtr)[w.id.next] : nullptr;
-            subTools.remove((List::Node*)toDelete);
+            CellI* toDelete = subEffectNodePtr;
+            subEffectNodePtr = (*subEffectNodePtr).has(id.next) ? &(*subEffectNodePtr)[id.next] : nullptr;
+            subEffects.remove((List::Node*)toDelete);
         }
         CellI* toDelete = toCreateItemPtr;
-        toCreateItemPtr = (*toCreateItemPtr).has(w.id.next) ? &(*toCreateItemPtr)[w.id.next] : nullptr;
+        toCreateItemPtr = (*toCreateItemPtr).has(id.next) ? &(*toCreateItemPtr)[id.next] : nullptr;
         toCreate.remove((List::Node*)toDelete);
     }
 }
@@ -886,7 +887,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& missingSlotId = *missingSlotIdPtr;
 
     // this is the from in "tool(from, x) == to"
-    tool.set(missingSlotId, w.ast.get(w._(unknownX), w._(w.id.value)));
+    tool.set(missingSlotId, w.ast.get(w._(unknownX), w._(id.value)));
 
     CellI& missingSlotEquation = w.ast.equal(tool, w._(to));
     missingSlotEquation.label("tool(from, x) == to");
@@ -906,7 +907,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         solverFn.createSelfStack();
         solverFn();
 
-        CellI& solvedX = unknownX[w.id.value];
+        CellI& solvedX = unknownX[id.value];
         //        std::cout << "unknownX.value = " << solvedX.label() << std::endl;
 
         Ast::Scope rootScope2(w, "toolFinder");
@@ -951,17 +952,17 @@ void ToolFinder::exploreSlotManipulations()
         CellI& compiledToolType = toolInfo["compiledToolType"];
         TRACE(toolFinder, "explore: {}", tool.label());
 
-        if (tool.missing(w.id.returnType)) {
+        if (tool.missing(id.returnType)) {
             return;
         }
-        CellI& returnType = tool[w.id.returnType][w.id.value];
+        CellI& returnType = tool[id.returnType][id.value];
         if (&returnType != &w.std.Number) {
             return;
         }
 
         CellI& astTool = *new Object(w, compiledToolType);
-        astTool.set(w.id.lhs, w._(1));
-        astTool.set(w.id.rhs, w._(2));
+        astTool.set(id.lhs, w._(1));
+        astTool.set(id.rhs, w._(2));
 
         CellI& astEqual = w.ast.equal(astTool, w._(3));
         astEqual.label(fmt::format("{}(x, y) == z", tool.label()));
@@ -972,8 +973,8 @@ void ToolFinder::exploreSlotManipulations()
             return;
         }
         Object retVal(w, w.std.ast.Cell);
-        buildTool(retVal, w.id.value, astEqual, *builder);
-        DEBUG(toolFinderLookup, "result: {}", retVal[w.id.value].printAsValue());
+        buildTool(retVal, id.value, astEqual, *builder);
+        DEBUG(toolFinderLookup, "result: {}", retVal[id.value].printAsValue());
 
     });
 }

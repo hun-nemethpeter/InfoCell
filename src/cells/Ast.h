@@ -760,6 +760,7 @@ protected:
     CellI& name(const std::string& str);
     Ast::Cell& _(CellI& cell);
     Ast::Cell& _(const std::string& id);
+    Ast::Cell& _(int number);
     Ast::Cell& true_();
     Ast::Cell& false_();
     Ast::Parameter& p_(const std::string& nameStr);

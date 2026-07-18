@@ -159,6 +159,8 @@ World::World(std::function<void()> loggerLevelInit) :
     globalScope.m_toolFinder  = &compiler.getToolFinder();
     m_initPhase               = InitPhase::FullyConstructed;
 
+    Object::s_worldConstructedAndAlive = true;
+
     arcLib().include(stdLib());
     m_arcCompiler->compile(arcLib());
 
@@ -194,6 +196,7 @@ World::World(std::function<void()> loggerLevelInit) :
 World::~World()
 {
     m_initPhase = InitPhase::DestructBegin;
+    Object::s_worldConstructedAndAlive = false;
 }
 
 Library& World::arcLib()

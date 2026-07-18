@@ -142,6 +142,11 @@ bool CellI::operator==(CellI& rhs)
     return ret;
 }
 
+bool CellI::operator==(const CellI& rhs) const
+{
+    return const_cast<CellI&>(*this).operator==(const_cast<CellI&>(rhs));
+}
+
 bool CellI::operator!=(CellI& rhs)
 {
     return !((*this) == rhs);
@@ -205,6 +210,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param pa
 }
 
 bool Object::s_debugFunctionCalls = false;
+bool Object::s_worldConstructedAndAlive = false;
 
 Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param param2, Param param3, Param param4, const std::string& label) :
     CellI(w, label),
@@ -222,7 +228,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param pa
 
 Object::~Object()
 {
-    if (w.initPhase() == InitPhase::Init || w.initPhase() == InitPhase::DestructBegin) {
+    if (!s_worldConstructedAndAlive) {
         return;
     }
     if (!hasMethod(w.id.destructor)) {
@@ -288,6 +294,15 @@ void Object::createSelfStack()
 {
     createStack(*this);
     initLocalVars(*this);
+}
+
+void Object::runAsCall()
+{
+    Object& method = static_cast<Object&>(get(w.id.method)[w.id.value]);
+    method.createSelfStack();
+    set(w.id.stack, method);
+
+    (*this)();
 }
 
 // core data handling
@@ -587,13 +602,16 @@ static void saveOpState(List& opStates, CellI& op)
             opState.set(w.id.value, op[w.id.method][w.id.value]);
             opStates.add(opState);
         }
+#if 0
         if (op[w.id.stack].has(w.id.value)) {
             Object& opState = *new Object(w, w.std.OpState);
             opState.set(w.id.op, op);
             opState.set(w.id.state, w.id.stack);
             opState.set(w.id.value, op[w.id.stack][w.id.value]);
             opStates.add(opState);
+            std::cout << "SAVE " << op[w.id.stack][w.id.value].label() << std::endl;
         }
+#endif
     }
     if (&type == &w.std.op.Set || &type == &w.std.op.Get) {
         if (op[w.id.cell].has(w.id.value)) {
@@ -677,6 +695,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
 //    std::cout << "evalOpCall self: " << &self << ", state: " << self[w.id.state].label() << std::endl;
     CellI& state = self[w.id.state];
     if (&state == &w.id.stateParamInit) {
+        self.erase(w.id.value);
         self.set(w.id.previous, *previousCell);
         CellI& inputCell = self[w.id.cell];
         previousCell     = currentCell;
@@ -686,20 +705,15 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& inputMethod = self[w.id.method];
         previousCell       = currentCell;
         currentCell        = &inputMethod;
-        self.set(w.id.state, w.id.stateParam2);
-    } else if (&state == &w.id.stateParam2) {
-        CellI& inputStack = self[w.id.stack];
-        previousCell      = currentCell;
-        currentCell       = &inputStack;
         if (self.has(w.id.parameters)) {
             self.set(w.id.state, w.id.stateParamEval);
         } else {
-            self.set(w.id.state, w.id.stateParam3);
+            self.set(w.id.state, w.id.stateParam2);
         }
     } else if (&state == &w.id.stateParamEval) {
         CellI* paramNodePtr = nullptr;
         if (self.missing(w.id.currentParam)) {
-            CellI& paramList = self[w.id.parameters];
+            CellI& paramList = self[w.id.parameters][w.id.list];
             paramNodePtr     = &paramList[w.id.first];
         } else {
             CellI& paramNode = self[w.id.currentParam];
@@ -715,20 +729,25 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
             previousCell = currentCell;
             currentCell  = &param;
         } else {
-            self.set(w.id.state, w.id.stateParam3);
+            self.set(w.id.state, w.id.stateParam2);
         }
-    } else if (&state == &w.id.stateParam3) {
+    } else if (&state == &w.id.stateParam2) {
         CellI& cell       = self[w.id.cell][w.id.value];
         CellI& methodName = self[w.id.method][w.id.value];
-        CellI& stack      = self[w.id.stack][w.id.value];
+        CellI& stack      = self[w.id.stack][w.id.stack];
 
         CellI* methodPtr = nullptr;
-        if (&self[w.id.ast].__type__() == &w.std.ast.Call) {
-            methodPtr = &cell[w.id.__type__][w.id.methods];
+        if (&methodName.__type__() == &w.std.String) {
+            if (&self[w.id.ast].__type__() == &w.std.ast.Call) {
+                methodPtr = &cell[w.id.__type__][w.id.methods];
+            } else {
+                methodPtr = &cell[w.id.methods];
+            }
+            methodPtr = &(*methodPtr)[w.id.index][methodName][w.id.value];
         } else {
-            methodPtr = &cell[w.id.methods];
+            methodPtr = &self[w.id.method][w.id.value];
         }
-        CellI& method = (*methodPtr)[w.id.index][methodName][w.id.value];
+        CellI& method = (*methodPtr);
 
         CellI& stackFrame = *new Object(w, w.std.StackFrame);
         stackFrame.set(w.id.method, method);
@@ -736,7 +755,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& inputIndex = *new Object(w, w.std.Index);
         inputIndex.set(w.id.self, cell);
         if (self.has(w.id.parameters)) {
-            forEach(self[w.id.parameters], [&self, &w, &inputIndex](CellI& parameter, int, bool& stop) {
+            forEach(self[w.id.parameters][w.id.list], [&self, &w, &inputIndex](CellI& parameter, int, bool& stop) {
                 inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
                 // static_cast<Object&>(self).printIndent();
                 // std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.value][w.id.value].label() << std::endl;
@@ -762,6 +781,8 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
 //        std::cout << "previous method " << previousMethod.label() << std::endl;
 //        std::cout << "next     method " << method.label() << std::endl;
 
+//        std::cout << "erase" << std::endl;
+        method.erase(w.id.value);
         method.set(w.id.stack, newStackListNode);
         self.set(w.id.state, w.id.stateStackCall);
         previousMethod.set(w.id.lastOp, self);
@@ -787,13 +808,18 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& methodName = self[w.id.method][w.id.value];
 
         CellI* methodPtr = nullptr;
-        if (&self[w.id.ast].__type__() == &w.std.ast.Call) {
-            methodPtr = &cell[w.id.__type__][w.id.methods];
+        if (&methodName.__type__() == &w.std.String) {
+            if (&self[w.id.ast].__type__() == &w.std.ast.Call) {
+                methodPtr = &cell[w.id.__type__][w.id.methods];
+            } else {
+                methodPtr = &cell[w.id.methods];
+            }
+            // TODO: cache the method obj
+            methodPtr = &(*methodPtr)[w.id.index][methodName][w.id.value];
         } else {
-            methodPtr = &cell[w.id.methods];
+            methodPtr = &self[w.id.method][w.id.value];
         }
-        // TODO: cache the method obj
-        CellI& method = (*methodPtr)[w.id.index][methodName][w.id.value];
+        CellI& method = (*methodPtr);
         if (method.has(w.id.value)) {
             self.set(w.id.value, method[w.id.value]);
 //            static_cast<Object&>(self).printIndent();
@@ -1281,6 +1307,7 @@ static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI*& p
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
         self.set(w.id.value, lhs >= rhs ? w.true_ : w.false_);
+//        std::cout << "      " << lhs << " >= " << rhs << std::endl;
         self.set(w.id.state, w.id.stateParamInit);
         previousCell = currentCell;
         currentCell  = &self.get(w.id.previous);
@@ -1430,6 +1457,7 @@ static void evalOpSubtract(CellI& self, CellI*& currentCell, CellI*& previousCel
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
         self.set(w.id.value, w.pools.numbers.get(lhs - rhs));
+//        std::cout << "      " << lhs << " - " << rhs << std::endl;
         self.set(w.id.state, w.id.stateParamInit);
         previousCell = currentCell;
         currentCell  = &self.get(w.id.previous);
@@ -1459,6 +1487,7 @@ static void evalOpMultiply(CellI& self, CellI*& currentCell, CellI*& previousCel
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
         self.set(w.id.value, w.pools.numbers.get(lhs * rhs));
+//        std::cout << "      " << lhs << " * " << rhs << std::endl;
         self.set(w.id.state, w.id.stateParamInit);
         previousCell = currentCell;
         currentCell  = &self.get(w.id.previous);
@@ -1775,6 +1804,9 @@ void Object::clearStack(CellI& method)
     delete stackListNode0;
     delete stackFrame;
     delete inputIndex;
+
+    method.erase("stack");
+    method.erase("value");
 }
 
 void Object::initLocalVars(CellI& method)
@@ -2264,7 +2296,11 @@ bool Map::has(CellI& key)
 
 void Map::set(CellI& key, CellI& value)
 {
-    throw "Not supported";
+    if (!hasKey(key)) {
+        add(key, value);
+        return;
+    }
+    m_index.set(key, value);
 }
 
 void Map::erase(CellI& key)
