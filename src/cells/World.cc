@@ -168,19 +168,19 @@ World::World(std::function<void()> loggerLevelInit) :
         TRACE(compiledSymbols, "All compiled symbols:");
 
         TRACE(compiledSymbols, "  structs:");
-        forEach(stdLib().structs()[id.list], [this](CellI& kv, int, bool&) {
+        for (CellI& kv : stdLib().structs()[id.list]) {
             TRACE(compiledSymbols, "    {}", kv[id.key].label());
-        });
+        }
 
         TRACE(compiledSymbols, "  functions:");
-        forEach(stdLib().functions()[id.list], [this](CellI& kv, int, bool&) {
+        for (CellI& kv : stdLib().functions()[id.list]) {
             TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
-        });
+        }
 
         TRACE(compiledSymbols, "  variables:");
-        forEach(stdLib().variables()[id.list], [this](CellI& kv, int, bool&) {
+        for (CellI& kv : stdLib().variables()[id.list]) {
             TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
-        });
+        }
     }
 
     // TODO hack: std.List is a "baseclass" now so we just set its method to std.List<Cell>

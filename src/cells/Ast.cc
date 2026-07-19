@@ -222,9 +222,9 @@ void Ast::Block::mergeFrom(Base& statement)
     List& toAstList = static_cast<List&>((*this)[w.id.asts]);
     if (&statement.__type__() == &w.std.ast.Block) {
         List& fromAstList = static_cast<List&>(statement[w.id.asts]);
-        forEach(fromAstList, [&toAstList](CellI& ast, int, bool&) {
+        for (CellI& ast : fromAstList) {
             toAstList.add(ast);
-        });
+        }
     } else {
         toAstList.add(statement);
     }
@@ -327,7 +327,7 @@ void Ast::Scope::mergeTo(Scope& targetScope, MergeMode mergeMode)
 
     TrieMap& toScopeMap = to.items<Ast::Scope>();
 
-    forEach(from.items<Ast::Scope>()[w.id.list], [this, &mergeMode, &toScopeMap](CellI& kvPair, int i, bool& stop) {
+    for (CellI& kvPair : from.items<Ast::Scope>()[w.id.list]) {
         auto& libScopeKey   = kvPair[w.id.key];
         auto& libScopeValue = static_cast<Ast::Scope&>(kvPair[w.id.value]);
         switch (mergeMode) {
@@ -339,7 +339,7 @@ void Ast::Scope::mergeTo(Scope& targetScope, MergeMode mergeMode)
             toScopeMap.add(libScopeKey, libScopeLink);
             break;
         }
-    });
+    }
 }
 
 Ast::StructBase::StructBase(World& w, CellI& astType, CellI& name, const std::string& nameStr) :

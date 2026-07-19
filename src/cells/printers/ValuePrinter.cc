@@ -43,7 +43,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                 m_ss << "(";
                 if (cell.has(w.id.parameters)) {
                     int paramNum = 0;
-                    forEach(cell[w.id.parameters], [this, &paramNum](CellI& parameter, int, bool& stop) {
+                    for (CellI& parameter : cell[w.id.parameters]) {
                         if (paramNum++ > 0) {
                             m_ss << ", ";
                         }
@@ -52,7 +52,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
                         m_ss << paramKey.label();
                         m_ss << ": ";
                         printImpl(paramValue);
-                    });
+                    }
                 }
                 m_ss << ")";
             }
@@ -114,15 +114,16 @@ void CellValuePrinter::printOpFunction(CellI& cell)
 
     if (cell.has(w.id.parameters)) {
         CellI& parametersList = cell[w.id.parameters][w.id.list];
-        forEach(parametersList, [this, &iss](CellI& slot, int i, bool& stop) {
-            if (i > 0) {
+        int i                 = 0;
+        for (CellI& slot : parametersList) {
+            if (i++ > 0) {
                 iss << ", ";
             }
             if (&slot[w.id.key] != &w.id.self) {
                 iss << "p_";
             }
             iss << slot[w.id.key].label() << ": " << slot[w.id.type].label();
-        });
+        }
     }
     bool hasReturnValue = false;
     if (cell.has(w.id.returnType)) {
@@ -151,7 +152,7 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     printImpl(cell[w.id.op]);
 }
 
-bool CellValuePrinter::isThisCallAGetter(CellI & callAst)
+bool CellValuePrinter::isThisCallAGetter(CellI& callAst)
 {
     if (&callAst[w.id.cell].__type__() != &w.std.ast.Call) {
         return false;
@@ -195,7 +196,7 @@ void CellValuePrinter::printOpCall(CellI& cell)
     m_ss << "(";
     if (cell.has(w.id.parameters)) {
         int paramNum = 0;
-        forEach(cell[w.id.parameters], [this, &paramNum](CellI& parameter, int, bool& stop) {
+        for (CellI& parameter : cell[w.id.parameters]) {
             if (paramNum++ > 0) {
                 m_ss << ", ";
             }
@@ -204,7 +205,7 @@ void CellValuePrinter::printOpCall(CellI& cell)
             m_ss << paramRole.label();
             m_ss << ": ";
             printImpl(paramValue);
-        });
+        }
     }
     m_ss << ")";
 }
@@ -591,12 +592,13 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         printTypeName(cell.__type__());
         m_ss << "[";
-        forEach(cell, [this](CellI& value, int i, bool&) {
-            if (i != 0) {
+        int i = 0;
+        for (CellI& value : cell) {
+            if (i++ != 0) {
                 m_ss << ", ";
             }
             printImpl(value);
-        });
+        }
         m_ss << "]";
         return;
     } else if (cell.isA(w.std.Map)) {
@@ -606,15 +608,16 @@ void CellValuePrinter::printImpl(CellI& cell)
         }
         printTypeName(cell.__type__());
         m_ss << "{";
-        forEach(cell[w.id.index].slotList(), [this, &cell](CellI& value, int i, bool&) {
-            if (i != 0) {
+        int i = 0;
+        for (CellI& value : cell[w.id.index].slotList()) {
+            if (i++ != 0) {
                 m_ss << ", ";
             }
             printImpl(value[w.id.key]);
             m_ss << ": {";
             printImpl(cell[w.id.index][value[w.id.key]][w.id.value]);
             m_ss << "}";
-        });
+        }
         m_ss << "}";
         return;
 #if 0
@@ -770,13 +773,14 @@ void CellValuePrinter::printImpl(CellI& cell)
     m_ss << cell.__type__().label() << " { ";
 
     if (cell.__type__().has(w.id.slots)) {
-        forEach(cell.slotList(), [this](CellI& slot, int i, bool&) {
+        int i = 0;
+        for (CellI& slot : cell.slotList()) {
             if (i != 0) {
                 m_ss << ", ";
             }
             m_ss << ".";
             printImpl(slot);
-        });
+        }
     }
 
     m_ss << " }";

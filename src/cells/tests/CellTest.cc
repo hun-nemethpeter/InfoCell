@@ -152,19 +152,19 @@ TEST_F(CellTest, CompilerSmokeTest)
     TRACE(compiledSymbols, "All compiled symbols:");
 
     TRACE(compiledSymbols, "  structs:");
-    forEach(testLib.structs()[id.list], [this](CellI& kv, int, bool&) {
+    for (CellI& kv : testLib.structs()[id.list]) {
         TRACE(compiledSymbols, "    {}", kv[id.key].label());
-    });
+    }
 
     TRACE(compiledSymbols, "  functions:");
-    forEach(testLib.functions()[id.list], [this](CellI& kv, int, bool&) {
+    for (CellI& kv : testLib.functions()[id.list]) {
         TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
-    });
+    }
 
     TRACE(compiledSymbols, "  variables:");
-    forEach(testLib.variables()[id.list], [this](CellI& kv, int, bool&) {
+    for (CellI& kv : testLib.variables()[id.list]) {
         TRACE(compiledSymbols, "    {} : {}", kv[id.key].label(), kv[id.value].label());
-    });
+    }
 
     Object testStruct(w, w.getStruct("std::Struct"), w.name("constructor"), "testStruct");
     Object testRecursiveStruct(w, w.getStruct("std::Struct"), w.name("constructorWithRecursiveType"), "testRecursiveStruct");
@@ -241,9 +241,9 @@ TEST_F(CellTest, ToolFinderTestForSet)
     CellI& requestForSetAstList = toolFinder.serializeEffect(requestForSet);
     {
         std::stringstream ss;
-        forEach(requestForSetAstList, [&ss](CellI& value, int, bool& stop) {
+        for (CellI& value : requestForSetAstList) {
             ss << value.label() << " ";
-        });
+        }
         EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Get cell pixel key green op pop other 5 ");
     }
 
@@ -287,9 +287,9 @@ TEST_F(CellTest, ToolFinderTestForGet)
     CellI& requestForGetAstList = toolFinder.serializeEffect(requestForGet);
     {
         std::stringstream ss;
-        forEach(requestForGetAstList, [&ss](CellI& value, int, bool& stop) {
+        for (CellI& value : requestForGetAstList) {
             ss << value.label() << " ";
-        });
+        }
         EXPECT_EQ(ss.str(), "op type op::Call method op::Get cell pixel key green ");
     }
 
@@ -352,9 +352,9 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     CellI& requestForSetWithGetAstList = toolFinder.serializeEffect(testRequestFn);
     {
         std::stringstream ss;
-        forEach(requestForSetWithGetAstList, [&ss](CellI& value, int, bool& stop) {
+        for (CellI& value : requestForSetWithGetAstList) {
             ss << value.label() << " ";
-        });
+        }
         EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Get cell pixel key op push op type op::Call method op::Get cell theme key color op pop op pop other 5 ");
     }
 
@@ -402,9 +402,9 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     CellI& serializedRequest = toolFinder.serializeEffect(testRequestFn);
     {
         std::stringstream ss;
-        forEach(serializedRequest, [&ss](CellI& value, int, bool& stop) {
+        for (CellI& value : serializedRequest) {
             ss << value.label() << " ";
-        });
+        }
         EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Add cell op push op type op::Call method op::Get cell x key value op pop other 2 op pop other 4 ");
     }
 
@@ -1738,7 +1738,7 @@ static void printVectorShape(CellI& shape)
     int minY    = y;
 
     CellI& vectorList = shape["vectors"];
-    forEach(vectorList, [&board, &x, &y, &maxX, &maxY, &minX, &minY, shapeColor](CellI& vector, int i, bool&) {
+    for (CellI& vector : vectorList) {
         x += static_cast<Number&>(vector["x"]).value();
         y += static_cast<Number&>(vector["y"]).value();
         if (x > maxX) {
@@ -1754,7 +1754,7 @@ static void printVectorShape(CellI& shape)
             minY = y;
         }
         board[x][y] = shapeColor;
-    });
+    }
     ftxui::Elements boardLines;
     int width  = maxX - minX + 1;
     int height = maxY - minY + 1;
@@ -1793,14 +1793,16 @@ static void printShapeList(CellI& shapeList)
     ftxui::Elements shapesInLine;
     const int listSize = static_cast<Number&>(shapeList["size"]).value();
     const int lastListIndex = listSize - 1;
-    forEach(shapeList, [&shapesInLine, lastListIndex](CellI& shape, int i, bool&) {
+
+    int i = 0;
+    for (CellI& shape : shapeList) {
         auto renderedShape = renderShape(shape);
-        if (i != lastListIndex) {
+        if (i++ != lastListIndex) {
             shapesInLine.push_back(ftxui::hbox(renderedShape, ftxui::separator()));
         } else {
             shapesInLine.push_back(ftxui::hbox(renderedShape));
         }
-    });
+    }
 
     auto document = ftxui::hbox(shapesInLine) | ftxui::border;
     auto screen   = ftxui::Screen::Create(
@@ -1898,9 +1900,9 @@ TEST_F(CellTest, FrameTest)
 
     const auto& printPixels = [this](CellI& pixelList) -> std::string {
         std::stringstream ss;
-        forEach(pixelList, [this, &ss](CellI& arcPixel, int, bool&) {
+        for (CellI& arcPixel : pixelList) {
             ss << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
-        });
+        }
 
         return ss.str();
     };
@@ -2129,12 +2131,12 @@ TEST_F(CellTest, DISABLE_ArcTaskFromArcPrizeExamineTrainPair)
         int inputShapesNum   = static_cast<Number&>(inputShapes[id.size]).value();
         int outputShapesNum  = static_cast<Number&>(outputShapes[id.size]).value();
         if (inputGridWidth == outputGridWidth && inputGridHeight == outputGridHeight && outputShapesNum > inputShapesNum) {
-            forEach(inputShapes, [](CellI& shape, int i, bool&) {
+            for (CellI& shape : inputShapes) {
                 std::cout << "DDDD input shape color: " << getArcColorName(shape["color"]) << ", size: " << static_cast<Number&>(shape["pixels"]["size"]).value() << std::endl;
-            });
-            forEach(outputShapes, [](CellI& shape, int i, bool&) {
+            }
+            for (CellI& shape : outputShapes) {
                 std::cout << "DDDD output shape color: " << getArcColorName(shape["color"]) << ", size: " << static_cast<Number&>(shape["pixels"]["size"]).value() << std::endl;
-            });
+            }
         }
     };
 
@@ -2154,15 +2156,15 @@ TEST_F(CellTest, LoadAllArcTask)
             ", examples num:" << static_cast<List&>(task.second.m_cellExamplesList).size() <<
             ", tests num:" << static_cast<List&>(task.second.m_cellTestsList).size() << std::endl;
         std::cout <<"   examples:" << std::endl;
-        forEach(task.second.m_cellExamplesList, [](CellI& example, int i, bool&) {
+        for (CellI& example : task.second.m_cellExamplesList) {
             std::cout <<
                 "    size " << static_cast<hybridarc::Grid&>(example["input"]).width() << "x" << static_cast<hybridarc::Grid&>(example["input"]).height() <<
                 " -> " << static_cast<hybridarc::Grid&>(example["output"]).width() << "x" << static_cast<hybridarc::Grid&>(example["output"]).height() << std::endl;
-        });
+        }
         std::cout << "   tests:" << std::endl;
-        forEach(task.second.m_cellTestsList, [](CellI& example, int i, bool&) {
+        for (CellI& example : task.second.m_cellTestsList) {
             std::cout << "    size " << static_cast<hybridarc::Grid&>(example["input"]).width() << "x" << static_cast<hybridarc::Grid&>(example["input"]).height() << std::endl;
-        });
+        }
     }
 }
 
@@ -2172,7 +2174,7 @@ TEST_F(CellTest, LoadThoseArcTaskWhereInputSizeEqOutputSize)
     infocell::arc::TaskSet taskSet(w, INFOCELL_ARCPRIZE_PATH INFOCELL_ARC_PRIZE_TRAINING_CHALLENGES_FILENAME);
     for (auto& task : taskSet.m_tasks) {
         bool allSameSize = false;
-        forEach(task.second.m_cellExamplesList, [&allSameSize](CellI& example, int i, bool& stop) {
+        for (CellI& example : task.second.m_cellExamplesList) {
             int inputWidth  = static_cast<hybridarc::Grid&>(example["input"]).width();
             int inputHeight = static_cast<hybridarc::Grid&>(example["input"]).height();
             int outputWidth = static_cast<hybridarc::Grid&>(example["output"]).width();
@@ -2181,9 +2183,9 @@ TEST_F(CellTest, LoadThoseArcTaskWhereInputSizeEqOutputSize)
                 allSameSize = true;
             } else {
                 allSameSize = false;
-                stop        = true;
+                break;
             }
-        });
+        }
         if (!allSameSize) {
             continue;
         }
@@ -2246,7 +2248,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
             CellI& arcTask = *arcTaskPtr;
         }
         CellI& outputGrid = *arcTaskPtr;
-        forEach(inputGrid["pixels"], [this, &outputGrid](CellI& arcPixel, int, bool&) {
+        for (CellI& arcPixel : inputGrid["pixels"]) {
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
             List pixelContent(w, arc.Pixel);
@@ -2254,12 +2256,11 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
             pixelContent.add(arcPixel[w.id.coordinates.y]);
 
             CellI& outputColor = static_cast<TrieMap&>(outputGrid["pixelsMap"]).getValue(pixelContent);
-            if (&outputColor != &arcPixel["color"])
-            {
+            if (&outputColor != &arcPixel["color"]) {
                 std::cout << "DDDD removedPixel: " << fmt::format("[{}, {}, {}]\n", arcPixel["x"].label(), arcPixel["y"].label(), arcPixel["color"].label());
             }
-        });
-        forEach(outputGrid["pixels"], [this, &inputGrid](CellI& arcPixel, int, bool&) {
+        }
+        for (CellI& arcPixel : outputGrid["pixels"]) {
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
             List pixelContent(w, arc.Pixel);
@@ -2270,7 +2271,7 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
             if (&inputColor != &arcPixel["color"]) {
                 std::cout << "DDDD addedPixel: " << fmt::format("[{}, {}, {}]\n", arcPixel["x"].label(), arcPixel["y"].label(), arcPixel["color"].label());
             }
-        });
+        }
 #if 0
                 vector<vector<int>> findDifference(vector<int>& nums1, vector<int>& nums2)
                 {

@@ -334,18 +334,18 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
             transformationPtr = &arc.LineSymmetry.vertical;
         }
         CellI& transformation = *transformationPtr;
-        forEach(lhsEdges, [&w, &rhs, &getEdge, &result, &outerLhsEdge, &transformation](CellI& lhsEdge, int i, bool& stop) {
+        for (CellI& lhsEdge : lhsEdges) {
             if (&lhsEdge == &outerLhsEdge) {
-                return;
+                continue;
             }
             CellI* rhsEdgePtr = getEdge(transformation, lhsEdge, outerLhsEdge, rhs);
             if (!rhsEdgePtr) {
-                return;
+                continue;
             }
             CellI& rhsEdge                  = *rhsEdgePtr;
             EdgeRelation internalEdgeResult = compareEdges(lhsEdge, rhsEdge, transformation);
             result.m_edgeRelations.push_back(internalEdgeResult);
-        });
+        }
     }
 
     return result;

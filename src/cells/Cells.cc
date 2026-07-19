@@ -124,22 +124,19 @@ bool CellI::operator==(CellI& rhs)
         return false;
     }
 
-    bool ret = true;
-    forEach(slotList(), [this, &rhs, &ret](CellI& slot, int i, bool& stop) {
+    for (CellI& slot : slotList()) {
         CellI& key = slot[w.id.key];
 
         bool hasLeftSlot = has(key);
         if (hasLeftSlot != rhs.has(key)) {
-            ret = false;
-            return;
+            return false;
         }
         if (hasLeftSlot && (&(*this)[key] != &rhs[key])) {
-            ret = false;
-            return;
+            return false;
         }
-    });
+    }
 
-    return ret;
+    return true;
 }
 
 bool CellI::operator==(const CellI& rhs) const
@@ -151,6 +148,46 @@ bool CellI::operator!=(CellI& rhs)
 {
     return !((*this) == rhs);
 }
+
+CellI::Iterator::Iterator(CellI* list, CellI* node) :
+    m_list(list), m_node(node)
+{
+}
+
+CellI& CellI::Iterator::operator*() const
+{
+    World& w = m_node->w;
+    return (*m_node)[w.id.value];
+}
+
+CellI::Iterator& CellI::Iterator::operator++()
+{
+    World& w = m_node->w;
+
+    m_node = (*m_node).has(w.id.next) ? &(*m_node)[w.id.next] : nullptr;
+
+    return *this;
+}
+
+bool CellI::Iterator::operator==(const Iterator& other) const
+{
+    return m_node == other.m_node;
+}
+
+CellI::Iterator CellI::begin()
+{
+    if (has(w.id.first)) {
+        return Iterator(this, &get(w.id.first));
+    } else {
+        return Iterator(this, nullptr);
+    }
+}
+
+CellI::Iterator CellI::end()
+{
+    return Iterator(this, nullptr);
+}
+
 #pragma endregion
 #pragma region Object
 Param::Param(const std::string& key, CellI& value) :
@@ -755,20 +792,20 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& inputIndex = *new Object(w, w.std.Index);
         inputIndex.set(w.id.self, cell);
         if (self.has(w.id.parameters)) {
-            forEach(self[w.id.parameters][w.id.list], [&self, &w, &inputIndex](CellI& parameter, int, bool& stop) {
+            for (CellI& parameter : self[w.id.parameters][w.id.list]) {
                 inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
                 // static_cast<Object&>(self).printIndent();
                 // std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.value][w.id.value].label() << std::endl;
-            });
+            }
         }
         stackFrame.set(w.id.input, inputIndex);
 
         if (method.has(w.id.localVars)) {
             CellI& localVarsList  = method[w.id.localVars].slotList();
             auto& localVarsIndex = *new Object(w, method[w.id.localVars].__type__(), "StackLocalVarsIndex");
-            forEach(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
+            for (CellI& slot : localVarsList) {
                 localVarsIndex.set(slot[w.id.key], *new Object(w, w.std.op.Var));
-            });
+            }
             stackFrame.set(w.id.localVars, localVarsIndex);
         }
 
@@ -858,10 +895,10 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
 //        std::cout << "return " << std::endl;
 //        std::cout << "return " << self.label() << std::endl;
         if (stackFrame.has(w.id.ops)) {
-            forEach(stackFrame[w.id.ops], [&w](CellI& opState, int, bool& stop) {
+            for (CellI& opState : stackFrame[w.id.ops]) {
                 loadOpState(opState);
                 delete &opState;
-            });
+            }
             static_cast<List&>(stackFrame[w.id.ops]).clear();
             delete &stackFrame[w.id.ops];
             stackFrame.erase(w.id.ops);
@@ -880,9 +917,9 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
             if (stackFrame.has(w.id.localVars)) {
                 CellI& localVarsList  = self[w.id.localVars].slotList();
                 CellI& localVarsIndex = stackFrame[w.id.localVars];
-                forEach(localVarsList, [&self, &w, &localVarsIndex](CellI& slot, int, bool& stop) {
+                for (CellI& slot : localVarsList) {
                     delete &localVarsIndex[slot[w.id.key]];
-                });
+                }
                 delete &localVarsIndex;
             }
             delete &stackFrame;
@@ -1819,12 +1856,12 @@ void Object::initLocalVars(CellI& method)
     Object& localVarsIndex = *new Object(w, method[w.id.localVars].__type__(), "LocalVarsIndex");
     CellI& stackFrame      = method[w.id.stack][w.id.value];
     stackFrame.set(w.id.localVars, localVarsIndex);
-    forEach(localVarsList, [this, &localVarsIndex](CellI& slot, int i, bool&) {
+    for (CellI& slot : localVarsList) {
         auto& key        = slot[w.id.key];
         Object& localVar = *new Object(w, w.std.op.Var, fmt::format("var {}", key.label()));
         localVar.set(w.id.valueType, slot[w.id.type]);
         localVarsIndex.set(key, localVar);
-    });
+    }
 }
 
 CellI& Object::getFnValue(CellI& method)
@@ -2451,23 +2488,21 @@ bool TrieMap::hasKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+    for (CellI& keyNode : key) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
         if (childrenIndex.has(keyNode)) {
             children = &childrenIndex.get(keyNode);
         } else {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         currentNode = children;
-    });
+    }
 
     if (!currentNode || currentNode->missing(w.id.data)) {
         return false;
@@ -2481,23 +2516,21 @@ CellI& TrieMap::getValue(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+    for (CellI& keyNode : key) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
         if (childrenIndex.has(keyNode)) {
             children = &childrenIndex.get(keyNode);
         } else {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         currentNode = children;
-    });
+    }
 
     if (!currentNode || currentNode->missing(w.id.data)) {
         throw "No such key!";
@@ -2511,24 +2544,22 @@ bool TrieMap::hasValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    forEach(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+    for (CellI& slot : key.slotList()) {
         CellI& keyNode  = key[slot[w.id.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
         if (childrenIndex.has(keyNode)) {
             children = &childrenIndex.get(keyNode);
         } else {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         currentNode = children;
-    });
+    }
 
     if (!currentNode || currentNode->missing(w.id.data)) {
         return false;
@@ -2542,24 +2573,22 @@ CellI& TrieMap::getValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    forEach(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+    for (CellI& slot : key.slotList()) {
         CellI& keyNode  = key[slot[w.id.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
         if (childrenIndex.has(keyNode)) {
             children = &childrenIndex.get(keyNode);
         } else {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         currentNode = children;
-    });
+    }
 
     if (!currentNode || currentNode->missing(w.id.data)) {
         throw "No such key!";
@@ -2573,7 +2602,7 @@ void TrieMap::addWithDataKey(CellI& key, CellI& value)
 {
     CellI* currentNode = &m_rootNode;
 
-    forEach(key.slotList(), [this, &currentNode, &key](CellI& slot, int i, bool& stop) {
+    for (CellI& slot : key.slotList()) {
         CellI& keyNode = key[slot[w.id.key]];
         CellI* child = nullptr;
         if (currentNode->missing(w.id.children)) {
@@ -2588,7 +2617,7 @@ void TrieMap::addWithDataKey(CellI& key, CellI& value)
             childrenIndex.insert(keyNode, *child);
         }
         currentNode = child;
-    });
+    }
 
     List::Node& node = *m_list.add(w.std.kvPair(key, value));
     currentNode->set(w.id.data, node);
@@ -2600,7 +2629,7 @@ void TrieMap::add(CellI& key, CellI& value)
 {
     CellI* currentNode = &m_rootNode;
 
-    forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+    for (CellI& keyNode : key) {
         CellI* child = nullptr;
         if (currentNode->missing(w.id.children)) {
             currentNode->set(w.id.children, *new Index(w));
@@ -2614,7 +2643,7 @@ void TrieMap::add(CellI& key, CellI& value)
             childrenIndex.insert(keyNode, *child);
         }
         currentNode = child;
-    });
+    }
 
     List::Node& node = *m_list.add(w.std.kvPair(key, value));
     currentNode->set(w.id.data, node);
@@ -2630,23 +2659,21 @@ void TrieMap::remove(CellI& key)
 
     CellI* currentNode = &m_rootNode;
 
-    forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
+    for (CellI& keyNode : key) {
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
         if (childrenIndex.has(keyNode)) {
             children = &childrenIndex.get(keyNode);
         } else {
-            stop        = true;
             currentNode = nullptr;
-            return;
+            break;
         }
         currentNode = children;
-    });
+    }
 
     if (!currentNode || currentNode->missing(w.id.data)) {
         return;
@@ -3010,6 +3037,7 @@ CellI& ActivationPointer::operator[](CellI& key)
 
 } // namespace hybrid
 
+#if 0
 void forEach(CellI& list, std::function<void(CellI& value, int i, bool& stop)> visitFn)
 {
     class ListIterator
@@ -3072,6 +3100,7 @@ void forEach(CellI& list, std::function<void(CellI& value, int i, bool& stop)> v
         }
     } while (true);
 }
+#endif
 
 } // namespace cells
 } // namespace infocell

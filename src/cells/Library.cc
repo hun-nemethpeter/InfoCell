@@ -28,21 +28,21 @@ void Library::include(Library& library)
 
 void Library::mergeTo(Library& target)
 {
-    forEach(functions()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+    for (CellI& kvPair : functions()[w.id.list]) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.functions().add(key, value);
-    });
-    forEach(structs()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+    }
+    for (CellI& kvPair : structs()[w.id.list]) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.structs().add(key, value);
-    });
-    forEach(variables()[w.id.list], [this, &target](CellI& kvPair, int i, bool&) {
+    }
+    for (CellI& kvPair : variables()[w.id.list]) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.variables().add(key, value);
-    });
+    }
 }
 
 Ast::Scope& Library::scope()

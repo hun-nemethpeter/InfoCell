@@ -14,6 +14,7 @@ class World;
 
 // ============================================================================
 class Visitor;
+
 class CellI
 {
 public:
@@ -58,6 +59,33 @@ public:
 
     static int s_constructed;
     static int s_destructed;
+public:
+    class Iterator
+    {
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type      = CellI*;
+        using difference_type = std::ptrdiff_t;
+        using pointer         = CellI*;
+        using reference       = CellI&;
+
+        Iterator(CellI* list, CellI* node);
+
+        CellI& operator*() const;
+        Iterator& operator++();
+        bool operator==(const Iterator& other) const;
+        bool operator!=(const Iterator& other) const
+        {
+            return !(*this == other);
+        }
+
+    private:
+        CellI* m_node;
+        CellI* m_list;
+    };
+
+    Iterator begin();
+    Iterator end();
 };
 
 struct Param
@@ -499,7 +527,7 @@ public:
 } // namespace hybrid
 
 // ============================================================================
-void forEach(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
+//void forEach(CellI& list, std::function<void(CellI& value, int i, bool& stop)> fn);
 
 } // namespace cells
 } // namespace infocell

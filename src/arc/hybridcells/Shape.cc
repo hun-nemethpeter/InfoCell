@@ -226,23 +226,22 @@ bool Shape::operator==(Shape& rhs)
     List& rhsExternalEdgeLine = rhs.m_externalEdgeLine;
     CellI* rhsDirNodePtr      = &rhsExternalEdgeLine[w.id.first];
     bool result               = true;
-    forEach(m_externalEdgeLine, [this, &rhsExternalEdgeLine, &rhsDirNodePtr, &result](CellI& dir, int i, bool& stop) {
+    for (CellI& dir : m_externalEdgeLine) {
         CellI& rhsDir = (*rhsDirNodePtr)[w.id.value];
         if (&dir != &rhsDir) {
-            stop   = true;
             result = false;
-            return;
+            break;
         }
         if ((*rhsDirNodePtr).has(w.id.next)) {
             rhsDirNodePtr = &(*rhsDirNodePtr)[w.id.next];
         }
-    });
+    }
     if (!result) {
         return false;
     }
 
     TrieMap& rhsInternalEdgeLine = rhs.m_internalEdges;
-    forEach(m_internalEdges[w.id.list], [this, &rhsInternalEdgeLine, &result](CellI& kvPair, int i, bool& stop) {
+    for (CellI& kvPair : m_internalEdges[w.id.list]) {
         auto& offset   = kvPair[w.id.key];
         auto& edgeLine = kvPair[w.id.value];
         std::cout << "";
@@ -250,11 +249,10 @@ bool Shape::operator==(Shape& rhs)
             auto& rhsEdgeLine = rhsInternalEdgeLine.getValueWithDataKey(offset);
             std::cout << " has value";
         } else {
-            stop   = true;
             result = false;
-            return;
+            break;
         }
-    });
+    }
     if (!result) {
         return false;
     }
@@ -287,23 +285,26 @@ std::string Shape::toString() const
         }
     };
     ss << "{ " << m_color.label() << ",";
-    forEach(self["externalEdgeLine"], [this, &printDirection](CellI& direction, int i, bool&) {
-        printDirection(direction, i == 0);
-    });
+    int i = 0;
+    for (CellI& direction : self["externalEdgeLine"]) {
+        printDirection(direction, i++ == 0);
+    }
     ss << "";
     if (!m_internalEdges.empty()) {
         ss << ", ";
-        forEach(self["internalEdges"][w.id.list], [this, &ss, &printDirection](CellI& kvPair, int i, bool&) {
+        i = 0;
+        for (CellI& kvPair : self["internalEdges"][w.id.list]) {
             Vector& offset     = static_cast<Vector&>(kvPair[w.id.key]);
             List& internalEdge = static_cast<List&>(kvPair[w.id.value]);
-            if (i > 0) {
+            if (i++ > 0) {
                 ss << ", ";
             }
             ss << "(" << offset.m_x.value() << "," << offset.m_y.value() << ")";
-            forEach(internalEdge, [this, &printDirection](CellI& direction, int i, bool&) {
-                printDirection(direction, i == 0);
-            });
-        });
+            int j = 0;
+            for (CellI& direction : internalEdge) {
+                printDirection(direction, j++ == 0);
+            }
+        }
     }
     ss << " }";
     return ss.str();

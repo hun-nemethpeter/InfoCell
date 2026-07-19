@@ -265,7 +265,7 @@ void EdgeDetector::sortShapePixelsAndCreateShapePoints()
 
 void EdgeDetector::sortShapePoints()
 {
-    forEach(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
+    for (CellI& currentShape : frame()["shapes"]) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
 
         ScanLineState scanLineState = ScanLineState::Up;
@@ -500,13 +500,13 @@ void EdgeDetector::sortShapePoints()
             }
         }
         TRACE(edge, ss.str());
-    });
+    }
 }
 
 void EdgeDetector::calculateEdgesForShapes()
 {
     DEBUG(edge, "calculateEdgesForShapes");
-    forEach(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
+    for (CellI& currentShape : frame()["shapes"]) {
         TRACE(edge, "  Shape id: {}", currentShape["id"].label());
 
         enum class ProcessingMode
@@ -1209,7 +1209,7 @@ For leftToRight direction edge from point middle
             } break;
             } // switch processinMode
         } // while has more shapePoints
-    }); // visit shapePoints
+    } // visit shapePoints
 }
 
 void EdgeDetector::processEdgeNodes()
@@ -1643,18 +1643,18 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
     }
     const int targetContainedShapeCount = shapesCount - 1;
     CellI* backgroundShapePtr           = nullptr;
-    forEach(shapesList, [this, targetContainedShapeCount, &backgroundShapePtr](CellI& shape, int, bool&) {
+    for (CellI& shape : shapesList) {
         int edgesCount = getShapeEdgesSize(shape);
         if (edgesCount == 1) {
-            return;
+            continue;
         }
         int containedShapeCount = 0;
-        forEach(shape["edges"]["list"], [this, &containedShapeCount](CellI& edge, int, bool&) {
+        for (CellI& edge : shape["edges"]["list"]) {
             if (!(&edge["kind"] == &arc.ShapeEdgeKind.InternalEdge && edge.has("shapes"))) {
-                return;
+                continue;
             }
             containedShapeCount += static_cast<Set&>(edge["shapes"]).size();
-        });
+        }
         if (targetContainedShapeCount == containedShapeCount) {
             TRACE(shapeRelations, "Perfect match for a backround");
             backgroundShapePtr = &shape;
@@ -1662,7 +1662,7 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
             // some heuristic about the longest border
             CellI& externalEdge = shape["edges"]["list"]["first"]["value"];
             std::map<int, int> longestBorder;
-            forEach(externalEdge["edgeNodes"], [this, &longestBorder](CellI& edgeNode, int i, bool& stop) {
+            for (CellI& edgeNode : externalEdge["edgeNodes"]) {
                 int externalShapeId;
                 if (edgeNode.has("externalShape")) {
                     externalShapeId = static_cast<Number&>(edgeNode["externalShape"]["id"]).value();
@@ -1670,7 +1670,7 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
                     externalShapeId = 0;
                 }
                 longestBorder[externalShapeId]++;
-            });
+            }
             int longestBorderLength = 0;
             int selectedShapeId     = -1;
             std::set<int> lengthStat;
@@ -1687,7 +1687,7 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
             }
             TRACE(shapeRelations, "Longest border is with shape id: {}:{} second: {}", selectedShapeId, longestBorderLength, secondPlace);
         }
-    });
+    }
     if (backgroundShapePtr) {
         CellI& backgroundShape = *backgroundShapePtr;
         INFO(shapeRelations, "    shape id {} can be a background as it contains all other shapes!", backgroundShape["id"].label());
@@ -1750,7 +1750,7 @@ hybridarc::ShapeField& EdgeDetector::createResult()
     int height = static_cast<Number&>(frame().get(id.height)).value();
     auto& shapeField = *new hybridarc::ShapeField(w, width, height);
 
-    forEach(frame()["shapes"], [this, &shapeField](CellI& currentShape, int, bool&) {
+    for (CellI& currentShape : frame()["shapes"]) {
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
         // offset
         CellI& firstPoint      = currentShape["shapePoints"][id.first][id.value];
@@ -1761,10 +1761,11 @@ hybridarc::ShapeField& EdgeDetector::createResult()
         List& externalEdgeLine = *new List(w, arc.Direction);
         TrieMap& internalEdges    = *new TrieMap(w, arc.Vector, w.tt_("std::List", "valueType", "Direction"));
 
-        forEach(edgesList, [this, &externalEdgeLine, &internalEdges](CellI& currentEdge, int i, bool&) {
+        int i = 0;
+        for (CellI& currentEdge : edgesList) {
             List* outEdgePtr = nullptr;
             // the first edge is the external edge
-            if (i == 0) {
+            if (i++ == 0) {
                 outEdgePtr = &externalEdgeLine;
             } else {
                 Number& x                  = static_cast<Number&>(currentEdge["fromExternalX"]);
@@ -1776,21 +1777,21 @@ hybridarc::ShapeField& EdgeDetector::createResult()
             }
             List& outEdge = *outEdgePtr;
 
-            forEach(currentEdge["edgeNodes"], [this, &outEdge](CellI& node, int i, bool&) {
+            for (CellI& node : currentEdge["edgeNodes"]) {
                 outEdge.add(node["direction"]);
-            });
-        });
+            }
+        }
         hybridarc::Shape& shape = *new hybridarc::Shape(w, currentShape["color"], externalEdgeLine, internalEdges);
         shapeField.addShape(offset, shape);
-    });
+    }
     std::cout << "ShapeField shapeField(width: " << static_cast<Number&>(shapeField.m_width).value() << ", height: " << static_cast<Number&>(shapeField.m_height).value() << ");" << std::endl;
 
     CellI& shapesMap = shapeField["shapesMap"];
-    forEach(shapesMap[id.list], [this, &shapesMap](CellI& kvPair, int, bool&) {
+    for (CellI& kvPair : shapesMap[id.list]) {
         hybridarc::Vector& offset = static_cast<hybridarc::Vector&>(kvPair[id.key]);
         hybridarc::Shape& shape   = static_cast<hybridarc::Shape&>(kvPair[id.value]);
         std::cout << "shapeField.addShape(at: " << offset << ", shape: " << shape << ");" << std::endl;
-    });
+    }
 
     return shapeField;
 }

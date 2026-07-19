@@ -114,28 +114,28 @@ public:
     void printShapeRelations()
     {
         DEBUG(shapeRelations, "printShapeRelations");
-        forEach(frame()["shapes"], [this](CellI& shape, int, bool&) {
+        for (CellI& shape : frame()["shapes"]) {
             int edgesCount = getShapeEdgesSize(shape);
             if (edgesCount == 1) {
                 TRACE(shapeRelations, "  shape id {} has only external edge", shape["id"].label());
             } else {
                 TRACE(shapeRelations, "  shape id {} has internal edge(s)", shape["id"].label());
-                forEach(shape["edges"]["list"], [this](CellI& edge, int, bool&) {
+                for (CellI& edge : shape["edges"]["list"]) {
                     if (&edge["kind"] == &arc.ShapeEdgeKind.InternalEdge) {
                         if (edge.has("shapes")) {
                             std::stringstream ss;
-                            forEach(edge["shapes"]["index"].slotList(), [this, &ss](CellI& slot, int, bool&) {
+                            for (CellI& slot : edge["shapes"]["index"].slotList()) {
                                 CellI& shape = slot["key"];
                                 ss << fmt::format("shape({}) ", shape["id"].label());
-                            });
+                            }
                             TRACE(shapeRelations, "    edge id {} internal and contains: {}", edge["id"].label(), ss.str());
                         } else {
                             TRACE(shapeRelations, "    edge id {} internal", edge["id"].label());
                         }
                     }
-                });
+                }
             }
-        });
+        }
     }
 
     CellI& getEdgeFromShape(CellI& shape, CellI& edgeId)
@@ -161,12 +161,12 @@ public:
     void printEveryShapePixels()
     {
         TRACE(edge, "printEveryShapePixels");
-        forEach(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
+        for (CellI& currentShape : frame()["shapes"]) {
             TRACE(edge, "Shape id: {}, pixels: ", currentShape["id"].label());
-            forEach(currentShape["shapePixels"], [this](CellI& shapePixel, int, bool&) {
+            for (CellI& shapePixel : currentShape["shapePixels"]) {
                 TRACE(edge, "[{}, {}]", shapePixel["pixel"]["x"].label(), shapePixel["pixel"]["y"].label());
-            });
-        });
+            }
+        }
     }
 
     void printAndTestShapePixels()
@@ -486,11 +486,11 @@ public:
     void printAllShapePoints()
     {
         DEBUG(edge, "printAllShapePoints");
-        forEach(frame()["shapes"], [this](CellI& currentShape, int, bool&) {
+        for (CellI& currentShape : frame()["shapes"]) {
             std::stringstream ss;
             int lastY = static_cast<Number&>(currentShape["shapePoints"]["first"]["value"]["y"]).value();
             TRACE(edge, "Shape id: {}", currentShape["id"].label());
-            forEach(currentShape["shapePoints"], [this, &ss, &lastY](CellI& shapePoint, int, bool&) {
+            for (CellI& shapePoint : currentShape["shapePoints"]) {
                 const int y = static_cast<Number&>(shapePoint["y"]).value();
                 if (lastY != y) {
                     TRACE(edge, "    {}", ss.str());
@@ -498,9 +498,9 @@ public:
                     lastY = y;
                 }
                 ss << fmt::format("({},{}) ", static_cast<Number&>(shapePoint["x"]).value(), y);
-            });
+            }
             TRACE(edge, "    {}", ss.str());
-        });
+        }
     }
 
     void validateEdgePoints()
@@ -975,7 +975,7 @@ public:
         List toCopyList(w, w.std.List);
         List fullSourceObjList(w, w.std.List);
         List toTransformList(w, w.std.List);
-        forEach(inputShapeField["shapesMap"][w.id.list], [this, &outputShapeField, &toCopyList, &fullSourceObjList](CellI& kvPair, int, bool&) {
+        for (CellI& kvPair : inputShapeField["shapesMap"][w.id.list]) {
             auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
             auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
             fullSourceObjList.add(kvPair);
@@ -983,23 +983,23 @@ public:
                 cells::arc::Shape& outputShape = outputShapeField.getShape(offset);
                 if (shape == outputShape) {
                     toCopyList.add(w.std.kvPair(w.true_, kvPair));
-                    return;
+                    continue;
                 }
             }
             toCopyList.add(w.std.kvPair(w.false_, kvPair));
-        });
-        forEach(outputShapeField["shapesMap"][w.id.list], [this, &inputShapeField, &toTransformList](CellI& kvPair, int, bool&) {
+        }
+        for (CellI& kvPair : outputShapeField["shapesMap"][w.id.list]) {
             auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
             auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
             if (inputShapeField.hasShape(offset)) {
                 cells::arc::Shape& outputShape = inputShapeField.getShape(offset);
                 if (shape == outputShape) {
-                    return;
+                    continue;
                 }
             }
             toTransformList.add(kvPair);
-        });
-        forEach(toCopyList, [this](CellI& kvPair, int, bool&) {
+        }
+        for (CellI& kvPair : toCopyList) {
             auto& canCopy      = kvPair[w.id.key];
             auto& resultKvPair = kvPair[w.id.value];
             auto& offset       = static_cast<cells::arc::Vector&>(resultKvPair[w.id.key]);
@@ -1007,12 +1007,12 @@ public:
             if (&canCopy == &w.std.Boolean.true_) {
                 std::cout << "     Copy: " << shape << std::endl;
             }
-        });
-        forEach(toTransformList, [this](CellI& kvPair, int, bool&) {
+        }
+        for (CellI& kvPair : toTransformList) {
             auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
             auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
             std::cout << "Transform: " << shape << std::endl;
-        });
+        }
         createFilterFunctionFor(toCopyList);
         createFilterAndTransformFunctionFor(fullSourceObjList, toTransformList);
         std::cout << "";
@@ -1020,29 +1020,29 @@ public:
 
     void createFilterFunctionFor(List& objectList)
     {
-        forEach(objectList, [this](CellI& kvPair, int, bool&) {
+        for (CellI& kvPair : objectList) {
             auto& isNeeded     = kvPair[w.id.key];
             auto& resultKvPair = kvPair[w.id.value];
             auto& offset       = static_cast<cells::arc::Vector&>(resultKvPair[w.id.key]);
             auto& shape        = static_cast<cells::arc::Shape&>(resultKvPair[w.id.value]);
             std::cout << "      Obj: " << isNeeded.label() << ": " << shape << std::endl;
-        });
+        }
     }
 
     void createFilterAndTransformFunctionFor(List& sourceObjList, List& targetObjectList)
     {
-        forEach(targetObjectList, [this, &sourceObjList](CellI& targetKvPair, int, bool&) {
+        for (CellI& targetKvPair : targetObjectList) {
             auto& tgtOffset = static_cast<cells::arc::Vector&>(targetKvPair[w.id.key]);
             auto& tgtShape  = static_cast<cells::arc::Shape&>(targetKvPair[w.id.value]);
             std::cout << "      for: " << tgtOffset << " " << tgtShape << std::endl;
-            forEach(sourceObjList, [this, &sourceObjList, &targetKvPair](CellI& sourceKvPair, int, bool&) {
+            for (CellI& sourceKvPair : sourceObjList) {
                 auto& srcOffset = static_cast<cells::arc::Vector&>(sourceKvPair[w.id.key]);
                 auto& srcShape  = static_cast<cells::arc::Shape&>(sourceKvPair[w.id.value]);
                 auto& tgtOffset = static_cast<cells::arc::Vector&>(targetKvPair[w.id.key]);
                 auto& tgtShape  = static_cast<cells::arc::Shape&>(targetKvPair[w.id.value]);
                 std::cout << "         from: " << srcOffset << " " << srcShape << std::endl;
-            });
-        });
+            }
+        }
     }
 
     World& w;
@@ -2151,8 +2151,9 @@ TEST_F(EdgeDetectorTest, EdgeTestWithAllArcTask)
     for (auto& task : taskSet.m_tasks) {
         INFO(grid, fmt::format("id: {}, examples num: {}, tests num: {}", task.first, static_cast<List&>(task.second.m_cellExamplesList).size(), static_cast<List&>(task.second.m_cellTestsList).size()));
         TRACE(grid, "   examples:");
-        forEach(task.second.m_cellExamplesList, [this, &task](CellI& example, int i, bool&) {
-            const int humanIndex = i + 1;
+        int i = 0;
+        for (CellI& example : task.second.m_cellExamplesList) {
+            const int humanIndex = i++ + 1;
             INFO(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
             TRACE(grid, fmt::format("id: {}, example input: {}", task.first, humanIndex));
@@ -2163,14 +2164,15 @@ TEST_F(EdgeDetectorTest, EdgeTestWithAllArcTask)
             TRACE(grid, fmt::format("id: {}, example output: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Train", humanIndex, "Output"));
             detect(static_cast<hybridarc::Grid&>(example["output"]));
-        });
+        }
         TRACE(grid, "   tests:");
-        forEach(task.second.m_cellTestsList, [this, &task](CellI& example, int i, bool&) {
-            const int humanIndex = i + 1;
+        i = 0;
+        for (CellI& example : task.second.m_cellTestsList) {
+            const int humanIndex = i++ + 1;
             INFO(grid, fmt::format("id: {}, test input: {}", task.first, humanIndex));
             setOutputSVGName(fmt::format("EdgeTestWithArc_{}_{}{}{}", task.first, "Test", humanIndex, "Input"));
             detect(static_cast<hybridarc::Grid&>(example["input"]));
-        });
+        }
     }
 }
 
