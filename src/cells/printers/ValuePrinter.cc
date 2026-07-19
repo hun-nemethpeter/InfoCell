@@ -86,7 +86,7 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         printIndent();
         printImpl(activeNode[w.id.cell]);
         m_ss << ";\n";
-        activeNodePtr = activeNode.has(w.id.next) ? &activeNode[w.id.next] : nullptr;
+        activeNodePtr = activeNode.getNextOrNullptr();
     }
 #if 0
     forEach(cell[w.ids.ops], [this](CellI& op, int, bool&) {

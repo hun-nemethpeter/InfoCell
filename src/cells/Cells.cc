@@ -162,9 +162,7 @@ CellI& CellI::Iterator::operator*() const
 
 CellI::Iterator& CellI::Iterator::operator++()
 {
-    World& w = m_node->w;
-
-    m_node = (*m_node).has(w.id.next) ? &(*m_node)[w.id.next] : nullptr;
+    m_node = m_node->getNextOrNullptr();
 
     return *this;
 }
@@ -186,6 +184,11 @@ CellI::Iterator CellI::begin()
 CellI::Iterator CellI::end()
 {
     return Iterator(this, nullptr);
+}
+
+CellI* CellI::getNextOrNullptr()
+{
+    return has(w.id.next) ? &get(w.id.next) : nullptr;
 }
 
 #pragma endregion

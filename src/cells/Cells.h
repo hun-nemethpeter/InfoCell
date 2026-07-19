@@ -86,6 +86,7 @@ public:
 
     Iterator begin();
     Iterator end();
+    CellI* getNextOrNullptr();
 };
 
 struct Param

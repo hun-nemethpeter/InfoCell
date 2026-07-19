@@ -197,14 +197,14 @@ CellI& ToolFinder::serializeEffect(CellI& effect)
 
         if (&key == &id.parameters && paramItemPtr) {
             CellI& paramItem = *paramItemPtr;
-            paramItemPtr     = paramItem.has(id.next) ? &paramItem[id.next] : nullptr;
+            paramItemPtr     = paramItem.getNextOrNullptr();
             if (paramItemPtr) {
                 continue;
             } else {
                 paramItemPtr = nullptr;
             }
         }
-        slotItemPtr = slotItem.has(id.next) ? &slotItem[id.next] : nullptr;
+        slotItemPtr = slotItem.getNextOrNullptr();
         while (!slotItemPtr && !stack.empty()) {
             currentPtr   = &stack.back().ast;
             slotItemPtr  = &stack.back().slotItem;
@@ -212,7 +212,7 @@ CellI& ToolFinder::serializeEffect(CellI& effect)
             stack.pop_back();
             ret.add(id.op);
             ret.add(id.pop);
-            slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
+            slotItemPtr = slotItemPtr->getNextOrNullptr();
         }
     }
 
@@ -399,14 +399,14 @@ void ToolFinder::add(CellI& effect, CellI& tool)
 
         if (&key == &id.parameters && paramItemPtr) {
             CellI& paramItem = *paramItemPtr;
-            paramItemPtr     = paramItem.has(id.next) ? &paramItem[id.next] : nullptr;
+            paramItemPtr     = paramItem.getNextOrNullptr();
             if (paramItemPtr) {
                 continue;
             } else {
                 paramItemPtr = nullptr;
             }
         }
-        slotItemPtr = slotItem.has(id.next) ? &slotItem[id.next] : nullptr;
+        slotItemPtr = slotItem.getNextOrNullptr();
         while (!slotItemPtr && !stack.empty()) {
             currentPtr   = &stack.back().ast;
             slotItemPtr  = &stack.back().slotItem;
@@ -414,7 +414,7 @@ void ToolFinder::add(CellI& effect, CellI& tool)
             stack.pop_back();
             addValue(currentNode, id.op);
             addValue(currentNode, id.pop);
-            slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
+            slotItemPtr = slotItemPtr->getNextOrNullptr();
         }
     }
 
@@ -605,14 +605,14 @@ CellI* ToolFinder::findBuildersForEffect(CellI& inputEffect)
         // step parameters first if possible
         if (&(*slotItemPtr)[id.value] == &id.parameters && paramItemPtr) {
             CellI& paramItem = *paramItemPtr;
-            paramItemPtr     = paramItem.has(id.next) ? &paramItem[id.next] : nullptr;
+            paramItemPtr     = paramItem.getNextOrNullptr();
             if (paramItemPtr) {
                 continue;
             }
         }
 
         // step slots then if possible
-        slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
+        slotItemPtr = slotItemPtr->getNextOrNullptr();
         if (slotItemPtr) {
             continue;
         }
@@ -640,9 +640,9 @@ CellI* ToolFinder::findBuildersForEffect(CellI& inputEffect)
 
             // step after stack pop
             if (paramItemPtr == nullptr) {
-                slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
+                slotItemPtr = slotItemPtr->getNextOrNullptr();
             } else {
-                paramItemPtr = (*paramItemPtr).has(id.next) ? &(*paramItemPtr)[id.next] : nullptr;
+                paramItemPtr = paramItemPtr->getNextOrNullptr();
             }
         }
     }
@@ -690,30 +690,6 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
             throw "Unknown builder path item type!";
         }
     };
-
-#if 0
-    auto buildPrimitiveToolFromOpCall = [this]() {
-        CellI& primitiveTool = ast[w.id.method][w.id.name];
-        Object& retOp        = *new Object(w, primitiveTool);
-        retOp.set(w.id.ast, ast);
-
-        Map& membersMapping = static_cast<Map&>(primitiveTool[w.id.ast][w.id.memberMapping]);
-
-        CellI& self = ast[w.id.cell];
-        retOp.set(membersMapping.getValue(w.id.self), compile(self));
-
-        if (ast.has(w.id.parameters)) {
-            CellI& parameterList = ast[w.id.parameters];
-            forEach(parameterList, [this, &compile, &ast, &function, &retOp, &membersMapping](CellI& slot, int, bool&) {
-                CellI& key   = slot[w.id.key];
-                CellI& value = slot[w.id.value];
-                retOp.set(membersMapping.getValue(key), compile(value));
-            });
-        }
-
-        return retOp;
-    }
-#endif
 
     toCreate.add(toCreateItemRoot);
     CellI* toCreateItemPtr = &toCreate[id.first];
@@ -837,7 +813,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                 throw "Unknown builder item!";
             }
 
-            slotItemPtr = (*slotItemPtr).has(id.next) ? &(*slotItemPtr)[id.next] : nullptr;
+            slotItemPtr = slotItemPtr->getNextOrNullptr();
         }
         CellI* subEffectNodePtr = &subEffects[id.first];
         while (subEffectNodePtr) {
@@ -858,11 +834,11 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
             toCreate.add(toCreateItemSub);
 
             CellI* toDelete = subEffectNodePtr;
-            subEffectNodePtr = (*subEffectNodePtr).has(id.next) ? &(*subEffectNodePtr)[id.next] : nullptr;
+            subEffectNodePtr = subEffectNodePtr->getNextOrNullptr();
             subEffects.remove((List::Node*)toDelete);
         }
         CellI* toDelete = toCreateItemPtr;
-        toCreateItemPtr = (*toCreateItemPtr).has(id.next) ? &(*toCreateItemPtr)[id.next] : nullptr;
+        toCreateItemPtr = toCreateItemPtr->getNextOrNullptr();
         toCreate.remove((List::Node*)toDelete);
     }
 }

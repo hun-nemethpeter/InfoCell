@@ -327,7 +327,7 @@ void EdgeDetector::sortShapePoints()
                 pointX = upLeftPointX + 1;
                 ss << fmt::format("({},{}) ", pointX, pointY);
                 shapePoints.add(currentPoint["right"]);
-                CellI* nextPixelNode            = currentPixelNode.has(id.next) ? &currentPixelNode[id.next] : nullptr;
+                CellI* nextPixelNode            = currentPixelNode.getNextOrNullptr();
                 bool isNextPixelIsInTheSameLine = nextPixelNode ? &(*firstColumnPixelNode)["value"]["pixel"]["y"] == &(*nextPixelNode)["value"]["pixel"]["y"] : false;
 
                 if (nextPixelNode) {
@@ -399,7 +399,7 @@ void EdgeDetector::sortShapePoints()
                         // └──┴──┘
                         // step up- and down-line iters
                         nextUpListNode   = &(*upMiddleRowListNode)[id.next];
-                        nextDownListNode = (*downMiddleRowListNode).has(id.next) ? &(*downMiddleRowListNode)[id.next] : nullptr;
+                        nextDownListNode = downMiddleRowListNode->getNextOrNullptr();
                     } else {
                         // ┌──┬──┐
                         // │  │xx│ <- up-line
@@ -408,7 +408,7 @@ void EdgeDetector::sortShapePoints()
                         // └──┴──┘
                         // step down-line iter only
                         nextUpListNode   = upMiddleRowListNode;
-                        nextDownListNode = (*downMiddleRowListNode).has(id.next) ? &(*downMiddleRowListNode)[id.next] : nullptr;
+                        nextDownListNode = downMiddleRowListNode->getNextOrNullptr();
                     }
                 } else if (hasMoreUp && !hasMoreDown) {
                     // ┌──┬──┐
@@ -427,7 +427,7 @@ void EdgeDetector::sortShapePoints()
                     // └──┘
                     // step down line iter only
                     nextUpListNode   = upMiddleRowListNode;
-                    nextDownListNode = (*downMiddleRowListNode).has(id.next) ? &(*downMiddleRowListNode)[id.next] : nullptr;
+                    nextDownListNode = downMiddleRowListNode->getNextOrNullptr();
                 }
 
                 hasMoreUp       = (nextUpListNode != firstColumnPixelNode);
@@ -495,7 +495,7 @@ void EdgeDetector::sortShapePoints()
                 ss << fmt::format("({},{}) ", pointX, pointY);
                 shapePoints.add(currentPoint["right"]);
 
-                currentPixelNodePtr = currentPixelNode.has(id.next) ? &currentPixelNode[id.next] : nullptr;
+                currentPixelNodePtr = currentPixelNode.getNextOrNullptr();
             } break;
             }
         }
@@ -1204,7 +1204,7 @@ For leftToRight direction edge from point middle
                     processingDirectionPtr = &arc.Direction.right;
                     processingMode         = ProcessingMode::InternalEdgeStart;
                 } else {
-                    currentListNodePtr = currentListNode.has(id.next) ? &currentListNode[id.next] : nullptr;
+                    currentListNodePtr = currentListNode.getNextOrNullptr();
                 }
             } break;
             } // switch processinMode
