@@ -17,7 +17,6 @@ Ast::TemplatedType& AstHelper::tt_(const std::string& nameStr, Args&&... args)
     return templatedType(nameStr, std::forward<Args>(args)...);
 }
 
-
 template <typename... Args>
 List& AstHelper::list(CellI& value, Args&&... args)
 {
@@ -40,6 +39,7 @@ Map& AstHelper::map(CellI& key, CellI& value, Args&&... args)
 
     return ret;
 }
+
 #pragma region Ast
 template <typename... Args>
 Ast::Block& Ast::block(Args&&... args)

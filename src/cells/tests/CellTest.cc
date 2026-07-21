@@ -223,20 +223,19 @@ TEST_F(CellTest, ToolFinderTestForSet)
 {
     spdlog::get("toolFinderLookup")->set_level(spdlog::level::trace);
 
-    ;
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     Object& pixel           = *new Object(w, test.Color, "pixel");
 
     CellI& requestForSetGet = *new Object(w, std.op.Call);
     requestForSetGet.set(id.method, std.op.Get);
-    requestForSetGet.set(id.cell, w._(pixel));
-    requestForSetGet.set(id.parameters, parameters(w.id.key, w._(id.green)));
+    requestForSetGet.set(id.self, op.var_(pixel));
+    requestForSetGet.set(id.parameters, parameters(id.key, op.const_(id.green)));
 
     CellI& requestForSet = *new Object(w, std.op.Call, "pixel.get(green) == 5");
     requestForSet.set(id.method, std.op.Equal);
-    requestForSet.set(id.cell, requestForSetGet);
+    requestForSet.set(id.self, requestForSetGet);
 
-    requestForSet.set(id.parameters, parameters(w.id.other, w._(5)));
+    requestForSet.set(id.parameters, parameters(id.other, op.const_(5)));
 
     CellI& requestForSetAstList = toolFinder.serializeEffect(requestForSet);
     {
@@ -244,7 +243,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
         for (CellI& value : requestForSetAstList) {
             ss << value.label() << " ";
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Get cell pixel key green op pop other 5 ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Get self pixel key green op pop other 5 ");
     }
 
     List& resultTools = toolFinder.findToolsByEffect(requestForSet);
@@ -254,14 +253,14 @@ TEST_F(CellTest, ToolFinderTestForSet)
     if (resultTools.size() != 1) {
         return;
     }
-    Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
+    Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
-    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.Var);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
-    EXPECT_EQ(&resultTool[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.key][id.value], &id.green);
-    EXPECT_EQ(&resultTool[id.value].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.value].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.value][id.value], &w._5_);
 
     EXPECT_TRUE(pixel.missing(id.green));
@@ -281,8 +280,8 @@ TEST_F(CellTest, ToolFinderTestForGet)
     // test the get(pixel, green)
     CellI& requestForGet = *new Object(w, std.op.Call);
     requestForGet.set(id.method, std.op.Get);
-    requestForGet.set(id.cell, w._(pixel));
-    requestForGet.set(id.parameters, parameters(w.id.key, w._(id.green)));
+    requestForGet.set(id.self, op.var_(pixel));
+    requestForGet.set(id.parameters, parameters(id.key, op.const_(id.green)));
 
     CellI& requestForGetAstList = toolFinder.serializeEffect(requestForGet);
     {
@@ -290,7 +289,7 @@ TEST_F(CellTest, ToolFinderTestForGet)
         for (CellI& value : requestForGetAstList) {
             ss << value.label() << " ";
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Get cell pixel key green ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Get self pixel key green ");
     }
 
     List& resultTools = toolFinder.findToolsByEffect(requestForGet);
@@ -300,12 +299,12 @@ TEST_F(CellTest, ToolFinderTestForGet)
     if (resultTools.size() != 1) {
         return;
     }
-    Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
+    Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Get);
-    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.Var);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
-    EXPECT_EQ(&resultTool[id.key].__type__(), &std.ast.Cell);
+    EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.key][id.value], &id.green);
 
     EXPECT_TRUE(resultTool.missing(id.value));
@@ -355,7 +354,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
         for (CellI& value : requestForSetWithGetAstList) {
             ss << value.label() << " ";
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Get cell pixel key op push op type op::Call method op::Get cell theme key color op pop op pop other 5 ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Get self pixel key op push op type op::Call method op::Get self theme key color op pop op pop other 5 ");
     }
 
     List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
@@ -365,7 +364,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     if (resultTools.size() != 1) {
         return;
     }
-    Object& resultTool = static_cast<Object&>(resultTools[w.id.first][w.id.value]);
+    Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
@@ -405,7 +404,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
         for (CellI& value : serializedRequest) {
             ss << value.label() << " ";
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal cell op push op type op::Call method op::Add cell op push op type op::Call method op::Get cell x key value op pop other 2 op pop other 4 ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self x key value op pop other 2 op pop other 4 ");
     }
 
     List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
@@ -415,7 +414,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     if (resultTools.size() != 1) {
         return;
     }
-    CellI& resultTool = resultTools[w.id.first][w.id.value];
+    CellI& resultTool = resultTools[id.first][id.value];
 
     // set(_(x), _(id.value), subtract(_(4), _(2)))
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
@@ -483,7 +482,7 @@ Subtract: equal(lhs: add(lhs: return_(), rhs: m_("rhs")                  ), lhs:
     if (resultToolAsts.size() != 1) {
         return;
     }
-    CellI& resultToolAst = resultToolAsts[w.id.first][w.id.value];
+    CellI& resultToolAst = resultToolAsts[id.first][id.value];
 
     // set(_(x), _(id.value), subtract(_(4), _(2)))
     EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
@@ -2252,8 +2251,8 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
             List pixelContent(w, arc.Pixel);
-            pixelContent.add(arcPixel[w.id.coordinates.x]);
-            pixelContent.add(arcPixel[w.id.coordinates.y]);
+            pixelContent.add(arcPixel[id.coordinates.x]);
+            pixelContent.add(arcPixel[id.coordinates.y]);
 
             CellI& outputColor = static_cast<TrieMap&>(outputGrid["pixelsMap"]).getValue(pixelContent);
             if (&outputColor != &arcPixel["color"]) {
@@ -2264,8 +2263,8 @@ TEST_F(CellTest, ArcTaskFromArcPrizeExamineTrainPairSketchCpp)
             //                std::cout << fmt::format("[{}, {}]", arcPixel["x"].label(), arcPixel["y"].label());
             // pixelHashList = arcPixel.hashList();
             List pixelContent(w, arc.Pixel);
-            pixelContent.add(arcPixel[w.id.coordinates.x]);
-            pixelContent.add(arcPixel[w.id.coordinates.y]);
+            pixelContent.add(arcPixel[id.coordinates.x]);
+            pixelContent.add(arcPixel[id.coordinates.y]);
 
             CellI& inputColor = static_cast<TrieMap&>(inputGrid["pixelsMap"]).getValue(pixelContent);
             if (&inputColor != &arcPixel["color"]) {

@@ -137,6 +137,7 @@ World::World(std::function<void()> loggerLevelInit) :
     std(*this),
     arc(*this),
     ast(*this),
+    op(*this),
     ap(*this),
     _0_(pools.numbers.get(0)),
     _1_(pools.numbers.get(1)),
@@ -255,21 +256,6 @@ CellI& World::getVariable(CellI& name)
     throw "Unhandled state!";
 }
 
-Ast::Cell& World::_(CellI& cell)
-{
-    return ast.cell(cell);
-}
-
-Ast::Cell& World::_(const std::string& nameStr)
-{
-    return ast.cell(name(nameStr));
-}
-
-Ast::Cell& World::_(int number)
-{
-    return _(pools.numbers.get(number));
-}
-
 Ast::TypeName& World::__type__(const std::string& nameStr)
 {
     return ast.typeName(nameStr);
@@ -284,7 +270,7 @@ CellI& World::ListOf(CellI& valueType)
 {
     switch (m_initPhase) {
     case InitPhase::Init: {
-        auto& ret = tt_("std::List", "valueType", _(valueType));
+        auto& ret = tt_("std::List", "valueType", ast._(valueType));
         m_stdCompiler->reigisterStructBeforeCompilation(ret);
         return ret;
     }
@@ -303,7 +289,7 @@ CellI& World::MapOf(CellI& keyType, CellI& valueType)
 {
     switch (m_initPhase) {
     case InitPhase::Init: {
-        auto& ret = tt_("std::Map", "keyType", _(keyType), "valueType", _(valueType));
+        auto& ret = tt_("std::Map", "keyType", ast._(keyType), "valueType", ast._(valueType));
         m_stdCompiler->reigisterStructBeforeCompilation(ret);
 
         return ret;

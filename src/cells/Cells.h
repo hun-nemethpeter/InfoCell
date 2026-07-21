@@ -181,6 +181,17 @@ T& ref(T& obj) { return obj; }
 template <typename T>
 T& ref(T* obj) { return *obj; }
 
+template <typename T>
+class NewT
+{
+public:
+    template <typename... Args>
+    static T& New(Args&&... args)
+    {
+        return *new T(std::forward<Args>(args)...);
+    }
+};
+
 } // namespace util
 
 // ============================================================================

@@ -107,7 +107,7 @@ Std::Ast::Ast(World& w) :
     Block(w, w.std.Struct, "ast::Block"),
     Break(w, w.std.Struct, "ast::Break"),
     Call(w, w.std.Struct, "ast::Call"),
-    Cell(w, w.std.Struct, "ast::Cell"),
+    ConstVar(w, w.std.Struct, "ast::ConstVar"),
     Continue(w, w.std.Struct, "ast::Continue"),
     Do(w, w.std.Struct, "ast::Do"),
     Enum(w, w.std.Struct, "ast::Enum"),
@@ -304,11 +304,11 @@ void StdLibAst::createOp()
     opScope.add<Struct>("Call")
         .members(
             member("ast", "ast::Base"),
-            member("cell", "ast::Base"),
             member("method", "ast::Base"),
-            member("currentParam", "std::Cell"),
+            member("self", "ast::Base"),
             member("parameters", tt_("std::List", "valueType", "std::Slot")),
             member("stack", "ast::Base"),
+            member("currentParam", "std::Cell"),
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
             member("value", "std::Cell"));
@@ -577,11 +577,11 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("Call")
         .members(
-            member("cell", "Base"),
             member("method", "Base"),
+            member("self", "Base"),
             member("parameters", ListOf(std.ast.Slot)));
 
-    astScope.add<Struct>("Cell")
+    astScope.add<Struct>("ConstVar")
         .members(
             member("value", "std::Cell"));
 
@@ -682,7 +682,10 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("Parameter")
         .members(
-            member("key", "std::Cell"));
+            member("key", "std::Cell"),
+            member("value", "Base"),
+            member("type", "Base"),
+            member("const", "Boolean"));
 
     astScope.add<Struct>("PrimitiveToolName")
         .members(
@@ -713,7 +716,9 @@ void StdLibAst::createAst()
             member("enums", "std::TrieMap"),
             member("variables", ListOf(std.ast.Slot)));
 
-    astScope.add<Struct>("Self");
+    astScope.add<Struct>("Self")
+        .members(
+            member("value", "Base"));
 
     astScope.add<Struct>("SelfType");
 
@@ -1408,7 +1413,7 @@ void StdLibAst::createStruct()
         = stdScope.add<Struct>("Struct")
               .members(
                   member("name", tt_("List", "valueType", "Char")),
-                  member("fullyQualifiedName", "std::Cell"),
+                  member("fullyQualifiedName", "Cell"),
                   member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
                   member("enum", "Boolean"),
                   member("incomplete", "Boolean"),
@@ -1873,12 +1878,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Boolean"))
         .description(
-#if 0
-            equal(and_(self(std.Boolean.true_), p_("rhs", std.Boolean.true_)), _(std.Boolean.true_)),
-            equal(and_(self(std.Boolean.true_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
-            equal(and_(self(std.Boolean.false_), p_("rhs", std.Boolean.true_)), _(std.Boolean.false_)),
-            equal(and_(self(std.Boolean.false_), p_("rhs", std.Boolean.false_)), _(std.Boolean.false_)),
-#endif
+            equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
+            equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
+            equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.false_)),
+            equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
             and_(self(), p_("other")),
             and_(p_("other"), self()))
         .returnType("Boolean");
@@ -2005,12 +2008,12 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     stdScope.add<Struct>("Enum")
         .members(
             member("name", tt_("List", "valueType", "Char")),
-            member("fullyQualifiedName", "std::Cell"),
+            member("fullyQualifiedName", "Cell"),
             member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
             member("enum", "Boolean"),
             member("incomplete", "Boolean"),
             member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
-            member("ast", "std::ast::Base"),
+            member("ast", "ast::Base"),
             member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")),
             member("values", tt_("Map", "keyType", "Cell", "valueType", "Struct")));
 
@@ -2196,7 +2199,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     Std& std = w.std;
     StdLibAst stdLibAst(w, parentScope.add<Ast::Scope>("std"));
 
-    compiler.reigisterStructBeforeCompilation(w.tt_("std::List", "valueType", w._(std.Char))); // TODO instantiate on demand in getStruct
+    compiler.reigisterStructBeforeCompilation(w.tt_("std::List", "valueType", w.ast._(std.Char))); // TODO instantiate on demand in getStruct
 
     compiler.registerBuiltInStruct("std::op::Activate", std.op.Activate);
     compiler.registerBuiltInStruct("std::op::Add", std.op.Add);
@@ -2237,7 +2240,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::Block", std.ast.Block);
     compiler.registerBuiltInStruct("std::ast::Break", std.ast.Break);
     compiler.registerBuiltInStruct("std::ast::Call", std.ast.Call);
-    compiler.registerBuiltInStruct("std::ast::Cell", std.ast.Cell);
+    compiler.registerBuiltInStruct("std::ast::ConstVar", std.ast.ConstVar);
     compiler.registerBuiltInStruct("std::ast::Continue", std.ast.Continue);
     compiler.registerBuiltInStruct("std::ast::Do", std.ast.Do);
     compiler.registerBuiltInStruct("std::ast::Enum", std.ast.Enum);

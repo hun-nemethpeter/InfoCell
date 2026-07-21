@@ -10,17 +10,6 @@ namespace cells {
 class World;
 class ToolFinder;
 
-template <typename T>
-class NewT
-{
-public:
-    template <typename... Args>
-    static T& New(Args&&... args)
-    {
-        return *new T(std::forward<Args>(args)...);
-    }
-};
-
 template <class T, class EnumValue, class TypedEnumValue>
 concept EnumValueConcept = std::is_same<T, EnumValue>::value || std::is_same<T, TypedEnumValue>::value;
 
@@ -28,6 +17,9 @@ concept EnumValueConcept = std::is_same<T, EnumValue>::value || std::is_same<T, 
 class Ast
 {
 public:
+    template<class T>
+    using NewT = util::NewT<T>;
+
     class Base : public Object
     {
         Base(const Base&) = delete;
@@ -78,7 +70,7 @@ public:
     class Call : public BaseT<Call>
     {
     public:
-        Call(World& w, CellI& cell, CellI& method);
+        Call(World& w, CellI& self, CellI& method);
         Call& operator/(Base& key);
         Call& operator/(const std::string& key);
         Call& operator()(const std::string& method);
@@ -94,10 +86,10 @@ public:
         Continue(World& w);
     };
 
-    class Cell : public BaseT<Cell>
+    class ConstVar : public BaseT<ConstVar>
     {
     public:
-        Cell(World& w, CellI& value);
+        ConstVar(World& w, CellI& value);
         Call& operator/(Base& key);
         Call& operator/(const std::string& key);
     };
@@ -414,12 +406,12 @@ public:
             return *this;
         }
 
-        Function& parameters(Slot& param);
+        Function& parameters(Parameter& parameter);
 
         template <typename... Args>
-        Function& parameters(Slot& param, Args&&... args)
+        Function& parameters(Parameter& parameter, Args&&... args)
         {
-            parameters(param);
+            parameters(parameter);
             parameters(std::forward<Args>(args)...);
 
             return *this;
@@ -496,12 +488,12 @@ public:
         StructT(World& w, const std::string& nameStr);
         StructT(World& w, CellI& id);
 
-        StructT& templateParams(Slot& param);
+        StructT& templateParams(Parameter& parameter);
 
         template <typename... Args>
-        StructT& templateParams(Slot& param, Args&&... args)
+        StructT& templateParams(Parameter& parameter, Args&&... args)
         {
-            templateParams(param);
+            templateParams(parameter);
             templateParams(std::forward<Args>(args)...);
 
             return *this;
@@ -518,22 +510,22 @@ public:
         Trait(World& w, const std::string& nameStr);
         Trait(World& w, CellI& id);
 
-        Trait& templateParams(Slot& param);
+        Trait& templateParams(Parameter& parameter);
 
         template <typename... Args>
-        Trait& templateParams(Slot& param, Args&&... args)
+        Trait& templateParams(Parameter& parameter, Args&&... args)
         {
-            templateParams(param);
+            templateParams(parameter);
             templateParams(std::forward<Args>(args)...);
 
             return *this;
         }
 
-        Trait& associatedTypes(Slot& param);
+        Trait& associatedTypes(Parameter& parameter);
         template <typename... Args>
-        Trait& associatedTypes(Slot& param, Args&&... args)
+        Trait& associatedTypes(Parameter& parameter, Args&&... args)
         {
-            associatedTypes(param);
+            associatedTypes(parameter);
             associatedTypes(std::forward<Args>(args)...);
             return *this;
         }
@@ -558,12 +550,12 @@ public:
             return *this;
         }
 
-        TraitImpl& associatedTypes(Slot& param);
+        TraitImpl& associatedTypes(Parameter& parameter);
 
         template <typename... Args>
-        TraitImpl& associatedTypes(Slot& param, Args&&... args)
+        TraitImpl& associatedTypes(Parameter& parameter, Args&&... args)
         {
-            associatedTypes(param);
+            associatedTypes(parameter);
             associatedTypes(std::forward<Args>(args)...);
 
             return *this;
@@ -670,7 +662,7 @@ public:
     Break& break_();
     Call& call(CellI& object, CellI& method);
     Call& call(CellI& object, const std::string& method);
-    Cell& cell(CellI& value);
+    ConstVar& cell(CellI& value);
     Continue& continue_();
     Call& delete_(Base& cell);
     Call& divide(Base& lhs, Base& rhs);
@@ -709,12 +701,14 @@ public:
     Call& notSame(Base& lhs, Base& rhs);
     Call& or_(Base& lhs, Base& rhs);
     Parameter& parameter(CellI& key);
-    Slot& parameterInit(CellI& key, CellI& value);
+    Parameter& parameterDeclaration(CellI& key, CellI& type);
+    Parameter& parameterInit(CellI& key, CellI& value);
     PrimitiveToolName& primitiveToolName(CellI& id);
     Return& return_();
     Return& return_(CellI& value);
     Call& same(Base& lhs, Base& rhs);
     Self& self();
+    Self& self(CellI& value);
     SelfType& selfType();
     Call& set(Base& cell, Base& key, Base& value);
     Call& set(Base& cell, const std::string& key, Base& value);
@@ -741,6 +735,10 @@ public:
     Var& var(const std::string& nameStr);
     While& while_(Base& condition);
 
+    ConstVar& _(CellI& cell);
+    ConstVar& _(const std::string& id);
+    ConstVar& _(int number);
+
 protected:
     CellI& processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb);
     World& w;
@@ -758,15 +756,12 @@ public:
 
 protected:
     CellI& name(const std::string& str);
-    Ast::Cell& _(CellI& cell);
-    Ast::Cell& _(const std::string& id);
-    Ast::Cell& _(int number);
-    Ast::Cell& true_();
-    Ast::Cell& false_();
+    Ast::ConstVar& true_();
+    Ast::ConstVar& false_();
     Ast::Parameter& p_(const std::string& nameStr);
-    Ast::Slot& p_(const std::string& nameStr, CellI& value);
-    Ast::Slot& parameter(const std::string& nameStr, const std::string& typeStr);
-    Ast::Slot& parameter(const std::string& nameStr, CellI& value);
+    Ast::Parameter& p_(const std::string& nameStr, CellI& value);
+    Ast::Parameter& parameter(const std::string& nameStr, const std::string& typeStr);
+    Ast::Parameter& parameter(const std::string& nameStr, CellI& type);
     Ast::Member& m_(const std::string& nameStr);
     Ast::Var& var_(const std::string& nameStr);
     Ast::Slot& member(const std::string& nameStr, const std::string& typeStr);
@@ -790,6 +785,7 @@ protected:
     Ast::TypeName& __type__(const std::string& nameStr);
     CellI& ListOf(CellI& type);
     CellI& MapOf(CellI& keyType, CellI& valueType);
+
     template <typename... Args>
     List& list(CellI& value, Args&&... args);
 

@@ -67,7 +67,7 @@ public:
         Object Block;
         Object Break;
         Object Call;
-        Object Cell;
+        Object ConstVar;
         Object Continue;
         Object Do;
         Object Enum;

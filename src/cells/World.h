@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "Ast.h"
+#include "Op.h"
 #include "Cells.h"
 #include "IDs.h"
 #include "arc/ArcLib.h"
@@ -109,9 +110,6 @@ protected:
     friend class Std;
 
 public:
-    Ast::Cell& _(CellI& cell);
-    Ast::Cell& _(const std::string& id);
-    Ast::Cell& _(int number);
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
     Ast::TypeName& __type__(const std::string& name);
@@ -127,6 +125,7 @@ public:
     Std std;
     Arc arc;
     Ast ast;
+    Op op;
     cells::hybrid::ActivationPointer ap;
 
     CellI& _0_;

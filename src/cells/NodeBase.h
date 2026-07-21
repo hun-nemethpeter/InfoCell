@@ -21,6 +21,7 @@ protected:
     ID& id   = w.id;
     Ast& ast = w.ast;
     Std& std = w.std;
+    Op& op   = w.op;
     Arc& arc = w.arc;
 
     CellI& _0_    = w._0_;

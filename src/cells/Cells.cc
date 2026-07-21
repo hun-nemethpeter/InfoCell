@@ -628,11 +628,11 @@ static void saveOpState(List& opStates, CellI& op)
         opStates.add(opState);
     }
     if (&type == &w.std.op.Call) {
-        if (op[w.id.cell].has(w.id.value)) {
+        if (op[w.id.self].has(w.id.value)) {
             Object& opState = *new Object(w, w.std.OpState);
             opState.set(w.id.op, op);
-            opState.set(w.id.state, w.id.cell);
-            opState.set(w.id.value, op[w.id.cell][w.id.value]);
+            opState.set(w.id.state, w.id.self);
+            opState.set(w.id.value, op[w.id.self][w.id.value]);
             opStates.add(opState);
         }
         if (op[w.id.method].has(w.id.value)) {
@@ -703,7 +703,7 @@ static void loadOpState(CellI& opState)
 
     if ((&type == &w.std.op.Set || &type == &w.std.op.Get) && ((&state == &w.id.cell) || (&state == &w.id.key))) {
         op[state].set(w.id.value, value);
-    } else if ((&type == &w.std.op.Call) && ((&state == &w.id.cell) || (&state == &w.id.method) || (&state == &w.id.stack))) {
+    } else if ((&type == &w.std.op.Call) && ((&state == &w.id.self) || (&state == &w.id.method) || (&state == &w.id.stack))) {
         op[state].set(w.id.value, value);
     } else if ((&type == &w.std.op.Same ||
         &type == &w.std.op.NotSame ||
@@ -737,9 +737,9 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
     if (&state == &w.id.stateParamInit) {
         self.erase(w.id.value);
         self.set(w.id.previous, *previousCell);
-        CellI& inputCell = self[w.id.cell];
+        CellI& inputSelf = self[w.id.self];
         previousCell     = currentCell;
-        currentCell      = &inputCell;
+        currentCell      = &inputSelf;
         self.set(w.id.state, w.id.stateParam1);
     } else if (&state == &w.id.stateParam1) {
         CellI& inputMethod = self[w.id.method];
@@ -772,16 +772,16 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
             self.set(w.id.state, w.id.stateParam2);
         }
     } else if (&state == &w.id.stateParam2) {
-        CellI& cell       = self[w.id.cell][w.id.value];
+        CellI& inputSelf  = self[w.id.self][w.id.value];
         CellI& methodName = self[w.id.method][w.id.value];
         CellI& stack      = self[w.id.stack][w.id.stack];
 
         CellI* methodPtr = nullptr;
         if (&methodName.__type__() == &w.std.String) {
             if (&self[w.id.ast].__type__() == &w.std.ast.Call) {
-                methodPtr = &cell[w.id.__type__][w.id.methods];
+                methodPtr = &inputSelf[w.id.__type__][w.id.methods];
             } else {
-                methodPtr = &cell[w.id.methods];
+                methodPtr = &inputSelf[w.id.methods];
             }
             methodPtr = &(*methodPtr)[w.id.index][methodName][w.id.value];
         } else {
@@ -793,7 +793,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         stackFrame.set(w.id.method, method);
 
         CellI& inputIndex = *new Object(w, w.std.Index);
-        inputIndex.set(w.id.self, cell);
+        inputIndex.set(w.id.self, inputSelf);
         if (self.has(w.id.parameters)) {
             for (CellI& parameter : self[w.id.parameters][w.id.list]) {
                 inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
@@ -844,15 +844,15 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         previousCell = currentCell;
         currentCell  = &method;
     } else if (&state == &w.id.stateStackCall) {
-        CellI& cell       = self[w.id.cell][w.id.value];
+        CellI& inputSelf  = self[w.id.self][w.id.value];
         CellI& methodName = self[w.id.method][w.id.value];
 
         CellI* methodPtr = nullptr;
         if (&methodName.__type__() == &w.std.String) {
             if (&self[w.id.ast].__type__() == &w.std.ast.Call) {
-                methodPtr = &cell[w.id.__type__][w.id.methods];
+                methodPtr = &inputSelf[w.id.__type__][w.id.methods];
             } else {
-                methodPtr = &cell[w.id.methods];
+                methodPtr = &inputSelf[w.id.methods];
             }
             // TODO: cache the method obj
             methodPtr = &(*methodPtr)[w.id.index][methodName][w.id.value];
