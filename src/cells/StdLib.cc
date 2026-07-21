@@ -132,10 +132,8 @@ Std::Ast::Ast(World& w) :
     StructT(w, w.std.Struct, "ast::StructT"),
     TemplatedType(w, w.std.Struct, "ast::TemplatedType"),
     TemplateParam(w, w.std.Struct, "ast::TemplateParam"),
-    Throw(w, w.std.Struct, "ast::Throw"),
     Trait(w, w.std.Struct, "ast::Trait"),
     TraitImpl(w, w.std.Struct, "ast::TraitImpl"),
-    Try(w, w.std.Struct, "ast::Try"),
     TypeAlias(w, w.std.Struct, "ast::TypeAlias"),
     TypedEnumValue(w, w.std.Struct, "ast::TypedEnumValue"),
     TypeName(w, w.std.Struct, "ast::TypeName"),
@@ -779,10 +777,6 @@ void StdLibAst::createAst()
         .members(
             member("key", "std::Cell"));
 
-    astScope.add<Struct>("Throw")
-        .members(
-            member("value", "Base"));
-
     astScope.add<Struct>("Trait")
         .members(
             member("name", "std::Cell"),
@@ -801,11 +795,6 @@ void StdLibAst::createAst()
             member("associatedTypes", MapOf(std.Cell, std.ast.Base)),
             member("typeAliases", ListOf(std.ast.Slot)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
-
-    astScope.add<Struct>("Try")
-        .members(
-            member("tryBranch", "Base"),
-            member("catchBranch", "Base"));
 
     astScope.add<Struct>("TypedEnumValue")
         .members(

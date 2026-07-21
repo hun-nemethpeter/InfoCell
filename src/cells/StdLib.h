@@ -92,10 +92,8 @@ public:
         Object StructT;
         Object TemplatedType;
         Object TemplateParam;
-        Object Throw;
         Object Trait;
         Object TraitImpl;
-        Object Try;
         Object TypeAlias;
         Object TypedEnumValue;
         Object TypeName;

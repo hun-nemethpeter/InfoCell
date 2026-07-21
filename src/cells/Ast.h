@@ -261,19 +261,6 @@ public:
         TemplateParam(World& w, CellI& key);
     };
 
-    class Throw : public BaseT<Throw>
-    {
-    public:
-        Throw(World& w);
-        Throw(World& w, Base& value);
-    };
-
-    class Try : public BaseT<Try>
-    {
-    public:
-        Try(World& w, Base& tryBranch, Base& catchBranch);
-    };
-
     class TypeAlias : public BaseT<TypeAlias>
     {
     public:
@@ -725,9 +712,6 @@ public:
     template <typename... Args>
     TemplatedType& templatedType(const std::string& id, const std::string& key, const std::string& type, Args&&... args);
     TemplateParam& templateParam(CellI& key);
-    Throw& throw_();
-    Throw& throw_(Base& value);
-    Try& try_(Base& tryBranch, Base& catchBranch);
     TypeAlias& typeAlias(CellI& key);
     TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& type, CellI& value);
     TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& value);

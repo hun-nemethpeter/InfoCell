@@ -523,14 +523,6 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         return w.ast.while_(resolveNode(ast[w.id.condition])).do_(resolveNode(ast[w.id.statement]));
     } else if (&ast.__type__() == &w.std.ast.For) {
         return w.ast.for_(resolveNode(ast[w.id.variable])).in(resolveNode(ast[w.id.container]))(resolveNode(ast[w.id.statement]));
-    } else if (&ast.__type__() == &w.std.ast.Try) {
-        return w.ast.try_(resolveNode(ast["tryBranch"]), resolveNode(ast["catchBranch"]));
-    } else if (&ast.__type__() == &w.std.ast.Throw) {
-        if (ast.has(w.id.value)) {
-            return w.ast.throw_(resolveNode(ast[w.id.value]));
-        } else {
-            return w.ast.throw_();
-        }
     }
 
     throw "Unknown AST to instantiate!";
@@ -1442,14 +1434,6 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         return w.ast.continue_();
     } else if (&ast.__type__() == &w.std.ast.Break) {
         return w.ast.break_();
-    } else if (&ast.__type__() == &w.std.ast.Try) {
-        return w.ast.try_(instantiate(ast["tryBranch"]), instantiate(ast["catchBranch"]));
-    } else if (&ast.__type__() == &w.std.ast.Throw) {
-        if (ast.has(w.id.value)) {
-            return w.ast.throw_(instantiate(ast[w.id.value]));
-        } else {
-            return w.ast.throw_();
-        }
     } else if (&ast.__type__() == &w.std.ast.Parameter) {
         return w.ast.parameter(ast[w.id.key]);
     } else if (&ast.__type__() == &w.std.ast.Var) {
@@ -1832,16 +1816,6 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         }
         CellI& lastBlock = *m_lastBlock;
         CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.id.status), _(w.id.break_)));
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Throw) {
-        if (!m_lastBlock) {
-            throw "No statement to break!";
-        }
-        CellI& lastBlock = *m_lastBlock;
-        CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.id.status), _(w.id.throw_)));
-        if (ast.has("value")) {
-            retOp.set(w.id.result, compile(w.ast.set(_(lastBlock), _(w.id.value), static_cast<Ast::Base&>(ast[w.id.value]))));
-        }
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.Parameter) {
         CellI& retOp = compile(w.ast.get(_(function), _(w.id.stack)) / _(w.id.value) / _(w.id.input) / _(ast[w.id.key]));

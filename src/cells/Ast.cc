@@ -171,24 +171,6 @@ Ast::Break::Break(World& w) :
 {
 }
 
-Ast::Try::Try(World& w, Base& tryBranch, Base& catchBranch) :
-    BaseT<Try>(w, w.std.ast.Try, "ast.Try")
-{
-    set("tryBranch", tryBranch);
-    set("catchBranch", catchBranch);
-}
-
-Ast::Throw::Throw(World& w) :
-    BaseT<Throw>(w, w.std.ast.Throw, "ast.Throw")
-{
-}
-
-Ast::Throw::Throw(World& w, Base& value) :
-    BaseT<Throw>(w, w.std.ast.Throw, "ast.Throw")
-{
-    set(w.id.value, value);
-}
-
 Ast::PrimitiveToolName::PrimitiveToolName(World& w, CellI& name) :
     BaseT<PrimitiveToolName>(w, w.std.ast.PrimitiveToolName, "ast.PrimitiveToolName")
 {
@@ -1163,21 +1145,6 @@ Ast::Continue& Ast::continue_()
 Ast::Break& Ast::break_()
 {
     return Break::New(w);
-}
-
-Ast::Throw& Ast::throw_()
-{
-    return Throw::New(w);
-}
-
-Ast::Throw& Ast::throw_(Base& value)
-{
-    return Throw::New(w, value);
-}
-
-Ast::Try& Ast::try_(Base& tryBranch, Base& catchBranch)
-{
-    return Try::New(w, tryBranch, catchBranch);
 }
 
 Ast::SelfType& Ast::selfType()
