@@ -430,54 +430,13 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function)
 
 Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
 {
-    auto resolveNode = [this](CellI& ast) -> Ast::Base& { return resolveTypesInFunctionCode(ast); };
+    auto resolve = [this](CellI& ast) -> Ast::Base& { return resolveTypesInFunctionCode(ast); };
 
-    if (&ast.__type__() == &w.std.ast.New) {
-        CellI& objectType                = ast[w.id.objectType];
-        Ast::Base* resolvedObjectTypePtr = nullptr;
-        if (&objectType.__type__() == &w.std.ast.Member) {
-            resolvedObjectTypePtr = &static_cast<Ast::Base&>(objectType);
-        } else {
-            resolvedObjectTypePtr = &resolveType(objectType);
-        }
-        Ast::Base& resolvedObjectType = *resolvedObjectTypePtr;
-
-        if (ast.has("constructor")) {
-            auto& constructor = ast[w.id.constructor];
-            Ast::Base& ret    = w.ast.new_(resolvedObjectType, static_cast<Ast::Base&>(ast[w.id.constructor]));
-
-            if (ast.has("parameters")) {
-                auto& newParameters = *new List(w, w.std.ast.Parameter);
-                for (CellI& parameter : ast[w.id.parameters]) {
-                    newParameters.add(w.ast.parameterInit(parameter[w.id.key], resolveNode(parameter[w.id.value])));
-                }
-                ret.set("parameters", newParameters);
-            }
-            return ret;
-        } else {
-            return w.ast.new_(resolvedObjectType);
-        }
-    } else if (&ast.__type__() == &w.std.ast.Call || &ast.__type__() == &w.std.ast.StaticCall) {
-        Ast::Base* retPtr = nullptr;
-        if (&ast.__type__() == &w.std.ast.Call) {
-            retPtr = &w.ast.call(resolveNode(ast[w.id.self]), ast[w.id.method]);
-        } else {
-            retPtr = &w.ast.scall(resolveType(ast[w.id.self]), ast[w.id.method]);
-        }
-        Ast::Base& ret = *retPtr;
-        if (ast.has("parameters")) {
-            auto& newParameters = *new List(w, w.std.ast.Parameter);
-            for (CellI& parameter : ast[w.id.parameters]) {
-                newParameters.add(w.ast.parameterInit(parameter[w.id.key], resolveNode(parameter[w.id.value])));
-            }
-            ret.set("parameters", newParameters);
-        }
-        return ret;
-    } else if (&ast.__type__() == &w.std.ast.Block) {
+    if (&ast.__type__() == &w.std.ast.Block) {
         // do nothing just traverse and copy the AST nodes
         auto& instantiedAsts = *new List(w, w.std.ast.Base);
         for (CellI& ast : ast[w.id.asts]) {
-            instantiedAsts.add(resolveNode(ast));
+            instantiedAsts.add(resolve(ast));
         }
         return *new Ast::Block(w, instantiedAsts);
     } else if (&ast.__type__() == &w.std.ast.TypeName) {
@@ -498,31 +457,72 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast)
         return w.ast.break_();
     } else if (&ast.__type__() == &w.std.ast.Return) {
         if (ast.has("value")) {
-            return w.ast.return_(static_cast<Ast::Base&>(resolveNode(ast[w.id.value])));
+            return w.ast.return_(resolve(ast[w.id.value]));
         }
         return w.ast.return_();
     } else if (&ast.__type__() == &w.std.ast.If) {
         if (ast.has("else_")) {
-            return w.ast.if_(resolveNode(ast[w.id.condition]))
-                .then_(resolveNode(ast[w.id.then]))
-                .else_(resolveNode(ast[w.id.else_]));
+            return w.ast.if_(resolve(ast[w.id.condition]))
+                .then_(resolve(ast[w.id.then]))
+                .else_(resolve(ast[w.id.else_]));
         } else {
-            return w.ast.if_(resolveNode(ast[w.id.condition])).then_(resolveNode(ast[w.id.then]));
+            return w.ast.if_(resolve(ast[w.id.condition])).then_(resolve(ast[w.id.then]));
         }
     } else if (&ast.__type__() == &w.std.ast.Match) {
-        auto& ret = w.ast.match_(static_cast<Ast::Base&>(ast["enum"]));
+        auto& ret = w.ast.match_(static_cast<Ast::Base&>(ast[w.id.enum_]));
         for (CellI& kvPair : ast["cases"][w.id.list]) {
             auto& key = kvPair[w.id.key];
-            auto& op  = resolveNode(kvPair[w.id.value]);
+            auto& op  = resolve(kvPair[w.id.value]);
             ret.case_(key, op);
         }
         return ret;
     } else if (&ast.__type__() == &w.std.ast.Do) {
-        return w.ast.do_(resolveNode(ast[w.id.statement])).while_(resolveNode(ast[w.id.condition]));
+        return w.ast.do_(resolve(ast[w.id.statement])).while_(resolve(ast[w.id.condition]));
     } else if (&ast.__type__() == &w.std.ast.While) {
-        return w.ast.while_(resolveNode(ast[w.id.condition])).do_(resolveNode(ast[w.id.statement]));
+        return w.ast.while_(resolve(ast[w.id.condition])).do_(resolve(ast[w.id.statement]));
     } else if (&ast.__type__() == &w.std.ast.For) {
-        return w.ast.for_(resolveNode(ast[w.id.variable])).in(resolveNode(ast[w.id.container]))(resolveNode(ast[w.id.statement]));
+        return w.ast.for_(resolve(ast[w.id.variable])).in(resolve(ast[w.id.container]))(resolve(ast[w.id.statement]));
+    } else if (&ast.__type__() == &w.std.ast.New) {
+        CellI& objectType                = ast[w.id.objectType];
+        Ast::Base* resolvedObjectTypePtr = nullptr;
+        if (&objectType.__type__() == &w.std.ast.Member) {
+            resolvedObjectTypePtr = &static_cast<Ast::Base&>(objectType);
+        } else {
+            resolvedObjectTypePtr = &resolveType(objectType);
+        }
+        Ast::Base& resolvedObjectType = *resolvedObjectTypePtr;
+
+        if (ast.has("constructor")) {
+            auto& constructor = ast[w.id.constructor];
+            Ast::Base& ret    = w.ast.new_(resolvedObjectType, static_cast<Ast::Base&>(ast[w.id.constructor]));
+
+            if (ast.has("parameters")) {
+                auto& newParameters = *new List(w, w.std.ast.Parameter);
+                for (CellI& parameter : ast[w.id.parameters]) {
+                    newParameters.add(w.ast.parameterInit(parameter[w.id.key], resolve(parameter[w.id.value])));
+                }
+                ret.set("parameters", newParameters);
+            }
+            return ret;
+        } else {
+            return w.ast.new_(resolvedObjectType);
+        }
+    } else if (&ast.__type__() == &w.std.ast.Call || &ast.__type__() == &w.std.ast.StaticCall) {
+        Ast::Base* retPtr = nullptr;
+        if (&ast.__type__() == &w.std.ast.Call) {
+            retPtr = &w.ast.call(resolve(ast[w.id.self]), ast[w.id.method]);
+        } else {
+            retPtr = &w.ast.scall(resolveType(ast[w.id.self]), ast[w.id.method]);
+        }
+        Ast::Base& ret = *retPtr;
+        if (ast.has("parameters")) {
+            auto& newParameters = *new List(w, w.std.ast.Parameter);
+            for (CellI& parameter : ast[w.id.parameters]) {
+                newParameters.add(w.ast.parameterInit(parameter[w.id.key], resolve(parameter[w.id.value])));
+            }
+            ret.set("parameters", newParameters);
+        }
+        return ret;
     }
 
     throw "Unknown AST to instantiate!";
@@ -1376,7 +1376,61 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
 {
     auto instantiate = [this, &selfType, &inputParameters, associatedTypesPtr](CellI& ast) -> Ast::Base& { return instantiateAst(ast, selfType, inputParameters, associatedTypesPtr); };
 
-    if (&ast.__type__() == &w.std.ast.New) {
+    // do nothing just traverse and copy the AST nodes
+    if (&ast.__type__() == &w.std.ast.Block) {
+        auto& instantiedAsts = *new List(w, w.std.ast.Base);
+        for (CellI& ast : ast[w.id.asts]) {
+            instantiedAsts.add(instantiate(ast));
+        }
+        return *new Ast::Block(w, instantiedAsts);
+    } else if (&ast.__type__() == &w.std.ast.TypeName) {
+        auto& ret = w.ast.typeName(ast[w.id.value]);
+        if (ast.has(w.id.scopes)) {
+            ret.set(w.id.scopes, ast[w.id.scopes]);
+        }
+        return ret;
+    } else if (&ast.__type__() == &w.std.ast.Self) {
+        return w.ast.self();
+    } else if (&ast.__type__() == &w.std.ast.Member) {
+        return w.ast.member(ast[w.id.key]);
+    } else if (&ast.__type__() == &w.std.ast.Parameter) {
+        return w.ast.parameter(ast[w.id.key]);
+    } else if (&ast.__type__() == &w.std.ast.ConstVar) {
+        return w.ast.cell(ast[w.id.value]);
+    } else if (&ast.__type__() == &w.std.ast.Var) {
+        return w.ast.var(ast[w.id.name]);
+    } else if (&ast.__type__() == &w.std.ast.Continue) {
+        return w.ast.continue_();
+    } else if (&ast.__type__() == &w.std.ast.Break) {
+        return w.ast.break_();
+    } else if (&ast.__type__() == &w.std.ast.Return) {
+        if (ast.has("value")) {
+            return w.ast.return_(static_cast<Ast::Base&>(instantiate(ast[w.id.value])));
+        }
+        return w.ast.return_();
+    } else if (&ast.__type__() == &w.std.ast.If) {
+        if (ast.has("else_")) {
+            return w.ast.if_(instantiate(ast[w.id.condition]))
+                .then_(instantiate(ast[w.id.then]))
+                .else_(instantiate(ast[w.id.else_]));
+        } else {
+            return w.ast.if_(instantiate(ast[w.id.condition])).then_(instantiate(ast[w.id.then]));
+        }
+    } else if (&ast.__type__() == &w.std.ast.Match) {
+        auto& ret = w.ast.match_(static_cast<Ast::Base&>(ast[w.id.enum_]));
+        for (CellI& kvPair : ast["cases"][w.id.list]) {
+            auto& key = kvPair[w.id.key];
+            auto& op  = instantiate(kvPair[w.id.value]);
+            ret.case_(key, op);
+        }
+        return ret;
+    } else if (&ast.__type__() == &w.std.ast.Do) {
+        return w.ast.do_(instantiate(ast[w.id.statement])).while_(instantiate(ast[w.id.condition]));
+    } else if (&ast.__type__() == &w.std.ast.While) {
+        return w.ast.while_(instantiate(ast[w.id.condition])).do_(instantiate(ast[w.id.statement]));
+    } else if (&ast.__type__() == &w.std.ast.For) {
+        return w.ast.for_(instantiate(ast[w.id.variable])).in(instantiate(ast[w.id.container]))(instantiate(ast[w.id.statement]));
+    } else if (&ast.__type__() == &w.std.ast.New) {
         auto* objectTypePtr = &ast[w.id.objectType];
         if (&(*objectTypePtr).__type__() == &w.std.ast.TemplatedType || &(*objectTypePtr).__type__() == &w.std.ast.AssociatedType) {
             CellI& resolvedObjectType = instantiateTemplateParamType(*objectTypePtr, selfType, inputParameters, associatedTypesPtr);
@@ -1386,12 +1440,12 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         if (ast.has("constructor")) {
             auto& constructor = ast[w.id.constructor];
             Ast::Base& ret    = w.ast.new_(objectType, static_cast<Ast::Base&>(constructor));
-            if (ast.has("parameters")) {
+            if (ast.has(w.id.parameters)) {
                 auto& newParameters = *new List(w, w.std.ast.Slot);
                 for (CellI& slot : ast[w.id.parameters]) {
                     newParameters.add(w.ast.parameterInit(slot[w.id.key], instantiate(slot[w.id.value])));
                 }
-                ret.set("parameters", newParameters);
+                ret.set(w.id.parameters, newParameters);
             }
             return ret;
         } else {
@@ -1399,66 +1453,18 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         }
     } else if (&ast.__type__() == &w.std.ast.Call) {
         Ast::Base& ret = w.ast.call(instantiate(ast[w.id.self]), ast[w.id.method]);
-        if (ast.has("parameters")) {
+        if (ast.has(w.id.parameters)) {
             // TODO process parameters
-            ret.set("parameters", ast[w.id.parameters]);
+            ret.set(w.id.parameters, ast[w.id.parameters]);
         }
         return ret;
     } else if (&ast.__type__() == &w.std.ast.StaticCall) {
         Ast::Base& ret = w.ast.scall(instantiate(ast[w.id.self]), ast[w.id.method]);
-        if (ast.has("parameters")) {
+        if (ast.has(w.id.parameters)) {
             // TODO process parameters
-            ret.set("parameters", ast[w.id.parameters]);
+            ret.set(w.id.parameters, ast[w.id.parameters]);
         }
         return ret;
-    }
-
-    // do nothing just traverse and copy the AST nodes
-    if (&ast.__type__() == &w.std.ast.Block) {
-        auto& instantiedAsts = *new List(w, w.std.ast.Base);
-        for (CellI& ast : ast[w.id.asts]) {
-            instantiedAsts.add(instantiate(ast));
-        }
-        return *new Ast::Block(w, instantiedAsts);
-    } else if (&ast.__type__() == &w.std.ast.ConstVar) {
-        return w.ast.cell(ast[w.id.value]);
-    } else if (&ast.__type__() == &w.std.ast.TypeName) {
-        auto& ret = w.ast.typeName(ast[w.id.value]);
-        if (ast.has(w.id.scopes)) {
-            ret.set(w.id.scopes, ast[w.id.scopes]);
-        }
-        return ret;
-    } else if (&ast.__type__() == &w.std.ast.Self) {
-        return w.ast.self();
-    } else if (&ast.__type__() == &w.std.ast.Continue) {
-        return w.ast.continue_();
-    } else if (&ast.__type__() == &w.std.ast.Break) {
-        return w.ast.break_();
-    } else if (&ast.__type__() == &w.std.ast.Parameter) {
-        return w.ast.parameter(ast[w.id.key]);
-    } else if (&ast.__type__() == &w.std.ast.Var) {
-        return w.ast.var(ast[w.id.name]);
-    } else if (&ast.__type__() == &w.std.ast.If) {
-        if (ast.has("else_")) {
-            return w.ast.if_(instantiate(ast[w.id.condition]))
-                .then_(instantiate(ast[w.id.then]))
-                .else_(instantiate(ast[w.id.else_]));
-        } else {
-            return w.ast.if_(instantiate(ast[w.id.condition])).then_(instantiate(ast[w.id.then]));
-        }
-    } else if (&ast.__type__() == &w.std.ast.Do) {
-        return w.ast.do_(instantiate(ast[w.id.statement])).while_(instantiate(ast[w.id.condition]));
-    } else if (&ast.__type__() == &w.std.ast.While) {
-        return w.ast.while_(instantiate(ast[w.id.condition])).do_(instantiate(ast[w.id.statement]));
-    } else if (&ast.__type__() == &w.std.ast.For) {
-        return w.ast.for_(instantiate(ast[w.id.variable])).in(instantiate(ast[w.id.container]))(instantiate(ast[w.id.statement]));
-    } else if (&ast.__type__() == &w.std.ast.Member) {
-        return w.ast.member(ast[w.id.key]);
-    } else if (&ast.__type__() == &w.std.ast.Return) {
-        if (ast.has("value")) {
-            return w.ast.return_(static_cast<Ast::Base&>(instantiate(ast[w.id.value])));
-        }
-        return w.ast.return_();
     }
 
     throw "Unknown AST to instantiate!";
@@ -1788,11 +1794,6 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         }
 
         return opBlock;
-    } else if (&ast.__type__() == &w.std.ast.ConstVar) {
-        Object& constVar = *new Object(w, w.std.op.ConstVar);
-        constVar.set(w.id.ast, ast);
-        constVar.set(w.id.value, ast[w.id.value]);
-        return constVar;
     } else if (&ast.__type__() == &w.std.ast.ResolvedType) {
         Object& constVar = *new Object(w, w.std.op.ConstVar);
         constVar.set(w.id.ast, ast);
@@ -1802,6 +1803,36 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         CellI& retOp = compile(w.ast.get(_(function), _(w.id.stack)) / _(w.id.value) / _(w.id.input) / _(w.id.self));
         retOp.set(w.id.ast, ast);
         retOp.label("self");
+        return retOp;
+    } else if (&ast.__type__() == &w.std.ast.Member) {
+        CellI& member = compile(w.ast.get(w.ast.self(), w.ast.cell(ast[w.id.key])));
+        member.set(w.id.ast, ast);
+        return member;
+    } else if (&ast.__type__() == &w.std.ast.Parameter) {
+        CellI& retOp = compile(w.ast.get(_(function), _(w.id.stack)) / _(w.id.value) / _(w.id.input) / _(ast[w.id.key]));
+        retOp.set(w.id.ast, ast);
+        return retOp;
+    } else if (&ast.__type__() == &w.std.ast.ConstVar) {
+        Object& constVar = *new Object(w, w.std.op.ConstVar);
+        constVar.set(w.id.ast, ast);
+        constVar.set(w.id.value, ast[w.id.value]);
+        return constVar;
+    } else if (&ast.__type__() == &w.std.ast.Var) {
+        Index* localVarsIndexPtr = nullptr;
+        if (function.missing(w.id.localVars)) {
+            localVarsIndexPtr = new Index(w, fmt::format("LocalVarsIndex of {}", function.label()));
+            function.set(w.id.localVars, *localVarsIndexPtr);
+        } else {
+            localVarsIndexPtr = &static_cast<Index&>(function[w.id.localVars]);
+        }
+
+        Index& localVarsIndex = *localVarsIndexPtr;
+        if (!localVarsIndex.has(ast[w.id.name])) {
+            localVarsIndex.insert(ast[w.id.name], w.ast.slot(ast[w.id.name], w.std.op.Var));
+        }
+
+        CellI& retOp = compile(w.ast.get(_(function), _(w.id.stack)) / _(w.id.value) / _(w.id.localVars) / _(ast[w.id.name]));
+        retOp.set(w.id.ast, ast);
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.Continue) {
         if (!m_lastBlock) {
@@ -1817,37 +1848,12 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         CellI& lastBlock = *m_lastBlock;
         CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.id.status), _(w.id.break_)));
         return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Parameter) {
-        CellI& retOp = compile(w.ast.get(_(function), _(w.id.stack)) / _(w.id.value) / _(w.id.input) / _(ast[w.id.key]));
-        retOp.set(w.id.ast, ast);
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Member) {
-        CellI& member = compile(w.ast.get(w.ast.self(), w.ast.cell(ast[w.id.key])));
-        member.set(w.id.ast, ast);
-        return member;
     } else if (&ast.__type__() == &w.std.ast.Return) {
         Object& retOp = *new Object(w, w.std.op.Return, "op.return");
         retOp.set(w.id.ast, ast);
         if (ast.has(w.id.value)) {
             retOp.set(w.id.result, compile(w.ast.set(_(function), _(w.id.value), static_cast<Ast::Base&>(ast[w.id.value]))));
         }
-        return retOp;
-    } else if (&ast.__type__() == &w.std.ast.Var) {
-        Index* localVarsIndexPtr = nullptr;
-        if (function.missing(w.id.localVars)) {
-            localVarsIndexPtr = new Index(w, fmt::format("LocalVarsIndex of {}", function.label()));
-            function.set(w.id.localVars, *localVarsIndexPtr);
-        } else {
-            localVarsIndexPtr = &static_cast<Index&>(function[w.id.localVars]);
-        }
-
-        Index &localVarsIndex = *localVarsIndexPtr;
-        if (!localVarsIndex.has(ast[w.id.name])) {
-            localVarsIndex.insert(ast[w.id.name], w.ast.slot(ast[w.id.name], w.std.op.Var));
-        }
-
-        CellI& retOp = compile(w.ast.get(_(function), _(w.id.stack)) / _(w.id.value) / _(w.id.localVars) / _(ast[w.id.name]));
-        retOp.set(w.id.ast, ast);
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.If) {
         Object& retOp = *new Object(w, w.std.op.If);
@@ -1861,7 +1867,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
             return retOp;
         }
     } else if (&ast.__type__() == &w.std.ast.Match) {
-        auto& enumObj        = static_cast<Ast::Base&>(ast["enum"]);
+        auto& enumObj        = static_cast<Ast::Base&>(ast[w.id.enum_]);
         auto& caseList       = ast["cases"][w.id.list];
         auto& astCases       = *new List(w, w.std.ast.Base);
         Ast::Block& astBlock = *new Ast::Block(w, astCases);
