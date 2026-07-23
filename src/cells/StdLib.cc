@@ -158,6 +158,7 @@ Std::Std(World& w) :
     List(w, w.std.Struct, "List"),
     ListNode(w, w.std.Struct, "ListNode"),
     Map(w, w.std.Struct, "Map"),
+    Map_Struct_Struct(w, w.std.Struct, "Map<Struct, Struct>"),
     Number(w, w.std.Struct, "Number"),
     NumberSign(w, w.std.Enum, "NumberSign"),
     OpState(w, w.std.Struct, "OpState"),
@@ -581,6 +582,7 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("ConstVar")
         .members(
+            member("type", "Base"),
             member("value", "std::Cell"));
 
     astScope.add<Struct>("Continue");
@@ -670,7 +672,8 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("Member")
         .members(
-            member("key", "Base"));
+            member("key", "Base"),
+            member("type", "Base"));
 
     astScope.add<Struct>("New")
         .members(
@@ -716,6 +719,7 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("Self")
         .members(
+            member("type", "Base"),
             member("value", "Base"));
 
     astScope.add<Struct>("SelfType");
@@ -1376,12 +1380,12 @@ void StdLibAst::createSet()
     setStructT.addMethod("begin")
         .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
-            return_(m_("index") / "__type__" / "slots" / "list" / "last"));
+            return_(m_("index") / "__type__" / "slots" / "list" / "first"));
 
     setStructT.addMethod("end")
         .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
-            return_(m_("list") / "last"));
+            return_(m_("index") / "__type__" / "slots" / "list" / "last"));
 
     setStructT.addMethod("size")
         .returnType(_(std.Number))

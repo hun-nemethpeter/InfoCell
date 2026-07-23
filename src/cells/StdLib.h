@@ -192,6 +192,7 @@ public:
     Object List;
     Object ListNode;
     Object Map;
+    Object Map_Struct_Struct;
     SNumber Number;
     ENumberSign NumberSign;
     Object OpState;

@@ -366,7 +366,7 @@ void Ast::StructBase::addMethod(Function& method, ParameterModification paramete
         }
         Parameter& selfParameter = w.ast.parameterDeclaration(w.id.self, *selfTypePtr);
         if (method.has(w.id.parameters)) {
-            method.parameters().addFront(selfParameter);
+            method.parameters().addFront(w.id.self, selfParameter);
         } else {
             method.parameters(selfParameter);
         }
@@ -415,14 +415,12 @@ Ast::StructBase& Ast::StructBase::returnType(CellI& type)
     return *this;
 }
 
-Ast::StructBase& Ast::StructBase::members(Slot& slot)
+void Ast::StructBase::addMember(Member& member)
 {
     if (missing("members")) {
-        set("members", *new Map(w, w.std.Cell, w.std.ast.Slot));
+        set("members", *new Map(w, w.std.Cell, w.std.ast.Member));
     }
-    members().add(slot[w.id.key], slot);
-
-    return *this;
+    members().add(member[w.id.key], member);
 }
 
 Ast::StructBase& Ast::StructBase::typeAliases(Slot& slot)
@@ -723,14 +721,12 @@ Ast::Function& Ast::Function::memberMapping(KVPair& mapping)
     return *this;
 }
 
-Ast::Function& Ast::Function::parameters(Parameter& parameter)
+void Ast::Function::addParameter(Parameter& parameter)
 {
     if (missing("parameters")) {
-        set("parameters", *new List(w, w.std.ast.Parameter));
+        set("parameters", *new Map(w, w.std.Cell, w.std.ast.Parameter));
     }
-    parameters().add(parameter);
-
-    return *this;
+    parameters().add(parameter[w.id.key], parameter);
 }
 
 Ast::Function& Ast::Function::returnType(CellI& type)
@@ -764,12 +760,12 @@ Map& Ast::Function::memberMapping()
     }
 }
 
-List& Ast::Function::parameters()
+Map& Ast::Function::parameters()
 {
     if (missing(w.id.parameters)) {
         throw "No parameters!";
     } else {
-        return static_cast<List&>(get(w.id.parameters));
+        return static_cast<Map&>(get(w.id.parameters));
     }
 }
 
@@ -989,6 +985,13 @@ Ast::Member::Member(World& w, CellI& key) :
     set(w.id.key, key);
 }
 
+Ast::Member::Member(World& w, CellI& key, CellI& type) :
+    BaseT<Member>(w, w.std.ast.Member, "ast.Member")
+{
+    set(w.id.key, key);
+    set(w.id.type, type);
+}
+
 Ast::Call& Ast::Member::operator=(Base& value)
 {
     return w.ast.set(w.ast.self(), w.ast._(get(w.id.key)), value);
@@ -1093,12 +1096,12 @@ Ast::Ast(World& w) :
 
 Ast::ConstVar& Ast::_(CellI& cellRef)
 {
-    return cell(cellRef);
+    return constVar(cellRef);
 }
 
 Ast::ConstVar& Ast::_(const std::string& nameStr)
 {
-    return cell(w.name(nameStr));
+    return constVar(w.name(nameStr));
 }
 
 Ast::ConstVar& Ast::_(int number)
@@ -1106,7 +1109,22 @@ Ast::ConstVar& Ast::_(int number)
     return _(w.pools.numbers.get(number));
 }
 
-Ast::ConstVar& Ast::cell(CellI& cell)
+CellI& Ast::name(const std::string& str)
+{
+    return w.name(str);
+}
+
+Ast::ConstVar& Ast::true_()
+{
+    return _(w.true_);
+}
+
+Ast::ConstVar& Ast::false_()
+{
+    return _(w.false_);
+}
+
+Ast::ConstVar& Ast::constVar(CellI& cell)
 {
     return ConstVar::New(w, cell);
 }
@@ -1328,6 +1346,21 @@ Ast::Member& Ast::member(CellI& key)
     return Member::New(w, key);
 }
 
+Ast::Member& Ast::member(CellI& key, CellI& type)
+{
+    return Member::New(w, key, type);
+}
+
+Ast::Member& Ast::member(const std::string& nameStr, const std::string& typeStr)
+{
+    return member(name(nameStr), typeName(typeStr));
+}
+
+Ast::Member& Ast::member(const std::string& nameStr, CellI& type)
+{
+    return member(name(nameStr), type);
+}
+
 Ast::TypeAlias& Ast::typeAlias(CellI& key)
 {
     return TypeAlias::New(w, key);
@@ -1534,21 +1567,6 @@ AstHelper::AstHelper(World& w) :
 {
 }
 
-CellI& AstHelper::name(const std::string& str)
-{
-    return w.name(str);
-}
-
-Ast::ConstVar& AstHelper::true_()
-{
-    return _(w.true_);
-}
-
-Ast::ConstVar& AstHelper::false_()
-{
-    return _(w.false_);
-}
-
 Ast::Parameter& AstHelper::p_(const std::string& nameStr)
 {
     return Ast::parameter(name(nameStr));
@@ -1577,16 +1595,6 @@ Ast::Member& AstHelper::m_(const std::string& nameStr)
 Ast::Var& AstHelper::var_(const std::string& nameStr)
 {
     return var(nameStr);
-}
-
-Ast::Slot& AstHelper::member(const std::string& nameStr, const std::string& typeStr)
-{
-    return slot(name(nameStr), __type__(typeStr));
-}
-
-Ast::Slot& AstHelper::member(const std::string& nameStr, CellI& type)
-{
-    return slot(name(nameStr), type);
 }
 
 Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, const std::string& typeStr)

@@ -290,12 +290,11 @@ void Object::set(CellI& key, CellI& value)
     if ((&key == &w.id.__type__) && !((&__type__() == &w.std.Index))) {
         throw "Type change not allowed.";
     }
-    if (w.initPhase() == InitPhase::Init) {
+    if (w.initPhase() == InitPhase::Init || w.initPhase() == InitPhase::Compiling) {
         m_slots[&key] = &value;
         return;
     }
-    auto is = [this](CellI& rhsType) -> bool { return &__type__() == &rhsType || (__type__().has(w.id.memberOf) && __type__()[w.id.memberOf][w.id.index].has(rhsType)); };
-    if (is(w.std.Index) || __type__()[w.id.slots][w.id.index].has(key)) {
+    if (isA(w.std.Index) || __type__()[w.id.slots][w.id.index].has(key)) {
         m_slots[&key] = &value;
     } else {
         throw "The type doesn't contains this key.";
@@ -2330,6 +2329,12 @@ bool Map::has(CellI& key)
     if (&key == &w.id.size) {
         return true;
     }
+    if (&key == &w.id.first && m_list.has(key)) {
+        return true;
+    }
+    if (&key == &w.id.last && m_list.has(key)) {
+        return true;
+    }
 
     return false;
 }
@@ -2357,7 +2362,11 @@ CellI& Map::operator[](CellI& key)
 {
     if (&key == &w.id.__type__) {
         if (!m_selfType) {
-            m_selfType = &w.getStruct(w.templateId("std::Map", w.id.keyType, m_keyType, w.id.valueType, m_valueType));
+            if (&m_keyType == &w.std.Struct && &m_keyType == &w.std.Struct) {
+                m_selfType = &w.std.Map_Struct_Struct;
+            } else {
+                m_selfType = &w.getStruct(w.templateId("std::Map", w.id.keyType, m_keyType, w.id.valueType, m_valueType));
+            }
         }
         return *m_selfType;
     }
@@ -2369,6 +2378,12 @@ CellI& Map::operator[](CellI& key)
     }
     if (&key == &w.id.size) {
         return w.pools.numbers.get(m_size);
+    }
+    if (&key == &w.id.first) {
+        return m_list.get(key);
+    }
+    if (&key == &w.id.last) {
+        return m_list.get(key);
     }
 
     throw "No such key!";
@@ -2396,6 +2411,19 @@ void Map::add(CellI& key, CellI& value)
         throw "A value already registered with this key";
     }
     List::Node& node = *m_list.add(value);
+    m_index.insert(key, node);
+    ++m_size;
+}
+
+void Map::addFront(CellI& key, CellI& value)
+{
+    if (&key == &w.id.__type__) {
+        throw "id.type can not be stored in a map!";
+    }
+    if (m_index.has(key)) {
+        throw "A value already registered with this key";
+    }
+    List::Node& node = *m_list.addFront(value);
     m_index.insert(key, node);
     ++m_size;
 }
@@ -2446,6 +2474,12 @@ bool TrieMap::has(CellI& key)
     if (&key == &w.id.size) {
         return true;
     }
+    if (&key == &w.id.first && m_list.has(key)) {
+        return true;
+    }
+    if (&key == &w.id.last && m_list.has(key)) {
+        return true;
+    }
 
     return false;
 }
@@ -2481,6 +2515,12 @@ CellI& TrieMap::operator[](CellI& key)
     }
     if (&key == &w.id.size) {
         return w.pools.numbers.get(m_size);
+    }
+    if (&key == &w.id.first) {
+        return m_list.get(key);
+    }
+    if (&key == &w.id.last) {
+        return m_list.get(key);
     }
 
     throw "No such key!";

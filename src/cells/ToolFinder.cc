@@ -69,11 +69,11 @@ std::string ToolFinder::printTool(CellI& tool)
         ss << tool[id.name].label() << "(";
         if (tool.has("members")) {
             int i = 0;
-            for (CellI& slot : tool[id.members][id.list]) {
+            for (CellI& member : tool[id.members]) {
                 if (i++ > 0) {
                     ss << ", ";
                 }
-                ss << "m_" << slot[id.key].label();
+                ss << "m_" << member[id.key].label();
             }
         }
         ss << ")";
@@ -152,7 +152,7 @@ CellI& ToolFinder::serializeEffect(CellI& effect)
                 valuePtr = &current[key];
             } else if (&key == &id.parameters && current.has(key)) {
                 if (!paramItemPtr) {
-                    paramItemPtr = &current[id.parameters][id.list][id.first];
+                    paramItemPtr = &current[id.parameters][id.first];
                 }
                 CellI& paramSlot = (*paramItemPtr)[id.value];
                 keyPtr           = &paramSlot[id.key];
@@ -273,7 +273,7 @@ void ToolFinder::add(Object& tool)
         // so this can be a conversion tool
         CellI& returnType = tool[id.returnType];
         if (tool.has(id.parameters)) {
-            for (CellI& parameter : tool[id.parameters][id.list]) {
+            for (CellI& parameter : tool[id.parameters]) {
                 CellI& inputType = parameter[id.type];
                 ConversionToolKey key(inputType, returnType);
                 ConversionToolBlueprint blueprint(tool, parameter[id.key]);
@@ -349,7 +349,7 @@ void ToolFinder::add(CellI& effect, CellI& tool)
                 valuePtr = &current[key];
             } else if (&key == &id.parameters && current.has(key)) {
                 if (!paramItemPtr) {
-                    paramItemPtr = &current[id.parameters][id.list][id.first];
+                    paramItemPtr = &current[id.parameters][id.first];
                 }
                 CellI& paramSlot = (*paramItemPtr)[id.value];
                 keyPtr           = &paramSlot[id.key];
@@ -454,8 +454,8 @@ CellI* ToolFinder::createBuilder(CellI& tool, Map& memberIds)
     builder.add(w.ast.member(id.method));
     builder.add(w.ast._(tool));
 
-    for (CellI& slot : tool[id.parameters][id.list]) {
-        CellI& key = slot[id.key];
+    for (CellI& parameter : tool[id.parameters]) {
+        CellI& key = parameter[id.key];
         if (&key == &id.self) {
             builder.add(w.ast.member(key));
         } else {
@@ -577,7 +577,7 @@ CellI* ToolFinder::findBuildersForEffect(CellI& inputEffect)
         CellI* valuePtr = nullptr;
         if (keyPtr == &id.parameters && effect.has(id.parameters)) {
             if (!paramItemPtr) {
-                paramItemPtr = &effect[id.parameters][id.list][id.first];
+                paramItemPtr = &effect[id.parameters][id.first];
             }
             CellI& paramSlot = (*paramItemPtr)[id.value];
             keyPtr           = &paramSlot[id.key];
@@ -915,7 +915,7 @@ ConversionLib::ConversionLib(World& w, Ast::Scope& parentScope, const std::strin
 void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint, List& results)
 {
     CellI& tool = *new Object(w, w.std.ast.Function);
-    tool.set(*blueprint.m_slotId, w.ast.cell(from));
+    tool.set(*blueprint.m_slotId, w.ast.constVar(from));
 
     Object unknownX(w, w.std.op.ConstVar, "unknownX");
 

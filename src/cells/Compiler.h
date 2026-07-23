@@ -33,8 +33,8 @@ protected:
     void resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
 
     Ast::Scope& resolveTypesInScope(Ast::Scope& scope);
-    Ast::Function& resolveTypesInFunction(Ast::Function& function);
-    Ast::Base& resolveTypesInFunctionCode(CellI& ast);
+    Ast::Function& resolveTypesInFunction(Ast::Function& function, Ast::StructBase* astStruct = nullptr);
+    Ast::Base& resolveTypesInFunctionCode(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr);
     Ast::Struct& resolveTypesInStruct(Ast::Struct& astStruct);
     Ast::Enum& resolveTypesInEnum(Ast::Enum& enum_);
     CellI& resolveTypeInEnumValue(CellI& ast);

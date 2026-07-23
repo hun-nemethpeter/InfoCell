@@ -372,6 +372,8 @@ public:
         add(key, value);
         add(std::forward<Args>(args)...);
     }
+    void addFront(CellI& key, CellI& value);
+
     void remove(CellI& key);
     bool empty() const;
     int size();

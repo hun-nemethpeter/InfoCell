@@ -150,6 +150,7 @@ public:
     public:
         Member(const Member&) = delete;
         Member(World& w, CellI& key);
+        Member(World& w, CellI& key, CellI& type);
         Call& operator=(Base& value);
         Call& operator/(Base& key);
         Call& operator/(const std::string& key);
@@ -317,11 +318,11 @@ public:
     public:
         StructBase& returnType(CellI& type);
 
-        StructBase& members(Slot& slot);
+        void addMember(Member& member);
         template <typename... Args>
-        StructBase& members(Slot& slot, Args&&... args)
+        StructBase& members(Member& member, Args&&... args)
         {
-            members(slot);
+            addMember(member);
             members(std::forward<Args>(args)...);
             return *this;
         }
@@ -393,12 +394,12 @@ public:
             return *this;
         }
 
-        Function& parameters(Parameter& parameter);
+        void addParameter(Parameter& parameter);
 
         template <typename... Args>
         Function& parameters(Parameter& parameter, Args&&... args)
         {
-            parameters(parameter);
+            addParameter(parameter);
             parameters(std::forward<Args>(args)...);
 
             return *this;
@@ -414,7 +415,7 @@ public:
         Function& description(Args&&... args);
 
         Map& memberMapping();
-        List& parameters();
+        Map& parameters();
         CellI& returnType();
         Base& instructions();
         Base& description();
@@ -649,7 +650,7 @@ public:
     Break& break_();
     Call& call(CellI& object, CellI& method);
     Call& call(CellI& object, const std::string& method);
-    ConstVar& cell(CellI& value);
+    ConstVar& constVar(CellI& value);
     Continue& continue_();
     Call& delete_(Base& cell);
     Call& divide(Base& lhs, Base& rhs);
@@ -676,6 +677,9 @@ public:
     Call& lessThanOrEqual(Base& lhs, Base& rhs);
     Match& match_(Base& enum_);
     Member& member(CellI& key);
+    Member& member(CellI& key, CellI& type);
+    Member& member(const std::string& nameStr, const std::string& typeStr);
+    Member& member(const std::string& nameStr, CellI& type);
     Call& missing(Base& cell, Base& key);
     Call& missing(Base& cell, const std::string& id);
     Call& multiply(Base& lhs, Base& rhs);
@@ -722,6 +726,9 @@ public:
     ConstVar& _(CellI& cell);
     ConstVar& _(const std::string& id);
     ConstVar& _(int number);
+    CellI& name(const std::string& str);
+    Ast::ConstVar& true_();
+    Ast::ConstVar& false_();
 
 protected:
     CellI& processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb);
@@ -739,17 +746,12 @@ public:
     AstHelper(World& w);
 
 protected:
-    CellI& name(const std::string& str);
-    Ast::ConstVar& true_();
-    Ast::ConstVar& false_();
     Ast::Parameter& p_(const std::string& nameStr);
     Ast::Parameter& p_(const std::string& nameStr, CellI& value);
     Ast::Parameter& parameter(const std::string& nameStr, const std::string& typeStr);
     Ast::Parameter& parameter(const std::string& nameStr, CellI& type);
     Ast::Member& m_(const std::string& nameStr);
     Ast::Var& var_(const std::string& nameStr);
-    Ast::Slot& member(const std::string& nameStr, const std::string& typeStr);
-    Ast::Slot& member(const std::string& nameStr, CellI& type);
     Ast::Slot& typeAlias(const std::string& nameStr, const std::string& typeStr);
     Ast::Slot& typeAlias(const std::string& nameStr, CellI& type);
     Ast::EnumValue& ev_(const std::string& nameStr);

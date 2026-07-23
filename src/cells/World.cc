@@ -154,6 +154,7 @@ World::World(std::function<void()> loggerLevelInit) :
     m_stdLib(std::make_unique<StdLib>(*this, globalScope, *m_stdCompiler)),
     m_arcLib(std::make_unique<ArcLib>(*this, globalScope, *m_stdCompiler))
 {
+    m_initPhase        = InitPhase::Compiling;
     Compiler& compiler = *m_stdCompiler;
     compiler.compile(stdLib());
 
@@ -291,7 +292,6 @@ CellI& World::MapOf(CellI& keyType, CellI& valueType)
     case InitPhase::Init: {
         auto& ret = tt_("std::Map", "keyType", ast._(keyType), "valueType", ast._(valueType));
         m_stdCompiler->reigisterStructBeforeCompilation(ret);
-
         return ret;
     }
     case InitPhase::Compiling:
