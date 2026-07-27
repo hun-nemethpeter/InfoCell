@@ -94,6 +94,7 @@ Std::Op::Op(World& w) :
     Same(w, w.std.Struct, "op::Same"),
     Set(w, w.std.Struct, "op::Set"),
     Subtract(w, w.std.Struct, "op::Subtract"),
+    UnknownVar(w, w.std.Struct, "op::UnknownVar"),
     Var(w, w.std.Struct, "op::Var"),
     While(w, w.std.Struct, "op::While")
 {
@@ -137,6 +138,7 @@ Std::Ast::Ast(World& w) :
     TypeAlias(w, w.std.Struct, "ast::TypeAlias"),
     TypedEnumValue(w, w.std.Struct, "ast::TypedEnumValue"),
     TypeName(w, w.std.Struct, "ast::TypeName"),
+    UnknownVar(w, w.std.Struct, "ast::UnknownVar"),
     Var(w, w.std.Struct, "ast::Var"),
     While(w, w.std.Struct, "ast::While")
 {
@@ -536,6 +538,13 @@ void StdLibAst::createOp()
             member("previous", "std::Cell"),
             member("value", "std::Number"));
 
+    opScope.add<Struct>("UnknownVar")
+        .members(
+            member("ast", "ast::Base"),
+            member("name", "std::Cell"),
+            member("type", "std::Struct"),
+            member("value", "std::Cell"));
+
     opScope.add<Struct>("Var")
 #if 0 // TODO
         .description(
@@ -545,7 +554,7 @@ void StdLibAst::createOp()
 #endif
         .members(
             member("ast", "ast::Base"),
-            member("valueType", "std::Struct"),
+            member("type", "std::Struct"),
             member("value", "std::Cell"));
 
     opScope.add<Struct>("While")
@@ -807,6 +816,12 @@ void StdLibAst::createAst()
             member("enum", "Enum"),
             member("enumType", "Struct"),
             member("value", "std::Cell"));
+
+    astScope.add<Struct>("UnknownVar")
+        .members(
+            member("value", "std::Cell"),
+            member("type", "std::Struct"),
+            member("scope", "Scope"));
 
     astScope.add<Struct>("Var")
         .members(
@@ -2225,6 +2240,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::op::Same", std.op.Same);
     compiler.registerBuiltInStruct("std::op::Set", std.op.Set);
     compiler.registerBuiltInStruct("std::op::Subtract", std.op.Subtract);
+    compiler.registerBuiltInStruct("std::op::UnknownVar", std.op.UnknownVar);
     compiler.registerBuiltInStruct("std::op::Var", std.op.Var);
     compiler.registerBuiltInStruct("std::op::While", std.op.While);
 
@@ -2263,6 +2279,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::TypeAlias", std.ast.TypeAlias);
     compiler.registerBuiltInStruct("std::ast::TypedEnumValue", std.ast.TypedEnumValue);
     compiler.registerBuiltInStruct("std::ast::TypeName", std.ast.TypeName);
+    compiler.registerBuiltInStruct("std::ast::UnknownVar", std.ast.UnknownVar);
     compiler.registerBuiltInStruct("std::ast::Var", std.ast.Var);
     compiler.registerBuiltInStruct("std::ast::While", std.ast.While);
 

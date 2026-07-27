@@ -224,11 +224,11 @@ TEST_F(CellTest, ToolFinderTestForSet)
     spdlog::get("toolFinderLookup")->set_level(spdlog::level::trace);
 
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
-    Object& pixel           = *new Object(w, test.Color, "pixel");
+    Object& pixel          = *new Object(w, test.Color, "pixel");
 
     CellI& requestForSetGet = *new Object(w, std.op.Call);
     requestForSetGet.set(id.method, std.op.Get);
-    requestForSetGet.set(id.self, op.var_(pixel));
+    requestForSetGet.set(id.self, op.unknown_(pixel));
     requestForSetGet.set(id.parameters, parameters(id.key, op.const_(id.green)));
 
     CellI& requestForSet = *new Object(w, std.op.Call, "pixel.get(green) == 5");
@@ -243,7 +243,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
         for (CellI& value : requestForSetAstList) {
             ss << value.label() << " ";
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Get self pixel key green op pop other 5 ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Get self op variable key green op pop other 5 ");
     }
 
     List& resultTools = toolFinder.findToolsByEffect(requestForSet);
@@ -256,7 +256,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
-    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.Var);
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.UnknownVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.key][id.value], &id.green);
@@ -280,7 +280,7 @@ TEST_F(CellTest, ToolFinderTestForGet)
     // test the get(pixel, green)
     CellI& requestForGet = *new Object(w, std.op.Call);
     requestForGet.set(id.method, std.op.Get);
-    requestForGet.set(id.self, op.var_(pixel));
+    requestForGet.set(id.self, op.const_(pixel));
     requestForGet.set(id.parameters, parameters(id.key, op.const_(id.green)));
 
     CellI& requestForGetAstList = toolFinder.serializeEffect(requestForGet);
@@ -302,7 +302,7 @@ TEST_F(CellTest, ToolFinderTestForGet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Get);
-    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.Var);
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.key][id.value], &id.green);
@@ -324,15 +324,15 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     Index theme(w, "theme");
     theme.set(id.color, id.green);
 
-    struct TestRequest : public AstHelper
+    struct TestPrompt : public AstHelper
     {
         Base* astPtr = nullptr;
-        TestRequest(World& w, CellI& pixel, CellI& theme) :
+        TestPrompt(World& w, TestSyms& test, CellI& pixel, CellI& theme) :
             AstHelper(w)
         {
-            astPtr = &equal(get(_(pixel), _(theme) / _(id.color)), _(5));
+            astPtr = &equal(get(unknown_(pixel), const_(theme) / const_(id.color)), const_(5));
         }
-    } testRequest(w, pixel, theme);
+    } testPrompt(w, test, pixel, theme);
 
     struct TestResponse : public AstHelper
     {
@@ -340,13 +340,13 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
         TestResponse(World& w, CellI& pixel, CellI& theme) :
             AstHelper(w)
         {
-            astPtr = &set(_(pixel), _(theme) / _(id.color), _(5));
+            astPtr = &set(var_(pixel), const_(theme) / const_(id.color), const_(5));
         }
     } testResponse(w, pixel, theme);
 
     LibraryTester libraryTester(w, testLib);
-    auto& testRequestFn = libraryTester.compile("getInGet", "request", *testRequest.astPtr);
-    auto& testResponseFn = libraryTester.compile("getInGet", "response", *testResponse.astPtr);
+    auto& testRequestFn  = libraryTester.compileAsPrompt("getInGet", "request", *testPrompt.astPtr);
+//    auto& testResponseFn = libraryTester.compile("getInGet", "response", *testResponse.astPtr);
     //    printAs.value(testRequestFn);
     CellI& requestForSetWithGetAstList = toolFinder.serializeEffect(testRequestFn);
     {
@@ -354,7 +354,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
         for (CellI& value : requestForSetWithGetAstList) {
             ss << value.label() << " ";
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Get self pixel key op push op type op::Call method op::Get self theme key color op pop op pop other 5 ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Get self op variable key op push op type op::Call method op::Get self theme key color op pop op pop other 5 ");
     }
 
     List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
@@ -367,7 +367,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
-    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.UnknownVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.Get);
     EXPECT_EQ(&resultTool[id.key][id.cell].__type__(), &std.op.ConstVar);
@@ -390,13 +390,13 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
 
     struct RequestHelper : public AstHelper { RequestHelper(World& w) : AstHelper(w) { }
 
-        Var& x    = var_("x");
-        Base& ast = equal(add(_(x) / _(id.value), _(_2_)), _(_4_));
+        Object& x = *new Object(w, std.Number, "X");
+        Base& ast = equal(add(unknown_(x) / const_(id.value), const_(_2_)), const_(_4_));
 
     } testRequest(w);
 
     LibraryTester libraryTester(w, testLib);
-    auto& testRequestFn = libraryTester.compile("getInGet", "request", testRequest.ast);
+    auto& testRequestFn = libraryTester.compileAsPrompt("getInGet", "request", testRequest.ast);
 
     CellI& serializedRequest = toolFinder.serializeEffect(testRequestFn);
     {
@@ -404,7 +404,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
         for (CellI& value : serializedRequest) {
             ss << value.label() << " ";
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self x key value op pop other 2 op pop other 4 ");
+        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self op variable key value op pop other 2 op pop other 4 ");
     }
 
     List& resultTools = toolFinder.findToolsByEffect(testRequestFn);

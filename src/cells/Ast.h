@@ -277,6 +277,15 @@ public:
         TypedEnumValue(World& w, const std::string& nameStr, CellI& type, CellI& value);
     };
 
+    class UnknownVar : public BaseT<UnknownVar>
+    {
+    public:
+        UnknownVar(World& w, CellI& value);
+
+        Call& operator/(Base& key);
+        Call& operator/(const std::string& key);
+    };
+
     class Var : public BaseT<Var>
     {
     public:
@@ -650,7 +659,9 @@ public:
     Break& break_();
     Call& call(CellI& object, CellI& method);
     Call& call(CellI& object, const std::string& method);
-    ConstVar& constVar(CellI& value);
+    ConstVar& const_(CellI& value);
+    ConstVar& const_(const std::string& id);
+    ConstVar& const_(int number);
     Continue& continue_();
     Call& delete_(Base& cell);
     Call& divide(Base& lhs, Base& rhs);
@@ -719,8 +730,9 @@ public:
     TypeAlias& typeAlias(CellI& key);
     TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& type, CellI& value);
     TypedEnumValue& typedEnumValue(const std::string& nameStr, CellI& value);
-    Var& var(CellI& name);
-    Var& var(const std::string& nameStr);
+    UnknownVar& unknown_(CellI& value);
+    Var& var_(CellI& name);
+    Var& var_(const std::string& nameStr);
     While& while_(Base& condition);
 
     ConstVar& _(CellI& cell);
@@ -751,7 +763,6 @@ protected:
     Ast::Parameter& parameter(const std::string& nameStr, const std::string& typeStr);
     Ast::Parameter& parameter(const std::string& nameStr, CellI& type);
     Ast::Member& m_(const std::string& nameStr);
-    Ast::Var& var_(const std::string& nameStr);
     Ast::Slot& typeAlias(const std::string& nameStr, const std::string& typeStr);
     Ast::Slot& typeAlias(const std::string& nameStr, CellI& type);
     Ast::EnumValue& ev_(const std::string& nameStr);

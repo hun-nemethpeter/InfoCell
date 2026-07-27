@@ -33,8 +33,8 @@ protected:
     void resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
 
     Ast::Scope& resolveTypesInScope(Ast::Scope& scope);
-    Ast::Function& resolveTypesInFunction(Ast::Function& function, Ast::StructBase* astStruct = nullptr);
-    Ast::Base& resolveTypesInFunctionCode(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr);
+    Ast::Function& resolveTypesInFunction(Ast::Function& function, Ast::StructBase* astStructPtr = nullptr);
+    Ast::Base& resolveTypesInFunctionCode(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr = nullptr);
     Ast::Struct& resolveTypesInStruct(Ast::Struct& astStruct);
     Ast::Enum& resolveTypesInEnum(Ast::Enum& enum_);
     CellI& resolveTypeInEnumValue(CellI& ast);
@@ -74,8 +74,9 @@ protected:
     void checkMethodCall(CellI& astType, CellI& astMethodId);
 
     void compileDescriptionInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
-    void compileDescriptionInFunction(Ast::Function& function);
-    CellI& compileDescriptionInFunctionAst(CellI& ast, Object& compiledFunction);
+    void compileDescriptionInFunction(Ast::Function& function, Ast::StructBase* astStructPtr = nullptr);
+    Ast::Base& resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr = nullptr);
+    CellI& compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr = nullptr);
 
     World& w;
     ToolFinder& m_toolFinder;

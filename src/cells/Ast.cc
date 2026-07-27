@@ -334,11 +334,11 @@ Ast::Function& Ast::StructBase::addPrimitiveFunction(CellI& ast, CellI& op, cons
 {
     Ast::Function& method = static_cast<Ast::Function&>(ast);
     method.label(nameStr);
-    method.set("name", w.name(nameStr));
-    method.set("primitiveTool", op);
+    method.set(w.id.name, w.name(nameStr));
+    method.set(w.id.primitiveTool, op);
     List& fullyQualifiedName = *new List(w, w.std.Cell);
     fullyQualifiedName.add(op);
-    method.set("fullyQualifiedName", fullyQualifiedName);
+    method.set(w.id.fullyQualifiedName, fullyQualifiedName);
     addMethod(method);
     op.set(w.id.ast, method);
 
@@ -407,18 +407,18 @@ void Ast::StructBase::addTraitImpl(Ast::TraitImpl& traitImpl)
 
 Ast::StructBase& Ast::StructBase::returnType(CellI& type)
 {
-    if (missing("primitiveTool")) {
+    if (missing(w.id.primitiveTool)) {
         throw "Setting return type on a node which is not a primitive tool!";
     }
-    set("returnType", type);
+    set(w.id.returnType, type);
 
     return *this;
 }
 
 void Ast::StructBase::addMember(Member& member)
 {
-    if (missing("members")) {
-        set("members", *new Map(w, w.std.Cell, w.std.ast.Member));
+    if (missing(w.id.members)) {
+        set(w.id.members, *new Map(w, w.std.Cell, w.std.ast.Member));
     }
     members().add(member[w.id.key], member);
 }
@@ -979,6 +979,22 @@ Ast::Call& Ast::Var::operator()(const std::string& method)
     return w.ast.call(*(*this), method);
 }
 
+Ast::UnknownVar::UnknownVar(World& w, CellI& value) :
+    BaseT<UnknownVar>(w, w.std.ast.UnknownVar, "ast.UnknownVar")
+{
+    set(w.id.value, value);
+}
+
+Ast::Call& Ast::UnknownVar::operator/(Base& key)
+{
+    return w.ast.get(*this, key);
+}
+
+Ast::Call& Ast::UnknownVar::operator/(const std::string& key)
+{
+    return w.ast.get(*this, key);
+}
+
 Ast::Member::Member(World& w, CellI& key) :
     BaseT<Member>(w, w.std.ast.Member, "ast.Member")
 {
@@ -1096,12 +1112,12 @@ Ast::Ast(World& w) :
 
 Ast::ConstVar& Ast::_(CellI& cellRef)
 {
-    return constVar(cellRef);
+    return const_(cellRef);
 }
 
 Ast::ConstVar& Ast::_(const std::string& nameStr)
 {
-    return constVar(w.name(nameStr));
+    return const_(w.name(nameStr));
 }
 
 Ast::ConstVar& Ast::_(int number)
@@ -1124,9 +1140,19 @@ Ast::ConstVar& Ast::false_()
     return _(w.false_);
 }
 
-Ast::ConstVar& Ast::constVar(CellI& cell)
+Ast::ConstVar& Ast::const_(CellI& cell)
 {
     return ConstVar::New(w, cell);
+}
+
+Ast::ConstVar& Ast::const_(const std::string& nameStr)
+{
+    return const_(w.name(nameStr));
+}
+
+Ast::ConstVar& Ast::const_(int number)
+{
+    return _(w.pools.numbers.get(number));
 }
 
 Ast::TypeName& Ast::typeName(CellI& id)
@@ -1256,6 +1282,11 @@ Ast::TypedEnumValue& Ast::typedEnumValue(const std::string& nameStr, CellI& type
     return TypedEnumValue::New(w, nameStr, type, value);
 }
 
+Ast::UnknownVar& Ast::unknown_(CellI& value)
+{
+    return UnknownVar::New(w, value);
+}
+
 Ast::Call& Ast::call(CellI& object, const std::string& method)
 {
     return Call::New(w, object, w.ast._(method));
@@ -1328,15 +1359,15 @@ Ast::For& Ast::for_(Base& var)
 
 Ast::For& Ast::for_(const std::string& varName)
 {
-    return For::New(w, var(varName));
+    return For::New(w, var_(varName));
 }
 
-Ast::Var& Ast::var(CellI& name)
+Ast::Var& Ast::var_(CellI& name)
 {
     return Var::New(w, name);
 }
 
-Ast::Var& Ast::var(const std::string& nameStr)
+Ast::Var& Ast::var_(const std::string& nameStr)
 {
     return Var::New(w, nameStr);
 }
@@ -1590,11 +1621,6 @@ Ast::Parameter& AstHelper::parameter(const std::string& nameStr, const std::stri
 Ast::Member& AstHelper::m_(const std::string& nameStr)
 {
     return Ast::member(name(nameStr));
-}
-
-Ast::Var& AstHelper::var_(const std::string& nameStr)
-{
-    return var(nameStr);
 }
 
 Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, const std::string& typeStr)

@@ -65,7 +65,7 @@ std::string ToolFinder::printTool(CellI& tool)
         ss << "m_lhs + m_rhs";
     } else if (tool[id.name].label() == "Subtract") {
         ss << "m_lhs - m_rhs";
-    } else if (tool.has("primitiveTool")) {
+    } else if (tool.has(w.id.primitiveTool)) {
         ss << tool[id.name].label() << "(";
         if (tool.has("members")) {
             int i = 0;
@@ -163,20 +163,22 @@ CellI& ToolFinder::serializeEffect(CellI& effect)
                 CellI& paramValue = *valuePtr;
 
                 ret.add(paramKey);
-                if (&paramValue.__type__() == &w.std.op.Var || &paramValue.__type__() == &w.std.op.ConstVar) {
+                if (&paramValue.__type__() == &w.std.op.ConstVar) {
                     ret.add(paramValue[id.value]);
                     if (&paramValue[id.value] == &id.op) {
                         // handling the _(op) case, where op is a constant
                         // it will be op op, so the escaping character here is op
                         ret.add(paramValue[id.value]);
                     }
-                } else if (&paramValue.__type__() == &w.std.ast.Self || &paramValue.__type__() == &w.std.ast.Return || &paramValue.__type__() == &w.std.ast.Parameter) {
+                } else if (&paramValue.__type__() == &w.std.ast.Self || &paramValue.__type__() == &w.std.ast.Return || &paramValue.__type__() == &w.std.ast.Parameter || &paramValue.__type__() == &w.std.op.UnknownVar) {
                     ret.add(id.op);
                     if (&paramValue.__type__() == &w.std.ast.Self) {
                         ret.add(id.variable);
                     } else if (&paramValue.__type__() == &w.std.ast.Return) {
                         ret.add(id.variable);
                     } else if (&paramValue.__type__() == &w.std.ast.Parameter) {
+                        ret.add(id.variable);
+                    } else if (&paramValue.__type__() == &w.std.op.UnknownVar) {
                         ret.add(id.variable);
                     } else {
                         throw "Unknow param type!";
@@ -268,7 +270,7 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBluep
 // ============================================================================
 void ToolFinder::add(Object& tool)
 {
-    auto& effects = tool[id.description];
+    auto& description = tool[id.description];
     if (tool.has(id.returnType)) {
         // so this can be a conversion tool
         CellI& returnType = tool[id.returnType];
@@ -284,16 +286,14 @@ void ToolFinder::add(Object& tool)
     m_tools.add(tool);
 
     TRACE(toolFinder, "{} =>", tool.label());
-    for (CellI& effect : effects) {
-        add(effect, tool);
-#if 0
-        if (&effect.__type__() == &w.std.ast.Equal) {
-            Object symmetricEffectAst(w, w.std.ast.Equal, "symmetric effect");
-            symmetricEffectAst.set(id.rhs, effect[id.lhs]);
-            symmetricEffectAst.set(id.lhs, effect[id.rhs]);
-            add(symmetricEffectAst, tool, compiledToolType);
+    // TODO: getting the hybrid List type during compilation is not possible, so using heuristic here
+    // TODO: use enum here instead!
+    if (description.has(w.id.first) && description.has(w.id.last) && description.has(w.id.size)) {
+        for (CellI& effect : description) {
+            add(effect, tool);
         }
-#endif
+    } else {
+        add(description, tool);
     }
 }
 
@@ -445,7 +445,7 @@ CellI* ToolFinder::createBuilder(CellI& tool, Map& memberIds)
     List& builder = *new List(w, w.std.Cell, fmt::format("builder for {}", tool.label()));
 
     builder.add(w.ast.member(id.__type__));
-    if (tool[id.ast].has("primitiveTool")) {
+    if (tool[id.ast].has(w.id.primitiveTool)) {
         builder.add(w.ast.primitiveToolName(tool[id.ast]));
     } else {
         builder.add(w.ast._(w.std.op.Call));
@@ -727,7 +727,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                     slotItemPtr = &nextSlotItem;
                 } else if (&valueCell.__type__() == &w.std.ast.PrimitiveToolName) {
                     CellI& ast = valueCell[id.name];
-                    typePtr    = &ast["primitiveTool"];
+                    typePtr    = &ast[w.id.primitiveTool];
                     newObj     = new Object(w, *typePtr, fmt::format("built from {}", builders.label()));
                     (*newObj).set(w.id.ast, ast);
                     primitiveToolPtr = &ast;
@@ -763,7 +763,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                 if (&unwrappedKey != &id.method) {
                     translatedKeyPtr = &unwrappedKey;
                     CellI& translatedKey = membersMapping.getValue(*translatedKeyPtr);
-                    if (!(&(*valuePtr).__type__() == &w.std.op.Var || &(*valuePtr).__type__() == &w.std.op.ConstVar)) {
+                    if (!(&(*valuePtr).__type__() == &w.std.op.UnknownVar || &(*valuePtr).__type__() == &w.std.op.ConstVar)) {
                         subEffects.add(w.std.kvPair(w.ast.member(translatedKey), *valuePtr));
                         TRACE(toolFinderLookup, "BUILD: '{}' is a sub effect", unwrappedKey.label());
                     } else {
@@ -778,7 +778,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                 CellI& valueCell    = nextSlotItem[id.value];
                 CellI* valuePtr     = getValuePtrFromValueCell(matchedEffect, valueCell);
 
-                if (!(&(*valuePtr).__type__() == &w.std.op.Var || &(*valuePtr).__type__() == &w.std.op.ConstVar)) {
+                if (!(&(*valuePtr).__type__() == &w.std.op.UnknownVar || &(*valuePtr).__type__() == &w.std.op.ConstVar)) {
                     subEffects.add(w.std.kvPair(key, *valuePtr));
                     TRACE(toolFinderLookup, "BUILD: '{}' is a sub effect", unwrappedKey.label());
                 } else {
@@ -797,7 +797,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                     TRACE(toolFinderLookup, "BUILD: parameters");
                 }
                 auto& parameters = static_cast<Map&>(ret[id.parameters]);
-                if (!(&(*valuePtr).__type__() == &w.std.op.Var || &(*valuePtr).__type__() == &w.std.op.ConstVar)) {
+                if (!(&(*valuePtr).__type__() == &w.std.op.UnknownVar || &(*valuePtr).__type__() == &w.std.op.ConstVar)) {
                     subEffects.add(w.std.kvPair(key, *valuePtr));
                     TRACE(toolFinderLookup, "BUILD: param: '{}' is a sub effect", unwrappedKey.label());
                 } else {
@@ -915,7 +915,7 @@ ConversionLib::ConversionLib(World& w, Ast::Scope& parentScope, const std::strin
 void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint, List& results)
 {
     CellI& tool = *new Object(w, w.std.ast.Function);
-    tool.set(*blueprint.m_slotId, w.ast.constVar(from));
+    tool.set(*blueprint.m_slotId, w.ast.const_(from));
 
     Object unknownX(w, w.std.op.ConstVar, "unknownX");
 

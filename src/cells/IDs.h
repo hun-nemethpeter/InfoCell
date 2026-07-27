@@ -62,6 +62,7 @@ public:
     String& emptyObject;
     String& enum_;
     String& first;
+    String& fullyQualifiedName;
     String& functions;
     String& globalScope;
     String& green;
@@ -99,6 +100,7 @@ public:
     String& pixelsMap;
     String& pop;
     String& previous;
+    String& primitiveTool;
     String& process;
     String& push;
     String& red;

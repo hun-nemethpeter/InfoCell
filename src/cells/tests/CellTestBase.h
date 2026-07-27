@@ -51,6 +51,7 @@ public:
         LibraryTester(World& w, TestLib& testLib);
 
         Object& compile(const std::string& scopeName, const std::string& fnName, Ast::Base& ast);
+        Object& compileAsPrompt(const std::string& scopeName, const std::string& fnName, Ast::Base& ast);
 
         Compiler compiler;
         Ast::Scope rootScope;

@@ -20,13 +20,8 @@ Op::ConstVar::ConstVar(World& w, CellI& value) :
     set(w.id.value, value);
 }
 
-Op::Var::Var(World& w) :
-    BaseT<Var>(w, w.std.op.Var, "op.Var")
-{
-}
-
-Op::Var::Var(World& w, CellI& value) :
-    BaseT<Var>(w, w.std.op.Var, "op.Var")
+Op::UnknownVar::UnknownVar(World& w, CellI& value) :
+    BaseT<UnknownVar>(w, w.std.op.UnknownVar, "op.UnknownVar")
 {
     set(w.id.value, value);
 }
@@ -52,14 +47,9 @@ Op::ConstVar& Op::const_(int number)
     return const_(w.pools.numbers.get(number));
 }
 
-Op::Var& Op::var_()
+Op::UnknownVar& Op::unknown_(CellI& value)
 {
-    return Var::New(w);
-}
-
-Op::Var& Op::var_(CellI& value)
-{
-    return Var::New(w, value);
+    return UnknownVar::New(w, value);
 }
 
 } // namespace cells

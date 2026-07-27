@@ -1861,7 +1861,7 @@ void Object::initLocalVars(CellI& method)
     for (CellI& slot : localVarsList) {
         auto& key        = slot[w.id.key];
         Object& localVar = *new Object(w, w.std.op.Var, fmt::format("var {}", key.label()));
-        localVar.set(w.id.valueType, slot[w.id.type]);
+        localVar.set(w.id.type, slot[w.id.type]);
         localVarsIndex.set(key, localVar);
     }
 }

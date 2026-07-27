@@ -49,6 +49,7 @@ public:
         Object Same;
         Object Set;
         Object Subtract;
+        Object UnknownVar;
         Object Var;
         Object While;
     };
@@ -97,6 +98,7 @@ public:
         Object TypeAlias;
         Object TypedEnumValue;
         Object TypeName;
+        Object UnknownVar;
         Object Var;
         Object While;
     };

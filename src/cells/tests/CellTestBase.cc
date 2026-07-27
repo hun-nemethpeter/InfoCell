@@ -98,8 +98,24 @@ Object& CellTest::LibraryTester::compile(const std::string& scopeName, const std
         testScopePtr = &rootScope.add<Ast::Scope>(scopeName);
     }
     Ast::Scope& testScope = *testScopePtr;
-    auto& testFunction = testScope.add<Ast::Function>(fnName);
+    auto& testFunction    = testScope.add<Ast::Function>(fnName);
     testFunction.instructions(ast);
+    include(testLib);
+
+    return compiler.compileAsPrompt(testFunction);
+}
+
+Object& CellTest::LibraryTester::compileAsPrompt(const std::string& scopeName, const std::string& fnName, Ast::Base& ast)
+{
+    Ast::Scope* testScopePtr = nullptr;
+    if (rootScope.hasItem<Ast::Scope>(w.name(scopeName))) {
+        testScopePtr = &rootScope.getItem<Ast::Scope>(scopeName);
+    } else {
+        testScopePtr = &rootScope.add<Ast::Scope>(scopeName);
+    }
+    Ast::Scope& testScope = *testScopePtr;
+    auto& testFunction    = testScope.add<Ast::Function>(fnName);
+    testFunction.description(ast);
     include(testLib);
 
     return compiler.compileAsPrompt(testFunction);

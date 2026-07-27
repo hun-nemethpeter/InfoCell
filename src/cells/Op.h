@@ -41,11 +41,10 @@ public:
         ConstVar(World& w, CellI& value);
     };
 
-    class Var : public BaseT<Var>
+    class UnknownVar : public BaseT<UnknownVar>
     {
     public:
-        Var(World& w);
-        Var(World& w, CellI& value);
+        UnknownVar(World& w, CellI& value);
     };
 
     // ============================================================================
@@ -54,8 +53,7 @@ public:
     ConstVar& const_(CellI& value);
     ConstVar& const_(const std::string& id);
     ConstVar& const_(int number);
-    Var& var_();
-    Var& var_(CellI& value);
+    UnknownVar& unknown_(CellI& value);
 
 
 protected:
