@@ -139,8 +139,6 @@ public:
     CellI& smethod(CellI& key, Param param1, Param param2);
     CellI& smethod(CellI& key, Param param1, Param param2, Param param3);
     CellI& smethod(CellI& key, Param param1, Param param2, Param param3, Param param4);
-    void printIndent();
-    void resetIndent();
     void createSelfStack();
     void runAsCall();
     static void clearStack(CellI& method);
@@ -165,7 +163,6 @@ protected:
         setFnParam(fn, std::forward<Args>(args)...);
     }
 
-    static int s_indent;
     static bool s_debugFunctionCalls;
     static bool s_worldConstructedAndAlive;
     CellI& m_type;

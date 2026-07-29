@@ -1080,17 +1080,16 @@ TEST_F(CellTest, BasicObjectTest)
 
 TEST_F(CellTest, BasicControlOpTest)
 {
-    Object testValue1(w, std.op.ConstVar);
-    testValue1.set(id.value, std.Char);
-
-    Object testValue2(w, std.op.ConstVar);
-    testValue2.set(id.value, arc.Color);
+    Object& testValue1 = op.const_(std.Char);
+    Object& testValue2 = op.const_(arc.Color);
 
     Object sameOpEq(w, std.op.Same, "sameOpEq");
+    sameOpEq.set(id.state, std.op.State.start);
     sameOpEq.set(id.lhs, testValue1);
     sameOpEq.set(id.rhs, testValue1);
 
     Object sameOpNe(w, std.op.Same, "sameOpNe");
+    sameOpNe.set(id.state, std.op.State.start);
     sameOpNe.set(id.lhs, testValue1);
     sameOpNe.set(id.rhs, testValue2);
 
@@ -1106,15 +1105,10 @@ TEST_F(CellTest, BasicControlOpTest)
 
 TEST_F(CellTest, BasicControlAddTest)
 {
-    Object start(w, std.op.ConstVar);
-    start.set(id.value, w.pools.numbers.get(42));
-
-    Object value10(w, std.op.ConstVar);
-    value10.set(id.value, w.pools.numbers.get(10));
-
     Object add10(w, std.op.Add, "add10");
-    add10.set(id.lhs, start);
-    add10.set(id.rhs, value10);
+    add10.set(id.state, std.op.State.start);
+    add10.set(id.lhs, op.const_(42));
+    add10.set(id.rhs, op.const_(10));
     add10();
     std::cout << "42 + 10 = ";
     printAs.value(add10[id.value]);

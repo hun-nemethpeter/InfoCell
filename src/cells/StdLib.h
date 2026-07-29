@@ -14,44 +14,592 @@ public:
     public:
         Op(World& w);
 
+        class EActivate : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateInput;
+            };
+            EActivate(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EAdd : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            EAdd(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EAnd : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            EAnd(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EBlock : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateInput;
+            };
+            EBlock(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ECall : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateParameterSelf;
+                Object activateParameters;
+                Object stackPushAndCall;
+                Object stackPop;
+            };
+            ECall(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EDelete : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateInput;
+            };
+            EDelete(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EDivide : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            EDivide(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EDo : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateStatement;
+                Object activateCondition;
+            };
+            EDo(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EEqual : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            EEqual(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EErase : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateCell;
+                Object activateKey;
+            };
+            EErase(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EFunction : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateOp;
+            };
+            EFunction(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EGet : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateCell;
+                Object activateKey;
+            };
+            EGet(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EGreaterThan : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            EGreaterThan(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EGreaterThanOrEqual : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            EGreaterThanOrEqual(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EHas : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateCell;
+                Object activateKey;
+            };
+            EHas(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EIf : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateCondition;
+                Object activateThen;
+                Object activateElse;
+            };
+            EIf(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ELessThan : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            ELessThan(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ELessThanOrEqual : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            ELessThanOrEqual(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EMissing : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateCell;
+                Object activateKey;
+            };
+            EMissing(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EMultiply : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            EMultiply(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ENew : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateObjectType;
+            };
+            ENew(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ENot : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateInput;
+            };
+            ENot(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ENotEqual : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            ENotEqual(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ENotSame : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            ENotSame(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EOr : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            EOr(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EReturn : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateResult;
+            };
+            EReturn(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ESame : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            ESame(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ESet : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateCell;
+                Object activateKey;
+                Object activateValue;
+            };
+            ESet(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class ESubtract : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateLhs;
+                Object activateRhs;
+            };
+            ESubtract(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EWhile : public Object
+        {
+        public:
+            class EState : public Object
+            {
+            public:
+                EState(World& w, CellI& type, const std::string& label);
+
+                Object& missingInput;
+                Object& start;
+                Object activateCondition;
+                Object activateStatement;
+            };
+            EWhile(World& w, CellI& type, const std::string& label);
+
+            EState State;
+        };
+
+        class EState : public Object
+        {
+        public:
+            EState(World& w, CellI& type, const std::string& label);
+
+            Object missingInput;
+            Object start;
+        };
+
     protected:
         World& w;
 
     public:
-        Object Activate;
-        Object Add;
-        Object And;
+        EActivate Activate;
+        EAdd Add;
+        EAnd And;
         Object Base;
-        Object Block;
-        Object Call;
+        EBlock Block;
+        ECall Call;
         Object ConstVar;
-        Object Delete;
-        Object Divide;
-        Object Do;
-        Object Equal;
-        Object Erase;
-        Object Function;
-        Object Get;
-        Object GreaterThan;
-        Object GreaterThanOrEqual;
-        Object Has;
-        Object If;
-        Object LessThan;
-        Object LessThanOrEqual;
-        Object Missing;
-        Object Multiply;
-        Object New;
-        Object Not;
-        Object NotEqual;
-        Object NotSame;
-        Object Or;
-        Object Return;
-        Object Same;
-        Object Set;
-        Object Subtract;
+        EDelete Delete;
+        EDivide Divide;
+        EDo Do;
+        EEqual Equal;
+        EErase Erase;
+        EFunction Function;
+        EGet Get;
+        EGreaterThan GreaterThan;
+        EGreaterThanOrEqual GreaterThanOrEqual;
+        EHas Has;
+        EIf If;
+        ELessThan LessThan;
+        ELessThanOrEqual LessThanOrEqual;
+        EMissing Missing;
+        EMultiply Multiply;
+        ENew New;
+        ENot Not;
+        ENotEqual NotEqual;
+        ENotSame NotSame;
+        EOr Or;
+        EReturn Return;
+        ESame Same;
+        Object SavedState;
+        ESet Set;
+        EState State;
+        ESubtract Subtract;
         Object UnknownVar;
         Object Var;
-        Object While;
+        EWhile While;
     };
 
     class Ast
@@ -197,7 +745,6 @@ public:
     Object Map_Struct_Struct;
     SNumber Number;
     ENumberSign NumberSign;
-    Object OpState;
     Object Stack;
     Object StackFrame;
     Object String;

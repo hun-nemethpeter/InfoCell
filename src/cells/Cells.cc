@@ -196,7 +196,6 @@ CellI* CellI::getNextOrNullptr()
 Param::Param(const std::string& key, CellI& value) :
     key(value.w.name(key)), value(value) { }
 
-int Object::s_indent = 0;
 // ============================================================================
 Object::Object(World& w, CellI& type, const std::string& label) :
     CellI(w, label),
@@ -314,21 +313,6 @@ void Object::erase(CellI& key)
     m_slots.erase(slotIt);
 }
 
-void Object::printIndent()
-{
-    static const int s_tabSize = 2;
-    for (int i = 0; i < s_indent; ++i) {
-        for (int j = 0; j < s_tabSize; ++j) {
-            std::cout << " ";
-        }
-    }
-}
-
-void Object::resetIndent()
-{
-    s_indent = 0;
-}
-
 void Object::createSelfStack()
 {
     createStack(*this);
@@ -344,412 +328,305 @@ void Object::runAsCall()
     (*this)();
 }
 
-// core data handling
-static void evalOpGet(CellI& self, CellI*& currentCell, CellI*& previousCell)
+class OpActivator
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputCell = self[w.id.cell];
-        previousCell     = currentCell;
-        currentCell      = &inputCell;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        CellI& inputRole = self[w.id.key];
-        previousCell     = currentCell;
-        currentCell      = &inputRole;
-        self.set(w.id.state, w.id.stateParam2);
-    } else if (&state == &w.id.stateParam2) {
-        CellI& cell = self[w.id.cell][w.id.value];
-        CellI& key = self[w.id.key][w.id.value];
+public:
+    OpActivator(CellI& m_currentCell);
+    void activate();
 
-        self.set(w.id.value, cell[key]);
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-    }
+protected:
+    void activateOpActivate();
+    void activateOpAdd();
+    void activateOpAnd();
+    void activateOpBlock();
+    void activateOpCall();
+    void activateOpDelete();
+    void activateOpDivide();
+    void activateOpDo();
+    void activateOpEqual();
+    void activateOpErase();
+    void activateOpFunction();
+    void activateOpGet();
+    void activateOpGreaterThan();
+    void activateOpGreaterThanOrEqual();
+    void activateOpHas();
+    void activateOpIf();
+    void activateOpLessThan();
+    void activateOpLessThanOrEqual();
+    void activateOpMissing();
+    void activateOpMultiply();
+    void activateOpNew();
+    void activateOpNot();
+    void activateOpNotEqual();
+    void activateOpNotSame();
+    void activateOpOr();
+    void activateOpReturn();
+    void activateOpSame();
+    void activateOpSet();
+    void activateOpSubtract();
+    void activateOpWhile();
+
+    void saveOpState(List& opStates, CellI& op);
+    void loadOpState(CellI& opState);
+
+    void printIndent();
+    void resetIndent();
+
+    World& w;
+    ID& id;
+    Std& std;
+    CellI* m_currentCell;
+    CellI* m_previousCell;
+    CellI* m_currentState     = nullptr;
+    int m_indent              = 0;
+    bool m_debugFunctionCalls = false;
+};
+
+OpActivator::OpActivator(CellI& currentCell) :
+    w(currentCell.w),
+    id(w.id),
+    std(w.std),
+    m_currentCell(&currentCell),
+    m_previousCell(&w.id.emptyObject)
+{
 }
 
-static void evalOpSet(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activate()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputCell = self[w.id.cell];
-        previousCell     = currentCell;
-        currentCell      = &inputCell;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        CellI& inputRole = self[w.id.key];
-        previousCell     = currentCell;
-        currentCell      = &inputRole;
-        self.set(w.id.state, w.id.stateParam2);
-    } else if (&state == &w.id.stateParam2) {
-        CellI& inputValue = self[w.id.value];
-        previousCell      = currentCell;
-        currentCell       = &inputValue;
-        self.set(w.id.state, w.id.stateParam3);
-    } else if (&state == &w.id.stateParam3) {
-        CellI& cell  = self[w.id.cell][w.id.value];
-        CellI& key  = self[w.id.key][w.id.value];
-        CellI& value = self[w.id.value][w.id.value];
+    resetIndent();
+    int tick = 0;
+    do {
+        CellI& self    = *m_currentCell;
+        CellI& type    = self.__type__();
+        m_currentState = &self[id.state];
 
-        cell.set(key, value);
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-    }
-}
-
-static void evalOpHas(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputCell = self[w.id.cell];
-        previousCell     = currentCell;
-        currentCell      = &inputCell;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        CellI& inputRole = self[w.id.key];
-        previousCell     = currentCell;
-        currentCell      = &inputRole;
-        self.set(w.id.state, w.id.stateParam2);
-    } else if (&state == &w.id.stateParam2) {
-        CellI& cell = self[w.id.cell][w.id.value];
-        CellI& key = self[w.id.key][w.id.value];
-
-        self.set(w.id.value, w.toCellBool(cell.has(key)));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-    }
-}
-
-static void evalOpMissing(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputCell = self[w.id.cell];
-        previousCell     = currentCell;
-        currentCell      = &inputCell;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        CellI& inputRole = self[w.id.key];
-        previousCell     = currentCell;
-        currentCell      = &inputRole;
-        self.set(w.id.state, w.id.stateParam2);
-    } else if (&state == &w.id.stateParam2) {
-        CellI& cell = self[w.id.cell][w.id.value];
-        CellI& key = self[w.id.key][w.id.value];
-
-        self.set(w.id.value, w.toCellBool(cell.missing(key)));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-    }
-}
-
-static void evalOpErase(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputCell = self[w.id.cell];
-        previousCell     = currentCell;
-        currentCell      = &inputCell;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        CellI& inputRole = self[w.id.key];
-        previousCell     = currentCell;
-        currentCell      = &inputRole;
-        self.set(w.id.state, w.id.stateParam2);
-    } else if (&state == &w.id.stateParam2) {
-        CellI& cell = self[w.id.cell][w.id.value];
-        CellI& key = self[w.id.key][w.id.value];
-
-        cell.erase(key);
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-    }
-}
-
-static void evalOpNew(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputObjectType = self[w.id.objectType];
-        previousCell           = currentCell;
-        currentCell            = &inputObjectType;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        CellI& objectType = self[w.id.objectType][w.id.value];
-
-        if (&objectType == &w.std.Number) {
-            self.set(w.id.value, *new Number(w));
-        } else if (&objectType == &w.std.String) {
-            self.set(w.id.value, *new String(w));
+        if (&type == &std.op.Activate) {
+            activateOpActivate();
+        } else if (&type == &std.op.Add) {
+            activateOpAdd();
+        } else if (&type == &std.op.And) {
+            activateOpAnd();
+        } else if (&type == &std.op.Block) {
+            activateOpBlock();
+        } else if (&type == &w.std.op.Call) {
+            activateOpCall();
+        } else if (&type == &w.std.op.Delete) {
+            activateOpDelete();
+        } else if (&type == &w.std.op.Divide) {
+            activateOpDivide();
+        } else if (&type == &w.std.op.Do) {
+            activateOpDo();
+        } else if (&type == &w.std.op.Equal) {
+            activateOpEqual();
+        } else if (&type == &w.std.op.Erase) {
+            activateOpErase();
+        } else if (&type == &w.std.op.Function) {
+            activateOpFunction();
+        } else if (&type == &w.std.op.Get) {
+            activateOpGet();
+        } else if (&type == &w.std.op.GreaterThan) {
+            activateOpGreaterThan();
+        } else if (&type == &w.std.op.GreaterThanOrEqual) {
+            activateOpGreaterThanOrEqual();
+        } else if (&type == &w.std.op.Has) {
+            activateOpHas();
+        } else if (&type == &w.std.op.If) {
+            activateOpIf();
+        } else if (&type == &w.std.op.LessThan) {
+            activateOpLessThan();
+        } else if (&type == &w.std.op.LessThanOrEqual) {
+            activateOpLessThanOrEqual();
+        } else if (&type == &w.std.op.Missing) {
+            activateOpMissing();
+        } else if (&type == &w.std.op.Multiply) {
+            activateOpMultiply();
+        } else if (&type == &w.std.op.New) {
+            activateOpNew();
+        } else if (&type == &w.std.op.Not) {
+            activateOpNot();
+        } else if (&type == &w.std.op.NotEqual) {
+            activateOpNotEqual();
+        } else if (&type == &w.std.op.NotSame) {
+            activateOpNotSame();
+        } else if (&type == &w.std.op.Or) {
+            activateOpOr();
+        } else if (&type == &w.std.op.Return) {
+            activateOpReturn();
+        } else if (&type == &w.std.op.Same) {
+            activateOpSame();
+        } else if (&type == &w.std.op.Set) {
+            activateOpSet();
+        } else if (&type == &w.std.op.Subtract) {
+            activateOpSubtract();
+        } else if (&type == &w.std.op.While) {
+            activateOpWhile();
         } else {
-            self.set(w.id.value, *new Object(w, objectType));
+            // assuming it is a datacell, so do nothing
+            std::swap(m_currentCell, m_previousCell);
         }
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
+
+        w.ap.m_currentCell  = m_currentCell;
+        w.ap.m_previousCell = m_previousCell;
+        ++tick;
+    } while (m_currentCell != &w.id.emptyObject);
+    w.ap.m_time.value(w.ap.m_time.value() + tick);
+}
+
+void OpActivator::printIndent()
+{
+    static const int s_tabSize = 2;
+    for (int i = 0; i < m_indent; ++i) {
+        for (int j = 0; j < s_tabSize; ++j) {
+            std::cout << " ";
+        }
     }
 }
 
-static void evalOpDelete(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::resetIndent()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& input = self[w.id.input];
-        previousCell = currentCell;
-        currentCell  = &input;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        CellI& input = self[w.id.input];
-        CellI* cell  = &input[w.id.value];
-
-        delete cell;
-        input.erase(w.id.value);
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-    }
+    m_indent = 0;
 }
 
-// code running
-static void evalOpActivate(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activateOpActivate()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputCell = self[w.id.cell];
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Activate.State;
 
-        previousCell = currentCell;
-        currentCell  = &inputCell;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        previousCell     = currentCell;
-        CellI& inputCell = self[w.id.cell];
-        CellI* status    = &w.id.process;
+    if (m_currentState == &state.start) {
+        self.set(id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.input];
+        self.set(id.state, state.activateInput);
+    } else if (m_currentState == &state.activateInput) {
+        m_previousCell   = m_currentCell;
+        CellI& inputCell = self[id.input];
+        CellI* status    = &id.process;
 
-        if (self.has(w.id.parent)) {
-            CellI& parent = self[w.id.parent];
-            if (&inputCell.__type__() == &w.std.op.Return || (inputCell.has(w.id.status) && (&inputCell[w.id.status] == &w.id.return_))) {
-                parent.set(w.id.status, w.id.return_);
-                status = &w.id.return_;
-            } else if (&parent[w.id.status] == &w.id.continue_ || &parent[w.id.status] == &w.id.break_) {
-                status = &parent[w.id.status];
-            } else if (self.has(w.id.status)) {
-                if (&self[w.id.status] == &w.id.return_ || &self[w.id.status] == &w.id.continue_ || &self[w.id.status] == &w.id.break_) {
-                    parent.set(w.id.status, self[w.id.status]);
-                    status = &self[w.id.status];
+        if (self.has(id.parent)) {
+            CellI& parent = self[id.parent];
+            if (&inputCell.__type__() == &std.op.Return || (inputCell.has(id.status) && (&inputCell[id.status] == &id.return_))) {
+                parent.set(id.status, id.return_);
+                status = &id.return_;
+            } else if (&parent[id.status] == &id.continue_ || &parent[id.status] == &id.break_) {
+                status = &parent[id.status];
+            } else if (self.has(id.status)) {
+                if (&self[id.status] == &id.return_ || &self[id.status] == &id.continue_ || &self[id.status] == &id.break_) {
+                    parent.set(id.status, self[id.status]);
+                    status = &self[id.status];
                 }
             }
         }
-        if (status == &w.id.process && self.has(w.id.next)) {
-            CellI& nextCell = self[w.id.next];
-            currentCell     = &nextCell;
+        if (status == &id.process && self.has(id.next)) {
+            m_currentCell = &self[id.next];
         } else {
-            if (self.has(w.id.parent)) {
-                currentCell = &self[w.id.parent];
+            if (self.has(id.parent)) {
+                m_currentCell = &self[id.parent];
             } else {
-                currentCell = &self[w.id.previous];
+                m_currentCell = &self[id.previous];
             }
         }
-        self.set(w.id.state, w.id.stateParamInit);
+        self.set(id.state, state.start);
     }
 }
 
-static void saveOpState(List& opStates, CellI& op)
+void OpActivator::activateOpAdd()
 {
-    World& w = op.w;
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Add.State;
 
-    if (&op == &w.id.emptyObject) {
-        return;
-    }
-    CellI& type      = op.__type__();
-    Object& opState  = *new Object(w, w.std.OpState);
+    if (m_currentState == &state.start) {
+        self.set(id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.lhs];
+        self.set(id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.rhs];
+        self.set(id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        int lhs = static_cast<Number&>(self[id.lhs][id.value]).value();
+        int rhs = static_cast<Number&>(self[id.rhs][id.value]).value();
 
-    opState.set(w.id.op, op);
-    opState.set(w.id.state, w.id.state);
-    opState.set(w.id.value, op[w.id.state]);
-    opStates.add(opState);
-    if (op.has(w.id.status)) {
-        Object& opState = *new Object(w, w.std.OpState);
-        opState.set(w.id.op, op);
-        opState.set(w.id.state, w.id.status);
-        opState.set(w.id.value, op[w.id.status]);
-        opStates.add(opState);
+        self.set(id.value, w.pools.numbers.get(lhs + rhs));
+        self.set(id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.previous];
     }
-    if (op.has(w.id.previous)) {
-        Object& opState = *new Object(w, w.std.OpState);
-        opState.set(w.id.op, op);
-        opState.set(w.id.state, w.id.previous);
-        opState.set(w.id.value, op[w.id.previous]);
-        opStates.add(opState);
-    }
-    if (&type == &w.std.op.Call) {
-        if (op[w.id.self].has(w.id.value)) {
-            Object& opState = *new Object(w, w.std.OpState);
-            opState.set(w.id.op, op);
-            opState.set(w.id.state, w.id.self);
-            opState.set(w.id.value, op[w.id.self][w.id.value]);
-            opStates.add(opState);
-        }
-        if (op[w.id.method].has(w.id.value)) {
-            Object& opState = *new Object(w, w.std.OpState);
-            opState.set(w.id.op, op);
-            opState.set(w.id.state, w.id.method);
-            opState.set(w.id.value, op[w.id.method][w.id.value]);
-            opStates.add(opState);
-        }
-#if 0
-        if (op[w.id.stack].has(w.id.value)) {
-            Object& opState = *new Object(w, w.std.OpState);
-            opState.set(w.id.op, op);
-            opState.set(w.id.state, w.id.stack);
-            opState.set(w.id.value, op[w.id.stack][w.id.value]);
-            opStates.add(opState);
-            std::cout << "SAVE " << op[w.id.stack][w.id.value].label() << std::endl;
-        }
-#endif
-    }
-    if (&type == &w.std.op.Set || &type == &w.std.op.Get) {
-        if (op[w.id.cell].has(w.id.value)) {
-            Object& opState = *new Object(w, w.std.OpState);
-            opState.set(w.id.op, op);
-            opState.set(w.id.state, w.id.cell);
-            opState.set(w.id.value, op[w.id.cell][w.id.value]);
-            opStates.add(opState);
-        }
-        if (op[w.id.key].has(w.id.value)) {
-            Object& opState = *new Object(w, w.std.OpState);
-            opState.set(w.id.op, op);
-            opState.set(w.id.state, w.id.key);
-            opState.set(w.id.value, op[w.id.key][w.id.value]);
-            opStates.add(opState);
-        }
-    }
-
-    if (&type == &w.std.op.Same ||
-        &type == &w.std.op.NotSame ||
-        &type == &w.std.op.Equal ||
-        &type == &w.std.op.NotEqual ||
-        &type == &w.std.op.LessThan ||
-        &type == &w.std.op.LessThanOrEqual ||
-        &type == &w.std.op.GreaterThan ||
-        &type == &w.std.op.GreaterThanOrEqual ||
-        &type == &w.std.op.And ||
-        &type == &w.std.op.Or ||
-        &type == &w.std.op.Add ||
-        &type == &w.std.op.Subtract ||
-        &type == &w.std.op.Multiply ||
-        &type == &w.std.op.Divide) {
-        Object& opState = *new Object(w, w.std.OpState);
-        opState.set(w.id.op, op);
-        opState.set(w.id.state, w.id.lhs);
-        opState.set(w.id.value, op[w.id.lhs][w.id.value]);
-        opStates.add(opState);
-    }
-    op.set(w.id.state, w.id.stateParamInit);
 }
 
-static void loadOpState(CellI& opState)
+void OpActivator::activateOpAnd()
 {
-    World& w = opState.w;
-    CellI& op        = opState[w.id.op];
-    CellI& type      = op.__type__();
-    CellI& state     = opState[w.id.state];
-    CellI& value     = opState[w.id.value];
+    CellI& self = *m_currentCell;
+    auto& state = std.op.And.State;
 
-    if ((&type == &w.std.op.Set || &type == &w.std.op.Get) && ((&state == &w.id.cell) || (&state == &w.id.key))) {
-        op[state].set(w.id.value, value);
-    } else if ((&type == &w.std.op.Call) && ((&state == &w.id.self) || (&state == &w.id.method) || (&state == &w.id.stack))) {
-        op[state].set(w.id.value, value);
-    } else if ((&type == &w.std.op.Same ||
-        &type == &w.std.op.NotSame ||
-        &type == &w.std.op.Equal ||
-        &type == &w.std.op.NotEqual ||
-        &type == &w.std.op.LessThan ||
-        &type == &w.std.op.LessThanOrEqual ||
-        &type == &w.std.op.GreaterThan ||
-        &type == &w.std.op.GreaterThanOrEqual ||
-        &type == &w.std.op.And ||
-        &type == &w.std.op.Or ||
-        &type == &w.std.op.Add ||
-        &type == &w.std.op.Subtract ||
-        &type == &w.std.op.Multiply ||
-        &type == &w.std.op.Divide) && (&state == &w.id.lhs)) {
-        op[state].set(w.id.value, value);
-    } else {
-        op.set(state, value);
-    }
-//    std::cout << "         set (" << &op << ")" << op.__type__().label() << "[" << state.label() << ":" << value.label() << "]" << std::endl;
-}
-
-static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-//    std::cout << "evalOpCall self: " << &self << ", state: " << self[w.id.state].label() << std::endl;
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.erase(w.id.value);
-        self.set(w.id.previous, *previousCell);
-        CellI& inputSelf = self[w.id.self];
-        previousCell     = currentCell;
-        currentCell      = &inputSelf;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        CellI& inputMethod = self[w.id.method];
-        previousCell       = currentCell;
-        currentCell        = &inputMethod;
-        if (self.has(w.id.parameters)) {
-            self.set(w.id.state, w.id.stateParamEval);
+    if (m_currentState == &state.start) {
+        self.set(id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.lhs];
+        self.set(id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        bool lhs = &self[id.lhs][id.value] == &w.true_;
+        // shortcut, if the left hand side already false we don't evaluate the right hand side
+        if (lhs == false) {
+            self.set(id.value, w.false_);
+            self.set(id.state, state.start);
+            m_previousCell = m_currentCell;
+            m_currentCell  = &self[id.previous];
         } else {
-            self.set(w.id.state, w.id.stateParam2);
+            m_previousCell = m_currentCell;
+            m_currentCell  = &self[id.rhs];
+            self.set(id.state, state.activateRhs);
         }
-    } else if (&state == &w.id.stateParamEval) {
+    } else if (m_currentState == &state.activateRhs) {
+        bool lhs = &self[id.lhs][id.value] == &w.true_;
+        bool rhs = &self[id.rhs][id.value] == &w.true_;
+
+        self.set(id.value, w.toCellBool(lhs && rhs));
+        self.set(id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.previous];
+    }
+}
+
+void OpActivator::activateOpBlock()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Block.State;
+
+    if (m_currentState == &state.start) {
+        self.set(id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.input];
+        self.set(id.status, id.process);
+        self.set(id.state, state.activateInput);
+    } else if (m_currentState == &state.activateInput) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.previous];
+        self.set(id.state, state.start);
+    }
+}
+
+void OpActivator::activateOpCall()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Call.State;
+
+    //    std::cout << "evalOpCall self: " << &self << ", state: " << self[w.id.state].label() << std::endl;
+    if (m_currentState == &state.start) {
+        self.erase(w.id.value);
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.method];
+        self.set(w.id.state, state.activateParameterSelf);
+    } else if (m_currentState == &state.activateParameterSelf) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.self];
+        if (self.has(w.id.parameters)) {
+            self.set(w.id.state, state.activateParameters);
+        } else {
+            self.set(w.id.state, state.stackPushAndCall);
+        }
+    } else if (m_currentState == &state.activateParameters) {
         CellI* paramNodePtr = nullptr;
         if (self.missing(w.id.currentParam)) {
             CellI& paramList = self[w.id.parameters][w.id.list];
@@ -765,12 +642,12 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         if (paramNodePtr) {
             CellI& param = (*paramNodePtr)[w.id.value][w.id.value];
             self.set(w.id.currentParam, *paramNodePtr);
-            previousCell = currentCell;
-            currentCell  = &param;
+            m_previousCell = m_currentCell;
+            m_currentCell  = &param;
         } else {
-            self.set(w.id.state, w.id.stateParam2);
+            self.set(w.id.state, state.stackPushAndCall);
         }
-    } else if (&state == &w.id.stateParam2) {
+    } else if (m_currentState == &state.stackPushAndCall) {
         CellI& inputSelf  = self[w.id.self][w.id.value];
         CellI& methodName = self[w.id.method][w.id.value];
         CellI& stack      = self[w.id.stack][w.id.stack];
@@ -794,7 +671,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& inputIndex = *new Object(w, w.std.Index);
         inputIndex.set(w.id.self, inputSelf);
         if (self.has(w.id.parameters)) {
-            for (CellI& parameter : self[w.id.parameters][w.id.list]) {
+            for (CellI& parameter : self[w.id.parameters]) {
                 inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
                 // static_cast<Object&>(self).printIndent();
                 // std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.value][w.id.value].label() << std::endl;
@@ -803,7 +680,7 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         stackFrame.set(w.id.input, inputIndex);
 
         if (method.has(w.id.localVars)) {
-            CellI& localVarsList  = method[w.id.localVars].slotList();
+            CellI& localVarsList = method[w.id.localVars].slotList();
             auto& localVarsIndex = *new Object(w, method[w.id.localVars].__type__(), "StackLocalVarsIndex");
             for (CellI& slot : localVarsList) {
                 localVarsIndex.set(slot[w.id.key], *new Object(w, w.std.op.Var));
@@ -817,32 +694,32 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         stack.set(w.id.next, newStackListNode);
 
         CellI& previousMethod = stack[w.id.value][w.id.method];
-//        std::cout << "previous method " << previousMethod.label() << std::endl;
-//        std::cout << "next     method " << method.label() << std::endl;
+        //        std::cout << "previous method " << previousMethod.label() << std::endl;
+        //        std::cout << "next     method " << method.label() << std::endl;
 
-//        std::cout << "erase" << std::endl;
+        //        std::cout << "erase" << std::endl;
         method.erase(w.id.value);
         method.set(w.id.stack, newStackListNode);
-        self.set(w.id.state, w.id.stateStackCall);
+        self.set(w.id.state, state.stackPop);
         previousMethod.set(w.id.lastOp, self);
 
-        if (method.has(w.id.state) && (&method[w.id.state] != &w.id.stateParamInit)) {
-//            std::cout << "recursive call for " << method.__type__().label() << std::endl;
+        if (method.has(w.id.state) && (&method[w.id.state] != &state.start)) {
+            //            std::cout << "recursive call for " << method.__type__().label() << std::endl;
             List& cellPath = *new List(w, w.std.op.Base);
             CellI& lastOp  = method[w.id.lastOp];
             for (CellI* currentOp = &lastOp; currentOp != &method; currentOp = (*currentOp).has(w.id.parent) ? &(*currentOp)[w.id.parent] : &(*currentOp)[w.id.previous]) {
                 CellI& op = *currentOp;
-//                std::cout << "         [" << op.__type__().label() << ":" << op[w.id.state].label() << "]" << std::endl;
+                //                std::cout << "         [" << op.__type__().label() << ":" << op[w.id.state].label() << "]" << std::endl;
                 saveOpState(cellPath, op);
             }
             saveOpState(cellPath, method);
-            method.set(w.id.state, w.id.stateParamInit);
+            method.set(w.id.state, state.start);
             stackFrame.set(w.id.ops, cellPath);
-//            std::cout << std::endl;
+            //            std::cout << std::endl;
         }
-        previousCell = currentCell;
-        currentCell  = &method;
-    } else if (&state == &w.id.stateStackCall) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &method;
+    } else if (m_currentState == &state.stackPop) {
         CellI& inputSelf  = self[w.id.self][w.id.value];
         CellI& methodName = self[w.id.method][w.id.value];
 
@@ -861,41 +738,180 @@ static void evalOpCall(CellI& self, CellI*& currentCell, CellI*& previousCell)
         CellI& method = (*methodPtr);
         if (method.has(w.id.value)) {
             self.set(w.id.value, method[w.id.value]);
-//            static_cast<Object&>(self).printIndent();
-//            std::cout << "return " << method[w.id.value].label() << std::endl;
+            //            static_cast<Object&>(self).printIndent();
+            //            std::cout << "return " << method[w.id.value].label() << std::endl;
         }
 
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-        self.set(w.id.state, w.id.stateParamInit);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+        self.set(w.id.state, state.start);
     }
 }
 
-static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activateOpDelete()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Delete.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.input];
+        self.set(w.id.state, state.activateInput);
+    } else if (m_currentState == &state.activateInput) {
+        CellI& input = self[w.id.input];
+        CellI* cell  = &input[w.id.value];
+
+        delete cell;
+        input.erase(w.id.value);
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
     }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
+}
+
+void OpActivator::activateOpDivide()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Divide.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
+        int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
+
+        self.set(w.id.value, w.pools.numbers.get(lhs / rhs));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpDo()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Do.State;
+
+    if (m_currentState == &state.start) {
+        self.set(id.previous, *m_previousCell);
+        self.set(id.status, id.process);
+        m_previousCell   = m_currentCell;
+        m_currentCell    = &self[id.statement];
+        self.set(id.state, state.activateStatement);
+    } else if (m_currentState == &state.activateStatement) {
+        CellI& statement = self[id.statement];
+        if (&statement.__type__() == &std.op.Return) {
+            self.set(id.status, id.return_);
+        } else if (statement.has(id.status)) {
+            self.set(id.status, statement[id.status]);
+        }
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[id.condition];
+        self.set(id.state, state.activateCondition);
+    } else if (m_currentState == &state.activateCondition) {
+        m_previousCell = m_currentCell;
+        if (self.has(id.status) && ((&self[id.status] == &id.return_) || (&self[id.status] == &id.break_))) {
+            m_currentCell = &self[id.previous];
+            self.set(id.state, state.start);
+        } else {
+            self.set(id.status, id.process);
+            bool condition = &self[id.condition][id.value] == &w.true_;
+            if (condition) {
+                m_currentCell = &self[id.statement];
+                self.set(id.state, state.activateStatement);
+            } else {
+                m_currentCell = &self[id.previous];
+                self.set(id.state, state.start);
+            }
+        }
+    }
+}
+
+void OpActivator::activateOpEqual()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Equal.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        CellI& lhs = self[w.id.lhs][w.id.value];
+        CellI& rhs = self[w.id.rhs][w.id.value];
+
+        self.set(w.id.value, w.toCellBool(lhs == rhs));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpErase()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Erase.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.cell];
+        self.set(w.id.state, state.activateCell);
+    } else if (m_currentState == &state.activateCell) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.key];
+        self.set(w.id.state, state.activateKey);
+    } else if (m_currentState == &state.activateKey) {
+        CellI& cell = self[w.id.cell][w.id.value];
+        CellI& key  = self[w.id.key][w.id.value];
+
+        cell.erase(key);
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpFunction()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Function.State;
+    if (m_currentState == &state.start) {
+        if (m_debugFunctionCalls) {
+            printIndent();
+            m_indent++;
+            std::cout << self.label() << std::endl;
+        }
+        self.set(w.id.previous, *m_previousCell);
         CellI& op = self[w.id.op];
-        if (op.has(w.id.state) && (&op[w.id.state] != &w.id.stateParamInit)) {
+        if (&op[w.id.state] != &state.start) {
             throw "Error: function contains non-clean op.";
         }
-        previousCell = currentCell;
-        currentCell  = &op;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
+        m_previousCell = m_currentCell;
+        m_currentCell  = &op;
+        self.set(w.id.state, state.activateOp);
+    } else if (m_currentState == &state.activateOp) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
 
-        CellI& stackNode = self[w.id.stack];
+        CellI& stackNode  = self[w.id.stack];
         CellI& stackFrame = stackNode[w.id.value];
-        static_cast<Object&>(self).printIndent();
-//        std::cout << "return " << std::endl;
-//        std::cout << "return " << self.label() << std::endl;
+        // printIndent();
+        //        std::cout << "return " << std::endl;
+        //        std::cout << "return " << self.label() << std::endl;
         if (stackFrame.has(w.id.ops)) {
             for (CellI& opState : stackFrame[w.id.ops]) {
                 loadOpState(opState);
@@ -905,9 +921,8 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
             delete &stackFrame[w.id.ops];
             stackFrame.erase(w.id.ops);
         } else {
-            self.set(w.id.state, w.id.stateParamInit);
+            self.set(w.id.state, state.start);
         }
-        //
         if (self[w.id.stack][w.id.previous].has(w.id.value)) {
             CellI& inputIndex         = stackFrame[w.id.input];
             CellI& previousStackNode  = self[w.id.stack][w.id.previous];
@@ -926,733 +941,658 @@ static void evalOpFunction(CellI& self, CellI*& currentCell, CellI*& previousCel
             }
             delete &stackFrame;
             delete &stackNode;
-            if (currentCell == &w.id.emptyObject) {
+            if (m_currentCell == &w.id.emptyObject) {
                 std::cout << "";
             }
         } else {
-            self.set(w.id.state, w.id.stateParamInit);
-            currentCell = &w.id.emptyObject;
+            self.set(w.id.state, state.start);
+            m_currentCell = &w.id.emptyObject;
+        }
+        if (m_debugFunctionCalls) {
+            m_indent--;
         }
     }
 }
 
-static void evalOpIf(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activateOpGet()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputCondition = self[w.id.condition];
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Get.State;
 
-        previousCell = currentCell;
-        currentCell  = &inputCondition;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.cell];
+        self.set(w.id.state, state.activateCell);
+    } else if (m_currentState == &state.activateCell) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.key];
+        self.set(w.id.state, state.activateKey);
+    } else if (m_currentState == &state.activateKey) {
+        CellI& cell = self[w.id.cell][w.id.value];
+        CellI& key  = self[w.id.key][w.id.value];
+
+        self.set(w.id.value, cell[key]);
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpGreaterThan()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.GreaterThan.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
+        int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
+
+        self.set(w.id.value, lhs > rhs ? w.true_ : w.false_);
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpGreaterThanOrEqual()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.GreaterThanOrEqual.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
+        int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
+
+        self.set(w.id.value, lhs >= rhs ? w.true_ : w.false_);
+        //        std::cout << "      " << lhs << " >= " << rhs << std::endl;
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpHas()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Has.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.cell];
+        self.set(w.id.state, state.activateCell);
+    } else if (m_currentState == &state.activateCell) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.key];
+        self.set(w.id.state, state.activateKey);
+    } else if (m_currentState == &state.activateKey) {
+        CellI& cell = self[w.id.cell][w.id.value];
+        CellI& key  = self[w.id.key][w.id.value];
+
+        self.set(w.id.value, w.toCellBool(cell.has(key)));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpIf()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.If.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.condition];
+        self.set(w.id.state, state.activateCondition);
+    } else if (m_currentState == &state.activateCondition) {
         self.set(w.id.status, w.id.process);
         CellI* branchPtr = nullptr;
         bool condition   = &self[w.id.condition][w.id.value] == &w.true_;
         if (condition) {
             branchPtr = &self[w.id.then];
-            self.set(w.id.state, w.id.stateThen);
+            self.set(w.id.state, state.activateThen);
         } else if (self.has(w.id.else_)) {
             branchPtr = &self[w.id.else_];
-            self.set(w.id.state, w.id.stateElse);
+            self.set(w.id.state, state.activateElse);
         }
-        previousCell = currentCell;
+
+        m_previousCell = m_currentCell;
         if (branchPtr) {
-            currentCell = branchPtr;
+            m_currentCell = branchPtr;
         } else {
-            currentCell = &self[w.id.previous];
-            self.set(w.id.state, w.id.stateParamInit);
+            m_currentCell = &self[w.id.previous];
+            self.set(w.id.state, state.start);
         }
-    }
- else if (&state == &w.id.stateThen || &state == &w.id.stateElse) {
-     CellI& branch = &state == &w.id.stateThen ? self[w.id.then] : self[w.id.else_];
-     if (&branch.__type__() == &w.std.op.Return) {
-         self.set(w.id.status, w.id.return_);
-     }
-     else if (branch.has(w.id.status)) {
-         self.set(w.id.status, branch[w.id.status]);
-     }
-
-     previousCell = currentCell;
-     currentCell = &self[w.id.previous];
-     self.set(w.id.state, w.id.stateParamInit);
-    }
-}
-
-static void evalOpDo(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        self.set(w.id.status, w.id.process);
-        CellI& statement = self[w.id.statement];
-        previousCell = currentCell;
-        currentCell = &statement;
-        self.set(w.id.state, w.id.stateStatement);
-    } else if (&state == &w.id.stateStatement) {
-        CellI& statement = self[w.id.statement];
-        if (&statement.__type__() == &w.std.op.Return) {
+    } else if (m_currentState == &state.activateThen || m_currentState == &state.activateElse) {
+        CellI& branch = m_currentState == &state.activateThen ? self[w.id.then] : self[w.id.else_];
+        if (&branch.__type__() == &w.std.op.Return) {
             self.set(w.id.status, w.id.return_);
+        } else if (branch.has(w.id.status)) {
+            self.set(w.id.status, branch[w.id.status]);
         }
-        else if (statement.has(w.id.status)) {
-            self.set(w.id.status, statement[w.id.status]);
-        }
-        CellI& inputCondition = self[w.id.condition];
-        previousCell = currentCell;
-        currentCell = &inputCondition;
-        self.set(w.id.state, w.id.stateCondition);
-    } else if (&state == &w.id.stateCondition) {
-        previousCell = currentCell;
-        if (self.has(w.id.status) && ((&self[w.id.status] == &w.id.return_) || (&self[w.id.status] == &w.id.break_))) {
-            currentCell = &self[w.id.previous];
-            self.set(w.id.state, w.id.stateParamInit);
-        } else {
-            self.set(w.id.status, w.id.process);
-            bool condition = &self[w.id.condition][w.id.value] == &w.true_;
-            if (condition) {
-                currentCell = &self[w.id.statement];
-                self.set(w.id.state, w.id.stateStatement);
-            } else {
-                currentCell = &self[w.id.previous];
-                self.set(w.id.state, w.id.stateParamInit);
-            }
-        }
+
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+        self.set(w.id.state, state.start);
     }
 }
 
-static void evalOpWhile(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activateOpLessThan()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        self.set(w.id.status, w.id.process);
-        CellI& inputCondition = self[w.id.condition];
-        previousCell = currentCell;
-        currentCell = &inputCondition;
-        self.set(w.id.state, w.id.stateCondition);
-    } else if (&state == &w.id.stateStatement) {
-        CellI& statement = self[w.id.statement];
-        if (&statement.__type__() == &w.std.op.Return) {
-            self.set(w.id.status, w.id.return_);
-        }
-        else if (statement.has(w.id.status)) {
-            self.set(w.id.status, statement[w.id.status]);
-        }
-        CellI& inputCondition = self[w.id.condition];
-        previousCell = currentCell;
-        currentCell = &inputCondition;
-        self.set(w.id.state, w.id.stateCondition);
-    } else if (&state == &w.id.stateCondition) {
-        previousCell = currentCell;
-        if (self.has(w.id.status) && ((&self[w.id.status] == &w.id.return_) || (&self[w.id.status] == &w.id.break_))) {
-            currentCell = &self[w.id.previous];
-            self.set(w.id.state, w.id.stateParamInit);
-        } else {
-            self.set(w.id.status, w.id.process);
-            bool condition = &self[w.id.condition][w.id.value] == &w.true_;
-            if (condition) {
-                currentCell = &self[w.id.statement];
-                self.set(w.id.state, w.id.stateStatement);
-            } else {
-                currentCell = &self[w.id.previous];
-                self.set(w.id.state, w.id.stateParamInit);
-            }
-        }
-    }
-}
+    CellI& self = *m_currentCell;
+    auto& state = std.op.LessThan.State;
 
-static void evalOpBlock(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& ops   = self[w.id.ops];
-        previousCell = currentCell;
-        currentCell  = &ops;
-        self.set(w.id.status, w.id.process);
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-}
-
-static void evalOpReturn(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (self.has(w.id.result)) {
-        if (&state == &w.id.stateParamInit) {
-            self.set(w.id.previous, *previousCell);
-            CellI& result = self[w.id.result];
-            previousCell  = currentCell;
-            currentCell   = &result;
-            self.set(w.id.state, w.id.stateParam1);
-        } else if (&state == &w.id.stateParam1) {
-            previousCell = currentCell;
-            currentCell  = &self[w.id.previous];
-            self.set(w.id.state, w.id.stateParamInit);
-        }
-    } else {
-        std::swap(currentCell, previousCell);
-    }
-}
-
-// compare
-static void evalOpSame(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs  = self[w.id.lhs];
-        previousCell     = currentCell;
-        currentCell      = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs  = self[w.id.rhs];
-        previousCell     = currentCell;
-        currentCell      = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        CellI* lhs = &self[w.id.lhs][w.id.value];
-        CellI* rhs = &self[w.id.rhs][w.id.value];
-
-        self.set(w.id.value, w.toCellBool(lhs == rhs));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-    }
-}
-
-static void evalOpNotSame(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self[w.id.lhs];
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self[w.id.rhs];
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        CellI* lhs = &self[w.id.lhs][w.id.value];
-        CellI* rhs = &self[w.id.rhs][w.id.value];
-
-        self.set(w.id.value, w.toCellBool(lhs != rhs));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self[w.id.previous];
-    }
-}
-
-static void evalOpEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        CellI& lhs = self[w.id.lhs][w.id.value];
-        CellI& rhs = self[w.id.rhs][w.id.value];
-
-        self.set(w.id.value, w.toCellBool(lhs == rhs));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
-    }
-}
-
-static void evalOpNotEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        CellI& lhs = self[w.id.lhs][w.id.value];
-        CellI& rhs = self[w.id.rhs][w.id.value];
-
-        self.set(w.id.value, w.toCellBool(lhs != rhs));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
-    }
-}
-
-static void evalOpLessThan(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
         int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
         self.set(w.id.value, lhs < rhs ? w.true_ : w.false_);
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
     }
 }
 
-static void evalOpLessThanOrEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activateOpLessThanOrEqual()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
+    CellI& self = *m_currentCell;
+    auto& state = std.op.LessThanOrEqual.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
         int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
         self.set(w.id.value, lhs <= rhs ? w.true_ : w.false_);
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
     }
 }
 
-static void evalOpGreaterThan(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activateOpMissing()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
-        int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Missing.State;
 
-        self.set(w.id.value, lhs > rhs ? w.true_ : w.false_);
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.cell];
+        self.set(w.id.state, state.activateCell);
+    } else if (m_currentState == &state.activateCell) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.key];
+        self.set(w.id.state, state.activateKey);
+    } else if (m_currentState == &state.activateKey) {
+        CellI& cell = self[w.id.cell][w.id.value];
+        CellI& key  = self[w.id.key][w.id.value];
+
+        self.set(w.id.value, w.toCellBool(cell.missing(key)));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
     }
 }
 
-static void evalOpGreaterThanOrEqual(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activateOpMultiply()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
-        int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Multiply.State;
 
-        self.set(w.id.value, lhs >= rhs ? w.true_ : w.false_);
-//        std::cout << "      " << lhs << " >= " << rhs << std::endl;
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
-    }
-}
-// logic
-static void evalOpAnd(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        bool lhs = &self[w.id.lhs][w.id.value] == &w.true_;
-        // shortcut, if the left hand side already false we don't evaluate the right hand side
-        if (lhs == false) {
-            self.set(w.id.value, w.false_);
-            self.set(w.id.state, w.id.stateParamInit);
-            previousCell = currentCell;
-            currentCell  = &self.get(w.id.previous);
-        } else {
-            CellI& inputRhs = self.get(w.id.rhs);
-            previousCell    = currentCell;
-            currentCell     = &inputRhs;
-            self.set(w.id.state, w.id.stateRhs);
-        }
-    } else if (&state == &w.id.stateRhs) {
-        bool lhs = &self[w.id.lhs][w.id.value] == &w.true_;
-        bool rhs = &self[w.id.rhs][w.id.value] == &w.true_;
-
-        self.set(w.id.value, w.toCellBool(lhs && rhs));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
-    }
-}
-
-static void evalOpOr(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        bool lhs = &self[w.id.lhs][w.id.value] == &w.true_;
-        bool rhs = &self[w.id.rhs][w.id.value] == &w.true_;
-
-        self.set(w.id.value, w.toCellBool(lhs || rhs));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
-    }
-}
-
-static void evalOpNot(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self[w.id.state];
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& input = self[w.id.input];
-        previousCell = currentCell;
-        currentCell  = &input;
-        self.set(w.id.state, w.id.stateParam1);
-    } else if (&state == &w.id.stateParam1) {
-        bool res = &self[w.id.input][w.id.value] == &w.true_;
-
-        self.set(w.id.value, w.toCellBool(!res));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
-    }
-}
-
-// math
-static void evalOpAdd(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
-        int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
-
-        self.set(w.id.value, w.pools.numbers.get(lhs + rhs));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
-    }
-}
-
-static void evalOpSubtract(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
-        int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
-        int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
-
-        self.set(w.id.value, w.pools.numbers.get(lhs - rhs));
-//        std::cout << "      " << lhs << " - " << rhs << std::endl;
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
-    }
-}
-
-static void evalOpMultiply(CellI& self, CellI*& currentCell, CellI*& previousCell)
-{
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
-    }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
         int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
         self.set(w.id.value, w.pools.numbers.get(lhs * rhs));
-//        std::cout << "      " << lhs << " * " << rhs << std::endl;
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
+        //        std::cout << "      " << lhs << " * " << rhs << std::endl;
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
     }
 }
 
-static void evalOpDivide(CellI& self, CellI*& currentCell, CellI*& previousCell)
+void OpActivator::activateOpNew()
 {
-    World& w = self.w;
-    if (self.missing(w.id.state)) {
-        self.set(w.id.state, w.id.stateParamInit);
+    CellI& self = *m_currentCell;
+    auto& state = std.op.New.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.objectType];
+        self.set(w.id.state, state.activateObjectType);
+    } else if (m_currentState == &state.activateObjectType) {
+        CellI& objectType = self[w.id.objectType][w.id.value];
+
+        if (&objectType == &w.std.Number) {
+            self.set(w.id.value, *new Number(w));
+        } else if (&objectType == &w.std.String) {
+            self.set(w.id.value, *new String(w));
+        } else {
+            self.set(w.id.value, *new Object(w, objectType));
+        }
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
     }
-    CellI& state = self.get(w.id.state);
-    if (&state == &w.id.stateParamInit) {
-        self.set(w.id.previous, *previousCell);
-        CellI& inputLhs = self.get(w.id.lhs);
-        previousCell    = currentCell;
-        currentCell     = &inputLhs;
-        self.set(w.id.state, w.id.stateLhs);
-    } else if (&state == &w.id.stateLhs) {
-        CellI& inputRhs = self.get(w.id.rhs);
-        previousCell    = currentCell;
-        currentCell     = &inputRhs;
-        self.set(w.id.state, w.id.stateRhs);
-    } else if (&state == &w.id.stateRhs) {
+}
+
+void OpActivator::activateOpNot()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Not.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.input];
+        self.set(w.id.state, state.activateInput);
+    } else if (m_currentState == &state.activateInput) {
+        bool res = &self[w.id.input][w.id.value] == &w.true_;
+
+        self.set(w.id.value, w.toCellBool(!res));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpNotEqual()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.NotEqual.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        CellI& lhs = self[w.id.lhs][w.id.value];
+        CellI& rhs = self[w.id.rhs][w.id.value];
+
+        self.set(w.id.value, w.toCellBool(lhs != rhs));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpNotSame()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.NotSame.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        CellI* lhs = &self[w.id.lhs][w.id.value];
+        CellI* rhs = &self[w.id.rhs][w.id.value];
+
+        self.set(w.id.value, w.toCellBool(lhs != rhs));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpOr()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Or.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        bool lhs = &self[w.id.lhs][w.id.value] == &w.true_;
+        bool rhs = &self[w.id.rhs][w.id.value] == &w.true_;
+
+        self.set(w.id.value, w.toCellBool(lhs || rhs));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpReturn()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Return.State;
+
+    if (self.has(w.id.result)) {
+        if (m_currentState == &state.start) {
+            self.set(w.id.previous, *m_previousCell);
+            m_previousCell = m_currentCell;
+            m_currentCell  = &self[w.id.result];
+            self.set(w.id.state, state.activateResult);
+        } else if (m_currentState == &state.activateResult) {
+            m_previousCell = m_currentCell;
+            m_currentCell  = &self[w.id.previous];
+            self.set(w.id.state, state.start);
+        }
+    } else {
+        std::swap(m_currentCell, m_previousCell);
+    }
+}
+
+void OpActivator::activateOpSame()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Same.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
+        CellI* lhs = &self[w.id.lhs][w.id.value];
+        CellI* rhs = &self[w.id.rhs][w.id.value];
+
+        self.set(w.id.value, w.toCellBool(lhs == rhs));
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpSet()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Set.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.cell];
+        self.set(w.id.state, state.activateCell);
+    } else if (m_currentState == &state.activateCell) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.key];
+        self.set(w.id.state, state.activateKey);
+    } else if (m_currentState == &state.activateKey) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.value];
+        self.set(w.id.state, state.activateValue);
+    } else if (m_currentState == &state.activateValue) {
+        CellI& cell  = self[w.id.cell][w.id.value];
+        CellI& key   = self[w.id.key][w.id.value];
+        CellI& value = self[w.id.value][w.id.value];
+
+        cell.set(key, value);
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
+    }
+}
+
+void OpActivator::activateOpSubtract()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.Subtract.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        m_previousCell    = m_currentCell;
+        m_currentCell     = &self[w.id.lhs];
+        self.set(w.id.state, state.activateLhs);
+    } else if (m_currentState == &state.activateLhs) {
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.rhs];
+        self.set(w.id.state, state.activateRhs);
+    } else if (m_currentState == &state.activateRhs) {
         int lhs = static_cast<Number&>(self[w.id.lhs][w.id.value]).value();
         int rhs = static_cast<Number&>(self[w.id.rhs][w.id.value]).value();
 
-        self.set(w.id.value, w.pools.numbers.get(lhs / rhs));
-        self.set(w.id.state, w.id.stateParamInit);
-        previousCell = currentCell;
-        currentCell  = &self.get(w.id.previous);
+        self.set(w.id.value, w.pools.numbers.get(lhs - rhs));
+        //        std::cout << "      " << lhs << " - " << rhs << std::endl;
+        self.set(w.id.state, state.start);
+        m_previousCell = m_currentCell;
+        m_currentCell  = &self[w.id.previous];
     }
+}
+
+void OpActivator::activateOpWhile()
+{
+    CellI& self = *m_currentCell;
+    auto& state = std.op.While.State;
+
+    if (m_currentState == &state.start) {
+        self.set(w.id.previous, *m_previousCell);
+        self.set(w.id.status, w.id.process);
+        CellI& inputCondition = self[w.id.condition];
+        m_previousCell          = m_currentCell;
+        m_currentCell           = &inputCondition;
+        self.set(w.id.state, state.activateCondition);
+    } else if (m_currentState == &state.activateCondition) {
+        m_previousCell = m_currentCell;
+        if (self.has(w.id.status) && ((&self[w.id.status] == &w.id.return_) || (&self[w.id.status] == &w.id.break_))) {
+            m_currentCell = &self[w.id.previous];
+            self.set(w.id.state, state.start);
+        } else {
+            self.set(w.id.status, w.id.process);
+            bool condition = &self[w.id.condition][w.id.value] == &w.true_;
+            if (condition) {
+                m_currentCell = &self[w.id.statement];
+                self.set(w.id.state, state.activateStatement);
+            } else {
+                m_currentCell = &self[w.id.previous];
+                self.set(w.id.state, state.start);
+            }
+        }
+    } else if (m_currentState == &state.activateStatement) {
+        CellI& statement = self[w.id.statement];
+        if (&statement.__type__() == &w.std.op.Return) {
+            self.set(w.id.status, w.id.return_);
+        } else if (statement.has(w.id.status)) {
+            self.set(w.id.status, statement[w.id.status]);
+        }
+        CellI& inputCondition = self[w.id.condition];
+        m_previousCell        = m_currentCell;
+        m_currentCell         = &inputCondition;
+        self.set(w.id.state, state.activateCondition);
+    }
+}
+
+void OpActivator::saveOpState(List& opStates, CellI& op)
+{
+    if (&op == &id.emptyObject) {
+        return;
+    }
+    CellI& type     = op.__type__();
+    Object& opState = *new Object(w, std.op.SavedState);
+
+    opState.set(id.op, op);
+    opState.set(id.state, id.state);
+    opState.set(id.value, op[id.state]);
+    opStates.add(opState);
+    if (op.has(id.status)) {
+        Object& opState = *new Object(w, std.op.SavedState);
+        opState.set(id.op, op);
+        opState.set(id.state, id.status);
+        opState.set(id.value, op[id.status]);
+        opStates.add(opState);
+    }
+    if (op.has(id.previous)) {
+        Object& opState = *new Object(w, std.op.SavedState);
+        opState.set(id.op, op);
+        opState.set(id.state, id.previous);
+        opState.set(id.value, op[id.previous]);
+        opStates.add(opState);
+    }
+    if (&type == &std.op.Call) {
+        if (op[id.self].has(id.value)) {
+            Object& opState = *new Object(w, std.op.SavedState);
+            opState.set(id.op, op);
+            opState.set(id.state, id.self);
+            opState.set(id.value, op[id.self][id.value]);
+            opStates.add(opState);
+        }
+        if (op[id.method].has(id.value)) {
+            Object& opState = *new Object(w, std.op.SavedState);
+            opState.set(id.op, op);
+            opState.set(id.state, id.method);
+            opState.set(id.value, op[id.method][id.value]);
+            opStates.add(opState);
+        }
+#if 0
+        if (op[id.stack].has(id.value)) {
+            Object& opState = *new Object(w, std.OpState);
+            opState.set(id.op, op);
+            opState.set(id.state, id.stack);
+            opState.set(id.value, op[id.stack][id.value]);
+            opStates.add(opState);
+            std::cout << "SAVE " << op[id.stack][id.value].label() << std::endl;
+        }
+#endif
+    }
+    if (&type == &std.op.Set || &type == &std.op.Get) {
+        if (op[id.cell].has(id.value)) {
+            Object& opState = *new Object(w, std.op.SavedState);
+            opState.set(id.op, op);
+            opState.set(id.state, id.cell);
+            opState.set(id.value, op[id.cell][id.value]);
+            opStates.add(opState);
+        }
+        if (op[id.key].has(id.value)) {
+            Object& opState = *new Object(w, std.op.SavedState);
+            opState.set(id.op, op);
+            opState.set(id.state, id.key);
+            opState.set(id.value, op[id.key][id.value]);
+            opStates.add(opState);
+        }
+    }
+
+    if (&type == &std.op.Same ||
+        &type == &std.op.NotSame ||
+        &type == &std.op.Equal ||
+        &type == &std.op.NotEqual ||
+        &type == &std.op.LessThan ||
+        &type == &std.op.LessThanOrEqual ||
+        &type == &std.op.GreaterThan ||
+        &type == &std.op.GreaterThanOrEqual ||
+        &type == &std.op.And ||
+        &type == &std.op.Or ||
+        &type == &std.op.Add ||
+        &type == &std.op.Subtract ||
+        &type == &std.op.Multiply ||
+        &type == &std.op.Divide) {
+        Object& opState = *new Object(w, std.op.SavedState);
+        opState.set(id.op, op);
+        opState.set(id.state, id.lhs);
+        opState.set(id.value, op[id.lhs][id.value]);
+        opStates.add(opState);
+    }
+    op.set(id.state, w.std.op.State.start);
+}
+
+void OpActivator::loadOpState(CellI& opState)
+{
+    CellI& op    = opState[id.op];
+    CellI& state = opState[id.state];
+    CellI& value = opState[id.value];
+    CellI& type  = op.__type__();
+
+    if ((&type == &std.op.Set || &type == &std.op.Get) && ((&state == &id.cell) || (&state == &id.key))) {
+        op[state].set(id.value, value);
+    } else if ((&type == &std.op.Call) && ((&state == &id.self) || (&state == &id.method) || (&state == &id.stack))) {
+        op[state].set(id.value, value);
+    } else if ((&type == &std.op.Same ||
+        &type == &std.op.NotSame ||
+        &type == &std.op.Equal ||
+        &type == &std.op.NotEqual ||
+        &type == &std.op.LessThan ||
+        &type == &std.op.LessThanOrEqual ||
+        &type == &std.op.GreaterThan ||
+        &type == &std.op.GreaterThanOrEqual ||
+        &type == &std.op.And ||
+        &type == &std.op.Or ||
+        &type == &std.op.Add ||
+        &type == &std.op.Subtract ||
+        &type == &std.op.Multiply ||
+        &type == &std.op.Divide) && (&state == &id.lhs)) {
+        op[state].set(id.value, value);
+    } else {
+        op.set(state, value);
+    }
+//    std::cout << "         set (" << &op << ")" << op.__type__().label() << "[" << state.label() << ":" << value.label() << "]" << std::endl;
 }
 
 void Object::operator()()
 {
-    s_debugFunctionCalls = false; // Turn on / off debug here
-
-    CellI* currentCell  = this;
-    CellI* previousCell = &w.id.emptyObject;
-    w.ap.m_currentCell  = currentCell;
-    w.ap.m_previousCell = previousCell;
-    int tick = 0;
-
-    do {
-        CellI& self = *currentCell;
-        CellI& type = self.__type__();
-
-        if (&type == &w.std.op.Get) {
-            evalOpGet(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Set) {
-            evalOpSet(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Has) {
-            evalOpHas(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Missing) {
-            evalOpMissing(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Erase) {
-            evalOpErase(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.New) {
-            evalOpNew(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Delete) {
-            evalOpDelete(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Activate) {
-            evalOpActivate(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Call) {
-            evalOpCall(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Function) {
-            if (s_debugFunctionCalls && (self.missing(w.id.state) || (&self[w.id.state] == &w.id.stateParamInit))) {
-                printIndent();
-                s_indent++;
-                std::cout << self.label() << std::endl;
-            }
-            if (s_debugFunctionCalls && (self.has(w.id.state) && (&self[w.id.state] == &w.id.stateParam1))) {
-                s_indent--;
-            }
-            evalOpFunction(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Return) {
-            evalOpReturn(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Same) {
-            evalOpSame(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.NotSame) {
-            evalOpNotSame(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Equal) {
-            evalOpEqual(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.NotEqual) {
-            evalOpNotEqual(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.LessThan) {
-            evalOpLessThan(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.LessThanOrEqual) {
-            evalOpLessThanOrEqual(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.GreaterThan) {
-            evalOpGreaterThan(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.GreaterThanOrEqual) {
-            evalOpGreaterThanOrEqual(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.And) {
-            evalOpAnd(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Or) {
-            evalOpOr(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Not) {
-            evalOpNot(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.If) {
-            evalOpIf(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Do) {
-            evalOpDo(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.While) {
-            evalOpWhile(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Block) {
-            evalOpBlock(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Add) {
-            evalOpAdd(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Subtract) {
-            evalOpSubtract(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Multiply) {
-            evalOpMultiply(self, currentCell, previousCell);
-        } else if (&type == &w.std.op.Divide) {
-            evalOpDivide(self, currentCell, previousCell);
-        } else {
-            // assuming it is a datacell, so do nothing
-            std::swap(currentCell, previousCell);
-        }
-        w.ap.m_currentCell = currentCell;
-        w.ap.m_previousCell = previousCell;
-        ++tick;
-    } while (currentCell != &w.id.emptyObject);
-    w.ap.m_time.value(w.ap.m_time.value() + tick);
+    OpActivator opActivator(*this);
+    opActivator.activate();
 }
 
 CellI& Object::operator[](CellI& key)
@@ -1781,7 +1721,6 @@ bool Object::hasMethod(CellI& key)
 
 CellI& Object::getMethod(CellI& key)
 {
-    resetIndent();
     if (__type__().has(w.id.methods)) {
         CellI& methodsIndex = __type__()[w.id.methods][w.id.index];
         if (methodsIndex.has(key)) {

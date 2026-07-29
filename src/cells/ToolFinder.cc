@@ -186,7 +186,7 @@ CellI& ToolFinder::serializeEffect(CellI& effect)
                 } else if (&paramValue.__type__() == &w.std.op.Call) {
                     ret.add(id.op);
                     ret.add(id.push);
-                    stack.push_back({ current, *slotItemPtr, *paramItemPtr });
+                    stack.push_back({ currentPtr, slotItemPtr, paramItemPtr });
                     currentPtr   = &paramValue;
                     slotItemPtr  = &callSlotKeyList()[id.first];
                     paramItemPtr = nullptr;
@@ -208,9 +208,9 @@ CellI& ToolFinder::serializeEffect(CellI& effect)
         }
         slotItemPtr = slotItem.getNextOrNullptr();
         while (!slotItemPtr && !stack.empty()) {
-            currentPtr   = &stack.back().ast;
-            slotItemPtr  = &stack.back().slotItem;
-            paramItemPtr = &stack.back().paramItem;
+            currentPtr   = stack.back().effectPtr;
+            slotItemPtr  = stack.back().slotItemPtr;
+            paramItemPtr = stack.back().paramItemPtr;
             stack.pop_back();
             ret.add(id.op);
             ret.add(id.pop);
@@ -310,7 +310,7 @@ void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, s
     if (!memberIds.hasKey(memberKey)) {
         List& path = *new List(w, w.std.Cell, fmt::format("path for {}", memberKey.label()));
         for (auto& stackItem : stack) {
-            path.add(getSlotForKey(stackItem.slotItem[id.value]));
+            path.add(getSlotForKey((*stackItem.slotItemPtr)[id.value]));
         }
         path.add(getSlotForKey(key));
         memberIds.add(memberKey, path);
@@ -391,7 +391,7 @@ void ToolFinder::add(CellI& effect, CellI& tool)
                 } else if (&paramValue.__type__() == &w.std.op.Call) {
                     addValue(currentNode, id.op);
                     addValue(currentNode, id.push);
-                    stack.push_back({ current, *slotItemPtr, *paramItemPtr });
+                    stack.push_back({ currentPtr, slotItemPtr, paramItemPtr });
                     currentPtr   = &paramValue;
                     slotItemPtr  = &callSlotKeyList()[id.first];
                     paramItemPtr = nullptr;
@@ -411,9 +411,9 @@ void ToolFinder::add(CellI& effect, CellI& tool)
         }
         slotItemPtr = slotItem.getNextOrNullptr();
         while (!slotItemPtr && !stack.empty()) {
-            currentPtr   = &stack.back().ast;
-            slotItemPtr  = &stack.back().slotItem;
-            paramItemPtr = &stack.back().paramItem;
+            currentPtr   = stack.back().effectPtr;
+            slotItemPtr  = stack.back().slotItemPtr;
+            paramItemPtr = stack.back().paramItemPtr;
             stack.pop_back();
             addValue(currentNode, id.op);
             addValue(currentNode, id.pop);
@@ -554,8 +554,17 @@ List& ToolFinder::findToolsByEffect(CellI& effect)
     Object retVal(w, w.std.ast.ConstVar);
     buildTool(retVal, w.ast.member(id.value), effect, *builder);
 //    DEBUG(toolFinderLookup, "result: {}", retVal[id.value].printAsValue());
-
-    ret.add(retVal[id.value]);
+    auto& tool = retVal[id.value];
+    if (checkUnknownsInTool(tool)) {
+//        tool.set(id.state, w.std.op.State.missingInput);
+        tool.set(id.state, w.std.op.State.start); // TODO
+        std::cout << "Unknown" << std::endl;
+    } else {
+        tool.set(id.state, w.std.op.State.start);
+        std::cout << "Constant" << std::endl;
+//        tool();
+    }
+    ret.add(tool);
 
     return ret;
 }
@@ -569,7 +578,7 @@ CellI* ToolFinder::findBuildersForEffect(CellI& inputEffect)
     CellI* slotItemPtr  = &callSlotKeyList()[id.first];
     CellI* paramItemPtr = nullptr;
 
-    std::deque<FindContext> stack;
+    std::deque<StackNode> stack;
 
     while (slotItemPtr || paramItemPtr) {
         CellI& effect   = *effectPtr;
@@ -734,6 +743,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                 } else {
                     throw "Builder type is not a constant value!";
                 }
+                newObj->set(id.state, w.std.op.State.start); // TODO
                 CellI& type = *typePtr;
                 if (&retKey.__type__() == &w.std.ast.Member) {
                     retPtr->set(retKey[id.key], *newObj);
@@ -840,6 +850,37 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
         toCreateItemPtr = toCreateItemPtr->getNextOrNullptr();
         toCreate.remove((List::Node*)toDelete);
     }
+}
+
+// ============================================================================
+bool ToolFinder::checkUnknownsInTool(CellI& effect)
+{
+    if (&effect.__type__() == &w.std.op.ConstVar) {
+        return false;
+    } else if (&effect.__type__() == &w.std.op.UnknownVar) {
+        return true;
+    } else if (&effect.__type__() == &w.std.op.Call) {
+        if (checkUnknownsInTool(effect[id.self])) {
+            return true;
+        }
+        if (effect.has("parameters")) {
+            for (CellI& parameter : effect[id.parameters]) {
+                if (checkUnknownsInTool(parameter[w.id.value][w.id.value])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } else if (effect.has(id.ast) && effect[id.ast].has(id.primitiveTool)) {
+        for (CellI& key : effect[id.ast][id.memberMapping]) {
+            if (checkUnknownsInTool(effect[key])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    throw "Unknown AST to instantiate!";
 }
 
 // ============================================================================

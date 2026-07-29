@@ -73,28 +73,21 @@ void CellValuePrinter::printOpBlock(CellI& cell)
         }
         CellI& objectType = *objectTypePtr;
         if (ast.has(w.id.constructor)) {
-            CellI& constructorOps = cell[w.id.ops][w.id.next][w.id.cell];
+            CellI& constructorOps = cell[w.id.input][w.id.next][w.id.input];
             printOpBlock(constructorOps);
         }
         return;
     }
     m_ss << "{\n";
     m_indent++;
-    CellI* activeNodePtr = &cell[w.id.ops];
+    CellI* activeNodePtr = &cell[w.id.input];
     while (activeNodePtr) {
         CellI& activeNode = *activeNodePtr;
         printIndent();
-        printImpl(activeNode[w.id.cell]);
+        printImpl(activeNode[w.id.input]);
         m_ss << ";\n";
         activeNodePtr = activeNode.getNextOrNullptr();
     }
-#if 0
-    forEach(cell[w.ids.ops], [this](CellI& op, int, bool&) {
-        printIndent();
-        printImpl(op);
-        m_ss << ";\n";
-    });
-#endif
     m_indent--;
     printIndent();
     m_ss << "}";

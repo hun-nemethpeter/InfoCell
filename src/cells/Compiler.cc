@@ -407,11 +407,7 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function, Ast::St
                 instructionCall(key.label(), w.ast.parameter(key));
             }
         }
-        if (function.has(w.id.returnType)) {
-            instructionsPtr = &w.ast.return_(instructionCall);
-        } else {
-            instructionsPtr = &instructionCall;
-        }
+        instructionsPtr = &instructionCall;
     } else if (function.has(w.id.instructions)) {
         instructionsPtr = &function.instructions();
     }
@@ -1713,6 +1709,7 @@ CellI& Compiler::compileInstructionsInFunction(Ast::Function& astFunction)
     compiledFunction.set(w.id.ast, astFunction);
 
     if (astFunction.has(w.id.instructions)) {
+        compiledFunction.set(w.id.state, w.std.op.State.start);
         compiledFunction.set(w.id.op, compileInstructionsInFunctionAst(astFunction, astFunction.instructions(), compiledFunction));
     }
     if (astFunction.has(w.id.static_)) {
@@ -1806,7 +1803,8 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         m_lastBlock = &opBlock;
         for (CellI& ast : list) {
             CellI& newOpBlockNode = *new Object(w, w.std.op.Activate);
-            newOpBlockNode.set(w.id.cell, compile(ast));
+            newOpBlockNode.set(w.id.state, w.std.op.State.start);
+            newOpBlockNode.set(w.id.input, compile(ast));
             newOpBlockNode.set(w.id.parent, opBlock);
 
             if (!firstOpBlockNode) {
@@ -1817,8 +1815,9 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
             currentOpBlockNode = &newOpBlockNode;
         }
         opBlock.set(w.id.ast, ast);
+        opBlock.set(w.id.state, w.std.op.State.start);
         if (firstOpBlockNode) {
-            opBlock.set(w.id.ops, *firstOpBlockNode);
+            opBlock.set(w.id.input, *firstOpBlockNode);
         }
 
         if (prevBlock) {
@@ -1831,6 +1830,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
     } else if (&ast.__type__() == &w.std.ast.ResolvedType) {
         Object& constVar = *new Object(w, w.std.op.ConstVar);
         constVar.set(w.id.ast, ast);
+        constVar.set(w.id.state, w.std.op.State.start);
         constVar.set(w.id.value, ast[w.id.compiled]);
         return constVar;
     } else if (&ast.__type__() == &w.std.ast.Self) {
@@ -1849,6 +1849,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
     } else if (&ast.__type__() == &w.std.ast.ConstVar) {
         Object& constVar = *new Object(w, w.std.op.ConstVar);
         constVar.set(w.id.ast, ast);
+        constVar.set(w.id.state, w.std.op.State.start);
         constVar.set(w.id.value, ast[w.id.value]);
         return constVar;
     } else if (&ast.__type__() == &w.std.ast.Var) {
@@ -1874,6 +1875,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         }
         CellI& lastBlock = *m_lastBlock;
         CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.id.status), _(w.id.continue_)));
+        retOp.set(w.id.state, w.std.op.State.start);
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.Break) {
         if (!m_lastBlock) {
@@ -1881,10 +1883,12 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         }
         CellI& lastBlock = *m_lastBlock;
         CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.id.status), _(w.id.break_)));
+        retOp.set(w.id.state, w.std.op.State.start);
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.Return) {
         Object& retOp = *new Object(w, w.std.op.Return, "op.return");
         retOp.set(w.id.ast, ast);
+        retOp.set(w.id.state, w.std.op.State.start);
         if (ast.has(w.id.value)) {
             retOp.set(w.id.result, compile(w.ast.set(_(function), _(w.id.value), static_cast<Ast::Base&>(ast[w.id.value]))));
         }
@@ -1892,6 +1896,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
     } else if (&ast.__type__() == &w.std.ast.If) {
         Object& retOp = *new Object(w, w.std.op.If);
         retOp.set(w.id.ast, ast);
+        retOp.set(w.id.state, w.std.op.State.start);
         retOp.set(w.id.condition, compile(ast[w.id.condition]));
         retOp.set(w.id.then, compile(ast[w.id.then]));
         if (ast.has(w.id.else_)) {
@@ -1917,12 +1922,14 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
     } else if (&ast.__type__() == &w.std.ast.Do) {
         Object& retOp = *new Object(w, w.std.op.Do);
         retOp.set(w.id.ast, ast);
-        retOp.set(w.id.condition, compile(ast[w.id.condition]));
+        retOp.set(w.id.state, w.std.op.State.start);
         retOp.set(w.id.statement, compile(ast[w.id.statement]));
+        retOp.set(w.id.condition, compile(ast[w.id.condition]));
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.While) {
         Object& retOp = *new Object(w, w.std.op.While);
         retOp.set(w.id.ast, ast);
+        retOp.set(w.id.state, w.std.op.State.start);
         retOp.set(w.id.condition, compile(ast[w.id.condition]));
         retOp.set(w.id.statement, compile(ast[w.id.statement]));
         return retOp;
@@ -1958,19 +1965,23 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
 
         Object& block = *new Object(w, w.std.op.Block);
         block.set(w.id.ast, ast);
+        block.set(w.id.state, w.std.op.State.start);
 
         Object& opSet = *new Object(w, w.std.op.Set, "New { block.value = new objectType(); }");
         opSet.set(w.id.ast, ast);
+        opSet.set(w.id.state, w.std.op.State.start);
         opSet.set(w.id.cell, compile(w.ast.const_(block)));
         opSet.set(w.id.key, compile(w.ast.const_(w.id.value)));
 
         Object& opNew = *new Object(w, w.std.op.New);
         opNew.set(w.id.ast, ast);
+        opNew.set(w.id.state, w.std.op.State.start);
         opNew.set(w.id.objectType, compile(astObjectType));
         opSet.set(w.id.value, opNew);
 
         CellI& newOpBlockNode = *new Object(w, w.std.op.Activate);
-        newOpBlockNode.set(w.id.cell, opSet);
+        newOpBlockNode.set(w.id.state, w.std.op.State.start);
+        newOpBlockNode.set(w.id.input, opSet);
         newOpBlockNode.set(w.id.parent, block);
         firstOpBlockNode = &newOpBlockNode;
 
@@ -1984,16 +1995,18 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
             CellI& callConstructor = compile(callAst);
             callConstructor.label("New { call constructor; }");
             CellI& newOpBlockNode = *new Object(w, w.std.op.Activate);
-            newOpBlockNode.set(w.id.cell, callConstructor);
+            newOpBlockNode.set(w.id.state, w.std.op.State.start);
+            newOpBlockNode.set(w.id.input, callConstructor);
             newOpBlockNode.set(w.id.parent, block);
             (*firstOpBlockNode).set(w.id.next, newOpBlockNode);
         }
-        block.set(w.id.ops, *firstOpBlockNode);
+        block.set(w.id.input, *firstOpBlockNode);
         return block;
     } else if ((&ast.__type__() == &w.std.ast.Call) && (&ast[w.id.method].__type__() == &w.std.ast.PrimitiveToolName)) {
         CellI& primitiveTool = ast[w.id.method][w.id.name];
         Object& retOp        = *new Object(w, primitiveTool);
         retOp.set(w.id.ast, ast);
+        retOp.set(w.id.state, w.std.op.State.start);
 
         Map& membersMapping = static_cast<Map&>(primitiveTool[w.id.ast][w.id.memberMapping]);
 
@@ -2084,6 +2097,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
 #endif
         Object& retOp = *new Object(w, w.std.op.Call);
         retOp.set(w.id.ast, ast);
+        retOp.set(w.id.state, w.std.op.State.start);
         retOp.set(w.id.self, compile(ast[w.id.self]));
         retOp.set(w.id.method, compile(ast[w.id.method]));
         retOp.set(w.id.stack, function);
@@ -2299,11 +2313,14 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
     } else if (&ast.__type__() == &w.std.ast.ConstVar) {
         Object& constVar = *new Object(w, w.std.op.ConstVar);
         constVar.set(w.id.ast, ast);
+        constVar.set(w.id.state, w.std.op.State.start);
+        constVar.set(w.id.type, ast[w.id.type]);
         constVar.set(w.id.value, ast[w.id.value]);
         return constVar;
     } else if (&ast.__type__() == &w.std.ast.UnknownVar) {
         Object& unknownVar = *new Object(w, w.std.op.UnknownVar);
         unknownVar.set(w.id.ast, ast);
+        unknownVar.set(w.id.state, w.std.op.State.start);
         unknownVar.set(w.id.value, ast[w.id.value]);
         unknownVar.set(w.id.type, ast[w.id.type]);
         return unknownVar;

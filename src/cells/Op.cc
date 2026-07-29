@@ -17,12 +17,14 @@ Op::Base::Base(World& w, CellI& classCell, const std::string& label) :
 Op::ConstVar::ConstVar(World& w, CellI& value) :
     BaseT<ConstVar>(w, w.std.op.ConstVar, "op.ConstVar")
 {
+    set(w.id.state, w.std.op.State.start);
     set(w.id.value, value);
 }
 
 Op::UnknownVar::UnknownVar(World& w, CellI& value) :
     BaseT<UnknownVar>(w, w.std.op.UnknownVar, "op.UnknownVar")
 {
+    set(w.id.state, w.std.op.State.start);
     set(w.id.value, value);
 }
 

@@ -13,9 +13,9 @@ class ToolFinder
 {
     struct StackNode
     {
-        CellI& ast;
-        CellI& slotItem;
-        CellI& paramItem;
+        CellI* effectPtr;
+        CellI* slotItemPtr;
+        CellI* paramItemPtr;
     };
 
     struct Node
@@ -30,27 +30,6 @@ class ToolFinder
         CellI* m_tool   = nullptr;
         Node* m_parent  = nullptr;
         std::map<CellI*, Node*> m_children;
-    };
-
-    enum class SlotKind
-    {
-        TypeSlot,
-        NormalSlot
-    };
-
-    enum class ToolKind
-    {
-        // no return value e.g.: set(cell, key, value)
-        Statement,
-        // has a return value, needs unification, e.g.: add(lhs, rhs) -> return
-        Expression
-    };
-
-    struct FindContext
-    {
-        CellI* effectPtr;
-        CellI* slotItemPtr;
-        CellI* paramItemPtr;
     };
 
 public:
@@ -88,6 +67,7 @@ public:
     void exploreSlotManipulations();
 
 private:
+    bool checkUnknownsInTool(CellI& effect);
     CellI* findBuildersForEffect(CellI& effect);
     void buildTool(CellI& outCell, CellI& outRole, CellI& matchedEffect, CellI& builder);
     void addValue(Node*& node, CellI& value);

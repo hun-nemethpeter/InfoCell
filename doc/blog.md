@@ -1546,6 +1546,7 @@ equal(lhs: subtract(lhs: c, rhs: c), rhs: v) // 3 - 2 = x  here we should detect
 ==========
 
 // TODO
+
             if_(equal(m_("lhs") / "__type__", _(addPrimitive))).then_(
                 equal(add(add(p_("lhs") / _("lhs"), p_("lhs") / _("rhs")), p_("rhs")), add(p_("lhs") / _("lhs"), add(p_("lhs") / _("rhs"), p_("rhs")))))
             )
