@@ -17,6 +17,8 @@ add_library(cells-lib STATIC
     NodeBase.h
     Op.cc
     Op.h
+    OpActivator.cc
+    OpActivator.h
     StdLib.cc
     StdLib.h
     ToolFinder.cc

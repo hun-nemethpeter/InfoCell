@@ -13,8 +13,6 @@ namespace cells {
 class World;
 
 // ============================================================================
-class Visitor;
-
 class CellI
 {
 public:
