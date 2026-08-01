@@ -67,13 +67,24 @@ public:
     void exploreSlotManipulations();
 
 private:
+    class BuildToolInfo
+    {
+    public:
+        BuildToolInfo(CellI& outCell, CellI& outKey, CellI& matchedEffect, CellI& builder);
+
+        CellI& m_outCell;
+        CellI& m_outKey;
+        CellI& m_matchedEffect;
+        CellI& m_builder;
+    };
+
     bool checkUnknownsInTool(CellI& effect);
     List* findBuildersForEffect(CellI& effect);
-    void buildTool(CellI& outCell, CellI& outRole, CellI& matchedEffect, CellI& builder);
+    void buildTool(const BuildToolInfo& buildToolInfo);
     void addValue(Node*& node, CellI& value);
     void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
     bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush);
-    List& createBuilder(CellI& tool, Map& memberIds);
+    List& createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
     void findConversionToolsByValue(CellI& from, CellI& to, List& results);
     void findConversionToolsByType(CellI& from, CellI& to, List& results);
