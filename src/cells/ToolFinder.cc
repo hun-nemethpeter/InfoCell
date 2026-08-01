@@ -4,6 +4,7 @@
 #include "World.h"
 #include "cells/printers/ValuePrinter.h"
 
+#include "util/Panic.h"
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "util/Log.h"
 #include <fmt/ostream.h>
@@ -181,7 +182,7 @@ CellI& ToolFinder::serializeEffect(CellI& effect)
                     } else if (&paramValue.__type__() == &w.std.op.UnknownVar) {
                         ret.add(id.variable);
                     } else {
-                        throw "Unknow param type!";
+                        panic("Unknow param type!");
                     }
                 } else if (&paramValue.__type__() == &w.std.op.Call) {
                     ret.add(id.op);
@@ -385,7 +386,7 @@ void ToolFinder::add(CellI& effect, CellI& tool)
                         addValue(currentNode, id.variable);
                         memberKeyPtr = &paramValue[id.key];
                     } else {
-                        throw "Unknow param type!";
+                        panic("Unknow param type!");
                     }
                     saveCurrentPath(paramKey, *memberKeyPtr, memberIds, stack);
                 } else if (&paramValue.__type__() == &w.std.op.Call) {
@@ -422,10 +423,12 @@ void ToolFinder::add(CellI& effect, CellI& tool)
     }
 
     currentNode->m_isLeaf = 1;
-    if (currentNode->m_data != nullptr) {
+    if (currentNode->m_builders == nullptr) {
+        currentNode->m_builders = new List(w, w.std.List, "builders");
+    } else {
         std::cout << "";
     }
-    currentNode->m_data   = createBuilder(tool, memberIds);
+    currentNode->m_builders->add(createBuilder(tool, memberIds));
     currentNode->m_tool   = &tool;
     currentNode->m_effect = &effect;
 
@@ -440,7 +443,7 @@ void ToolFinder::add(CellI& effect, CellI& tool)
 }
 
 // ============================================================================
-CellI* ToolFinder::createBuilder(CellI& tool, Map& memberIds)
+List& ToolFinder::createBuilder(CellI& tool, Map& memberIds)
 {
     List& builder = *new List(w, w.std.Cell, fmt::format("builder for {}", tool.label()));
 
@@ -464,7 +467,7 @@ CellI* ToolFinder::createBuilder(CellI& tool, Map& memberIds)
         builder.add(memberIds.getValue(key));
     }
 
-    return &builder;
+    return builder;
 }
 
 // ============================================================================
@@ -521,7 +524,7 @@ bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPus
                     TRACE(toolFinderLookup, "MATCH: push");
 
                     if (&value.__type__() != &w.std.op.Call) {
-                        throw "Not supported type!";
+                        panic("Not supported type!");
                     }
                     node     = nextNode;
                     needPush = true;
@@ -546,31 +549,38 @@ bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPus
 // ============================================================================
 List& ToolFinder::findToolsByEffect(CellI& effect)
 {
-    List& ret      = *new List(w, w.std.ast.Base);
-    CellI* builder = findBuildersForEffect(effect);
-    if (!builder) {
+    List& ret = *new List(w, w.std.ast.Base);
+    if (checkUnknownsInTool(effect)) {
+        std::cout << "Unknown in the effect" << std::endl;
+    } else {
+        std::cout << "Only constants in the effect" << std::endl;
+    }
+    List* buildersPtr = findBuildersForEffect(effect);
+    if (!buildersPtr) {
         return ret;
     }
-    Object retVal(w, w.std.ast.ConstVar);
-    buildTool(retVal, w.ast.member(id.value), effect, *builder);
-//    DEBUG(toolFinderLookup, "result: {}", retVal[id.value].printAsValue());
-    auto& tool = retVal[id.value];
-    if (checkUnknownsInTool(tool)) {
-//        tool.set(id.state, w.std.op.State.missingInput);
-        tool.set(id.state, w.std.op.State.start); // TODO
-        std::cout << "Unknown" << std::endl;
-    } else {
-        tool.set(id.state, w.std.op.State.start);
-        std::cout << "Constant" << std::endl;
-//        tool();
+    for (auto& builder : *buildersPtr) {
+        TRACE(toolFinder, "build with {}", builder.label());
+        Object retVal(w, w.std.ast.ConstVar);
+        buildTool(retVal, w.ast.member(id.value), effect, builder);
+        //    DEBUG(toolFinderLookup, "result: {}", retVal[id.value].printAsValue());
+        auto& tool = retVal[id.value];
+        if (checkUnknownsInTool(tool)) {
+            tool.set(id.state, w.std.op.State.missingInput);
+            std::cout << "Unknown" << std::endl;
+        } else {
+            tool.set(id.state, w.std.op.State.start);
+            std::cout << "Constant" << std::endl;
+            //        tool();
+        }
+        ret.add(tool);
     }
-    ret.add(tool);
 
     return ret;
 }
 
 // ============================================================================
-CellI* ToolFinder::findBuildersForEffect(CellI& inputEffect)
+List* ToolFinder::findBuildersForEffect(CellI& inputEffect)
 {
     //    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
     Node* node          = m_root.get();
@@ -660,8 +670,7 @@ CellI* ToolFinder::findBuildersForEffect(CellI& inputEffect)
     }
 
     if (node && node->m_isLeaf) {
-        CellI* result = node->m_data;
-        return result;
+        return node->m_builders;
     }
 
     return nullptr;
@@ -693,13 +702,13 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                     CellI& key      = pathItem[id.key];
                     valuePtr        = &parameters.getValue(key)[id.value];
                 } else {
-                    throw "Unknown builder path item type!";
+                    panic("Unknown builder path item type!");
                 }
             }
 
             return valuePtr;
         } else {
-            throw "Unknown builder path item type!";
+            panic("Unknown builder path item type!");
         }
     };
 
@@ -723,7 +732,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
 
             if (first) {
                 if (&key.__type__() != &w.std.ast.Member || (&key[id.key] != &id.__type__)) {
-                    throw "The first item in a builder must be a member with a value of __type__!";
+                    panic("The first item in a builder must be a member with a value of __type__!");
                 }
                 first               = false;
                 CellI& nextSlotItem = (*slotItemPtr)[id.next];
@@ -741,7 +750,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                     (*newObj).set(w.id.ast, ast);
                     primitiveToolPtr = &ast;
                 } else {
-                    throw "Builder type is not a constant value!";
+                    panic("Builder type is not a constant value!");
                 }
                 newObj->set(id.state, w.std.op.State.start); // TODO
                 CellI& type = *typePtr;
@@ -755,7 +764,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                     (*newObj).set(w.id.stack, (*retPtr)[id.method][id.value]);
                     (*retPtr)[id.parameters].set(paramKey, slot);
                 } else {
-                    throw "Unknown builder item type";
+                    panic("Unknown builder item type");
                 }
                 retPtr = newObj;
                 TRACE(toolFinderLookup, "BUILD: __type__:{}", type.label());
@@ -819,7 +828,7 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
                 }
                 slotItemPtr = &nextSlotItem;
             } else {
-                throw "Unknown builder item!";
+                panic("Unknown builder item!");
             }
 
             slotItemPtr = slotItemPtr->getNextOrNullptr();
@@ -830,11 +839,12 @@ void ToolFinder::buildTool(CellI& outCell, CellI& outKey, CellI& matchedEffect, 
             CellI& key        = kvPair[id.key];
             CellI& subEffect  = kvPair[id.value];
 
-            CellI* subToolBuilder = findBuildersForEffect(subEffect);
+            List* subToolBuildersPtr = findBuildersForEffect(subEffect);
 
-            if (!subToolBuilder) {
-                throw "Sub effect not found!";
+            if (!subToolBuildersPtr) {
+                panic("Sub effect not found!");
             }
+            CellI* subToolBuilder  = &(*subToolBuildersPtr)[id.first][id.value]; // TODO
             Index& toCreateItemSub = *new Index(w);
             toCreateItemSub.set(id.effect, subEffect);
             toCreateItemSub.set(id.builder, *subToolBuilder);
@@ -865,14 +875,20 @@ bool ToolFinder::checkUnknownsInTool(CellI& effect)
         }
         if (effect.has("parameters")) {
             for (CellI& parameter : effect[id.parameters]) {
-                if (checkUnknownsInTool(parameter[w.id.value][w.id.value])) {
+                if (checkUnknownsInTool(parameter[w.id.value])) {
                     return true;
                 }
             }
         }
         return false;
     } else if (effect.has(id.ast) && effect[id.ast].has(id.primitiveTool)) {
-        for (CellI& key : effect[id.ast][id.memberMapping]) {
+        CellI& ast         = effect[id.ast];
+        bool isConstructor = ast.has("isConstructor");
+        for (CellI& key : ast[id.memberMapping]) {
+            if (isConstructor) {
+                isConstructor = false;
+                continue;
+            }
             if (checkUnknownsInTool(effect[key])) {
                 return true;
             }
@@ -880,7 +896,7 @@ bool ToolFinder::checkUnknownsInTool(CellI& effect)
         return false;
     }
 
-    throw "Unknown AST to instantiate!";
+    panic("Unknown AST to instantiate!");
 }
 
 // ============================================================================

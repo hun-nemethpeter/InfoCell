@@ -414,6 +414,7 @@ public:
             return *this;
         }
 
+        Function& constructor();
         Function& returnType(CellI& type);
         Function& returnType(const std::string& typeStr);
 

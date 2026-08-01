@@ -1103,6 +1103,7 @@ void StdLibAst::createAst()
             member("compiledType", "std::Cell"),
             member("memberMapping", MapOf(std.String, std.ast.Base)),
             member("primitiveTool", _(std.Boolean)),
+            member("isConstructor", _(std.Boolean)),
             member("structType", "std::Cell"),
             member("parameters", ListOf(std.ast.Slot)),
             member("returnType", "std::Struct"),
@@ -2470,6 +2471,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             kvPair(w.id.self, "cell"),
             kvPair("key", "key"),
             kvPair("value", "value"))
+        .constructor()
         .parameters(
             parameter("key", "Cell"),
             parameter("value", "Cell"))

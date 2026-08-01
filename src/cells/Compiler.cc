@@ -1,5 +1,6 @@
 ﻿#include "Compiler.h"
 
+#include "util/Panic.h"
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include "util/Log.h"
 
@@ -120,7 +121,7 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
     } else if (&structAst.__type__() == &w.std.ast.ConstVar) {
         return structAst[w.id.value];
     } else {
-        throw "Unsupported type!";
+        panic("Unsupported type!");
     }
     CellI& structId = *structIdPtr;
     if (m_earlyStructs.hasKey(structId)) {
@@ -140,7 +141,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     splitNamespacedString(sliced, fullName);
 
     if (sliced.empty()) {
-        throw "Invalid struct ID!";
+        panic("Invalid struct ID!");
     }
     std::stringstream ss;
     List& idCell             = *new List(w, w.std.Cell);
@@ -167,7 +168,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
         Ast::Enum& enumAst = currentScope->getItem<Ast::Enum>(typeName);
         structBaseAstPtr   = &enumAst;
     } else {
-        throw "The compiled type not a struct or enum!";
+        panic("The compiled type not a struct or enum!");
     }
     Ast::StructBase& structBaseAst = *structBaseAstPtr;
 
@@ -186,7 +187,7 @@ void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& comp
     splitNamespacedString(sliced, fullName);
 
     if (sliced.size() < 2) {
-        throw "Invalid enum value ID!";
+        panic("Invalid enum value ID!");
     }
     const auto& enumName      = sliced[sliced.size() - 2];
     const auto& enumValueName = sliced.back();
@@ -207,7 +208,7 @@ void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& comp
     }
     Ast::Enum& enumAst = currentScope->getItem<Ast::Enum>(enumName);
     if (!enumAst.values().hasKey(enumValueIdCell)) {
-        throw "Invalid enum value!";
+        panic("Invalid enum value!");
     }
     Ast::EnumValue& enumValueAst = static_cast<Ast::EnumValue&>(enumAst.values().getValue(enumValueIdCell));
     for (CellI& character : enumAst[w.id.name]) {
@@ -356,6 +357,9 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function, Ast::St
     m_currentFn = &ret;
     std::stringstream ss;
 
+    if (function.has("isConstructor")) {
+        ret.set("isConstructor", function.get("isConstructor"));
+    }
     if (function.has(w.id.static_)) {
         ret.set(w.id.static_, function.get(w.id.static_));
         ss << "static ";
@@ -440,14 +444,14 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast, Ast::Function& astFu
         return resolveType(ast);
     } else if (&ast.__type__() == &w.std.ast.Self) {
         if (!astStructPtr) {
-            throw "Referencing self pointer, but this function doesn't associated with a struct/enum!";
+            panic("Referencing self pointer, but this function doesn't associated with a struct/enum!");
         }
         auto& ret = w.ast.self();
         ret.set(w.id.type, (*astStructPtr)["compiledStruct"]);
         return ret;
     } else if (&ast.__type__() == &w.std.ast.Member) {
         if (!astStructPtr) {
-            throw "Referencing a member, but this function doesn't associated with a struct/enum!";
+            panic("Referencing a member, but this function doesn't associated with a struct/enum!");
         }
         Ast::StructBase& astStruct = *astStructPtr;
         CellI& memberKey           = ast[w.id.key];
@@ -558,7 +562,7 @@ Ast::Base& Compiler::resolveTypesInFunctionCode(CellI& ast, Ast::Function& astFu
         return ret;
     }
 
-    throw "Unknown AST to instantiate!";
+    panic("Unknown AST to instantiate!");
 }
 
 Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
@@ -761,7 +765,7 @@ CellI& Compiler::resolveTypeInEnumValue(CellI& ast)
         return ast[w.id.value];
     }
 
-    throw "Unknown enum value!";
+    panic("Unknown enum value!");
 }
 
 Ast::ResolvedType& Compiler::createResolvedType(CellI& astType, CellI& compiledType)
@@ -931,7 +935,7 @@ Ast::Base& Compiler::resolveType(CellI& typeAst)
         auto& cell      = static_cast<Ast::ConstVar&>(typeAst);
         auto& cellValue = typeAst[w.id.value];
         if (!cellValue.isA(w.std.Struct) && !cellValue.isA(w.std.Enum)) {
-            throw "Type AST referencing a non-type!";
+            panic("Type AST referencing a non-type!");
         }
         return cell;
     }
@@ -963,7 +967,7 @@ Ast::Base& Compiler::resolveType(CellI& typeAst)
         return resolveTemplatedType(typeAst);
     }
 
-    throw "Unknown ast type node!";
+    panic("Unknown ast type node!");
 }
 
 CellI& Compiler::getCompiledTypeFromResolvedType(CellI& resolvedTypeAst)
@@ -973,7 +977,7 @@ CellI& Compiler::getCompiledTypeFromResolvedType(CellI& resolvedTypeAst)
     } else if (resolvedTypeAst.isA(w.std.ast.ResolvedType)) {
         return resolvedTypeAst[w.id.compiled];
     } else {
-        throw "Unexpected AST type!";
+        panic("Unexpected AST type!");
     }
 }
 
@@ -1102,7 +1106,7 @@ Ast::Base& Compiler::findEnumOrStructByAstStructName(Ast::Scope& scope, CellI& a
         return *enum_;
     }
 
-    throw "Unknown type name!";
+    panic("Unknown type name!");
 }
 
 Ast::Enum* Compiler::findEnumByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name)
@@ -1139,7 +1143,7 @@ Ast::StructT& Compiler::findTemplateByNameInScopes(Ast::Scope& scope, CellI& sco
     };
     Ast::Base* resolvedAst = findAstByNameInAllScope(scope, scopeList, hasCb, getCb);
     if (!resolvedAst) {
-        throw "Unknown template name!";
+        panic("Unknown template name!");
     }
 
     return static_cast<Ast::StructT&>(*resolvedAst);
@@ -1251,7 +1255,7 @@ void Compiler::instantiateTemplateInstances()
     }
 
     if (m_unknownStructs.size() > 0 || m_unknownInstances.size() != instantiedNum) {
-        throw "Referencing an unknown type!";
+        panic("Referencing an unknown type!");
     }
 }
 
@@ -1259,7 +1263,7 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
 {
     // process input parameters
     if (!inputParams.empty() && structT.missing("templateParams")) {
-        throw "No template parameter was given!";
+        panic("No template parameter was given!");
     }
     std::stringstream ss;
     Map inputParameters(w, w.std.Cell, w.std.Cell);
@@ -1368,7 +1372,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
     if (&param.__type__() == &w.std.ast.TemplateParam) {
         CellI& paramValue = param[w.id.key];
         if (!inputParameters.hasKey(paramValue)) {
-            throw "Instantiating with unknown template parameter!";
+            panic("Instantiating with unknown template parameter!");
         }
         return inputParameters.getValue(paramValue);
     }
@@ -1390,7 +1394,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
         Map& associatedTypes = *associatedTypesPtr;
         CellI& paramValue = param[w.id.key];
         if (!associatedTypes.hasKey(paramValue)) {
-            throw "Instantiating with unknown associated type parameter!";
+            panic("Instantiating with unknown associated type parameter!");
         }
         return instantiateTemplateParamType(associatedTypes.getValue(paramValue), selfType, inputParameters, associatedTypesPtr);
     }
@@ -1399,7 +1403,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
         return param;
     }
 
-    throw "Unknown template parameter!";
+    panic("Unknown template parameter!");
 }
 
 Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParameters, Map* associatedTypesPtr)
@@ -1497,7 +1501,7 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         return ret;
     }
 
-    throw "Unknown AST to instantiate!";
+    panic("Unknown AST to instantiate!");
 }
 
 void Compiler::compileInstructionsInScope(Ast::Scope& scope, Ast::Scope& resolvedScope)
@@ -1731,7 +1735,10 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, Object& compile
             structTypeStr = fmt::format("{}::", type.label());
         }
         if (astFunction.has(w.id.parameters)) {
-            int i = 0;
+            const auto _            = [this](auto& cell) -> Ast::ConstVar& { return w.ast._(cell); };
+            int i                   = 0;
+            Object& paramActivation = *new Object(w, w.std.op.Block, "paramActivation");
+            paramActivation.set(w.id.state, w.std.op.State.start);
             for (CellI& slot : astFunction.parameters()) {
                 if (i++ > 0) {
                     iss << ", ";
@@ -1741,6 +1748,17 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, Object& compile
                 auto& compiledType = getCompiledTypeFromResolvedType(type);
                 iss << "p_" << key.label() << ": " << compiledType.label();
                 parameters.add(key, w.ast.slot(key, compiledType));
+
+                auto& inputParamAst      = w.ast.get(_(compiledFunction), _(w.id.stack)) / _(w.id.value) / _(w.id.input) / _(key);
+                auto& compiledInputParam = compileInstructionsInFunctionAst(astFunction, inputParamAst, compiledFunction);
+
+                CellI& newOpBlockNode = *new Object(w, w.std.op.Activate, fmt::format("activate param: %s", key.label()));
+                newOpBlockNode.set(w.id.state, w.std.op.State.start);
+                newOpBlockNode.set(w.id.input, compiledInputParam);
+                newOpBlockNode.set(w.id.parent, paramActivation);
+                if (i == 0) {
+                    paramActivation.set(w.id.input, newOpBlockNode);
+                }
             }
         }
         compiledFunction.set(w.id.parameters, parameters);
@@ -1871,7 +1889,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.Continue) {
         if (!m_lastBlock) {
-            throw "No statement to break!";
+            panic("No statement to break!");
         }
         CellI& lastBlock = *m_lastBlock;
         CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.id.status), _(w.id.continue_)));
@@ -1879,7 +1897,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         return retOp;
     } else if (&ast.__type__() == &w.std.ast.Break) {
         if (!m_lastBlock) {
-            throw "No statement to break!";
+            panic("No statement to break!");
         }
         CellI& lastBlock = *m_lastBlock;
         CellI& retOp     = compile(w.ast.set(_(lastBlock), _(w.id.status), _(w.id.break_)));
@@ -2063,7 +2081,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
                     checkMethodCall(type, astMethodId);
                     checked = true;
                 } else {
-                    throw "Unknown member name!";
+                    panic("Unknown member name!");
                 }
             }
         } else if (&astSelf.__type__() == &w.std.ast.Self) {
@@ -2088,7 +2106,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
                 checkMethodCall(astParameterType, astMethodId);
                 checked = true;
             } else {
-                throw "Unknown parameter name!";
+                panic("Unknown parameter name!");
             }
         }
         if (!checked) {
@@ -2117,7 +2135,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         return retOp;
     }
 
-    throw "Unknown function AST!";
+    panic("Unknown function AST!");
 }
 
 void Compiler::checkMethodCall(CellI& astType, CellI& astMethodId)
@@ -2135,16 +2153,16 @@ void Compiler::checkMethodCall(CellI& astType, CellI& astMethodId)
         typePtr    = &astType[w.id.compiled];
         methodsPtr = &static_cast<Map&>(astType[w.id.ast][w.id.methods]);
     } else {
-        throw "Unexpected AST type";
+        panic("Unexpected AST type");
     }
     CellI& type = *typePtr;
     if (&type.__type__() != &w.std.ast.Struct && &type.__type__() != &w.std.Struct && type.label() != "Struct") {
-        throw "Resolved type must be a type!";
+        panic("Resolved type must be a type!");
     }
     auto& methods = *methodsPtr;
     if (!methods.hasKey(astMethodId)) {
         std::cerr << fmt::format("Method '{}' doesn't exist in type {}", astMethodId.label(), type.label()) << std::endl;
-        throw "Method doesn't exist in type!";
+        panic("Method doesn't exist in type!");
     }
 }
 
@@ -2222,14 +2240,14 @@ Ast::Base& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Func
         return resolveType(ast);
     } else if (&ast.__type__() == &w.std.ast.Self) {
         if (!astStructPtr) {
-            throw "Referencing self pointer, but this function doesn't associated with a struct/enum!";
+            panic("Referencing the self pointer, but this function doesn't associated with a struct/enum!");
         }
         auto& ret = w.ast.self();
         ret.set(w.id.type, (*astStructPtr)["compiledStruct"]);
         return ret;
     } else if (&ast.__type__() == &w.std.ast.Member) {
         if (!astStructPtr) {
-            throw "Referencing a member, but this function doesn't associated with a struct/enum!";
+            panic("Referencing a member, but this function doesn't associated with a struct/enum!");
         }
         Ast::StructBase& astStruct = *astStructPtr;
         CellI& memberKey           = ast[w.id.key];
@@ -2291,7 +2309,7 @@ Ast::Base& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Func
         return ret;
     }
 
-    throw "Unknown AST to instantiate!";
+    panic("Unknown AST to instantiate!");
 }
 
 
@@ -2357,7 +2375,7 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
         return retOp;
     }
 
-    throw "Unknown function AST!";
+    panic("Unknown function AST!");
 }
 
 } // namespace cells

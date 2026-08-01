@@ -24,11 +24,11 @@ class ToolFinder
 
         std::string print();
 
-        bool m_isLeaf   = false;
-        CellI* m_data   = nullptr;
-        CellI* m_effect = nullptr;
-        CellI* m_tool   = nullptr;
-        Node* m_parent  = nullptr;
+        bool m_isLeaf    = false;
+        List* m_builders = nullptr;
+        CellI* m_effect  = nullptr;
+        CellI* m_tool    = nullptr;
+        Node* m_parent   = nullptr;
         std::map<CellI*, Node*> m_children;
     };
 
@@ -68,12 +68,12 @@ public:
 
 private:
     bool checkUnknownsInTool(CellI& effect);
-    CellI* findBuildersForEffect(CellI& effect);
+    List* findBuildersForEffect(CellI& effect);
     void buildTool(CellI& outCell, CellI& outRole, CellI& matchedEffect, CellI& builder);
     void addValue(Node*& node, CellI& value);
     void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
     bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush);
-    CellI* createBuilder(CellI& tool, Map& memberIds);
+    List& createBuilder(CellI& tool, Map& memberIds);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
     void findConversionToolsByValue(CellI& from, CellI& to, List& results);
     void findConversionToolsByType(CellI& from, CellI& to, List& results);

@@ -32,6 +32,10 @@ target_include_directories(cells-lib
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/src
 )
+target_compile_definitions(cells-lib
+    PRIVATE
+        $<$<CONFIG:Release>:NDEBUG>
+)
 target_link_libraries(cells-lib
     PUBLIC
         fmt::fmt

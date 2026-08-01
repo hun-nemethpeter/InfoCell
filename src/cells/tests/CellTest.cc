@@ -256,6 +256,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
+    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.start);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.UnknownVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
@@ -302,6 +303,7 @@ TEST_F(CellTest, ToolFinderTestForGet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Get);
+    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.start);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
@@ -367,6 +369,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
+    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.start);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.UnknownVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.Get);

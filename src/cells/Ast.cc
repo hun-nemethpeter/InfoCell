@@ -729,6 +729,13 @@ void Ast::Function::addParameter(Parameter& parameter)
     parameters().add(parameter[w.id.key], parameter);
 }
 
+Ast::Function& Ast::Function::constructor()
+{
+    set("isConstructor", w.true_);
+
+    return *this;
+}
+
 Ast::Function& Ast::Function::returnType(CellI& type)
 {
     set("returnType", type);
