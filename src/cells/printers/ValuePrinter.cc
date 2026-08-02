@@ -163,32 +163,42 @@ bool CellValuePrinter::isThisCallAGetter(CellI& callAst)
 
 void CellValuePrinter::printOpCall(CellI& cell)
 {
-    CellI& ast = cell[w.id.ast];
+    int paramNum = 0;
+    if (cell.has(w.id.ast)) {
+        CellI& ast = cell[w.id.ast];
 
-    if (isThisCallAGetter(ast) && cell.label() != "New { call constructor; }") {
-        printImpl(cell[w.id.self]);
-    }
-    if (&ast[w.id.self].__type__() == &w.std.ast.Self) {
-        m_ss << "self";
-    }
-    if (&ast[w.id.self].__type__() == &w.std.ast.ConstVar) {
-        m_ss << ast[w.id.self][w.id.value].label();
-    }
-    if (&ast[w.id.self].__type__() == &w.std.ast.Member) {
-        m_ss << "m_" << ast[w.id.self][w.id.key].label();
-    }
-    if (&ast[w.id.self].__type__() == &w.std.ast.Parameter) {
-        m_ss << "p_" << ast[w.id.self][w.id.key].label();
-    }
-    if (&ast.__type__() == &w.std.ast.Call) {
-        m_ss << ".";
+        if (isThisCallAGetter(ast) && cell.label() != "New { call constructor; }") {
+            printImpl(cell[w.id.self]);
+        }
+        if (&ast[w.id.self].__type__() == &w.std.ast.Self) {
+            m_ss << "self";
+        }
+        if (&ast[w.id.self].__type__() == &w.std.ast.ConstVar) {
+            m_ss << ast[w.id.self][w.id.value].label();
+        }
+        if (&ast[w.id.self].__type__() == &w.std.ast.Member) {
+            m_ss << "m_" << ast[w.id.self][w.id.key].label();
+        }
+        if (&ast[w.id.self].__type__() == &w.std.ast.Parameter) {
+            m_ss << "p_" << ast[w.id.self][w.id.key].label();
+        }
+        if (&ast.__type__() == &w.std.ast.Call) {
+            m_ss << ".";
+        } else {
+            m_ss << "::";
+        }
+        m_ss << ast[w.id.method][w.id.value].label();
+        m_ss << "(";
     } else {
-        m_ss << "::";
+        m_ss << cell[w.id.method].label();
+        m_ss << "(";
+        if (cell.has(w.id.self)) {
+            paramNum = 1;
+            m_ss << "self: ";
+            printImpl(cell[w.id.self]);
+        }
     }
-    m_ss << ast[w.id.method][w.id.value].label();
-    m_ss << "(";
     if (cell.has(w.id.parameters)) {
-        int paramNum = 0;
         for (CellI& parameter : cell[w.id.parameters]) {
             if (paramNum++ > 0) {
                 m_ss << ", ";

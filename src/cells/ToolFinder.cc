@@ -921,20 +921,19 @@ bool ToolFinder::checkUnknownsInTool(CellI& effect)
 }
 
 // ============================================================================
-static CellI* findMissingSlotId(CellI& tool, CellI& filledSlot)
+static CellI* findMissingParameterKey(ToolFinder::ConversionToolBlueprint& blueprint)
 {
+    CellI& tool       = *blueprint.m_tool;
     World& w          = tool.w;
-    CellI& slotList   = tool.slotList();
-    CellI* retPtr     = nullptr;
-    for (CellI& slot : slotList) {
-        CellI& slotKey = slot[w.id.key];
-        if (&slotKey != &filledSlot) {
-            retPtr = &slotKey;
-            break;
+    CellI& filledKey  = *blueprint.m_slotId;
+    for (CellI& parameter : tool[w.id.parameters]) {
+        CellI& key = parameter[w.id.key];
+        if (&key != &filledKey) {
+            return &key;
         }
     }
 
-    return retPtr;
+    return nullptr;
 }
 
 class SolverLib : public Library
@@ -992,37 +991,40 @@ ConversionLib::ConversionLib(World& w, Ast::Scope& parentScope, const std::strin
 // ============================================================================
 void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint, List& results)
 {
-    CellI& tool = *new Object(w, w.std.ast.Function);
-    tool.set(*blueprint.m_slotId, w.ast.const_(from));
+    CellI& tool = *new Object(w, w.std.op.Call);
+    CellI& ast  = (*blueprint.m_tool)[w.id.ast];
+    if (ast.has(w.id.primitiveTool)) {
+        tool.set(id.method, ast[w.id.primitiveTool]);
+    } else {
+        tool.set(id.method, *blueprint.m_tool);
+    }
+    CellI& key = *blueprint.m_slotId;
+    if (&key == &w.id.self) {
+        tool.set(w.id.self, w.op.const_(from));
+    } else {
+        tool.set(id.parameters, w.op.parameters(key, w.op.const_(from)));
+    }
 
     Object unknownX(w, w.std.op.ConstVar, "unknownX");
 
-    CellI* missingSlotIdPtr = findMissingSlotId(tool, *blueprint.m_slotId);
+    CellI* missingSlotIdPtr = findMissingParameterKey(blueprint);
     if (!missingSlotIdPtr) {
         return; // TODO
     }
     CellI& missingSlotId = *missingSlotIdPtr;
 
     // this is the from in "tool(from, x) == to"
-    tool.set(missingSlotId, w.ast.get(w.ast._(unknownX), w.ast._(id.value)));
+    tool.set(missingSlotId, w.op.get(w.op.unknown_(unknownX), w.op.const_(id.value)));
 
-    CellI& missingSlotEquation = w.ast.equal(tool, w.ast._(to));
+    CellI& missingSlotEquation = w.op.equal(tool, w.op.const_(to));
     missingSlotEquation.label("tool(from, x) == to");
 
     List& missingSlotSolvers = findToolsByEffect(missingSlotEquation);
 
+    return; // TODO
     for (CellI& missingSlotSolver : missingSlotSolvers) {
         //        std::cout << blueprint << '\n';
-
-        Ast::Scope rootScope(w, "toolFinder");
-        Compiler compiler(w);
-        SolverLib solverLib(w, rootScope, missingSlotSolver);
-        solverLib.include(w.arcLib());
-        compiler.compile(solverLib);
-        auto& solverFn = solverLib.getFunction("solver::solverFunction");
-        printAsValue(solverFn, "solverFn");
-        solverFn.createSelfStack();
-        solverFn();
+        missingSlotSolver();
 
         CellI& solvedX = unknownX[id.value];
         //        std::cout << "unknownX.value = " << solvedX.label() << std::endl;
@@ -1063,6 +1065,9 @@ CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
 void ToolFinder::exploreSlotManipulations()
 {
     ConversionToolKey conversionToolKey(w.std.Number, w.std.Number);
+    Object& x = *new Object(w, w.std.Number, "X");
+    Object& y = *new Object(w, w.std.Number, "Y");
+    Object& z = *new Object(w, w.std.Number, "Z");
 
     for (CellI& tool : m_tools) {
         TRACE(toolFinder, "explore: {}", tool.label());
@@ -1070,27 +1075,36 @@ void ToolFinder::exploreSlotManipulations()
         if (tool.missing(id.returnType)) {
             continue;
         }
-        CellI& returnType = tool[id.returnType][id.value];
+        CellI& returnType = tool[id.returnType];
         if (&returnType != &w.std.Number) {
             continue;
         }
 
-        // TODO we need compiled tool here not AST one, or we need to compile it
-        CellI& astTool = *new Object(w, tool);
-        astTool.set(id.lhs, w.ast._(1));
-        astTool.set(id.rhs, w.ast._(2));
+        auto& numberTool = w.op.call(w.op.const_(x), tool[w.id.ast][w.id.primitiveTool]);
+        numberTool(id.other, w.op.const_(y));
+//        static_cast<Object&>(numberTool).runAsCall();
 
-        CellI& astEqual = w.ast.equal(astTool, w.ast._(3));
-        astEqual.label(fmt::format("{}(x, y) == z", tool.label()));
+        auto& opEqual = w.op.equal(numberTool, w.op.const_(z));
+        opEqual.label(fmt::format("{}(x, y) == z", tool.label()));
+        DEBUG(toolFinderLookup, "equation: {}", opEqual.printAsValue());
 
         CellI* outputEffect = nullptr;
-        CellI* builder      = findBuildersForEffect(astEqual);
-        if (!builder) {
+        CellI* buildersPtr  = findBuildersForEffect(opEqual);
+        if (!buildersPtr) {
             continue;
         }
-        Object retVal(w, w.std.ast.ConstVar);
-        buildTool({ retVal, id.value, astEqual, *builder });
-        DEBUG(toolFinderLookup, "result: {}", retVal[id.value].printAsValue());
+        for (auto& builder : *buildersPtr) {
+            Object retVal(w, w.std.ast.ConstVar);
+            buildTool({ retVal, w.ast.member(id.value), opEqual, builder });
+            CellI& result = retVal[id.value];
+            DEBUG(toolFinderLookup, "result: {}", result.printAsValue());
+            CellI* builders2ndLevelPtr = findBuildersForEffect(result);
+            if (builders2ndLevelPtr) {
+                std::cout << "";
+            } else {
+                std::cout << "";
+            }
+        }
     }
 }
 

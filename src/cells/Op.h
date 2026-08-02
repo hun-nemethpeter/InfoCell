@@ -35,6 +35,13 @@ public:
     };
 
     // ============================================================================
+    class Call : public BaseT<Call>
+    {
+    public:
+        Call(World& w, CellI& self, CellI& method);
+        Call& operator()(CellI& name, CellI& value);
+    };
+
     class ConstVar : public BaseT<ConstVar>
     {
     public:
@@ -50,13 +57,23 @@ public:
     // ============================================================================
     Op(World& w);
 
+    Call& add(Base& lhs, Base& rhs);
+    Call& call(CellI& self, CellI& method);
+    Call& equal(CellI& lhs, Base& rhs);
+    Call& get(Base& cell, Base& key);
+
     ConstVar& const_(CellI& value);
     ConstVar& const_(const std::string& id);
     ConstVar& const_(int number);
     UnknownVar& unknown_(CellI& value);
 
+    template <typename... Args>
+    Map& parameters(CellI& key, CellI& value, Args&&... args);
 
 protected:
+    template <typename... Args>
+    void addParameter(Map& map, CellI& key, CellI& value, Args&&... args);
+
     World& w;
 };
 

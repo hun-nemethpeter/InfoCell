@@ -208,3 +208,4 @@ List& World::list(CellI& value, Args&&... args)
 } // namespace cells
 } // namespace infocell
 #include "AstImpl.h"
+#include "OpImpl.h"

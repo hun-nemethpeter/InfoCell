@@ -960,7 +960,7 @@ public:
 
         auto& type = inputShapeField.__type__();
 
-        ToolFinder& toolFinder = w.arcLib().toolFinder();
+        ToolFinder& toolFinder = w.stdLib().toolFinder(); // TODO: why arcLib doesn't work now?
         toolFinder.findConversionTools(w._3_, w._7_);
         toolFinder.findConversionTools(w.false_, w.true_);
         toolFinder.findConversionTools(inputShapeField, outputShapeField);

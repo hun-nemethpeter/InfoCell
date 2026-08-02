@@ -322,7 +322,7 @@ void Object::createSelfStack()
 
 void Object::runAsCall()
 {
-    Object& method = static_cast<Object&>(get(w.id.method)[w.id.value]);
+    Object& method = static_cast<Object&>(get(w.id.method));
     method.createSelfStack();
     set(w.id.stack, method);
 
