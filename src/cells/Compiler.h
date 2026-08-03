@@ -68,9 +68,9 @@ protected:
     void compileInstructionsInStruct(Ast::Struct& __type__);
     void compileInstructionsInEnum(Ast::Enum& enum_);
     CellI& compileInstructionsInFunction(Ast::Function& function);
-    void compileFunctionParams(Ast::Function& astFunction, cells::Object& compiledFunction);
+    void compileFunctionParams(Ast::Function& astFunction, CellI& compiledFunction);
     std::string shortFunctionName(Ast::Function& function);
-    CellI& compileInstructionsInFunctionAst(Ast::Function& astFunction, CellI& ast, cells::Object& function);
+    CellI& compileInstructionsInFunctionAst(Ast::Function& astFunction, CellI& ast, CellI& function);
     void checkMethodCall(CellI& astType, CellI& astMethodId);
 
     void compileDescriptionInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);

@@ -404,56 +404,6 @@ CellI& Object::method(CellI& key, Param param1, Param param2, Param param3, Para
     return getFnValue(method);
 }
 
-CellI& Object::smethod(CellI& key)
-{
-    CellI& method = getStaticMethod(key);
-    method();
-
-    return getFnValue(method);
-}
-
-CellI& Object::smethod(CellI& key, Param param1)
-{
-    CellI& method = getStaticMethod(key);
-    setFnParam(method, param1);
-    method();
-
-    return getFnValue(method);
-}
-
-CellI& Object::smethod(CellI& key, Param param1, Param param2)
-{
-    CellI& method = getStaticMethod(key);
-    setFnParam(method, param1);
-    setFnParam(method, param2);
-    method();
-
-    return getFnValue(method);
-}
-
-CellI& Object::smethod(CellI& key, Param param1, Param param2, Param param3)
-{
-    CellI& method = getStaticMethod(key);
-    setFnParam(method, param1);
-    setFnParam(method, param2);
-    setFnParam(method, param3);
-    method();
-
-    return getFnValue(method);
-}
-
-CellI& Object::smethod(CellI& key, Param param1, Param param2, Param param3, Param param4)
-{
-    CellI& method = getStaticMethod(key);
-    setFnParam(method, param1);
-    setFnParam(method, param2);
-    setFnParam(method, param3);
-    setFnParam(method, param4);
-    method();
-
-    return getFnValue(method);
-}
-
 bool Object::hasMethod(CellI& key)
 {
     return __type__().has(w.id.methods) && __type__()[w.id.methods].has(w.id.index) && __type__()[w.id.methods][w.id.index].has(key);

@@ -238,10 +238,6 @@ void OpActivator::activateOpCall()
         self.set(w.id.previous, *m_previousCell);
         m_previousCell = m_currentCell;
         m_currentCell  = &self[w.id.method];
-        self.set(w.id.state, state.activateParameterSelf);
-    } else if (m_currentState == &state.activateParameterSelf) {
-        m_previousCell = m_currentCell;
-        m_currentCell  = &self[w.id.self];
         if (self.has(w.id.parameters)) {
             self.set(w.id.state, state.activateParameters);
         } else {
@@ -269,18 +265,14 @@ void OpActivator::activateOpCall()
             self.set(w.id.state, state.stackPushAndCall);
         }
     } else if (m_currentState == &state.stackPushAndCall) {
-        CellI& inputSelf  = self[w.id.self][w.id.value];
         CellI& methodName = self[w.id.method][w.id.value];
-        CellI& stack      = self[w.id.stack][w.id.stack];
+        CellI& stack      = self[w.id.parentFunction][w.id.stack];
 
         CellI* methodPtr = nullptr;
         if (&methodName.__type__() == &w.std.String) {
-            if (&self[w.id.ast].__type__() == &w.std.ast.Call) {
-                methodPtr = &inputSelf[w.id.__type__][w.id.methods];
-            } else {
-                methodPtr = &inputSelf[w.id.methods];
-            }
-            methodPtr = &(*methodPtr)[w.id.index][methodName][w.id.value];
+            CellI& inputSelf = self[w.id.parameters][w.id.index][w.id.self][w.id.value][w.id.value][w.id.value];
+            methodPtr        = &inputSelf[w.id.__type__][w.id.methods];
+            methodPtr        = &(*methodPtr)[w.id.index][methodName][w.id.value];
         } else {
             methodPtr = &self[w.id.method][w.id.value];
         }
@@ -290,7 +282,6 @@ void OpActivator::activateOpCall()
         stackFrame.set(w.id.method, method);
 
         CellI& inputIndex = *new Object(w, w.std.Index);
-        inputIndex.set(w.id.self, inputSelf);
         if (self.has(w.id.parameters)) {
             for (CellI& parameter : self[w.id.parameters]) {
                 inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
@@ -341,16 +332,11 @@ void OpActivator::activateOpCall()
         m_previousCell = m_currentCell;
         m_currentCell  = &method;
     } else if (m_currentState == &state.stackPop) {
-        CellI& inputSelf  = self[w.id.self][w.id.value];
         CellI& methodName = self[w.id.method][w.id.value];
-
         CellI* methodPtr = nullptr;
         if (&methodName.__type__() == &w.std.String) {
-            if (&self[w.id.ast].__type__() == &w.std.ast.Call) {
-                methodPtr = &inputSelf[w.id.__type__][w.id.methods];
-            } else {
-                methodPtr = &inputSelf[w.id.methods];
-            }
+            CellI& inputSelf = self[w.id.parameters][w.id.index][w.id.self][w.id.value][w.id.value][w.id.value];
+             methodPtr = &inputSelf[w.id.__type__][w.id.methods];
             // TODO: cache the method obj
             methodPtr = &(*methodPtr)[w.id.index][methodName][w.id.value];
         } else {
@@ -1113,13 +1099,6 @@ void OpActivator::saveOpState(List& opStates, CellI& op)
         opStates.add(opState);
     }
     if (&type == &std.op.Call) {
-        if (op[id.self].has(id.value)) {
-            Object& opState = *new Object(w, std.op.SavedState);
-            opState.set(id.op, op);
-            opState.set(id.state, id.self);
-            opState.set(id.value, op[id.self][id.value]);
-            opStates.add(opState);
-        }
         if (op[id.method].has(id.value)) {
             Object& opState = *new Object(w, std.op.SavedState);
             opState.set(id.op, op);
@@ -1127,16 +1106,6 @@ void OpActivator::saveOpState(List& opStates, CellI& op)
             opState.set(id.value, op[id.method][id.value]);
             opStates.add(opState);
         }
-#if 0
-        if (op[id.stack].has(id.value)) {
-            Object& opState = *new Object(w, std.OpState);
-            opState.set(id.op, op);
-            opState.set(id.state, id.stack);
-            opState.set(id.value, op[id.stack][id.value]);
-            opStates.add(opState);
-            std::cout << "SAVE " << op[id.stack][id.value].label() << std::endl;
-        }
-#endif
     }
     if (&type == &std.op.Set || &type == &std.op.Get) {
         if (op[id.cell].has(id.value)) {

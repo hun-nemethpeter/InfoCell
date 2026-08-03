@@ -35,6 +35,12 @@ public:
     };
 
     // ============================================================================
+    class Add : public BaseT<Add>
+    {
+    public:
+        Add(World& w, CellI& lhs, CellI& rhs);
+    };
+
     class Call : public BaseT<Call>
     {
     public:
@@ -48,6 +54,19 @@ public:
         ConstVar(World& w, CellI& value);
     };
 
+    class Equal : public BaseT<Equal>
+    {
+    public:
+        Equal(World& w, CellI& lhs, CellI& rhs);
+    };
+
+    class Get : public BaseT<Get>
+    {
+    public:
+        Get(World& w, CellI& cell, CellI& key);
+        Call& operator/(Base& key);
+    };
+
     class UnknownVar : public BaseT<UnknownVar>
     {
     public:
@@ -57,10 +76,10 @@ public:
     // ============================================================================
     Op(World& w);
 
-    Call& add(Base& lhs, Base& rhs);
+    Add& add(Base& lhs, Base& rhs);
     Call& call(CellI& self, CellI& method);
-    Call& equal(CellI& lhs, Base& rhs);
-    Call& get(Base& cell, Base& key);
+    Equal& equal(CellI& lhs, Base& rhs);
+    Get& get(Base& cell, Base& key);
 
     ConstVar& const_(CellI& value);
     ConstVar& const_(const std::string& id);

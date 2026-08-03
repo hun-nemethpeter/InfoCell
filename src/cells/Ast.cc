@@ -62,10 +62,16 @@ Ast::Slot::Slot(World& w, CellI& key, CellI& type) :
     set(w.id.type, type);
 }
 
+Ast::Call::Call(World& w, CellI& method) :
+    BaseT<Call>(w, w.std.ast.Call, "ast.Call")
+{
+    set(w.id.method, method);
+}
+
 Ast::Call::Call(World& w, CellI& self, CellI& method) :
     BaseT<Call>(w, w.std.ast.Call, "ast.Call")
 {
-    set(w.id.self, self);
+    set(w.id.parameters, w.list(w.ast.parameterInit(w.id.self, self)));
     set(w.id.method, method);
 }
 
@@ -103,25 +109,6 @@ Ast::Call& Ast::Call::operator()(const std::string& nameStr, const std::string& 
 List& Ast::Call::parameters()
 {
     return static_cast<List&>(get(w.id.parameters));
-}
-
-Ast::StaticCall::StaticCall(World& w, CellI& cell, CellI& method) :
-    BaseT<StaticCall>(w, w.std.ast.StaticCall, "ast.StaticCall")
-{
-    set(w.id.cell, cell);
-    set(w.id.method, method);
-}
-
-Ast::StaticCall& Ast::StaticCall::operator()(const std::string& nameStr, CellI& value)
-{
-    Slot& slot = Slot::New(w, w.name(nameStr), value);
-    if (missing(w.id.parameters)) {
-        set(w.id.parameters, w.list(slot));
-    } else {
-        List& paramList = static_cast<List&>(get(w.id.parameters));
-        paramList.add(slot);
-    }
-    return *this;
 }
 
 Ast::ConstVar::ConstVar(World& w, CellI& value) :
@@ -378,7 +365,6 @@ void Ast::StructBase::addMethod(Function& method, ParameterModification paramete
     if (methods().hasKey(name)) {
         throw "Already registered!";
     }
-    method.set("structType", *this);
     methods().add(name, method);
 }
 
@@ -401,7 +387,6 @@ void Ast::StructBase::addTraitImpl(Ast::TraitImpl& traitImpl)
     if (traitImpls().hasKey(name)) {
         throw "Already registered!";
     }
-    traitImpl.set("structType", *this);
     traitImpls().add(name, traitImpl);
 }
 
@@ -1299,19 +1284,14 @@ Ast::Call& Ast::call(CellI& object, const std::string& method)
     return Call::New(w, object, w.ast._(method));
 }
 
+Ast::Call& Ast::call(CellI& method)
+{
+    return Call::New(w, method);
+}
+
 Ast::Call& Ast::call(CellI& cell, CellI& method)
 {
     return Call::New(w, cell, method);
-}
-
-Ast::StaticCall& Ast::scall(CellI& cell, CellI& method)
-{
-    return StaticCall::New(w, cell, method);
-}
-
-Ast::StaticCall& Ast::scall(CellI& type, const std::string& method)
-{
-    return scall(type, w.ast._(method));
 }
 
 Ast::Call& Ast::delete_(Base& ast)

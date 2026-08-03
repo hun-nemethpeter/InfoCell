@@ -81,7 +81,6 @@ Std::Op::ECall::EState::EState(World& w, CellI& type, const std::string& label) 
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
     start(w.std.op.State.start),
-    activateParameterSelf(w, w.std.op.Call.State, "Call::State::activateParameterSelf"),
     activateParameters(w, w.std.op.Call.State, "Call::State::activateParameters"),
     stackPushAndCall(w, w.std.op.Call.State, "Call::State::stackPushAndCall"),
     stackPop(w, w.std.op.Call.State, "Call::State::stackPop")
@@ -585,7 +584,6 @@ Std::Ast::Ast(World& w) :
     Self(w, w.std.Struct, "ast::Self"),
     SelfType(w, w.std.Struct, "ast::SelfType"),
     Slot(w, w.std.Struct, "ast::Slot"),
-    StaticCall(w, w.std.Struct, "ast::StaticCall"),
     Struct(w, w.std.Struct, "ast::Struct"),
     StructT(w, w.std.Struct, "ast::StructT"),
     TemplatedType(w, w.std.Struct, "ast::TemplatedType"),
@@ -762,9 +760,8 @@ void StdLibAst::createOp()
         .members(
             member("ast", "ast::Base"),
             member("method", "ast::Base"),
-            member("self", "ast::Base"),
             member("parameters", tt_("std::List", "valueType", "std::Slot")),
-            member("stack", "ast::Base"),
+            member("parentFunction", "ast::Base"),
             member("currentParam", "std::Cell"),
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
@@ -828,7 +825,6 @@ void StdLibAst::createOp()
             member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "std::Slot")),
             member("localVars", "std::Index"),
             member("returnType", "std::Cell"),
-            member("objectType", "std::Cell"),
             member("lastOp", tt_("std::List", "valueType", "Base")),
             member("op", tt_("std::List", "valueType", "Base")),
             member("previous", "std::Cell"),
@@ -1104,7 +1100,6 @@ void StdLibAst::createAst()
             member("memberMapping", MapOf(std.String, std.ast.Base)),
             member("primitiveTool", _(std.Boolean)),
             member("isConstructor", _(std.Boolean)),
-            member("structType", "std::Cell"),
             member("parameters", ListOf(std.ast.Slot)),
             member("returnType", "std::Struct"),
             member("instructions", "Base"),
@@ -1209,12 +1204,6 @@ void StdLibAst::createAst()
             member("value", "Base"),
             member("type", "Base"),
             member("const", "Boolean"));
-
-    astScope.add<Struct>("StaticCall")
-        .members(
-            member("cell", "Base"),
-            member("method", "Base"),
-            member("parameters", ListOf(std.ast.Slot)));
 
     astScope.add<Struct>("Struct")
         .members(
@@ -1899,7 +1888,12 @@ void StdLibAst::createStruct()
                   member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
                   member("memberOf", tt_("Map", "keyType", "Struct", "valueType", "Struct")),
                   member("ast", "std::ast::Struct"),
-                  member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")));
+                  member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")),
+                  member("primitiveTool", _(std.Boolean)),
+                  member("slotKeyList", tt_("List", "valueType", "Char")),
+                  member("description", "std::Cell"),
+                  member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "std::Slot")),
+                  member("returnType", "std::Cell"));
 
     structStruct.addMethod("constructor")
         .instructions(
@@ -2738,7 +2732,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::Self", std.ast.Self);
     compiler.registerBuiltInStruct("std::ast::SelfType", std.ast.SelfType);
     compiler.registerBuiltInStruct("std::ast::Slot", std.ast.Slot);
-    compiler.registerBuiltInStruct("std::ast::StaticCall", std.ast.StaticCall);
     compiler.registerBuiltInStruct("std::ast::Struct", std.ast.Struct);
     compiler.registerBuiltInStruct("std::ast::StructT", std.ast.StructT);
     compiler.registerBuiltInStruct("std::ast::TemplatedType", std.ast.TemplatedType);

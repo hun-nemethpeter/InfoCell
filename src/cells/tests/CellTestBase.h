@@ -7,6 +7,20 @@
 #include "cells/NodeBase.h"
 #include "TestLib.h"
 
+namespace testing::internal {
+
+template <>
+class UniversalPrinter<infocell::cells::CellI*>
+{
+public:
+    static void Print(const infocell::cells::CellI* val, ::std::ostream* os)
+    {
+        *os << val->label();
+    }
+};
+
+} // namespace testing::internal
+
 namespace infocell {
 namespace cells {
 class Compiler;

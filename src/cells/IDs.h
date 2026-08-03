@@ -96,6 +96,7 @@ public:
     String& output;
     String& parameters;
     String& parent;
+    String& parentFunction;
     String& pixels;
     String& pixelsMap;
     String& pop;

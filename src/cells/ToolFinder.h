@@ -59,7 +59,7 @@ public:
     ToolFinder(World& w);
 
     bool empty();
-    CellI& serializeEffect(CellI& effect);
+    List& serializeEffect(CellI& effect);
     void add(Object& tool);
     void add(CellI& effect, CellI& tool);
     List& findToolsByEffect(CellI& effect);
@@ -77,11 +77,25 @@ private:
         CellI& m_matchedEffect;
         CellI& m_builder;
     };
+    enum class ParamValueKind
+    {
+        NonParamValue,
+        ConstVar,
+        UnknownVar,
+        Self,
+        Return,
+        Parameter,
+        Call
+    };
 
     bool checkUnknownsInTool(CellI& effect);
     List* findBuildersForEffect(CellI& effect);
     void buildTool(const BuildToolInfo& buildToolInfo);
+    void serializeKeyWithConstValue(List& result, CellI& key, CellI& value);
+    void serializeKeyWithParamValue(List& result, CellI& key, CellI& value, ParamValueKind& paramValueKind);
     void addValue(Node*& node, CellI& value);
+    void addKeyWithConstValue(Node*& node, CellI& key, CellI& value);
+    void addKeyWithParamValue(Node*& node, CellI& key, CellI& value, ParamValueKind& paramValueKind);
     void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
     bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush);
     List& createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect);
@@ -90,14 +104,12 @@ private:
     void findConversionToolsByType(CellI& from, CellI& to, List& results);
     void findConversionToolsByContainer(CellI& from, CellI& to, List& results);
     std::string printTool(CellI& tool);
-    List& callSlotKeyList();
 
     World& w;
     ID& id;
     std::unique_ptr<Node> m_root;
     List m_tools;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;
-    std::unique_ptr<List> m_callSlotKeyList;
 };
 
 std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolKey& key);

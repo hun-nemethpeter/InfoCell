@@ -125,18 +125,12 @@ public:
     CellI& operator[](CellI& key) override;
 
     CellI& method(const std::string& key);
-
     CellI& method(CellI& key);
     CellI& method(CellI& key, Param param1);
     CellI& method(CellI& key, Param param1, Param param2);
     CellI& method(CellI& key, Param param1, Param param2, Param param3);
     CellI& method(CellI& key, Param param1, Param param2, Param param3, Param param4);
 
-    CellI& smethod(CellI& key);
-    CellI& smethod(CellI& key, Param param1);
-    CellI& smethod(CellI& key, Param param1, Param param2);
-    CellI& smethod(CellI& key, Param param1, Param param2, Param param3);
-    CellI& smethod(CellI& key, Param param1, Param param2, Param param3, Param param4);
     void createSelfStack();
     void runAsCall();
     static void clearStack(CellI& method);

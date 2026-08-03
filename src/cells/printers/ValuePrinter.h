@@ -27,6 +27,7 @@ protected:
     void printOpDo(CellI& cell);
     void printOpWhile(CellI& cell);
     void printOpConstVar(CellI& cell);
+    void printOpUnknownVar(CellI& cell);
     void printOpVar(CellI& cell);
     void printOpNew(CellI& cell);
     void printOpSame(CellI& cell);
@@ -58,6 +59,7 @@ protected:
     void printAstVar(CellI& cell);
     void printIndent();
     bool isThisCallAGetter(CellI& callAst);
+    void prefixByAstVariableType(CellI& astVariable);
 
     std::stringstream m_ss;
     mutable int m_indent = 0;

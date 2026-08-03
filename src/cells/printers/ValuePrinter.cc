@@ -11,34 +11,38 @@ CellValuePrinter::CellValuePrinter(World& w) :
     NodeBase(w)
 {
 }
+void CellValuePrinter::prefixByAstVariableType(CellI& astVariable)
+{
+    if (&astVariable.__type__() == &w.std.ast.Self) {
+        m_ss << "self";
+    }
+    if (&astVariable.__type__() == &w.std.ast.ConstVar) {
+        m_ss << astVariable[w.id.value].label();
+    }
+    if (&astVariable.__type__() == &w.std.ast.Member) {
+        m_ss << "m_" << astVariable[w.id.key].label();
+    }
+    if (&astVariable.__type__() == &w.std.ast.Parameter) {
+        m_ss << "p_" << astVariable[w.id.key].label();
+    }
+}
 
 void CellValuePrinter::printOpBlock(CellI& cell)
 {
     CellI& ast = cell[w.id.ast];
-    if (&ast.__type__() == &w.std.ast.Call || &ast.__type__() == &w.std.ast.StaticCall) {
-        if (isThisCallAGetter(ast) && cell.label() != "New { call constructor; }") {
-            printImpl(cell[w.id.self]);
-        }
-        if (&ast[w.id.self].__type__() == &w.std.ast.Self) {
-            m_ss << "self";
-        }
-        if (&ast[w.id.self].__type__() == &w.std.ast.ConstVar) {
-            m_ss << ast[w.id.self][w.id.value].label();
-        }
-        if (&ast[w.id.self].__type__() == &w.std.ast.Member) {
-            m_ss << "m_" << ast[w.id.self][w.id.key].label();
-        }
-        if (&ast[w.id.self].__type__() == &w.std.ast.Parameter) {
-            m_ss << "p_" << ast[w.id.self][w.id.key].label();
+    if (&ast.__type__() == &w.std.ast.Call) {
+        if (ast.has(w.id.parameters) && (&ast[w.id.parameters][w.id.first][w.id.value][w.id.key] == &w.id.self)) {
+            CellI& selfParameterValue = ast[w.id.parameters][w.id.first][w.id.value][w.id.value];
+            if (isThisCallAGetter(ast) && cell.label() != "New { call constructor; }") {
+                CellI& compiledSelfValue = cell[w.id.parameters][w.id.list][w.id.first][w.id.value][w.id.value];
+                printImpl(cell[w.id.parameters][w.id.list][w.id.first][w.id.value]);
+            }
+            prefixByAstVariableType(selfParameterValue);
         }
         if (&cell.__type__() == &w.std.op.Call) {
             printOpCall(cell);
             if (0) {
-                if (&ast.__type__() == &w.std.ast.Call) {
-                    m_ss << ".";
-                } else {
-                    m_ss << "::";
-                }
+                m_ss << ".";
                 m_ss << ast[w.id.method][w.id.value].label();
                 m_ss << "(";
                 if (cell.has(w.id.parameters)) {
@@ -105,29 +109,28 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     std::stringstream iss;
     std::stringstream oss;
 
+    std::string label;
     if (cell.has(w.id.parameters)) {
         CellI& parametersList = cell[w.id.parameters][w.id.list];
         int i                 = 0;
         for (CellI& slot : parametersList) {
-            if (i++ > 0) {
-                iss << ", ";
-            }
-            if (&slot[w.id.key] != &w.id.self) {
+            if (&slot[w.id.key] == &w.id.self) {
+                label += slot[w.id.type].label();
+                label += "::";
+            } else {
+                if (i++ > 0) {
+                    iss << ", ";
+                }
                 iss << "p_";
+                iss << slot[w.id.key].label() << ": " << slot[w.id.type].label();
             }
-            iss << slot[w.id.key].label() << ": " << slot[w.id.type].label();
         }
     }
     bool hasReturnValue = false;
     if (cell.has(w.id.returnType)) {
         CellI& outType = cell[w.id.returnType];
         hasReturnValue = true;
-        oss << outType.label();
-    }
-    const std::string& className = cell.has(w.id.objectType) ? cell[w.id.objectType].label() : "";
-    std::string label            = className;
-    if (!className.empty()) {
-        label += "::";
+        oss << " -> " << outType.label();
     }
     label += cell[w.id.name].label();
 
@@ -135,22 +138,36 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     std::string staticStr = isStatic ? "static " : "";
     std::string newLabel;
 
-    if (hasReturnValue) {
-        newLabel = fmt::format("fn {}{}({}) -> {}\n", staticStr, label, iss.str(), oss.str());
-    } else {
-        newLabel = fmt::format("fn {}{}({})\n", staticStr, label, iss.str());
-    }
+    newLabel = fmt::format("fn {}{}({}){}\n", staticStr, label, iss.str(), oss.str());
     m_ss << newLabel;
 
-    printImpl(cell[w.id.op]);
+    if (&cell[w.id.op].__type__() == &w.std.op.Block) {
+        printImpl(cell[w.id.op]);
+    } else {
+        m_ss << "{\n";
+        m_indent++;
+        printIndent();
+        printImpl(cell[w.id.op]);
+        m_ss << ";\n";
+        m_indent--;
+        printIndent();
+        m_ss << "}";
+    }
 }
 
 bool CellValuePrinter::isThisCallAGetter(CellI& callAst)
 {
-    if (&callAst[w.id.self].__type__() != &w.std.ast.Call) {
+    if (callAst.missing(w.id.parameters)) {
         return false;
     }
-    CellI& cellMethod = callAst[w.id.self][w.id.method];
+    CellI& selfParameter = callAst[w.id.parameters][w.id.first][w.id.value];
+    if (&selfParameter[w.id.key] != &w.id.self) {
+        return false;
+    }
+    if (&selfParameter[w.id.value].__type__() != &w.std.ast.Call) {
+        return false;
+    }
+    CellI& cellMethod = selfParameter[w.id.value][w.id.method];
     if (&cellMethod.__type__() != &w.std.ast.PrimitiveToolName) {
         return false;
     }
@@ -164,48 +181,31 @@ bool CellValuePrinter::isThisCallAGetter(CellI& callAst)
 void CellValuePrinter::printOpCall(CellI& cell)
 {
     int paramNum = 0;
-    if (cell.has(w.id.ast)) {
-        CellI& ast = cell[w.id.ast];
-
-        if (isThisCallAGetter(ast) && cell.label() != "New { call constructor; }") {
-            printImpl(cell[w.id.self]);
+    if (cell.has(w.id.ast) && cell[w.id.ast].has(w.id.parameters)) {
+        CellI& ast       = cell[w.id.ast];
+        CellI& selfParam = ast[w.id.parameters][w.id.first][w.id.value];
+        if ((&selfParam[w.id.key] == &w.id.self)) {
+            if (isThisCallAGetter(ast) && cell.label() != "New { call constructor; }") {
+                CellI& compiledSelfValue = cell[w.id.parameters][w.id.list][w.id.first][w.id.value][w.id.value];
+                printImpl(compiledSelfValue);
+            }
+            prefixByAstVariableType(selfParam[w.id.value]);
         }
-        if (&ast[w.id.self].__type__() == &w.std.ast.Self) {
-            m_ss << "self";
-        }
-        if (&ast[w.id.self].__type__() == &w.std.ast.ConstVar) {
-            m_ss << ast[w.id.self][w.id.value].label();
-        }
-        if (&ast[w.id.self].__type__() == &w.std.ast.Member) {
-            m_ss << "m_" << ast[w.id.self][w.id.key].label();
-        }
-        if (&ast[w.id.self].__type__() == &w.std.ast.Parameter) {
-            m_ss << "p_" << ast[w.id.self][w.id.key].label();
-        }
-        if (&ast.__type__() == &w.std.ast.Call) {
-            m_ss << ".";
-        } else {
-            m_ss << "::";
-        }
+        m_ss << ".";
         m_ss << ast[w.id.method][w.id.value].label();
         m_ss << "(";
     } else {
         m_ss << cell[w.id.method].label();
         m_ss << "(";
-        if (cell.has(w.id.self)) {
-            paramNum = 1;
-            m_ss << "self: ";
-            printImpl(cell[w.id.self]);
-        }
     }
     if (cell.has(w.id.parameters)) {
         for (CellI& parameter : cell[w.id.parameters]) {
             if (paramNum++ > 0) {
                 m_ss << ", ";
             }
-            auto& paramRole  = parameter[w.id.key];
+            auto& paramKey   = parameter[w.id.key];
             auto& paramValue = parameter[w.id.value];
-            m_ss << paramRole.label();
+            m_ss << paramKey.label();
             m_ss << ": ";
             printImpl(paramValue);
         }
@@ -242,7 +242,7 @@ void CellValuePrinter::printOpIf(CellI& cell)
     auto isBlock = [this, &cell](CellI& ast) -> bool {
         if (&ast.__type__() == &w.std.op.Block) {
             auto& astType = ast[w.id.ast].__type__();
-            if (&astType == &w.std.ast.Call || &astType == &w.std.ast.StaticCall || &astType == &w.std.ast.New) {
+            if (&astType == &w.std.ast.Call || &astType == &w.std.ast.New) {
                 return false;
             }
             return true;
@@ -315,6 +315,11 @@ void CellValuePrinter::printOpConstVar(CellI& cell)
     } else {
         m_ss << "<empty>";
     }
+}
+
+void CellValuePrinter::printOpUnknownVar(CellI& cell)
+{
+    cell[id.value].label().empty() ? (m_ss << "<empty>") : (m_ss << cell[id.value].label());
 }
 
 void CellValuePrinter::printOpVar(CellI& cell)
@@ -685,6 +690,9 @@ void CellValuePrinter::printImpl(CellI& cell)
         return;
     } else if (cell.isA(w.std.op.ConstVar)) {
         printOpConstVar(cell);
+        return;
+    } else if (cell.isA(w.std.op.UnknownVar)) {
+        printOpUnknownVar(cell);
         return;
     } else if (cell.isA(w.std.op.Var)) {
         printOpVar(cell);

@@ -82,6 +82,7 @@ ID::ID(World& w) :
     output(w.name("output")),
     parameters(w.name("parameters")),
     parent(w.name("parent")),
+    parentFunction(w.name("parentFunction")),
     pixels(w.name("pixels")),
     pixelsMap(w.name("pixelsMap")),
     pop(w.name("pop")),

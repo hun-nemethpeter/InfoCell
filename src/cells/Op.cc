@@ -14,11 +14,18 @@ Op::Base::Base(World& w, CellI& classCell, const std::string& label) :
 }
 
 // ============================================================================
+Op::Add::Add(World& w, CellI& lhs, CellI& rhs) :
+    BaseT<Add>(w, w.std.op.Add, "op.Add")
+{
+    set(w.id.lhs, lhs);
+    set(w.id.rhs, rhs);
+}
+
 Op::Call::Call(World& w, CellI& self, CellI& method) :
     BaseT<Call>(w, w.std.op.Call, "op.Call")
 {
-    set(w.id.self, self);
     set(w.id.method, method);
+    set(w.id.parameters, w.op.parameters(w.id.self, self));
     set(w.id.state, w.std.op.State.start);
 }
 
@@ -41,6 +48,20 @@ Op::ConstVar::ConstVar(World& w, CellI& value) :
     set(w.id.value, value);
 }
 
+Op::Equal::Equal(World& w, CellI& lhs, CellI& rhs) :
+    BaseT<Equal>(w, w.std.op.Equal, "op.Equal")
+{
+    set(w.id.lhs, lhs);
+    set(w.id.rhs, rhs);
+}
+
+Op::Get::Get(World& w, CellI& cell, CellI& key) :
+    BaseT<Get>(w, w.std.op.Get, "op.Get")
+{
+    set(w.id.cell, cell);
+    set(w.id.key, key);
+}
+
 Op::UnknownVar::UnknownVar(World& w, CellI& value) :
     BaseT<UnknownVar>(w, w.std.op.UnknownVar, "op.UnknownVar")
 {
@@ -54,9 +75,9 @@ Op::Op(World& w) :
 {
 }
 
-Op::Call& Op::add(Base& lhs, Base& rhs)
+Op::Add& Op::add(Base& lhs, Base& rhs)
 {
-    return call(lhs, w.std.op.Add)(w.id.other, rhs);
+    return Add::New(w, lhs, rhs);
 }
 
 Op::Call& Op::call(CellI& self, CellI& method)
@@ -64,14 +85,14 @@ Op::Call& Op::call(CellI& self, CellI& method)
     return Call::New(w, self, method);
 }
 
-Op::Call& Op::equal(CellI& lhs, Base& rhs)
+Op::Equal& Op::equal(CellI& lhs, Base& rhs)
 {
-    return call(lhs, w.std.op.Equal)(w.id.other, rhs);
+    return Equal::New(w, lhs, rhs);
 }
 
-Op::Call& Op::get(Base& cell, Base& key)
+Op::Get& Op::get(Base& cell, Base& key)
 {
-    return call(cell, w.std.op.Get)(w.id.key, key);
+    return Get::New(w, cell, key);
 }
 
 Op::ConstVar& Op::const_(CellI& value)

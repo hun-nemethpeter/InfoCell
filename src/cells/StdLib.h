@@ -94,7 +94,6 @@ public:
 
                 Object& missingInput;
                 Object& start;
-                Object activateParameterSelf;
                 Object activateParameters;
                 Object stackPushAndCall;
                 Object stackPop;
@@ -636,7 +635,6 @@ public:
         Object Self;
         Object SelfType;
         Object Slot;
-        Object StaticCall;
         Object Struct;
         Object StructT;
         Object TemplatedType;

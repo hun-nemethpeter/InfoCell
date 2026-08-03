@@ -226,25 +226,28 @@ TEST_F(CellTest, ToolFinderTestForSet)
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     Object& pixel          = *new Object(w, test.Color, "pixel");
 
-    CellI& requestForSetGet = *new Object(w, std.op.Call);
-    requestForSetGet.set(id.method, std.op.Get);
-    requestForSetGet.set(id.self, op.unknown_(pixel));
-    requestForSetGet.set(id.parameters, parameters(id.key, op.const_(id.green)));
+    CellI& requestForSetGet = *new Object(w, std.op.Get);
+    requestForSetGet.set(id.cell, op.unknown_(pixel));
+    requestForSetGet.set(id.key, op.const_(id.green));
 
-    CellI& requestForSet = *new Object(w, std.op.Call, "pixel.get(green) == 5");
-    requestForSet.set(id.method, std.op.Equal);
-    requestForSet.set(id.self, requestForSetGet);
+    CellI& requestForSet = *new Object(w, std.op.Equal, "pixel.get(green) == 5");
+    requestForSet.set(id.lhs, requestForSetGet);
+    requestForSet.set(id.rhs, op.const_(5));
 
-    requestForSet.set(id.parameters, parameters(id.other, op.const_(5)));
-
-    CellI& requestForSetAstList = toolFinder.serializeEffect(requestForSet);
-    {
-        std::stringstream ss;
-        for (CellI& value : requestForSetAstList) {
-            ss << value.label() << " ";
+    List& serializedEffect = toolFinder.serializeEffect(requestForSet);
+    List& expectedIds = w.list(id.op, id.type, std.op.Equal, id.lhs, id.op, id.push, id.op, id.type, std.op.Get, id.cell, pixel, id.key, id.green, id.op, id.pop, id.rhs, _5_);
+    EXPECT_EQ(serializedEffect.size(), expectedIds.size());
+    auto* expectedIdNodePtr = &expectedIds[id.first];
+    for (auto& resultId : serializedEffect) {
+        EXPECT_TRUE(expectedIdNodePtr != nullptr);
+        if (expectedIdNodePtr) {
+            auto& expectedId = (*expectedIdNodePtr)[id.value];
+            EXPECT_EQ(&resultId, &expectedId);
+            expectedIdNodePtr = expectedIdNodePtr->getNextOrNullptr();
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Get self op variable key green op pop other 5 ");
+        std::cout << resultId.label() << " ";
     }
+    std::cout << std::endl;
 
     List& resultTools = toolFinder.findToolsByEffect(requestForSet);
 
@@ -279,19 +282,24 @@ TEST_F(CellTest, ToolFinderTestForGet)
     pixel.set(id.green, w._5_);
 
     // test the get(pixel, green)
-    CellI& requestForGet = *new Object(w, std.op.Call);
-    requestForGet.set(id.method, std.op.Get);
-    requestForGet.set(id.self, op.const_(pixel));
-    requestForGet.set(id.parameters, parameters(id.key, op.const_(id.green)));
+    CellI& requestForGet = *new Object(w, std.op.Get);
+    requestForGet.set(id.cell, op.const_(pixel));
+    requestForGet.set(id.key, op.const_(id.green));
 
-    CellI& requestForGetAstList = toolFinder.serializeEffect(requestForGet);
-    {
-        std::stringstream ss;
-        for (CellI& value : requestForGetAstList) {
-            ss << value.label() << " ";
+    List& serializedEffect = toolFinder.serializeEffect(requestForGet);
+    List& expectedIds      = w.list(id.op, id.type, std.op.Get, id.cell, pixel, id.key, id.green);
+    EXPECT_EQ(serializedEffect.size(), expectedIds.size());
+    auto* expectedIdNodePtr = &expectedIds[id.first];
+    for (auto& resultId : serializedEffect) {
+        EXPECT_TRUE(expectedIdNodePtr != nullptr);
+        if (expectedIdNodePtr) {
+            auto& expectedId = (*expectedIdNodePtr)[id.value];
+            EXPECT_EQ(&resultId, &expectedId);
+            expectedIdNodePtr = expectedIdNodePtr->getNextOrNullptr();
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Get self pixel key green ");
+        std::cout << resultId.label() << " ";
     }
+    std::cout << std::endl;
 
     List& resultTools = toolFinder.findToolsByEffect(requestForGet);
 
@@ -350,14 +358,21 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     auto& testRequestFn  = libraryTester.compileAsPrompt("getInGet", "request", *testPrompt.astPtr);
 //    auto& testResponseFn = libraryTester.compile("getInGet", "response", *testResponse.astPtr);
     //    printAs.value(testRequestFn);
-    CellI& requestForSetWithGetAstList = toolFinder.serializeEffect(testRequestFn);
-    {
-        std::stringstream ss;
-        for (CellI& value : requestForSetWithGetAstList) {
-            ss << value.label() << " ";
+
+    List& serializedEffect = toolFinder.serializeEffect(testRequestFn);
+    List& expectedIds      = w.list(id.op, id.type, std.op.Equal, id.lhs, id.op, id.push, id.op, id.type, std.op.Get, id.cell, pixel, id.key, id.op, id.push, id.op, id.type, std.op.Get, id.cell, theme, id.key, id.color, id.op, id.pop, id.op, id.pop, id.rhs, _5_);
+    EXPECT_EQ(serializedEffect.size(), expectedIds.size());
+    auto* expectedIdNodePtr = &expectedIds[id.first];
+    for (auto& resultId : serializedEffect) {
+        EXPECT_TRUE(expectedIdNodePtr != nullptr);
+        if (expectedIdNodePtr) {
+            auto& expectedId = (*expectedIdNodePtr)[id.value];
+            EXPECT_EQ(&resultId, &expectedId);
+            expectedIdNodePtr = expectedIdNodePtr->getNextOrNullptr();
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Get self op variable key op push op type op::Call method op::Get self theme key color op pop op pop other 5 ");
+        std::cout << resultId.label() << " ";
     }
+    std::cout << std::endl;
 
     List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
 
@@ -401,14 +416,21 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     LibraryTester libraryTester(w, testLib);
     auto& testRequestFn = libraryTester.compileAsPrompt("getInGet", "request", testRequest.ast);
 
-    CellI& serializedRequest = toolFinder.serializeEffect(testRequestFn);
-    {
-        std::stringstream ss;
-        for (CellI& value : serializedRequest) {
-            ss << value.label() << " ";
+    List& serializedEffect   = toolFinder.serializeEffect(testRequestFn);
+    List& expectedIds      = w.list(id.op, id.type, std.op.Equal, id.lhs, id.op, id.push, id.op, id.type, std.op.Add, id.lhs, id.op, id.push, id.op, id.type, std.op.Get, id.cell, testRequest.x, id.key, id.value, id.op, id.pop, id.rhs, _2_, id.op, id.pop, id.rhs, _4_);
+    EXPECT_EQ(serializedEffect.size(), expectedIds.size());
+    auto* expectedIdNodePtr = &expectedIds[id.first];
+    for (auto& resultId : serializedEffect) {
+        EXPECT_TRUE(expectedIdNodePtr != nullptr);
+        if (expectedIdNodePtr) {
+            auto& expectedId = (*expectedIdNodePtr)[id.value];
+            EXPECT_EQ(&resultId, &expectedId);
+            expectedIdNodePtr = expectedIdNodePtr->getNextOrNullptr();
         }
-        EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self op variable key value op pop other 2 op pop other 4 ");
+        std::cout << resultId.label() << " ";
     }
+    std::cout << std::endl;
+//    EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self op variable key value op pop other 2 op pop other 4 ");
 
     List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
 

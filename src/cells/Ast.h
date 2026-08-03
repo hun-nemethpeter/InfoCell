@@ -70,6 +70,7 @@ public:
     class Call : public BaseT<Call>
     {
     public:
+        Call(World& w, CellI& method);
         Call(World& w, CellI& self, CellI& method);
         Call& operator/(Base& key);
         Call& operator/(const std::string& key);
@@ -216,14 +217,6 @@ public:
     public:
         Slot(World& w, CellI& key);
         Slot(World& w, CellI& key, CellI& value);
-    };
-
-    class StaticCall : public BaseT<StaticCall>
-    {
-    public:
-        StaticCall(World& w, CellI& cell, CellI& method);
-
-        StaticCall& operator()(const std::string& nameStr, CellI& value);
     };
 
     class TypeName : public BaseT<TypeName>
@@ -658,6 +651,7 @@ public:
     template <typename... Args>
     Block& block(Args&&... args);
     Break& break_();
+    Call& call(CellI& method);
     Call& call(CellI& object, CellI& method);
     Call& call(CellI& object, const std::string& method);
     ConstVar& const_(CellI& value);
@@ -717,8 +711,6 @@ public:
     Call& set(Base& cell, const std::string& key, Base& value);
     Slot& slot(CellI& key, CellI& type);
     Slot& slot(const std::string& key, CellI& type);
-    StaticCall& scall(CellI& type, CellI& method);
-    StaticCall& scall(CellI& type, const std::string& method);
     TypeName& typeName(CellI& id);
     TypeName& typeName(const std::string& idStr);
     Call& subtract(Base& lhs, Base& rhs);
