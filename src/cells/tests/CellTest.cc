@@ -274,7 +274,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
 
 // Given:   pixel.color = 5
 // Request: get(pixel, green)
-// Result:  get(pixel, green) after activation the value in get is 5
+// Result:  5, so we expect constant folding here
 TEST_F(CellTest, ToolFinderTestForGet)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
@@ -310,16 +310,11 @@ TEST_F(CellTest, ToolFinderTestForGet)
     }
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
-    EXPECT_EQ(&resultTool.__type__(), &std.op.Get);
+    EXPECT_EQ(&resultTool.__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.state], &w.std.op.State.start);
-    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
-    EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
-    EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
-    EXPECT_EQ(&resultTool[id.key][id.value], &id.green);
-
-    EXPECT_TRUE(resultTool.missing(id.value));
-    resultTool();
     EXPECT_EQ(&resultTool[id.value], &w._5_);
+    EXPECT_EQ(&resultTool[id.type], &w._5_.__type__());
+    std::cout << "";
 }
 
 // Given:   empty pixel

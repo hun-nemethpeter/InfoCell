@@ -19,6 +19,55 @@ public:
     }
 };
 
+#define IMPLEMENT_GTEST_PRINTER_FOR(x)                      \
+    template <>                                             \
+    class UniversalPrinter<x*>                              \
+    {                                                       \
+    public:                                                 \
+        static void Print(const x* val, ::std::ostream* os) \
+        {                                                   \
+            *os << val->label();                            \
+        }                                                   \
+    };
+
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EActivate);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EAdd);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EAnd);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EBlock);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ECall);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EDelete);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EDivide);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EDo);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EEqual);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EErase);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EFunction);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EGet);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EGreaterThan);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EGreaterThanOrEqual);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EHas);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EIf);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ELessThan);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ELessThanOrEqual);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EMissing);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EMultiply);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ENew);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ENot);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ENotEqual);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ENotSame);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EOr);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EReturn);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ESame);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ESet);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EState);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ESubtract);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EWhile);
+
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::EBoolean);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::SCell);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::EDirection);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::SNumber);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::ENumberSign);
+
 } // namespace testing::internal
 
 namespace infocell {

@@ -595,9 +595,9 @@ List& ToolFinder::findToolsByEffect(CellI& effect)
 {
     List& ret = *new List(w, w.std.ast.Base);
     if (checkUnknownsInTool(effect)) {
-        std::cout << "Unknown in the effect" << std::endl;
+        TRACE(toolFinderLookup, "Unknown in the effect");
     } else {
-        std::cout << "Only constants in the effect" << std::endl;
+        TRACE(toolFinderLookup, "Only constants in the effect");
     }
     List* buildersPtr = findBuildersForEffect(effect);
     if (!buildersPtr) {
@@ -611,13 +611,20 @@ List& ToolFinder::findToolsByEffect(CellI& effect)
         DEBUG(toolFinderLookup, "result: {}", tool.printAsValue());
         if (checkUnknownsInTool(tool)) {
             tool.set(id.state, w.std.op.State.missingInput);
-            std::cout << "Unknown" << std::endl;
+            TRACE(toolFinderLookup, "Unknown in the result");
+            ret.add(tool);
         } else {
             tool.set(id.state, w.std.op.State.start);
-            std::cout << "Constant" << std::endl;
-            //        tool();
+            TRACE(toolFinderLookup, "Constant result");
+            if (tool.__type__().has(id.returnType)) {
+                tool(); // constatnt folding
+                CellI& resultVar = w.op.const_(tool[id.value]);
+                resultVar.set(id.type, tool[id.value].__type__());
+                ret.add(resultVar);
+            } else {
+                ret.add(tool);
+            }
         }
-        ret.add(tool);
     }
 
     return ret;
@@ -1113,7 +1120,7 @@ void ToolFinder::exploreSlotManipulations()
         }
 
         auto& numberTool = *new Object(w, tool);
-        numberTool.set(id.lhs, w.op.const_(1));
+        numberTool.set(id.lhs, w.op.const_(4));
         numberTool.set(id.rhs, w.op.const_(2));
 
         numberTool.set(id.state, w.std.op.State.start);
@@ -1121,7 +1128,8 @@ void ToolFinder::exploreSlotManipulations()
 
         auto& opEqual = w.op.equal(numberTool, w.op.unknown_(x));
         opEqual.label(fmt::format("{}(x, y) == z", tool.label()));
-        DEBUG(toolFinderLookup, "equation: {}", opEqual.printAsValue());
+        DEBUG(toolFinderExplore, "equation: {}", opEqual.printAsValue());
+        DEBUG(toolFinderExplore, "solution: X == {}", numberTool[id.value].printAsValue());
 
         CellI* outputEffect = nullptr;
         CellI* buildersPtr  = findBuildersForEffect(opEqual);
@@ -1131,15 +1139,15 @@ void ToolFinder::exploreSlotManipulations()
         for (auto& builder : *buildersPtr) {
             Object retVal(w, w.std.ast.ConstVar);
             buildTool({ retVal, w.ast.member(id.value), opEqual, builder });
-            CellI& result = retVal[id.value];
-            DEBUG(toolFinderLookup, "result: {}", result.printAsValue());
-            CellI* builders2ndLevelPtr = findBuildersForEffect(result);
+            CellI& result1st = retVal[id.value];
+            DEBUG(toolFinderExplore, "  1. result: {}", result1st.printAsValue());
+            CellI* builders2ndLevelPtr = findBuildersForEffect(result1st);
             if (builders2ndLevelPtr) {
                 for (auto& builder : *builders2ndLevelPtr) {
                     Object retVal(w, w.std.ast.ConstVar);
-                    buildTool({ retVal, w.ast.member(id.value), opEqual, builder });
-                    CellI& result = retVal[id.value];
-                    DEBUG(toolFinderLookup, "2nd result: {}", result.printAsValue());
+                    buildTool({ retVal, w.ast.member(id.value), result1st, builder });
+                    CellI& result2nd = retVal[id.value];
+                    DEBUG(toolFinderExplore, "    2. result: {}", result2nd.printAsValue());
                     std::cout << "";
                 }
             } else {
