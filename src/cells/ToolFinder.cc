@@ -1131,27 +1131,12 @@ void ToolFinder::exploreSlotManipulations()
         DEBUG(toolFinderExplore, "equation: {}", opEqual.printAsValue());
         DEBUG(toolFinderExplore, "solution: X == {}", numberTool[id.value].printAsValue());
 
-        CellI* outputEffect = nullptr;
-        CellI* buildersPtr  = findBuildersForEffect(opEqual);
-        if (!buildersPtr) {
-            continue;
-        }
-        for (auto& builder : *buildersPtr) {
-            Object retVal(w, w.std.ast.ConstVar);
-            buildTool({ retVal, w.ast.member(id.value), opEqual, builder });
-            CellI& result1st = retVal[id.value];
-            DEBUG(toolFinderExplore, "  1. result: {}", result1st.printAsValue());
-            CellI* builders2ndLevelPtr = findBuildersForEffect(result1st);
-            if (builders2ndLevelPtr) {
-                for (auto& builder : *builders2ndLevelPtr) {
-                    Object retVal(w, w.std.ast.ConstVar);
-                    buildTool({ retVal, w.ast.member(id.value), result1st, builder });
-                    CellI& result2nd = retVal[id.value];
-                    DEBUG(toolFinderExplore, "    2. result: {}", result2nd.printAsValue());
-                    std::cout << "";
-                }
-            } else {
-                std::cout << "";
+        List& tools1 = findToolsByEffect(opEqual);
+        for (auto& tool1 : tools1) {
+            DEBUG(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
+            List& tools2 = findToolsByEffect(tool1);
+            for (auto& tool2 : tools2) {
+                DEBUG(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
             }
         }
     }
