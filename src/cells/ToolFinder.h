@@ -88,6 +88,13 @@ private:
         Call
     };
 
+    enum class MultiMatchState
+    {
+        Detect,
+        Restore,
+        Skip
+    };
+
     bool checkUnknownsInTool(CellI& effect);
     List* findBuildersForEffect(CellI& effect);
     void buildTool(const BuildToolInfo& buildToolInfo);
@@ -97,7 +104,7 @@ private:
     void addKeyWithConstValue(Node*& node, CellI& key, CellI& value);
     void addKeyWithParamValue(Node*& node, CellI& key, CellI& value, ParamValueKind& paramValueKind);
     void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
-    bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush);
+    bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush, MultiMatchState& multiMatchState, CellI*& multiMatch);
     List& createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
     void findConversionToolsByValue(CellI& from, CellI& to, List& results);

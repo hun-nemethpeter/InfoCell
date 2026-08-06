@@ -516,7 +516,7 @@ List& ToolFinder::createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEff
 }
 
 // ============================================================================
-bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPush)
+bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPush, MultiMatchState& multiMatchState, CellI*& multiMatch)
 {
     // __type__ is a special key as it can not be a key in a trie node so escaped with "op type"
     if (&key == &id.__type__) {
@@ -559,27 +559,72 @@ bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPus
             Node* opNode = opFindIt->second;
             TRACE(toolFinderLookup, "MATCH: op");
 
-            for (auto& [opKey, nextNode] : opNode->m_children) {
-                if (opKey == &id.variable) {
-                    TRACE(toolFinderLookup, "MATCH: variable");
-                    node = nextNode;
-                    return true;
-                }
-                if (opKey == &id.push && (&value.__type__() != &std.ast.ConstVar)) {
-                    TRACE(toolFinderLookup, "MATCH: push");
+            bool matchFound   = false;
+            CellI* firstMatch = nullptr;
 
+            for (auto& [opKey, nextNode] : opNode->m_children) {
+                if (multiMatchState == MultiMatchState::Restore) {
+                    if (opKey != multiMatch) {
+                        // we didn't find the last match yet, keep trying
+                        continue;
+                    } else {
+                        // we found the last match
+                        multiMatchState = MultiMatchState::Detect;
+                        multiMatch      = &id.emptyObject;
+                        continue;
+                    }
+                }
+                if (opKey == &id.variable) {
+                    if (matchFound) {
+                        TRACE(toolFinderLookup, "MULTIMATCH: variable");
+                    } else {
+                        TRACE(toolFinderLookup, "MATCH: variable");
+                        node = nextNode;
+                        matchFound = true;
+                        firstMatch = &id.variable;
+                    }
+                    if (multiMatchState == MultiMatchState::Skip) {
+                        return true;
+                    }
+                }
+
+                if (opKey == &id.push && (&value.__type__() != &std.ast.ConstVar)) {
                     if (!((&value.__type__() == &std.op.Call) || (value.__type__().has(id.primitiveTool)))) {
                         panic("Not supported type!");
                     }
-                    node     = nextNode;
-                    needPush = true;
-                    return true;
+                    if (matchFound) {
+                        TRACE(toolFinderLookup, "MULTIMATCH: push");
+                    } else {
+                        TRACE(toolFinderLookup, "MATCH: push");
+                        matchFound = true;
+                        node       = nextNode;
+                        needPush   = true;
+                        firstMatch = &id.push;
+                    }
+                    if (multiMatchState == MultiMatchState::Skip) {
+                        return true;
+                    } else {
+                        multiMatch = firstMatch;
+                    }
                 }
                 if (opKey == &id.pop) {
-                    TRACE(toolFinderLookup, "MATCH: pop");
-                    node = nextNode;
-                    return true;
+                    if (matchFound) {
+                        TRACE(toolFinderLookup, "MULTIMATCH: pop");
+                    } else {
+                        TRACE(toolFinderLookup, "MATCH: pop");
+                        matchFound = true;
+                        node       = nextNode;
+                        firstMatch = &id.pop;
+                    }
+                    if (multiMatchState == MultiMatchState::Skip) {
+                        return true;
+                    } else {
+                        multiMatch = firstMatch;
+                    }
                 }
+            }
+            if (matchFound) {
+                return true;
             }
         }
     } else {
@@ -635,97 +680,134 @@ List& ToolFinder::findToolsByEffect(CellI& effect)
 List* ToolFinder::findBuildersForEffect(CellI& inputEffect)
 {
     //    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
+    List& ret           = *new List(w, std.Cell);
     Node* node          = m_root.get();
     CellI* effectPtr    = &inputEffect;
     CellI* slotItemPtr  = &inputEffect.__type__()["slotKeyList"][id.first];
     CellI* paramItemPtr = nullptr;
 
     std::deque<StackNode> stack;
+    std::deque<StackNode> stackForMultiMatch;
 
-    while (slotItemPtr || paramItemPtr) {
-        CellI& effect   = *effectPtr;
-        CellI* keyPtr   = &(*slotItemPtr)[id.value];
-        CellI* valuePtr = nullptr;
-        if (keyPtr == &id.parameters && effect.has(id.parameters)) {
-            if (!paramItemPtr) {
-                paramItemPtr = &effect[id.parameters][id.first];
+    CellI* multiMatch               = &w.id.emptyObject;
+    Node* multiNode                 = node;
+    MultiMatchState multiMatchState = MultiMatchState::Detect;
+
+    while (true) {
+        while (slotItemPtr || paramItemPtr) {
+            CellI& effect   = *effectPtr;
+            CellI* keyPtr   = &(*slotItemPtr)[id.value];
+            CellI* valuePtr = nullptr;
+            if (keyPtr == &id.parameters && effect.has(id.parameters)) {
+                if (!paramItemPtr) {
+                    paramItemPtr = &effect[id.parameters][id.first];
+                }
+                CellI& paramSlot = (*paramItemPtr)[id.value];
+                keyPtr           = &paramSlot[id.key];
+                valuePtr         = &paramSlot[id.value];
+            } else {
+                keyPtr = &(*slotItemPtr)[id.value];
+                if (effect.missing(*keyPtr)) {
+                    return nullptr;
+                }
+                valuePtr = &effect[*keyPtr];
             }
-            CellI& paramSlot = (*paramItemPtr)[id.value];
-            keyPtr           = &paramSlot[id.key];
-            valuePtr         = &paramSlot[id.value];
-        } else {
-            keyPtr   = &(*slotItemPtr)[id.value];
-            if (effect.missing(*keyPtr)) {
-                return nullptr;
+
+            CellI& key   = *keyPtr;
+            CellI& value = *valuePtr;
+
+            bool needPush = false;
+            Node* oldNode = node;
+            if (checkValue(node, key, value, needPush, multiMatchState, multiMatch) == false) {
+                TRACE(toolFinderLookup, "MATCH failed");
+                node = nullptr;
+                break;
             }
-            valuePtr = &effect[*keyPtr];
-        }
-
-        CellI& key   = *keyPtr;
-        CellI& value = *valuePtr;
-
-        bool needPush = false;
-        if (checkValue(node, key, value, needPush) == false) {
-            return nullptr;
-        }
-        if (needPush) {
-            stack.push_back({ effectPtr, slotItemPtr, paramItemPtr });
-            effectPtr    = &effect[key];
-            slotItemPtr  = &(*effectPtr).__type__()["slotKeyList"][id.first];
-            paramItemPtr = nullptr;
-            continue;
-        }
-
-        // step parameters first if possible
-        if (&(*slotItemPtr)[id.value] == &id.parameters && paramItemPtr) {
-            CellI& paramItem = *paramItemPtr;
-            paramItemPtr     = paramItem.getNextOrNullptr();
-            if (paramItemPtr) {
+            if (multiMatchState == MultiMatchState::Detect && (multiMatch != &w.id.emptyObject)) {
+                TRACE(toolFinderLookup, "MATCH continuity saved");
+                stackForMultiMatch = stack;
+                stackForMultiMatch.push_back({ effectPtr, slotItemPtr, paramItemPtr });
+                multiMatchState = MultiMatchState::Skip;
+                multiNode       = oldNode;
+            }
+            if (needPush) {
+                stack.push_back({ effectPtr, slotItemPtr, paramItemPtr });
+                effectPtr    = &effect[key];
+                slotItemPtr  = &(*effectPtr).__type__()["slotKeyList"][id.first];
+                paramItemPtr = nullptr;
                 continue;
             }
-        }
 
-        // step slots then if possible
-        slotItemPtr = slotItemPtr->getNextOrNullptr();
-        if (slotItemPtr) {
-            continue;
-        }
-
-        // pop stack if possible
-        while (!slotItemPtr && !stack.empty()) {
-            // check that stack pop is in the matcher
-            auto opFindIt = node->m_children.find(&id.op);
-            if (opFindIt == node->m_children.end()) {
-                return nullptr;
+            // step parameters first if possible
+            if (&(*slotItemPtr)[id.value] == &id.parameters && paramItemPtr) {
+                CellI& paramItem = *paramItemPtr;
+                paramItemPtr     = paramItem.getNextOrNullptr();
+                if (paramItemPtr) {
+                    continue;
+                }
             }
-            TRACE(toolFinderLookup, "MATCH: op");
-            Node* opNode   = opFindIt->second;
-            auto popFindIt = opNode->m_children.find(&id.pop);
-            if (popFindIt == opNode->m_children.end()) {
-                return nullptr;
-            }
-            TRACE(toolFinderLookup, "MATCH: pop");
-            node = popFindIt->second;
 
+            // step slots then if possible
+            slotItemPtr = slotItemPtr->getNextOrNullptr();
+            if (slotItemPtr) {
+                continue;
+            }
+
+            // pop stack if possible
+            while (!slotItemPtr && !stack.empty()) {
+                // check that stack pop is in the matcher
+                auto opFindIt = node->m_children.find(&id.op);
+                if (opFindIt == node->m_children.end()) {
+                    return nullptr;
+                }
+                TRACE(toolFinderLookup, "MATCH: op");
+                Node* opNode   = opFindIt->second;
+                auto popFindIt = opNode->m_children.find(&id.pop);
+                if (popFindIt == opNode->m_children.end()) {
+                    return nullptr;
+                }
+                TRACE(toolFinderLookup, "MATCH: pop");
+                node = popFindIt->second;
+
+                effectPtr    = stack.back().effectPtr;
+                slotItemPtr  = stack.back().slotItemPtr;
+                paramItemPtr = stack.back().paramItemPtr;
+                stack.pop_back();
+
+                // step after stack pop
+                if (paramItemPtr == nullptr) {
+                    slotItemPtr = slotItemPtr->getNextOrNullptr();
+                } else {
+                    paramItemPtr = paramItemPtr->getNextOrNullptr();
+                }
+            }
+        }
+        if (node && node->m_isLeaf) {
+            for (CellI& builder : *node->m_builders) {
+                ret.add(builder);
+            }
+        }
+        if (stackForMultiMatch.empty()) {
+            break;
+        } else {
+            TRACE(toolFinderLookup, "MATCH continue from multimatch state");
+            std::swap(stack, stackForMultiMatch);
             effectPtr    = stack.back().effectPtr;
             slotItemPtr  = stack.back().slotItemPtr;
             paramItemPtr = stack.back().paramItemPtr;
+            node         = multiNode;
             stack.pop_back();
-
-            // step after stack pop
-            if (paramItemPtr == nullptr) {
-                slotItemPtr = slotItemPtr->getNextOrNullptr();
-            } else {
-                paramItemPtr = paramItemPtr->getNextOrNullptr();
-            }
+            multiMatchState = MultiMatchState::Restore;
         }
     }
 
-    if (node && node->m_isLeaf) {
-        return node->m_builders;
+    if (ret.empty()) {
+        delete &ret;
+        return nullptr;
     }
 
-    return nullptr;
+
+    return &ret;
 }
 
 class SubEffect
