@@ -107,6 +107,7 @@ private:
 
     World& w;
     ID& id;
+    Std& std;
     std::unique_ptr<Node> m_root;
     List m_tools;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;

@@ -41,7 +41,7 @@ protected:
 
     Ast::ResolvedType& createResolvedType(CellI& astType, CellI& compiledType);
     CellI& getFullyQualifiedName(Ast::Base& base);
-    List& generateTemplateId(CellI &id, CellI& parameters, List& resolvedParams);
+    List& generateTemplateId(CellI& templateId, CellI& parameters, List& resolvedParams);
     List& generateFullyQualifiedIdFromTemplateId(Ast::Scope& scope, List& name, List& templateParams);
 
     Ast::Base& resolveType(CellI& typeAst);
@@ -79,6 +79,8 @@ protected:
     CellI& compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr = nullptr);
 
     World& w;
+    ID& id;
+    Std& std;
     ToolFinder& m_toolFinder;
 
     Ast::Function* m_currentFn  = nullptr;
