@@ -830,7 +830,7 @@ void StdLibAst::createOp()
             member("previous", "std::Cell"),
             member("stack", "Stack"),
             member("state", "std::Cell"),
-            member("static_", "std::Boolean"),
+            member("static", "std::Boolean"),
             member("value", "std::Cell"));
 
     opScope.add<Struct>("Get")
@@ -877,7 +877,7 @@ void StdLibAst::createOp()
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
             member("then", "Base"),
-            member("else_", "Base"));
+            member("else", "Base"));
 
     opScope.add<Struct>("LessThan")
         .members(
@@ -1105,7 +1105,7 @@ void StdLibAst::createAst()
             member("instructions", "Base"),
             member("description", "Base"),
             member("scope", "Base"),
-            member("static_", "std::Boolean"));
+            member("static", "std::Boolean"));
 
     astScope.add<Struct>("FunctionT")
         .members(
@@ -1114,7 +1114,7 @@ void StdLibAst::createAst()
             member("returnType", "std::Struct"),
             member("instructions", "Base"),
             member("scope", "Base"),
-            member("static_", "std::Boolean"));
+            member("static", "std::Boolean"));
 
     astScope.add<Struct>("Get")
         .memberOf(
@@ -1141,7 +1141,7 @@ void StdLibAst::createAst()
         .members(
             member("condition", "Base"),
             member("then", "Base"),
-            member("else_", "Base"));
+            member("else", "Base"));
 
 
     astScope.add<Struct>("Member")

@@ -13,6 +13,10 @@ class ToolFinder;
 template <class T, class EnumValue, class TypedEnumValue>
 concept EnumValueConcept = std::is_same<T, EnumValue>::value || std::is_same<T, TypedEnumValue>::value;
 
+class ID;
+class Std;
+class Arc;
+
 // ============================================================================
 class Ast
 {
@@ -75,6 +79,7 @@ public:
         Call& operator/(Base& key);
         Call& operator/(const std::string& key);
         Call& operator()(const std::string& method);
+        Call& operator()(CellI& name, CellI& value);
         Call& operator()(const std::string& nameStr, CellI& value);
         Call& operator()(const std::string& nameStr, const std::string& valueStr);
 
@@ -738,11 +743,21 @@ public:
 protected:
     CellI& processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb);
     World& w;
-};
+    ID& id;
+    Std& std;
+    Arc& arc;
 
-class ID;
-class Std;
-class Arc;
+    CellI& _0_;
+    CellI& _1_;
+    CellI& _2_;
+    CellI& _3_;
+    CellI& _4_;
+    CellI& _5_;
+    CellI& _6_;
+    CellI& _7_;
+    CellI& _8_;
+    CellI& _9_;
+};
 
 // ============================================================================
 class AstHelper : public Ast
@@ -782,20 +797,6 @@ protected:
     template <typename... Args>
     Map& map(CellI& key, CellI& value, Args&&... args);
 
-    ID& id;
-    Std& std;
-    Arc& arc;
-
-    CellI& _0_;
-    CellI& _1_;
-    CellI& _2_;
-    CellI& _3_;
-    CellI& _4_;
-    CellI& _5_;
-    CellI& _6_;
-    CellI& _7_;
-    CellI& _8_;
-    CellI& _9_;
 };
 
 } // namespace cells
