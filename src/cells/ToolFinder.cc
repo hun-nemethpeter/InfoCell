@@ -1121,16 +1121,12 @@ void ToolFinder::exploreSlotManipulations()
         }
 
         auto& numberTool = *new Object(w, tool);
-        numberTool.set(id.lhs, w.op.const_(4));
-        numberTool.set(id.rhs, w.op.const_(2));
+        numberTool.set(id.lhs, w.op.const_(2));
+        numberTool.set(id.rhs, w.op.unknown_(x));
 
-        numberTool.set(id.state, std.op.State.start);
-        numberTool();
-
-        auto& opEqual = w.op.equal(numberTool, w.op.unknown_(x));
+        auto& opEqual = w.op.equal(numberTool, w.op.const_(4));
         opEqual.label(fmt::format("{}(x, y) == z", tool.label()));
         DEBUG(toolFinderExplore, "equation: {}", opEqual.printAsValue());
-        DEBUG(toolFinderExplore, "solution: X == {}", numberTool[id.value].printAsValue());
 
         List& tools1 = findToolsByEffect(opEqual);
         for (auto& tool1 : tools1) {

@@ -1,7 +1,8 @@
 #include <cassert>
+#include <cstdlib>
 
 #define panic(message)             \
     do {                           \
         assert(false && #message); \
-        throw #message;            \
+        ::abort();                 \
     } while (0)

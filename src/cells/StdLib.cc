@@ -2534,6 +2534,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .description(
             // TODO check p_("other") != 0
             equal(multiply(return_(), p_("other")), self()),
+            equal(multiply(p_("other"), return_()), self()),
             divide(self(), p_("other")))
         .returnType("Number");
 
@@ -2590,7 +2591,8 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .description(
             // TODO check p_("other") != 0
             equal(divide(return_(), self()), p_("other")),
-            multiply(self(), p_("other")))
+            equal(divide(return_(), p_("other")), self()),
+            multiply(p_("other"), self()), multiply(self(), p_("other")))
         .returnType("Number");
 
     Number.addPrimitiveFunction(std.Number.Subtract, op.Subtract, "subtract")
