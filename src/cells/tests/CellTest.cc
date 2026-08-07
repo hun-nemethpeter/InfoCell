@@ -259,7 +259,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
-    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.start);
+    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.ready);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.UnknownVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
@@ -311,7 +311,7 @@ TEST_F(CellTest, ToolFinderTestForGet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.ConstVar);
-    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.start);
+    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.ready);
     EXPECT_EQ(&resultTool[id.value], &w._5_);
     EXPECT_EQ(&resultTool[id.type], &w._5_.__type__());
     std::cout << "";
@@ -379,7 +379,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     Object& resultTool = static_cast<Object&>(resultTools[id.first][id.value]);
 
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
-    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.start);
+    EXPECT_EQ(&resultTool[id.state], &w.std.op.State.ready);
     EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.UnknownVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &pixel);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.Get);
@@ -1104,12 +1104,12 @@ TEST_F(CellTest, BasicControlOpTest)
     Object& testValue2 = op.const_(arc.Color);
 
     Object sameOpEq(w, std.op.Same, "sameOpEq");
-    sameOpEq.set(id.state, std.op.State.start);
+    sameOpEq.set(id.state, std.op.State.ready);
     sameOpEq.set(id.lhs, testValue1);
     sameOpEq.set(id.rhs, testValue1);
 
     Object sameOpNe(w, std.op.Same, "sameOpNe");
-    sameOpNe.set(id.state, std.op.State.start);
+    sameOpNe.set(id.state, std.op.State.ready);
     sameOpNe.set(id.lhs, testValue1);
     sameOpNe.set(id.rhs, testValue2);
 
@@ -1126,7 +1126,7 @@ TEST_F(CellTest, BasicControlOpTest)
 TEST_F(CellTest, BasicControlAddTest)
 {
     Object add10(w, std.op.Add, "add10");
-    add10.set(id.state, std.op.State.start);
+    add10.set(id.state, std.op.State.ready);
     add10.set(id.lhs, op.const_(42));
     add10.set(id.rhs, op.const_(10));
     add10();

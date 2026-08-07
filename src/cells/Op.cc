@@ -26,7 +26,7 @@ Op::Call::Call(World& w, CellI& self, CellI& method) :
 {
     set(w.id.method, method);
     set(w.id.parameters, w.op.parameters(w.id.self, self));
-    set(w.id.state, w.std.op.State.start);
+    set(w.id.state, w.std.op.State.ready);
 }
 
 Op::Call& Op::Call::operator()(CellI& name, CellI& value)
@@ -44,7 +44,7 @@ Op::Call& Op::Call::operator()(CellI& name, CellI& value)
 Op::ConstVar::ConstVar(World& w, CellI& value) :
     BaseT<ConstVar>(w, w.std.op.ConstVar, "op.ConstVar")
 {
-    set(w.id.state, w.std.op.State.start);
+    set(w.id.state, w.std.op.State.ready);
     set(w.id.value, value);
 }
 
@@ -65,7 +65,7 @@ Op::Get::Get(World& w, CellI& cell, CellI& key) :
 Op::UnknownVar::UnknownVar(World& w, CellI& value) :
     BaseT<UnknownVar>(w, w.std.op.UnknownVar, "op.UnknownVar")
 {
-    set(w.id.state, w.std.op.State.start);
+    set(w.id.state, w.std.op.State.ready);
     set(w.id.value, value);
 }
 

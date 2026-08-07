@@ -23,7 +23,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateInput;
             };
             EActivate(World& w, CellI& type, const std::string& label);
@@ -40,7 +40,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -58,7 +58,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -76,7 +76,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateInput;
             };
             EBlock(World& w, CellI& type, const std::string& label);
@@ -93,7 +93,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateParameters;
                 Object stackPushAndCall;
                 Object stackPop;
@@ -112,7 +112,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateInput;
             };
             EDelete(World& w, CellI& type, const std::string& label);
@@ -129,7 +129,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -147,7 +147,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateStatement;
                 Object activateCondition;
             };
@@ -165,7 +165,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -183,7 +183,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateCell;
                 Object activateKey;
             };
@@ -201,7 +201,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateOp;
             };
             EFunction(World& w, CellI& type, const std::string& label);
@@ -218,7 +218,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateCell;
                 Object activateKey;
             };
@@ -236,7 +236,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -254,7 +254,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -272,7 +272,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateCell;
                 Object activateKey;
             };
@@ -290,7 +290,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateCondition;
                 Object activateThen;
                 Object activateElse;
@@ -309,7 +309,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -327,7 +327,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -345,7 +345,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateCell;
                 Object activateKey;
             };
@@ -363,7 +363,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -381,7 +381,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateObjectType;
             };
             ENew(World& w, CellI& type, const std::string& label);
@@ -398,7 +398,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateInput;
             };
             ENot(World& w, CellI& type, const std::string& label);
@@ -415,7 +415,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -433,7 +433,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -451,7 +451,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -469,7 +469,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateResult;
             };
             EReturn(World& w, CellI& type, const std::string& label);
@@ -486,7 +486,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -504,7 +504,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateCell;
                 Object activateKey;
                 Object activateValue;
@@ -523,7 +523,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateLhs;
                 Object activateRhs;
             };
@@ -541,7 +541,7 @@ public:
                 EState(World& w, CellI& type, const std::string& label);
 
                 Object& missingInput;
-                Object& start;
+                Object& ready;
                 Object activateCondition;
                 Object activateStatement;
             };
@@ -556,7 +556,7 @@ public:
             EState(World& w, CellI& type, const std::string& label);
 
             Object missingInput;
-            Object start;
+            Object ready;
         };
 
     protected:

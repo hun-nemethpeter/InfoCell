@@ -660,7 +660,7 @@ List& ToolFinder::findToolsByEffect(CellI& effect)
             TRACE(toolFinderLookup, "Unknown in the result");
             ret.add(tool);
         } else {
-            tool.set(id.state, std.op.State.start);
+            tool.set(id.state, std.op.State.ready);
             TRACE(toolFinderLookup, "Constant result");
             if (tool.__type__().has(id.returnType)) {
                 tool(); // constatnt folding
@@ -896,7 +896,7 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                 } else {
                     panic("Builder type is not a constant value!");
                 }
-                newObj->set(id.state, std.op.State.start); // TODO
+                newObj->set(id.state, std.op.State.ready); // TODO
                 CellI& type = *typePtr;
                 CellI& retKey = *retKeyPtr;
                 if (&retKey.__type__() == &std.ast.Member) {

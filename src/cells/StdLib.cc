@@ -9,7 +9,7 @@ namespace cells {
 Std::Op::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w, w.std.op.State, "missingInput"),
-    start(w, w.std.op.State, "start")
+    ready(w, w.std.op.State, "ready")
 {
 }
 
@@ -22,7 +22,7 @@ Std::Op::EActivate::EActivate(World& w, CellI& type, const std::string& label) :
 Std::Op::EActivate::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateInput(w, w.std.op.If.State, "Activate::State::activateInput")
 {
 }
@@ -36,7 +36,7 @@ Std::Op::EAdd::EAdd(World& w, CellI& type, const std::string& label) :
 Std::Op::EAdd::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.Add.State, "Add::State::activateLhs"),
     activateRhs(w, w.std.op.Add.State, "Add::State::activateRhs")
 {
@@ -51,7 +51,7 @@ Std::Op::EAnd::EAnd(World& w, CellI& type, const std::string& label) :
 Std::Op::EAnd::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.And.State, "And::State::activateLhs"),
     activateRhs(w, w.std.op.And.State, "And::State::activateRhs")
 {
@@ -66,7 +66,7 @@ Std::Op::EBlock::EBlock(World& w, CellI& type, const std::string& label) :
 Std::Op::EBlock::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateInput(w, w.std.op.Block.State, "Block::State::activateInput")
 {
 }
@@ -80,7 +80,7 @@ Std::Op::ECall::ECall(World& w, CellI& type, const std::string& label) :
 Std::Op::ECall::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateParameters(w, w.std.op.Call.State, "Call::State::activateParameters"),
     stackPushAndCall(w, w.std.op.Call.State, "Call::State::stackPushAndCall"),
     stackPop(w, w.std.op.Call.State, "Call::State::stackPop")
@@ -96,7 +96,7 @@ Std::Op::EDelete::EDelete(World& w, CellI& type, const std::string& label) :
 Std::Op::EDelete::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateInput(w, w.std.op.Delete.State, "Delete::State::activateInput")
 {
 }
@@ -110,7 +110,7 @@ Std::Op::EDivide::EDivide(World& w, CellI& type, const std::string& label) :
 Std::Op::EDivide::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.Divide.State, "Divide::State::activateLhs"),
     activateRhs(w, w.std.op.Divide.State, "Divide::State::activateRhs")
 {
@@ -125,7 +125,7 @@ Std::Op::EDo::EDo(World& w, CellI& type, const std::string& label) :
 Std::Op::EDo::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateStatement(w, w.std.op.Do.State, "Do::State::activateStatement"),
     activateCondition(w, w.std.op.Do.State, "Do::State::activateCondition")
 {
@@ -140,7 +140,7 @@ Std::Op::EEqual::EEqual(World& w, CellI& type, const std::string& label) :
 Std::Op::EEqual::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.Equal.State, "Equal::State::activateLhs"),
     activateRhs(w, w.std.op.Equal.State, "Equal::State::activateRhs")
 {
@@ -155,7 +155,7 @@ Std::Op::EErase::EErase(World& w, CellI& type, const std::string& label) :
 Std::Op::EErase::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateCell(w, w.std.op.Erase.State, "Erase::State::activateCell"),
     activateKey(w, w.std.op.Erase.State, "Erase::State::activateKey")
 {
@@ -170,7 +170,7 @@ Std::Op::EFunction::EFunction(World& w, CellI& type, const std::string& label) :
 Std::Op::EFunction::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateOp(w, w.std.op.Function.State, "Function::State::activateOp")
 {
 }
@@ -184,7 +184,7 @@ Std::Op::EGet::EGet(World& w, CellI& type, const std::string& label) :
 Std::Op::EGet::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateCell(w, w.std.op.Get.State, "Get::State::activateCell"),
     activateKey(w, w.std.op.Get.State, "Get::State::activateKey")
 {
@@ -199,7 +199,7 @@ Std::Op::EGreaterThan::EGreaterThan(World& w, CellI& type, const std::string& la
 Std::Op::EGreaterThan::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.GreaterThan.State, "GreaterThan::State::activateLhs"),
     activateRhs(w, w.std.op.GreaterThan.State, "GreaterThan::State::activateRhs")
 {
@@ -214,7 +214,7 @@ Std::Op::EGreaterThanOrEqual::EGreaterThanOrEqual(World& w, CellI& type, const s
 Std::Op::EGreaterThanOrEqual::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.GreaterThanOrEqual.State, "GreaterThanOrEqual::State::activateLhs"),
     activateRhs(w, w.std.op.GreaterThanOrEqual.State, "GreaterThanOrEqual::State::activateRhs")
 {
@@ -229,7 +229,7 @@ Std::Op::EHas::EHas(World& w, CellI& type, const std::string& label) :
 Std::Op::EHas::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateCell(w, w.std.op.Has.State, "Has::State::activateCell"),
     activateKey(w, w.std.op.Has.State, "Has::State::activateKey")
 {
@@ -244,7 +244,7 @@ Std::Op::EIf::EIf(World& w, CellI& type, const std::string& label) :
 Std::Op::EIf::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateCondition(w, w.std.op.If.State, "If::State::activateCondition"),
     activateThen(w, w.std.op.If.State, "If::State::activateThen"),
     activateElse(w, w.std.op.If.State, "If::State::activateElse")
@@ -260,7 +260,7 @@ Std::Op::ELessThan::ELessThan(World& w, CellI& type, const std::string& label) :
 Std::Op::ELessThan::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.LessThan.State, "LessThan::State::activateLhs"),
     activateRhs(w, w.std.op.LessThan.State, "LessThan::State::activateRhs")
 {
@@ -275,7 +275,7 @@ Std::Op::ELessThanOrEqual::ELessThanOrEqual(World& w, CellI& type, const std::st
 Std::Op::ELessThanOrEqual::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.LessThanOrEqual.State, "LessThanOrEqual::State::activateLhs"),
     activateRhs(w, w.std.op.LessThanOrEqual.State, "LessThanOrEqual::State::activateRhs")
 {
@@ -290,7 +290,7 @@ Std::Op::EMissing::EMissing(World& w, CellI& type, const std::string& label) :
 Std::Op::EMissing::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateCell(w, w.std.op.Missing.State, "Missing::State::activateCell"),
     activateKey(w, w.std.op.Missing.State, "Missing::State::activateKey")
 {
@@ -305,7 +305,7 @@ Std::Op::EMultiply::EMultiply(World& w, CellI& type, const std::string& label) :
 Std::Op::EMultiply::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.Multiply.State, "Multiply::State::activateLhs"),
     activateRhs(w, w.std.op.Multiply.State, "Multiply::State::activateRhs")
 {
@@ -320,7 +320,7 @@ Std::Op::ENew::ENew(World& w, CellI& type, const std::string& label) :
 Std::Op::ENew::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateObjectType(w, w.std.op.New.State, "New::State::activateObjectType")
 {
 }
@@ -334,7 +334,7 @@ Std::Op::ENot::ENot(World& w, CellI& type, const std::string& label) :
 Std::Op::ENot::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateInput(w, w.std.op.Not.State, "Not::State::activateInput")
 {
 }
@@ -348,7 +348,7 @@ Std::Op::ENotEqual::ENotEqual(World& w, CellI& type, const std::string& label) :
 Std::Op::ENotEqual::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.NotEqual.State, "NotEqual::State::activateLhs"),
     activateRhs(w, w.std.op.NotEqual.State, "NotEqual::State::activateRhs")
 {
@@ -363,7 +363,7 @@ Std::Op::ENotSame::ENotSame(World& w, CellI& type, const std::string& label) :
 Std::Op::ENotSame::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.NotSame.State, "NotSame::State::activateLhs"),
     activateRhs(w, w.std.op.NotSame.State, "NotSame::State::activateRhs")
 {
@@ -378,7 +378,7 @@ Std::Op::EOr::EOr(World& w, CellI& type, const std::string& label) :
 Std::Op::EOr::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.Or.State, "Or::State::activateLhs"),
     activateRhs(w, w.std.op.Or.State, "Or::State::activateRhs")
 {
@@ -393,7 +393,7 @@ Std::Op::EReturn::EReturn(World& w, CellI& type, const std::string& label) :
 Std::Op::EReturn::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateResult(w, w.std.op.Return.State, "Return::State::activateResult")
 {
 }
@@ -407,7 +407,7 @@ Std::Op::ESame::ESame(World& w, CellI& type, const std::string& label) :
 Std::Op::ESame::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.Same.State, "Same::State::activateLhs"),
     activateRhs(w, w.std.op.Same.State, "Same::State::activateRhs")
 {
@@ -422,7 +422,7 @@ Std::Op::ESet::ESet(World& w, CellI& type, const std::string& label) :
 Std::Op::ESet::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateCell(w, w.std.op.Set.State, "Set::State::activateCell"),
     activateKey(w, w.std.op.Set.State, "Set::State::activateKey"),
     activateValue(w, w.std.op.Set.State, "Set::State::activateValue")
@@ -438,7 +438,7 @@ Std::Op::ESubtract::ESubtract(World& w, CellI& type, const std::string& label) :
 Std::Op::ESubtract::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateLhs(w, w.std.op.Subtract.State, "Subtract::State::activateLhs"),
     activateRhs(w, w.std.op.Subtract.State, "Subtract::State::activateRhs")
 {
@@ -453,7 +453,7 @@ Std::Op::EWhile::EWhile(World& w, CellI& type, const std::string& label) :
 Std::Op::EWhile::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
-    start(w.std.op.State.start),
+    ready(w.std.op.State.ready),
     activateCondition(w, w.std.op.While.State, "While::State::activateCondition"),
     activateStatement(w, w.std.op.While.State, "While::State::activateStatement")
 {
@@ -983,7 +983,7 @@ void StdLibAst::createOp()
     opScope.add<Enum>("State")
         .values(
             ev_("missingInput"),
-            ev_("start"));
+            ev_("ready"));
 
     opScope.add<Struct>("Set")
         .members(
@@ -2703,7 +2703,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::op::Set", std.op.Set);
     compiler.registerBuiltInStruct("std::op::State", std.op.State);
     compiler.registerBuiltInEnumValue("std::op::State::missingInput", std.op.State.missingInput);
-    compiler.registerBuiltInEnumValue("std::op::State::start", std.op.State.start);
+    compiler.registerBuiltInEnumValue("std::op::State::ready", std.op.State.ready);
     compiler.registerBuiltInStruct("std::op::Subtract", std.op.Subtract);
     compiler.registerBuiltInStruct("std::op::UnknownVar", std.op.UnknownVar);
     compiler.registerBuiltInStruct("std::op::Var", std.op.Var);
