@@ -413,15 +413,15 @@ void Ast::StructBase::addMember(Member& member)
     members().add(member[w.id.key], member);
 }
 
-Ast::StructBase& Ast::StructBase::typeAliases(Slot& slot)
+Ast::StructBase& Ast::StructBase::typeAliases(KVPair& kvPair)
 {
     if (missing(w.id.typeAliases)) {
         set(w.id.typeAliases, *new Map(w, w.std.Cell, w.std.ast.Base));
     }
-    CellI& key = slot[w.id.key];
-    CellI& type = slot[w.id.type];
+    CellI& key  = kvPair[w.id.key];
+    CellI& type = kvPair[w.id.value];
 
-    typeAliases().add(key, slot);
+    typeAliases().add(key, type);
 
     return *this;
 }
@@ -488,7 +488,7 @@ CellI& Ast::StructBase::name()
 
 Ast::Base& Ast::StructBase::getTypeAlias(CellI& name)
 {
-    return static_cast<Ast::Base&>(typeAliases().getValue(name)[w.id.type]);
+    return static_cast<Ast::Base&>(typeAliases().getValue(name));
 }
 
 Ast::Struct::Struct(World& w, const std::string& nameStr) :
@@ -576,7 +576,7 @@ Ast::TraitImpl::TraitImpl(World& w, const std::string& nameStr) :
 {
 }
 
-Ast::TraitImpl& Ast::TraitImpl::templateParams(Slot& slot)
+Ast::TraitImpl& Ast::TraitImpl::templateParams(Parameter& parameter)
 {
     // TODO
 
@@ -687,21 +687,23 @@ TrieMap& Ast::Enum::values()
     }
 }
 
-Ast::Function::Function(World& w, CellI& name) :
-    BaseT<Function>(w, w.std.ast.Function, name.label())
+Ast::FunctionBase::FunctionBase(World& w, CellI& astType, CellI& name, const std::string& nameStr) :
+    Base(w, astType, nameStr)
 {
     set(w.id.name, name);
-    label(name.label());
+}
+
+Ast::Function::Function(World& w, CellI& name) :
+    FunctionBase(w, w.std.ast.Function, name, name.label())
+{
 }
 
 Ast::Function::Function(World& w, const std::string& nameStr) :
-    BaseT<Function>(w, w.std.ast.Function, nameStr)
+    FunctionBase(w, w.std.ast.Function, w.name(nameStr), nameStr)
 {
-    set(w.id.name, w.name(nameStr));
-    label(nameStr);
 }
 
-Ast::Function& Ast::Function::memberMapping(KVPair& mapping)
+Ast::FunctionBase& Ast::FunctionBase::memberMapping(KVPair& mapping)
 {
     if (missing(w.id.memberMapping)) {
         set(w.id.memberMapping, *new Map(w, w.std.String, w.std.ast.Base));
@@ -711,7 +713,7 @@ Ast::Function& Ast::Function::memberMapping(KVPair& mapping)
     return *this;
 }
 
-void Ast::Function::addParameter(Parameter& parameter)
+void Ast::FunctionBase::addParameter(Parameter& parameter)
 {
     if (missing(w.id.parameters)) {
         set(w.id.parameters, *new Map(w, w.std.Cell, w.std.ast.Parameter));
@@ -719,36 +721,36 @@ void Ast::Function::addParameter(Parameter& parameter)
     parameters().add(parameter[w.id.key], parameter);
 }
 
-Ast::Function& Ast::Function::constructor()
+Ast::FunctionBase& Ast::FunctionBase::constructor()
 {
     set(w.id.isConstructor, w.true_);
 
     return *this;
 }
 
-Ast::Function& Ast::Function::returnType(CellI& type)
+Ast::FunctionBase& Ast::FunctionBase::returnType(CellI& type)
 {
     set(w.id.returnType, type);
 
     return *this;
 }
 
-Ast::Function& Ast::Function::returnType(const std::string& typeStr)
+Ast::FunctionBase& Ast::FunctionBase::returnType(const std::string& typeStr)
 {
     return returnType(w.ast.typeName(typeStr));
 }
 
-void Ast::Function::addDescriptionBlock(Block& block)
+void Ast::FunctionBase::addDescriptionBlock(Block& block)
 {
     set(w.id.description, block);
 }
 
-void Ast::Function::addInstructionBlock(Block& block)
+void Ast::FunctionBase::addInstructionBlock(Block& block)
 {
     set(w.id.instructions, block);
 }
 
-Map& Ast::Function::memberMapping()
+Map& Ast::FunctionBase::memberMapping()
 {
     if (missing(w.id.memberMapping)) {
         throw "No member mapping!";
@@ -757,7 +759,7 @@ Map& Ast::Function::memberMapping()
     }
 }
 
-Map& Ast::Function::parameters()
+Map& Ast::FunctionBase::parameters()
 {
     if (missing(w.id.parameters)) {
         throw "No parameters!";
@@ -766,7 +768,7 @@ Map& Ast::Function::parameters()
     }
 }
 
-CellI& Ast::Function::returnType()
+CellI& Ast::FunctionBase::returnType()
 {
     if (missing(w.id.returnType)) {
         throw "No returnType!";
@@ -775,7 +777,7 @@ CellI& Ast::Function::returnType()
     }
 }
 
-Ast::Base& Ast::Function::instructions()
+Ast::Base& Ast::FunctionBase::instructions()
 {
     if (missing(w.id.instructions)) {
         throw "No instructions!";
@@ -784,7 +786,7 @@ Ast::Base& Ast::Function::instructions()
     }
 }
 
-Ast::Base& Ast::Function::description()
+Ast::Base& Ast::FunctionBase::description()
 {
     if (missing(w.id.description)) {
         throw "No description!";
@@ -794,62 +796,13 @@ Ast::Base& Ast::Function::description()
 }
 
 Ast::FunctionT::FunctionT(World& w, CellI& name, const std::string& nameStr) :
-    BaseT<FunctionT>(w, w.std.ast.FunctionT, nameStr)
+    FunctionBase(w, w.std.ast.FunctionT, name, nameStr)
 {
-    set(w.id.name, name);
-    label(nameStr);
 }
 
 Ast::FunctionT::FunctionT(World& w, const std::string& nameStr) :
-    BaseT<FunctionT>(w, w.std.ast.FunctionT, nameStr)
+    FunctionBase(w, w.std.ast.FunctionT, w.name(nameStr), nameStr)
 {
-    set(w.id.name, w.name(nameStr));
-    label(nameStr);
-}
-
-void Ast::FunctionT::parameters(Slot& param)
-{
-    if (missing(w.id.parameters)) {
-        set(w.id.parameters, *new List(w, w.std.ast.Slot));
-    }
-    parameters().add(param);
-}
-
-void Ast::FunctionT::returnType(CellI& type)
-{
-    set(w.id.returnType, type);
-}
-
-void Ast::FunctionT::addBlock(Block& block)
-{
-    set(w.id.instructions, block);
-}
-
-List& Ast::FunctionT::parameters()
-{
-    if (missing(w.id.parameters)) {
-        throw "No parameters!";
-    } else {
-        return static_cast<List&>(get(w.id.parameters));
-    }
-}
-
-CellI& Ast::FunctionT::returnType()
-{
-    if (missing(w.id.returnType)) {
-        throw "No returnType!";
-    } else {
-        return get(w.id.returnType);
-    }
-}
-
-Ast::Base& Ast::FunctionT::instructions()
-{
-    if (missing(w.id.instructions)) {
-        throw "No instructions!";
-    } else {
-        return static_cast<Ast::Base&>(get(w.id.instructions));
-    }
 }
 
 Ast::If::If(World& w, Base& condition) :
@@ -1051,7 +1004,7 @@ Ast::TemplatedType::TemplatedType(World& w, CellI& id, CellI& typeList) :
 void Ast::TemplatedType::addParam(const std::string& key, CellI& type)
 {
     List& paramList = static_cast<List&>(get(w.id.parameters));
-    paramList.add(w.ast.slot(key, type));
+    paramList.add(w.ast.parameterDeclaration(key, type));
 }
 
 void Ast::TemplatedType::addParam(const std::string& key, const std::string& type)
@@ -1227,6 +1180,11 @@ Ast::Parameter& Ast::parameterDeclaration(CellI& key, CellI& type)
     ret.set(id.type, type);
 
     return ret;
+}
+
+Ast::Parameter& Ast::parameterDeclaration(const std::string& keyStr, CellI& type)
+{
+    return parameterDeclaration(w.name(keyStr), type);
 }
 
 Ast::Parameter& Ast::parameterInit(CellI& key, CellI& value)
@@ -1615,14 +1573,14 @@ Ast::Member& AstHelper::m_(const std::string& nameStr)
     return Ast::member(name(nameStr));
 }
 
-Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, const std::string& typeStr)
+Ast::KVPair& AstHelper::typeAlias(const std::string& nameStr, const std::string& typeStr)
 {
-    return slot(name(nameStr), __type__(typeStr));
+    return kvPair(name(nameStr), __type__(typeStr));
 }
 
-Ast::Slot& AstHelper::typeAlias(const std::string& nameStr, CellI& type)
+Ast::KVPair& AstHelper::typeAlias(const std::string& nameStr, CellI& type)
 {
-    return slot(name(nameStr), type);
+    return kvPair(name(nameStr), type);
 }
 
 Ast::EnumValue& AstHelper::ev_(const std::string& nameStr)

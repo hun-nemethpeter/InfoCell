@@ -414,23 +414,7 @@ CellI& Object::getMethod(CellI& key)
     if (__type__().has(w.id.methods)) {
         CellI& methodsIndex = __type__()[w.id.methods][w.id.index];
         if (methodsIndex.has(key)) {
-            CellI& method = methodsIndex[key][w.id.value];
-            createStack(method);
-            initLocalVars(method);
-            setSelf(method);
-            return method;
-        }
-    }
-
-    throw "No such method!";
-}
-
-CellI& Object::getStaticMethod(CellI& key)
-{
-    if (has(w.id.methods)) {
-        CellI& methodsIndex = (*this)[w.id.methods][w.id.index];
-        if (methodsIndex.has(key)) {
-            CellI& method = methodsIndex[key][w.id.value];
+            CellI& method = methodsIndex[key][w.id.value][w.id.value];
             createStack(method);
             initLocalVars(method);
             setSelf(method);
@@ -487,7 +471,8 @@ void Object::initLocalVars(CellI& method)
     Object& localVarsIndex = *new Object(w, method[w.id.localVars].__type__(), "LocalVarsIndex");
     CellI& stackFrame      = method[w.id.stack][w.id.value];
     stackFrame.set(w.id.localVars, localVarsIndex);
-    for (CellI& slot : localVarsList) {
+    for (CellI& localVarKV : localVarsList) {
+        auto& slot       = localVarKV[w.id.value];
         auto& key        = slot[w.id.key];
         Object& localVar = *new Object(w, w.std.op.Var, fmt::format("var {}", key.label()));
         localVar.set(w.id.type, slot[w.id.type]);
@@ -1026,7 +1011,7 @@ bool Map::hasKey(CellI& key)
 CellI& Map::getValue(CellI& key)
 {
     if (m_index.has(key)) {
-        return m_index[key][w.id.value];
+        return m_index[key][w.id.value][w.id.value];
     }
     throw "No such key!";
 }
@@ -1039,7 +1024,7 @@ void Map::add(CellI& key, CellI& value)
     if (m_index.has(key)) {
         throw "A value already registered with this key";
     }
-    List::Node& node = *m_list.add(value);
+    List::Node& node = *m_list.add(w.std.kvPair(key, value));
     m_index.insert(key, node);
     ++m_size;
 }
@@ -1052,7 +1037,7 @@ void Map::addFront(CellI& key, CellI& value)
     if (m_index.has(key)) {
         throw "A value already registered with this key";
     }
-    List::Node& node = *m_list.addFront(value);
+    List::Node& node = *m_list.addFront(w.std.kvPair(key, value));
     m_index.insert(key, node);
     ++m_size;
 }
@@ -1063,8 +1048,10 @@ void Map::remove(CellI& key)
         return;
     }
     List::Node* node = &static_cast<List::Node&>(m_index[key]);
+    CellI* kvPairPtr = &(*node)[w.id.value];
     m_list.remove(node);
     m_index.erase(key);
+    delete kvPairPtr;
     --m_size;
 }
 

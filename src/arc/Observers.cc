@@ -315,8 +315,8 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
         }
     };
 
-    CellI& outerLhsEdge = lhsEdges["first"]["value"];
-    CellI& outerRhsEdge = rhsEdges["first"]["value"];
+    CellI& outerLhsEdge = lhsEdges["first"]["value"]["value"];
+    CellI& outerRhsEdge = rhsEdges["first"]["value"]["value"];
 
     EdgeRelation outerResult = compareEdges(outerLhsEdge, outerRhsEdge);
     result.m_edgeRelations.push_back(outerResult);
@@ -334,7 +334,8 @@ ShapeRelation compareShapes(CellI& lhs, CellI& rhs)
             transformationPtr = &arc.LineSymmetry.vertical;
         }
         CellI& transformation = *transformationPtr;
-        for (CellI& lhsEdge : lhsEdges) {
+        for (CellI& lhsEdgeKV : lhsEdges) {
+            CellI& lhsEdge = lhsEdgeKV["value"];
             if (&lhsEdge == &outerLhsEdge) {
                 continue;
             }

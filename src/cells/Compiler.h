@@ -77,6 +77,7 @@ protected:
     void compileDescriptionInFunction(Ast::Function& function, Ast::StructBase* astStructPtr = nullptr);
     Ast::Base& resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr = nullptr);
     CellI& compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr = nullptr);
+    CellI& compilePromptInFunctionAst(CellI& ast, Ast::Function& astFunction);
 
     World& w;
     ID& id;

@@ -1661,6 +1661,7 @@ void StdLibAst::createMap()
               .typeAliases(
                   typeAlias("keyType", tp_("keyType")),
                   typeAlias("valueType", tp_("valueType")),
+                  typeAlias("pairType", tt_("KVPair", "keyType", __type__("Cell"), "valueType", __type__("Cell"))),
                   typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
               .memberOf(__type__("Map"))
               .members(
@@ -1710,7 +1711,7 @@ void StdLibAst::createMap()
         .returnType(tp_("valueType"))
         .instructions(
             if_(has(m_("index"), p_("key")))
-                .then_(return_(m_("index") / p_("key") / "value"))
+                .then_(return_(m_("index") / p_("key") / "value" / "value"))
                 .else_(return_(_("emptyObject"))));
 
     /*
@@ -1737,7 +1738,7 @@ void StdLibAst::createMap()
             if_(has(m_("index"), p_("key")))
                 .then_(return_()),
             m_("size")   = add(m_("size"), _(_1_)),
-            var_("node") = m_("list")("add")("value", p_("value")),
+            var_("node") = m_("list")("add")("value", new_(ta_("pairType"), "constructor")("key", p_("key"))("value", p_("value"))),
             m_("index")("insert")("key", p_("key"))("value", *var_("node")));
 
     /*

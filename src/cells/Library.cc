@@ -28,17 +28,17 @@ void Library::include(Library& library)
 
 void Library::mergeTo(Library& target)
 {
-    for (CellI& kvPair : functions()[w.id.list]) {
+    for (CellI& kvPair : functions()) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.functions().add(key, value);
     }
-    for (CellI& kvPair : structs()[w.id.list]) {
+    for (CellI& kvPair : structs()) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.structs().add(key, value);
     }
-    for (CellI& kvPair : variables()[w.id.list]) {
+    for (CellI& kvPair : variables()) {
         CellI& key   = kvPair[w.id.key];
         CellI& value = kvPair[w.id.value];
         target.variables().add(key, value);

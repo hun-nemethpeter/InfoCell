@@ -276,7 +276,8 @@ void ToolFinder::add(Object& tool)
         // so this can be a conversion tool
         CellI& returnType = tool[id.returnType];
         if (tool.has(id.parameters)) {
-            for (CellI& parameter : tool[id.parameters]) {
+            for (CellI& parameterKV : tool[id.parameters]) {
+                CellI& parameter = parameterKV[id.value];
                 CellI& inputType = parameter[id.type];
                 ConversionToolKey key(inputType, returnType);
                 ConversionToolBlueprint blueprint(tool, parameter[id.key]);
@@ -1028,12 +1029,12 @@ bool ToolFinder::checkUnknownsInTool(CellI& effect)
     } else if (effect.__type__().has(id.primitiveTool)) {
         CellI& ast         = effect.__type__()[id.ast];
         bool isConstructor = ast.has("isConstructor");
-        for (CellI& key : ast[id.memberMapping]) {
+        for (CellI& mappingKV : ast[id.memberMapping]) {
             if (isConstructor) {
                 isConstructor = false;
                 continue;
             }
-            if (checkUnknownsInTool(effect[key])) {
+            if (checkUnknownsInTool(effect[mappingKV[id.value]])) {
                 return true;
             }
         }

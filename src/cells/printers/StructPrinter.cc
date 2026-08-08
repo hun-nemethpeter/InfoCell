@@ -49,15 +49,15 @@ void CellStructPrinter::printImpl(CellI& cell)
         m_ss << " ID" << &type;
     m_ss << std::endl;
     if (type.has(w.id.slots)) {
-        CellI& slotList = cell.slotList();
-        for (CellI& slot : slotList) {
-            CellI& role = slot[w.id.key];
-            if (!cell.has(role)) {
+        for (CellI& memberKV : cell.slotList()) {
+            CellI& slot = memberKV[id.value];
+            CellI& key = slot[w.id.key];
+            if (!cell.has(key)) {
                 break;
             }
             CellI& type          = slot[w.id.type];
-            CellI& connectedCell = cell[role];
-            m_ss << "    +-- " << role.label() << " --> " << type.label();
+            CellI& connectedCell = cell[key];
+            m_ss << "    +-- " << key.label() << " --> " << type.label();
             if (needId)
                 m_ss << " ID " << &connectedCell;
             m_ss << std::endl;

@@ -140,7 +140,6 @@ protected:
 
     bool hasMethod(CellI& key);
     CellI& getMethod(CellI& key);
-    CellI& getStaticMethod(CellI& key);
     void createStack(CellI& method);
     void initLocalVars(CellI& method);
     CellI& getFnValue(CellI& fn);

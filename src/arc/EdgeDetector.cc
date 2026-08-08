@@ -1649,7 +1649,8 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
             continue;
         }
         int containedShapeCount = 0;
-        for (CellI& edge : shape["edges"]["list"]) {
+        for (CellI& edgeKV : shape["edges"]) {
+            CellI& edge = edgeKV[id.value];
             if (!(&edge["kind"] == &arc.ShapeEdgeKind.InternalEdge && edge.has("shapes"))) {
                 continue;
             }
@@ -1660,7 +1661,7 @@ void EdgeDetector::findPossibleBackgroundWithShapes()
             backgroundShapePtr = &shape;
         } else if (containedShapeCount > 1) {
             // some heuristic about the longest border
-            CellI& externalEdge = shape["edges"]["list"]["first"]["value"];
+            CellI& externalEdge = shape["edges"]["list"]["first"]["value"]["value"];
             std::map<int, int> longestBorder;
             for (CellI& edgeNode : externalEdge["edgeNodes"]) {
                 int externalShapeId;
@@ -1754,15 +1755,15 @@ hybridarc::ShapeField& EdgeDetector::createResult()
         TRACE(edge, "Shape id: {}, points:", currentShape["id"].label());
         // offset
         CellI& firstPoint      = currentShape["shapePoints"][id.first][id.value];
-        Number& x              = static_cast<Number&>(firstPoint["x"]);
-        Number& y              = static_cast<Number&>(firstPoint["y"]);
-        hybridarc::Vector& offset = *new hybridarc::Vector(w, x, y);
-        CellI& edgesList       = currentShape["edges"]["list"];
-        List& externalEdgeLine = *new List(w, arc.Direction);
-        TrieMap& internalEdges    = *new TrieMap(w, arc.Vector, w.tt_("std::List", "valueType", "Direction"));
+        auto& x                = static_cast<Number&>(firstPoint["x"]);
+        auto& y                = static_cast<Number&>(firstPoint["y"]);
+        auto& offset           = *new hybridarc::Vector(w, x, y);
+        auto& externalEdgeLine = *new List(w, arc.Direction);
+        auto& internalEdges    = *new TrieMap(w, arc.Vector, w.tt_("std::List", "valueType", "Direction"));
 
         int i = 0;
-        for (CellI& currentEdge : edgesList) {
+        for (CellI& currentEdgeKV : currentShape["edges"]) {
+            CellI& currentEdge = currentEdgeKV[id.value];
             List* outEdgePtr = nullptr;
             // the first edge is the external edge
             if (i++ == 0) {

@@ -120,7 +120,8 @@ public:
                 TRACE(shapeRelations, "  shape id {} has only external edge", shape["id"].label());
             } else {
                 TRACE(shapeRelations, "  shape id {} has internal edge(s)", shape["id"].label());
-                for (CellI& edge : shape["edges"]["list"]) {
+                for (CellI& edgeKV : shape["edges"]) {
+                    CellI& edge = edgeKV[id.value];
                     if (&edge["kind"] == &arc.ShapeEdgeKind.InternalEdge) {
                         if (edge.has("shapes")) {
                             std::stringstream ss;

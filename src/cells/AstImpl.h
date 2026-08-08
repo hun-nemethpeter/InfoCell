@@ -68,13 +68,13 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 }
 
 template <typename... Args>
-void Ast::Function::instructions(Args&&... args)
+void Ast::FunctionBase::instructions(Args&&... args)
 {
     addInstructionBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
 }
 
 template <typename... Args>
-Ast::Function& Ast::Function::description(Args&&... args)
+Ast::FunctionBase& Ast::FunctionBase::description(Args&&... args)
 {
     addDescriptionBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
     return *this;

@@ -270,9 +270,13 @@ void OpActivator::activateOpCall()
 
         CellI* methodPtr = nullptr;
         if (&methodName.__type__() == &w.std.String) {
-            CellI& inputSelf = self[w.id.parameters][w.id.index][w.id.self][w.id.value][w.id.value][w.id.value];
-            methodPtr        = &inputSelf[w.id.__type__][w.id.methods];
-            methodPtr        = &(*methodPtr)[w.id.index][methodName][w.id.value];
+            auto& parametersMap = static_cast<Map&>(self[w.id.parameters]);
+            auto& selfSlot      = parametersMap.getValue(id.self);
+            CellI& inputSelf    = selfSlot[w.id.value];
+            auto& methodsMap    = static_cast<Map&>(inputSelf[w.id.__type__][w.id.methods]);
+            methodPtr           = &methodsMap.getValue(methodName);
+            // printIndent();
+            // std::cout << "inputSelf type: " << inputSelf[w.id.__type__].label() << std::endl;
         } else {
             methodPtr = &self[w.id.method][w.id.value];
         }
@@ -285,7 +289,7 @@ void OpActivator::activateOpCall()
         if (self.has(w.id.parameters)) {
             for (CellI& parameter : self[w.id.parameters]) {
                 inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
-                // static_cast<Object&>(self).printIndent();
+                // printIndent();
                 // std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.value][w.id.value].label() << std::endl;
             }
         }
@@ -335,18 +339,20 @@ void OpActivator::activateOpCall()
         CellI& methodName = self[w.id.method][w.id.value];
         CellI* methodPtr = nullptr;
         if (&methodName.__type__() == &w.std.String) {
-            CellI& inputSelf = self[w.id.parameters][w.id.index][w.id.self][w.id.value][w.id.value][w.id.value];
-             methodPtr = &inputSelf[w.id.__type__][w.id.methods];
+            auto& parametersMap = static_cast<Map&>(self[w.id.parameters]);
+            auto& selfSlot      = parametersMap.getValue(id.self);
+            CellI& inputSelf    = selfSlot[w.id.value];
+            auto& methodsMap    = static_cast<Map&>(inputSelf[w.id.__type__][w.id.methods]);
+            methodPtr           = &methodsMap.getValue(methodName);
             // TODO: cache the method obj
-            methodPtr = &(*methodPtr)[w.id.index][methodName][w.id.value];
         } else {
             methodPtr = &self[w.id.method][w.id.value];
         }
         CellI& method = (*methodPtr);
         if (method.has(w.id.value)) {
             self.set(w.id.value, method[w.id.value]);
-            //            static_cast<Object&>(self).printIndent();
-            //            std::cout << "return " << method[w.id.value].label() << std::endl;
+            // printIndent();
+            // std::cout << "return " << method[w.id.value].label() << std::endl;
         }
 
         m_previousCell = m_currentCell;

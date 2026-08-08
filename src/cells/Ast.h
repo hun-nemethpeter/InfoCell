@@ -334,9 +334,9 @@ public:
             return *this;
         }
 
-        StructBase& typeAliases(Slot& param);
+        StructBase& typeAliases(KVPair& param);
         template <typename... Args>
-        StructBase& typeAliases(Slot& param, Args&&... args)
+        StructBase& typeAliases(KVPair& param, Args&&... args)
         {
             typeAliases(param);
             typeAliases(std::forward<Args>(args)...);
@@ -385,15 +385,14 @@ public:
         CellI& resolveEnumValue(CellI& ast);
     };
 
-    class Function : public BaseT<Function>
+    class FunctionBase : public Base
     {
     public:
-        Function(World& w, CellI& name);
-        Function(World& w, const std::string& nameStr);
+        FunctionBase(World& w, CellI& astType, CellI& name, const std::string& nameStr);
 
-        Function& memberMapping(KVPair& mapping);
+        FunctionBase& memberMapping(KVPair& mapping);
         template <typename... Args>
-        Function& memberMapping(KVPair& param, Args&&... args)
+        FunctionBase& memberMapping(KVPair& param, Args&&... args)
         {
             memberMapping(param);
             memberMapping(std::forward<Args>(args)...);
@@ -404,7 +403,7 @@ public:
         void addParameter(Parameter& parameter);
 
         template <typename... Args>
-        Function& parameters(Parameter& parameter, Args&&... args)
+        FunctionBase& parameters(Parameter& parameter, Args&&... args)
         {
             addParameter(parameter);
             parameters(std::forward<Args>(args)...);
@@ -412,15 +411,15 @@ public:
             return *this;
         }
 
-        Function& constructor();
-        Function& returnType(CellI& type);
-        Function& returnType(const std::string& typeStr);
+        FunctionBase& constructor();
+        FunctionBase& returnType(CellI& type);
+        FunctionBase& returnType(const std::string& typeStr);
 
         template <typename... Args>
         void instructions(Args&&... args);
 
         template <typename... Args>
-        Function& description(Args&&... args);
+        FunctionBase& description(Args&&... args);
 
         Map& memberMapping();
         Map& parameters();
@@ -433,39 +432,31 @@ public:
         void addInstructionBlock(Block& block);
     };
 
-    class FunctionT : public BaseT<FunctionT>
+    class Function : public FunctionBase,
+                     public NewT<Function>
+    {
+    public:
+        Function(World& w, CellI& name);
+        Function(World& w, const std::string& nameStr);
+    };
+
+    class FunctionT : public FunctionBase,
+                      public NewT<FunctionT>
     {
     public:
         FunctionT(World& w, CellI& name, const std::string& label);
         FunctionT(World& w, const std::string& name);
 
-        void templateParams(Slot& param);
+        void templateParams(Parameter& parameter);
 
         template <typename... Args>
-        void templateParams(Slot& param, Args&&... args)
+        void templateParams(Parameter& parameter, Args&&... args)
         {
-            templateParams(param);
+            templateParams(parameter);
             templateParams(std::forward<Args>(args)...);
         }
 
-        void parameters(Slot& param);
-
-        template <typename... Args>
-        void parameters(Slot& param, Args&&... args)
-        {
-            parameters(param);
-            parameters(std::forward<Args>(args)...);
-        }
-        void returnType(CellI& type);
-
-        template <typename... Args>
-        void code(Args&&... args);
-
-    protected:
-        void addBlock(Block& block);
-        List& parameters();
-        CellI& returnType();
-        Base& instructions();
+        Map& templateParams();
     };
 
     class Struct : public StructBase,
@@ -473,7 +464,7 @@ public:
     {
     public:
         Struct(World& w, const std::string& nameStr);
-        Struct(World& w, CellI& id);
+        Struct(World& w, CellI& name);
     };
 
     class StructT : public StructBase,
@@ -535,12 +526,12 @@ public:
         TraitImpl(World& w, const std::string& nameStr);
         TraitImpl(World& w, CellI& id);
 
-        TraitImpl& templateParams(Slot& param);
+        TraitImpl& templateParams(Parameter& parameter);
 
         template <typename... Args>
-        TraitImpl& templateParams(Slot& param, Args&&... args)
+        TraitImpl& templateParams(Parameter& parameter, Args&&... args)
         {
-            templateParams(param);
+            templateParams(parameter);
             templateParams(std::forward<Args>(args)...);
 
             return *this;
@@ -704,6 +695,7 @@ public:
     Call& or_(Base& lhs, Base& rhs);
     Parameter& parameter(CellI& key);
     Parameter& parameterDeclaration(CellI& key, CellI& type);
+    Parameter& parameterDeclaration(const std::string& keyStr, CellI& type);
     Parameter& parameterInit(CellI& key, CellI& value);
     PrimitiveToolName& primitiveToolName(CellI& id);
     Return& return_();
@@ -771,8 +763,8 @@ protected:
     Ast::Parameter& parameter(const std::string& nameStr, const std::string& typeStr);
     Ast::Parameter& parameter(const std::string& nameStr, CellI& type);
     Ast::Member& m_(const std::string& nameStr);
-    Ast::Slot& typeAlias(const std::string& nameStr, const std::string& typeStr);
-    Ast::Slot& typeAlias(const std::string& nameStr, CellI& type);
+    KVPair& typeAlias(const std::string& nameStr, const std::string& typeStr);
+    KVPair& typeAlias(const std::string& nameStr, CellI& type);
     Ast::EnumValue& ev_(const std::string& nameStr);
     Ast::EnumValue& ev_(const std::string& nameStr, CellI& value);
     Ast::TypedEnumValue& tev_(const std::string& nameStr, CellI& type);
@@ -796,7 +788,6 @@ protected:
 
     template <typename... Args>
     Map& map(CellI& key, CellI& value, Args&&... args);
-
 };
 
 } // namespace cells

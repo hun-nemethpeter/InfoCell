@@ -19,7 +19,7 @@ Compiler::Compiler(World& w) :
     id(w.id),
     std(w.std),
     m_toolFinder(*new ToolFinder(w)),
-    m_earlyStructs(w, std.Cell, std.Cell, "earlyStructs"),
+    m_earlyStructs(w, std.Cell, std.KVPair, "earlyStructs"),
     m_earlyEnumValues(w, std.Cell, std.Cell, "earlyEnumValues"),
     m_structs(*new TrieMap(w, std.Cell, std.Struct, "structs")),
     m_unknownStructs(*new TrieMap(w, std.Cell, std.Struct, "unknownStructs")),
@@ -77,7 +77,7 @@ Object& Compiler::compileAsPrompt(Ast::Function& prompt)
 
     instantiateTemplateInstances();
 
-    return static_cast<Object&>(compileDescriptionInFunctionAst(resolvedPrompt.description(), resolvedPrompt));
+    return static_cast<Object&>(compilePromptInFunctionAst(resolvedPrompt.description(), resolvedPrompt));
 }
 
 
@@ -127,7 +127,7 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
     }
     CellI& structId = *structIdPtr;
     if (m_earlyStructs.hasKey(structId)) {
-        return m_earlyStructs.getValue(structId);
+        return m_earlyStructs.getValue(structId)[id.type];
     } else {
         auto& unresolvedStruct = *new Object(w, std.Struct, fmt::format("{}", structId.label()));
         unresolvedStruct.set(id.incomplete, w.true_);
@@ -370,7 +370,8 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function, Ast::St
 
     if (function.has(id.parameters)) {
         int i = 0;
-        for (CellI& param : function.parameters()) {
+        for (CellI& paramKV : function.parameters()) {
+            CellI& param             = paramKV[id.value];
             CellI& paramKey          = param[id.key];
             CellI& paramType         = param[id.type];
             CellI& resolvedParamType = resolveType(paramType);
@@ -609,11 +610,11 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
 
     // resolve sub types
     if (astStruct.has(id.typeAliases)) {
-        for (CellI& typeAliasSlot : astStruct.typeAliases()) {
-            CellI& alias        = typeAliasSlot[id.key];
-            CellI& type         = typeAliasSlot[id.type];
+        for (CellI& typeAliasKV : astStruct.typeAliases()) {
+            CellI& alias        = typeAliasKV[id.key];
+            CellI& type         = typeAliasKV[id.value];
             CellI& resolvedType = resolveType(type);
-            ret.typeAliases(w.ast.slot(alias, resolvedType));
+            ret.typeAliases(w.ast.kvPair(alias, resolvedType));
             if (IS_LOG_ENABLED) {
                 typeAliasesStrs.push_back(fmt::format("    type {} = {};", alias.label(), getCompiledTypeFromResolvedType(resolvedType).label()));
             }
@@ -646,10 +647,10 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
 
     // resolve members
     if (astStruct.has(id.members)) {
-        CellI& membersList = astStruct.members();
-        for (CellI& memberCell : membersList) {
-            CellI& memberId           = memberCell[id.key];
-            CellI& memberType         = memberCell[id.type];
+        for (CellI& memberKV : astStruct.members()) {
+            CellI& member             = memberKV[id.value];
+            CellI& memberId           = member[id.key];
+            CellI& memberType         = member[id.type];
             CellI& resolvedMemberType = resolveType(memberType);
             ret.addMember(w.ast.member(memberId, resolvedMemberType));
             TRACE(compileStruct, "    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label());
@@ -658,16 +659,16 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
 
     // resolve methods
     if (astStruct.has(id.methods)) {
-        for (CellI& origAstFunctionCell : astStruct.methods()) {
-            auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
-            auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction, &ret);
-            ret.addMethod(resolvedAstFunction, Ast::StructBase::ParameterModification::NoChange);
-            TRACE(compileStruct, "    {};", shortFunctionName(resolvedAstFunction));
-        }
         if (IS_LOG_ENABLED) {
             if (astStruct.has(id.members)) {
                 TRACE(compileStruct, "");
             }
+        }
+        for (CellI& origAstFunctionKV : astStruct.methods()) {
+            auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionKV[id.value]);
+            auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction, &ret);
+            ret.addMethod(resolvedAstFunction, Ast::StructBase::ParameterModification::NoChange);
+            TRACE(compileStruct, "    {};", shortFunctionName(resolvedAstFunction));
         }
     }
 
@@ -746,8 +747,8 @@ Ast::Enum& Compiler::resolveTypesInEnum(Ast::Enum& astEnum)
 
     // resolve methods
     if (astEnum.has(id.methods)) {
-        for (CellI& origAstFunctionCell : astEnum.methods()) {
-            auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionCell);
+        for (CellI& origAstFunctionKV : astEnum.methods()) {
+            auto& origAstFunction     = static_cast<Ast::Function&>(origAstFunctionKV[id.value]);
             auto& resolvedAstFunction = resolveTypesInFunction(origAstFunction, &ret);
             ret.addMethod(resolvedAstFunction, Ast::StructBase::ParameterModification::NoChange);
             TRACE(compileStruct, "    {};", shortFunctionName(resolvedAstFunction));
@@ -909,19 +910,19 @@ List& Compiler::generateTemplateId(CellI& templateId, CellI& parameters, List& r
 
     ss << "<";
     int i = 0;
-    for (CellI& slot : parameters) {
+    for (CellI& param : parameters) {
         if (i++ != 0) {
             ss << ", ";
         }
-        CellI& key              = slot[id.key];
-        CellI& type             = slot[id.type];
-        CellI& resolvedSlotType = resolveType(type);
-        CellI& compiledSlotType = getCompiledTypeFromResolvedType(resolvedSlotType);
+        CellI& key              = param[id.key];
+        CellI& type             = param[id.type];
+        CellI& resolvedParamType = resolveType(type);
+        CellI& compiledParamType = getCompiledTypeFromResolvedType(resolvedParamType);
 
         idCell.add(key);
-        idCell.add(compiledSlotType);
-        resolvedParams.add(w.ast.slot(key, resolvedSlotType));
-        ss << fmt::format("{}={}", key.label(), compiledSlotType.label());
+        idCell.add(compiledParamType);
+        resolvedParams.add(w.ast.parameterDeclaration(key, resolvedParamType));
+        ss << fmt::format("{}={}", key.label(), compiledParamType.label());
     }
     ss << ">";
     idCell.label(ss.str());
@@ -1282,33 +1283,32 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     // instantiate type aliases
     if (structT.has(id.typeAliases)) {
         Map& instantiatedTypeAliases = *new Map(w, std.Cell, std.ast.Base);
-        for (CellI& slot : structT.typeAliases()) {
-            CellI& key               = slot[id.key];
-            CellI& type              = slot[id.type];
+        for (CellI& typeAliasKV : structT.typeAliases()) {
+            CellI& key               = typeAliasKV[id.key];
+            CellI& type              = typeAliasKV[id.value];
             CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters);
-            instantiatedTypeAliases.add(key, w.ast.slot(key, instantiatedParam));
+            instantiatedTypeAliases.add(key, instantiatedParam);
         }
         ret.set(id.typeAliases, instantiatedTypeAliases);
     }
 
     // instantiate methods
     if (structT.has(id.methods)) {
-        for (CellI& astFunctionRef : structT.methods()) {
-            auto& astFunction = static_cast<Ast::Function&>(astFunctionRef);
+        for (CellI& astFunctionKV : structT.methods()) {
+            auto& astFunction = static_cast<Ast::Function&>(astFunctionKV[id.value]);
             instantiateFunctionInStructT(astFunction, ret, inputParameters);
          }
     }
 
     // instantiate members
     if (structT.has(id.members)) {
-        Map& instantiatedMembers = *new Map(w, std.Cell, std.ast.Slot);
-        for (CellI& slot : structT.members()) {
-            CellI& key               = slot[id.key];
-            CellI& type              = slot[id.type];
-            CellI& instantiatedParam = instantiateTemplateParamType(type, ret, inputParameters);
-            instantiatedMembers.add(key, w.ast.slot(key, instantiatedParam));
+        for (CellI& memberKV : structT.members()) {
+            CellI& member                = memberKV[id.value];
+            CellI& key                   = member[id.key];
+            CellI& type                  = member[id.type];
+            CellI& instantiatedParamType = instantiateTemplateParamType(type, ret, inputParameters);
+            ret.addMember(w.ast.member(key, instantiatedParamType));
         }
-        ret.set(id.members, instantiatedMembers);
     }
 
     // instantiate memberOf list
@@ -1323,8 +1323,10 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
 
     // trait implementations
     if (structT.has(id.traitImpls)) {
-        for (CellI& traitImpl : structT.traitImpls()) {
-            for (CellI& astFunctionRef : traitImpl[id.methods]) {
+        for (CellI& traitImplKV : structT.traitImpls()) {
+            CellI& traitImpl = traitImplKV[id.value];
+            for (CellI& astFunctionKV : traitImpl[id.methods]) {
+                CellI& astFunctionRef   = astFunctionKV[id.value];
                 Map* associatedTypesPtr = nullptr;
                 if (traitImpl.has(id.associatedTypes)) {
                     associatedTypesPtr = &static_cast<Map&>(traitImpl[id.associatedTypes]);
@@ -1346,12 +1348,13 @@ void Compiler::instantiateFunctionInStructT(Ast::Function& astFunction, Ast::Str
 
     // parameters
     if (astFunction.has(id.parameters)) {
-        List& instantiatedParameters = *new List(w, std.ast.Slot);
-        for (CellI& slot : astFunction[id.parameters]) {
-            CellI& key               = slot[id.key];
-            CellI& type              = slot[id.type];
-            CellI& instantiatedParam = instantiateTemplateParamType(type, compiledStruct, inputParameters, associatedTypesPtr);
-            instantiatedParameters.add(w.ast.slot(key, instantiatedParam));
+        Map& instantiatedParameters = *new Map(w, w.std.String, w.std.ast.Base);
+        for (CellI& paramKV : astFunction.parameters()) {
+            CellI& param                 = paramKV[id.value];
+            CellI& key                   = param[id.key];
+            CellI& type                  = param[id.type];
+            CellI& instantiatedParamType = instantiateTemplateParamType(type, compiledStruct, inputParameters, associatedTypesPtr);
+            instantiatedParameters.add(key, w.ast.parameterDeclaration(key, instantiatedParamType));
         }
         instantiedFunction.set(id.parameters, instantiatedParameters);
     }
@@ -1377,7 +1380,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
         return inputParameters.getValue(paramValue);
     }
     if (&param.__type__() == &std.ast.TemplatedType) {
-        List& resolvedParameterList = *new List(w, std.ast.Slot);
+        List& resolvedParameterList = *new List(w, std.ast.Parameter);
         auto& ret                   = *new Ast::TemplatedType(w, param[id.id], resolvedParameterList);
         auto& parametersList        = param[id.parameters];
 
@@ -1385,7 +1388,7 @@ CellI& Compiler::instantiateTemplateParamType(CellI& param, CellI& selfType, Map
             CellI& key              = slot[id.key];
             CellI& type             = slot[id.type];
             CellI& resolvedSlotType = instantiateTemplateParamType(type, selfType, inputParameters, associatedTypesPtr);
-            resolvedParameterList.add(w.ast.slot(key, resolvedSlotType));
+            resolvedParameterList.add(w.ast.parameterDeclaration(key, resolvedSlotType));
         }
 
         return ret;
@@ -1573,9 +1576,9 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
     // compile sub types
     if (astStruct.has(id.typeAliases)) {
         Map& compiledTypeAliases = *new Map(w, std.Cell, std.Struct, "typeAliases Map<ConstVar, Type>(...)");
-        for (CellI& slot : astStruct.typeAliases()) {
-            CellI& key             = slot[id.key];
-            CellI& type            = slot[id.type];
+        for (CellI& typeAliasKV : astStruct.typeAliases()) {
+            CellI& key             = typeAliasKV[id.key];
+            CellI& type            = typeAliasKV[id.value];
             auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
             compiledTypeAliases.add(key, compiledSlotType);
         }
@@ -1604,9 +1607,10 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
     // compile members
     if (astStruct.has(id.members)) {
         Map& compiledMembers = *new Map(w, std.Cell, std.ast.Slot, "members Map<ConstVar, Slot>(...)");
-        for (CellI& slot : astStruct.members()) {
-            CellI& key             = slot[id.key];
-            CellI& type            = slot[id.type];
+        for (CellI& memberKV : astStruct.members()) {
+            CellI& member          = memberKV[id.value];
+            CellI& key             = member[id.key];
+            CellI& type            = member[id.type];
             auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
             compiledMembers.add(key, w.ast.slot(key, compiledSlotType));
         }
@@ -1626,7 +1630,8 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
     // compile methods
     if (astStruct.has(id.methods)) {
         Map& compiledMethods = *new Map(w, std.Cell, std.ast.Function);
-        for (CellI& astFunction : astStruct.methods()) {
+        for (CellI& methodKV : astStruct.methods()) {
+            CellI& astFunction     = methodKV[id.value];
             auto& compiledFunction = compileInstructionsInFunction(static_cast<Ast::Function&>(astFunction));
             compiledMethods.add(astFunction[id.name], compiledFunction);
         }
@@ -1691,7 +1696,8 @@ void Compiler::compileInstructionsInEnum(Ast::Enum& astEnum)
     // compile methods
     if (astEnum.has(id.methods)) {
         Map& compiledMethods = *new Map(w, std.Cell, std.ast.Function);
-        for (CellI& astFunction : astEnum.methods()) {
+        for (CellI& methodKV : astEnum.methods()) {
+            CellI& astFunction     = methodKV[id.value];
             auto& compiledFunction = compileInstructionsInFunction(static_cast<Ast::Function&>(astFunction));
             compiledMethods.add(astFunction[id.name], compiledFunction);
         }
@@ -1710,8 +1716,8 @@ CellI& Compiler::compileInstructionsInFunction(Ast::Function& astFunction)
         (*compiledFunctionPtr).set(id.primitiveTool, w.true_);
         List& slotKeyList = *new List(w, std.Cell, "slotKeyList");
         slotKeyList.add(id.__type__);
-        for (auto& key : astFunction[id.memberMapping][id.list]) {
-            slotKeyList.add(key);
+        for (auto& mappingKV : astFunction[id.memberMapping]) {
+            slotKeyList.add(mappingKV[id.value]);
         }
         (*compiledFunctionPtr).set(id.slotKeyList, slotKeyList);
         std::cout << "";
@@ -1748,20 +1754,22 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, CellI& compiled
         if (astFunction.has(id.parameters)) {
             const auto _ = [this](auto& cell) -> Ast::ConstVar& { return w.ast._(cell); };
             int i        = 0;
-            for (CellI& slot : astFunction.parameters()) {
-                if (i++ > 0) {
+            for (CellI& paramKV : astFunction.parameters()) {
+                if (i++ > 1) {
                     iss << ", ";
                 }
-                auto& key          = slot[id.key];
-                auto& type         = slot[id.type];
+                auto& param        = paramKV[id.value];
+                auto& key          = param[id.key];
+                auto& type         = param[id.type];
                 auto& compiledType = getCompiledTypeFromResolvedType(type);
-                iss << "p_" << key.label() << ": " << compiledType.label();
                 parameters.add(key, w.ast.slot(key, compiledType));
                 if (&key == &id.self) {
                     if (i != 1) {
                         panic("The self parameter must be the first!");
                     }
                     structTypeStr = fmt::format("{}::", compiledType.label());
+                } else {
+                    iss << "p_" << key.label() << ": " << compiledType.label();
                 }
             }
         }
@@ -1784,11 +1792,16 @@ std::string Compiler::shortFunctionName(Ast::Function& function)
     std::stringstream oss;
     if (function.has(id.parameters)) {
         int i = 0;
-        for (CellI& slot : function.parameters()) {
+        for (CellI& paramKV : function.parameters()) {
+            CellI& key   = paramKV[id.key];
+            if (&key == &id.self) {
+                continue;
+            }
+            CellI& param = paramKV[id.value];
             if (i++ > 0) {
                 iss << ", ";
             }
-            iss << "p_" << slot[id.key].label() << ": " << getCompiledTypeFromResolvedType(slot[id.type]).label();
+            iss << "p_" << param[id.key].label() << ": " << getCompiledTypeFromResolvedType(param[id.type]).label();
         }
     }
     if (function.has(id.returnType)) {
@@ -1889,6 +1902,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         }
         CellI& lastBlock = *m_lastBlock;
         CellI& retOp     = compile(w.ast.set(_(lastBlock), _(id.status), _(id.continue_)));
+        retOp.label("__continue__");
         retOp.set(id.state, std.op.State.ready);
         return retOp;
     } else if (&ast.__type__() == &std.ast.Break) {
@@ -1897,6 +1911,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         }
         CellI& lastBlock = *m_lastBlock;
         CellI& retOp     = compile(w.ast.set(_(lastBlock), _(id.status), _(id.break_)));
+        retOp.label("__break__");
         retOp.set(id.state, std.op.State.ready);
         return retOp;
     } else if (&ast.__type__() == &std.ast.Return) {
@@ -2117,14 +2132,11 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         retOp.set(id.method, compile(ast[id.method]));
         retOp.set(id.parentFunction, function);
         if (ast.has(id.parameters)) {
-            Map& parameters  = *new Map(w, std.Cell, std.ast.Slot);
+            Map& parameters = *new Map(w, std.Cell, std.Cell);
             for (CellI& param : ast[id.parameters]) {
-                CellI& slot = *new Object(w, std.ast.Slot);
                 CellI& key   = param[id.key];
                 CellI& value = param[id.value];
-                slot.set(id.key, key);
-                slot.set(id.value, compile(value));
-                parameters.add(key, slot);
+                parameters.add(key, compile(value));
             }
             retOp.set(id.parameters, parameters);
         }
@@ -2176,8 +2188,8 @@ void Compiler::compileDescriptionInScope(Ast::Scope& scope, Ast::Scope& resolved
             Ast::Struct& astStruct = static_cast<Ast::Struct&>(kvPair[id.value]);
             if (astStruct.has(id.methods)) {
                 Map& compiledMethods = *new Map(w, std.Cell, std.ast.Function);
-                for (CellI& astFunction : astStruct.methods()) {
-                    compileDescriptionInFunction(static_cast<Ast::Function&>(astFunction), &astStruct);
+                for (CellI& astFunctionKV : astStruct.methods()) {
+                    compileDescriptionInFunction(static_cast<Ast::Function&>(astFunctionKV[id.value]), &astStruct);
                 }
             }
         }
@@ -2187,8 +2199,8 @@ void Compiler::compileDescriptionInScope(Ast::Scope& scope, Ast::Scope& resolved
             Ast::Enum& astEnum = static_cast<Ast::Enum&>(kvPair[id.value]);
             if (astEnum.has(id.methods)) {
                 Map& compiledMethods = *new Map(w, std.Cell, std.ast.Function);
-                for (CellI& astFunction : astEnum.methods()) {
-                    compileDescriptionInFunction(static_cast<Ast::Function&>(astFunction), &astEnum);
+                for (CellI& astFunctionKV : astEnum.methods()) {
+                    compileDescriptionInFunction(static_cast<Ast::Function&>(astFunctionKV[id.value]), &astEnum);
                 }
             }
         }
@@ -2304,10 +2316,69 @@ Ast::Base& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Func
     panic("Unknown AST to instantiate!");
 }
 
-
 CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr)
 {
     auto compile = [this, &astFunction, &astStructPtr](CellI& ast) -> CellI& { return compileDescriptionInFunctionAst(ast, astFunction, astStructPtr); };
+
+    if (&ast.__type__() == &std.ast.Block) {
+        CellI& list = ast[id.asts];
+        if (&list[id.size] == &w._1_) {
+            return compile(list[id.first][id.value]);
+        }
+        List& retList = *new List(w, std.Cell, "description");
+        for (CellI& ast : list) {
+            retList.add(compile(ast));
+        }
+
+        return retList;
+    } else if (&ast.__type__() == &std.ast.ConstVar) {
+        Object& constVar = *new Object(w, std.op.ConstVar);
+        constVar.set(id.ast, ast);
+        constVar.set(id.type, ast[id.type]);
+        constVar.set(id.value, ast[id.value]);
+        return constVar;
+    } else if (&ast.__type__() == &std.ast.UnknownVar) {
+        Object& unknownVar = *new Object(w, std.op.UnknownVar);
+        unknownVar.set(id.ast, ast);
+        unknownVar.set(id.value, ast[id.value]);
+        unknownVar.set(id.type, ast[id.type]);
+        return unknownVar;
+    } else if (&ast.__type__() == &std.ast.ResolvedType) {
+        Object& constVar = *new Object(w, std.op.ConstVar);
+        constVar.set(id.ast, ast);
+        constVar.set(id.value, ast[id.compiled]);
+        return constVar;
+    } else if (&ast.__type__() == &std.ast.Self) {
+        return ast;
+    } else if (&ast.__type__() == &std.ast.Parameter) {
+        return ast;
+    } else if (&ast.__type__() == &std.ast.Return) {
+        return ast;
+    } else if ((&ast.__type__() == &std.ast.Call) && (&ast[id.method].__type__() == &std.ast.PrimitiveToolName)) {
+        CellI& primitiveTool = ast[id.method][id.name];
+        Object& retOp        = *new Object(w, primitiveTool);
+        retOp.set(id.ast, ast);
+
+        Map& membersMapping = static_cast<Map&>(primitiveTool[id.ast][id.memberMapping]);
+
+        if (ast.has(id.parameters)) {
+            for (CellI& slot : ast[id.parameters]) {
+                CellI& key   = slot[id.key];
+                CellI& value = slot[id.value];
+                retOp.set(membersMapping.getValue(key), compile(value));
+            }
+        }
+
+        return retOp;
+    }
+
+    panic("Unknown function AST!");
+}
+
+
+CellI& Compiler::compilePromptInFunctionAst(CellI& ast, Ast::Function& astFunction)
+{
+    auto compile = [this, &astFunction](CellI& ast) -> CellI& { return compileDescriptionInFunctionAst(ast, astFunction); };
 
     if (&ast.__type__() == &std.ast.Block) {
         CellI& list = ast[id.asts];
@@ -2330,7 +2401,7 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
     } else if (&ast.__type__() == &std.ast.UnknownVar) {
         Object& unknownVar = *new Object(w, std.op.UnknownVar);
         unknownVar.set(id.ast, ast);
-        unknownVar.set(id.state, std.op.State.ready);
+        unknownVar.set(id.state, std.op.State.missingInput);
         unknownVar.set(id.value, ast[id.value]);
         unknownVar.set(id.type, ast[id.type]);
         return unknownVar;
@@ -2339,26 +2410,31 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
         constVar.set(id.ast, ast);
         constVar.set(id.value, ast[id.compiled]);
         return constVar;
-    } else if (&ast.__type__() == &std.ast.Self) {
-        return ast;
-    } else if (&ast.__type__() == &std.ast.Parameter) {
-        return ast;
-    } else if (&ast.__type__() == &std.ast.Return) {
-        return ast;
     } else if ((&ast.__type__() == &std.ast.Call) && (&ast[id.method].__type__() == &std.ast.PrimitiveToolName)) {
         CellI& primitiveTool = ast[id.method][id.name];
         Object& retOp        = *new Object(w, primitiveTool);
         retOp.set(id.ast, ast);
-        retOp.set(id.state, std.op.State.ready);
 
         Map& membersMapping = static_cast<Map&>(primitiveTool[id.ast][id.memberMapping]);
 
         if (ast.has(id.parameters)) {
+            bool hasMissingInput = false;
+            bool isConstructor   = ast.has("isConstructor");
             for (CellI& slot : ast[id.parameters]) {
                 CellI& key   = slot[id.key];
                 CellI& value = slot[id.value];
-                retOp.set(membersMapping.getValue(key), compile(value));
+                CellI& compiledValue = compile(value);
+                retOp.set(membersMapping.getValue(key), compiledValue);
+                if (isConstructor) {
+                    isConstructor = false;
+                    continue;
+                }
+                if (&compiledValue[id.state] == &std.op.State.missingInput) {
+                    hasMissingInput = true;
+                }
             }
+            CellI& calculatedState = hasMissingInput ? std.op.State.missingInput : std.op.State.ready;
+            retOp.set(id.state, calculatedState);
         }
 
         return retOp;

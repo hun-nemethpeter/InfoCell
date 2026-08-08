@@ -73,9 +73,10 @@ World& CellTest::getWorld()
     return *m_world;
 }
 
-void CellTest::printMethodInType(CellI& type, const std::string& method)
+void CellTest::printMethodInType(CellI& type, const std::string& methodStr)
 {
-    printAs.value(type[id.methods][id.index][w.name(method)][id.value]);
+    CellI& method = static_cast<Map&>(type[id.methods]).getValue(w.name(methodStr));
+    printAs.value(method);
 }
 
 std::unique_ptr<World> CellTest::m_world;

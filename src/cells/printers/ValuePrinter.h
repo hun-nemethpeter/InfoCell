@@ -57,9 +57,12 @@ protected:
     void printAstSet(CellI& cell);
     void printAstSubtract(CellI& cell);
     void printAstVar(CellI& cell);
+    void printStdStruct(CellI& cell);
     void printIndent();
     bool isThisCallAGetter(CellI& callAst);
-    void prefixByAstVariableType(CellI& astVariable);
+    bool prefixByAstVariableType(CellI& astVariable);
+    std::string printShortMethodName(CellI& cell);
+
 
     std::stringstream m_ss;
     mutable int m_indent = 0;
