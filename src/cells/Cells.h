@@ -37,7 +37,7 @@ public:
     bool missing(CellI& key);
     CellI& get(CellI& key);
     CellI& __type__();
-    CellI& slotList();
+    CellI& membersList();
     void eval();
 
     std::string label() const;
@@ -157,7 +157,7 @@ protected:
     static bool s_debugFunctionCalls;
     static bool s_worldConstructedAndAlive;
     CellI& m_type;
-    std::map<CellI*, CellI*> m_slots;
+    std::map<CellI*, CellI*> m_members;
     friend class World;
 };
 
@@ -289,12 +289,12 @@ public:
     void operator()() override;
     CellI& operator[](CellI& key) override;
 
-    void addSlot(CellI& key, CellI& slot);
-    bool hasSlot(CellI& key);
-    void removeSlot(CellI& key);
+    void addMember(CellI& key, CellI& member);
+    bool hasMember(CellI& key);
+    void removeMember(CellI& key);
 
     CellI* m_name = nullptr;
-    Map& m_slots;
+    Map& m_members;
     Map* m_typeAliases = nullptr;
     Map* m_memberOf    = nullptr;
     Map* m_asts        = nullptr;
@@ -327,7 +327,7 @@ public:
 
     Struct* m_type;
     bool m_recursiveType = false;
-    std::map<CellI*, CellI*> m_slots;
+    std::map<CellI*, CellI*> m_members;
 };
 
 // ============================================================================

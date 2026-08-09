@@ -280,7 +280,7 @@ void ToolFinder::add(Object& tool)
                 CellI& parameter = parameterKV[id.value];
                 CellI& inputType = parameter[id.type];
                 ConversionToolKey key(inputType, returnType);
-                ConversionToolBlueprint blueprint(tool, parameter[id.key]);
+                ConversionToolBlueprint blueprint(tool, parameter[id.name]);
                 m_conversionTools.insert({ key, blueprint });
             }
         }
@@ -498,8 +498,8 @@ List& ToolFinder::createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEff
         builder.add(w.ast._(tool));
     }
 
-    for (CellI& parameter : tool[id.parameters]) {
-        CellI& key = parameter[id.key];
+    for (CellI& parameterKV : tool[id.parameters]) {
+        CellI& key = parameterKV[id.key];
         if (&key == &id.self) {
             builder.add(w.ast.member(key));
         } else {

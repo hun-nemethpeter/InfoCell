@@ -101,17 +101,18 @@ void CellValuePrinter::printOpFunction(CellI& cell)
     if (cell.has(w.id.parameters)) {
         int i = 0;
         for (CellI& parameterKV : cell[w.id.parameters]) {
-            CellI& parameterKey = parameterKV[w.id.key];
-            CellI& slot         = parameterKV[w.id.value];
-            if (&parameterKey == &w.id.self) {
-                label += slot[w.id.type].label();
+            CellI& parameter     = parameterKV[w.id.value];
+            CellI& parameterName = parameter[w.id.name];
+            CellI& parameterType = parameter[w.id.type];
+            if (&parameterName == &w.id.self) {
+                label += parameter[w.id.type].label();
                 label += "::";
             } else {
                 if (i++ > 0) {
                     iss << ", ";
                 }
                 iss << "p_";
-                iss << slot[w.id.key].label() << ": " << slot[w.id.type].label();
+                iss << parameterName.label() << ": " << parameterType.label();
             }
         }
     }
@@ -615,14 +616,16 @@ void CellValuePrinter::printStdStruct(CellI& cell)
     if (!typeAliasesStrs.empty() && (cell.has(id.methods) || cell.has(id.members))) {
         m_ss << "\n";
     }
-    if (cell.has(id.slots)) {
-        for (CellI& memberKV : cell[id.slots]) {
-            CellI& slot = memberKV[id.value];
-            m_ss << fmt::format("    m_{}: {};\n", memberKV[id.key].label(), slot[id.type].label());
+    if (cell.has(id.members)) {
+        for (CellI& memberKV : cell[id.members]) {
+            CellI& member     = memberKV[id.value];
+            CellI& memberName = member[w.id.name];
+            CellI& memberType = member[w.id.type];
+            m_ss << fmt::format("    m_{}: {};\n", memberName.label(), memberType.label());
         }
     }
     if (cell.has(id.methods)) {
-        if (cell.has(id.slots)) {
+        if (cell.has(id.members)) {
             m_ss << "\n";
         }
         for (CellI& methodKV : cell[id.methods]) {
@@ -648,7 +651,7 @@ std::string CellValuePrinter::printShortMethodName(CellI& method)
             if (i++ > 0) {
                 iss << ", ";
             }
-            iss << "p_" << param[id.key].label() << ": " << param[id.type].label();
+            iss << "p_" << param[id.name].label() << ": " << param[id.type].label();
         }
     }
     if (method.has(id.returnType)) {
@@ -662,17 +665,14 @@ void CellValuePrinter::printImpl(CellI& cell)
     if (cell.isA(w.std.Number)) {
         m_ss << cell.label();
         return;
+    } else if (cell.isA(w.std.op.Member)) {
+        m_ss << cell[w.id.name].label() << ": " << cell[w.id.type].label();
+        return;
     } else if (cell.isA(w.std.ast.Slot)) {
-        CellI& cellType = cell[w.id.type];
-        m_ss << cell[w.id.key].label() << ": ";
-        if (cellType.__type__().has(w.id.memberOf) && cellType.__type__()[w.id.memberOf][w.id.index].has(w.std.ListNode)) {
-            m_ss << "ListNode<" << cellType.__type__()[w.id.slots][w.id.index][w.id.value][w.id.value][w.id.type].label() << ">";
-        } else {
-            m_ss << cellType.label();
-        }
+        m_ss << cell[w.id.key].label() << ": " << cell[w.id.type].label();
         return;
     } else if (cell.isA(w.std.List)) {
-        if (&cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value] == &w.std.Char) {
+        if (&cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value][w.id.value] == &w.std.Char) {
             m_ss << cell.label();
             return;
         }
@@ -695,13 +695,14 @@ void CellValuePrinter::printImpl(CellI& cell)
         printTypeName(cell.__type__());
         m_ss << "{";
         int i = 0;
-        for (CellI& value : cell[w.id.index].slotList()) {
+        for (CellI& memberKV : cell[w.id.index].membersList()) {
+            CellI& memberKey = memberKV[w.id.key];
             if (i++ != 0) {
                 m_ss << ", ";
             }
-            printImpl(value[w.id.key]);
+            printImpl(memberKey);
             m_ss << ": {";
-            printImpl(cell[w.id.index][value[w.id.key]][w.id.value]);
+            printImpl(cell[w.id.index][memberKey][w.id.value][w.id.value]);
             m_ss << "}";
         }
         m_ss << "}";
@@ -836,14 +837,14 @@ void CellValuePrinter::printImpl(CellI& cell)
     }
     m_ss << cell.__type__().label() << " { ";
 
-    if (cell.__type__().has(w.id.slots)) {
+    if (cell.__type__().has(id.members)) {
         int i = 0;
-        for (CellI& slotKV : cell.slotList()) {
+        for (CellI& memberKV : cell.membersList()) {
             if (i != 0) {
                 m_ss << ", ";
             }
             m_ss << ".";
-            printImpl(slotKV[id.value]);
+            printImpl(memberKV[id.value]);
         }
     }
 

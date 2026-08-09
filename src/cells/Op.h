@@ -67,6 +67,18 @@ public:
         Call& operator/(Base& key);
     };
 
+    class Member : public BaseT<Member>
+    {
+    public:
+        Member(World& w, CellI& name, CellI& type);
+    };
+
+    class Parameter : public BaseT<Parameter>
+    {
+    public:
+        Parameter(World& w, CellI& name, CellI& type);
+    };
+
     class UnknownVar : public BaseT<UnknownVar>
     {
     public:
@@ -84,14 +96,16 @@ public:
     ConstVar& const_(CellI& value);
     ConstVar& const_(const std::string& id);
     ConstVar& const_(int number);
+    Member& member(CellI& name, CellI& type);
+    Parameter& parameter(CellI& name, CellI& type);
     UnknownVar& unknown_(CellI& value);
 
     template <typename... Args>
-    Map& parameters(CellI& key, CellI& value, Args&&... args);
+    Map& parameters(CellI& name, CellI& value, Args&&... args);
 
 protected:
     template <typename... Args>
-    void addParameter(Map& map, CellI& key, CellI& value, Args&&... args);
+    void addParameter(Map& map, CellI& name, CellI& value, Args&&... args);
 
     World& w;
 };

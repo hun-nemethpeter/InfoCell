@@ -6,6 +6,13 @@ namespace infocell {
 namespace cells {
 
 // ============================================================================
+Std::Op::EMembership::EMembership(World& w, CellI& type, const std::string& label) :
+    Object(w, type, label),
+    internal(w, w.std.op.Membership, "internal"),
+    external(w, w.std.op.Membership, "external")
+{
+}
+
 Std::Op::EState::EState(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     missingInput(w, w.std.op.State, "missingInput"),
@@ -23,7 +30,7 @@ Std::Op::EActivate::EState::EState(World& w, CellI& type, const std::string& lab
     Object(w, type, label),
     missingInput(w.std.op.State.missingInput),
     ready(w.std.op.State.ready),
-    activateInput(w, w.std.op.If.State, "Activate::State::activateInput")
+    activateInput(w, w.std.op.Activate.State, "Activate::State::activateInput")
 {
 }
 
@@ -537,6 +544,8 @@ Std::Op::Op(World& w) :
     If(w, w.std.Struct, "op::If"),
     LessThan(w, w.std.Struct, "op::LessThan"),
     LessThanOrEqual(w, w.std.Struct, "op::LessThanOrEqual"),
+    Member(w, w.std.Struct, "op::Member"),
+    Membership(w, w.std.Enum, "op::Membership"),
     Missing(w, w.std.Struct, "op::Missing"),
     Multiply(w, w.std.Struct, "op::Multiply"),
     New(w, w.std.Struct, "op::New"),
@@ -544,6 +553,7 @@ Std::Op::Op(World& w) :
     NotEqual(w, w.std.Struct, "op::NotEqual"),
     NotSame(w, w.std.Struct, "op::NotSame"),
     Or(w, w.std.Struct, "op::Or"),
+    Parameter(w, w.std.Struct, "op::Parameter"),
     Return(w, w.std.Struct, "op::Return"),
     Same(w, w.std.Struct, "op::Same"),
     SavedState(w, w.std.Struct, "op::SavedState"),
@@ -822,7 +832,7 @@ void StdLibAst::createOp()
             member("ast", "ast::Base"),
             member("name", "std::Cell"),
             member("description", "std::Cell"),
-            member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "std::Slot")),
+            member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "Parameter")),
             member("localVars", "std::Index"),
             member("returnType", "std::Cell"),
             member("lastOp", tt_("std::List", "valueType", "Base")),
@@ -897,6 +907,17 @@ void StdLibAst::createOp()
             member("previous", "std::Cell"),
             member("value", "std::Boolean"));
 
+    opScope.add<Struct>("Member")
+        .members(
+            member("name", "std::Cell"),
+            member("type", "std::Cell"),
+            member("membership", "Membership"));
+
+    opScope.add<Enum>("Membership")
+        .values(
+            ev_("internal"),
+            ev_("external"));
+
     opScope.add<Struct>("Missing")
         .members(
             member("ast", "ast::Base"),
@@ -957,6 +978,14 @@ void StdLibAst::createOp()
             member("state", "std::Cell"),
             member("previous", "std::Cell"),
             member("value", "std::Boolean"));
+
+    opScope.add<Struct>("Parameter")
+        .members(
+            member("ast", "ast::Base"),
+            member("name", "std::Cell"),
+            member("state", "State"),
+            member("type", "std::Struct"),
+            member("value", "std::Cell"));
 
     opScope.add<Struct>("Return")
         .members(
@@ -1019,6 +1048,7 @@ void StdLibAst::createOp()
 #endif
         .members(
             member("ast", "ast::Base"),
+            member("state", "State"),
             member("type", "std::Struct"),
             member("value", "std::Cell"));
 
@@ -1051,8 +1081,7 @@ void StdLibAst::createAst()
     astScope.add<Struct>("Call")
         .members(
             member("method", "Base"),
-            member("self", "Base"),
-            member("parameters", ListOf(std.ast.Slot)));
+            member("parameters", ListOf(std.ast.Parameter)));
 
     astScope.add<Struct>("ConstVar")
         .members(
@@ -1100,7 +1129,7 @@ void StdLibAst::createAst()
             member("memberMapping", MapOf(std.String, std.ast.Base)),
             member("primitiveTool", _(std.Boolean)),
             member("isConstructor", _(std.Boolean)),
-            member("parameters", ListOf(std.ast.Slot)),
+            member("parameters", ListOf(std.ast.Parameter)),
             member("returnType", "std::Struct"),
             member("instructions", "Base"),
             member("description", "Base"),
@@ -1110,7 +1139,7 @@ void StdLibAst::createAst()
     astScope.add<Struct>("FunctionT")
         .members(
             member("name", "std::Cell"),
-            member("parameters", ListOf(std.ast.Slot)),
+            member("parameters", ListOf(std.ast.Parameter)),
             member("returnType", "std::Struct"),
             member("instructions", "Base"),
             member("scope", "Base"),
@@ -1143,17 +1172,17 @@ void StdLibAst::createAst()
             member("then", "Base"),
             member("else", "Base"));
 
-
     astScope.add<Struct>("Member")
         .members(
             member("key", "Base"),
-            member("type", "Base"));
+            member("type", "Base"),
+            member("membership", "std::op::Membership"));
 
     astScope.add<Struct>("New")
         .members(
             member("objectType", "Base"),
             member("constructor", "Base"),
-            member("parameters", ListOf(std.ast.Slot)));
+            member("parameters", ListOf(std.ast.Parameter)));
 
     astScope.add<Struct>("Parameter")
         .members(
@@ -1215,7 +1244,7 @@ void StdLibAst::createAst()
             member("templateParams", "std::List"),
             member("scope", "Scope"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
-            member("members", MapOf(std.Cell, std.ast.Slot)),
+            member("members", MapOf(std.Cell, std.ast.Member)),
             member("typeAliases", ListOf(std.ast.Slot)),
             member("memberOf", ListOf(std.Struct)));
 
@@ -1229,7 +1258,7 @@ void StdLibAst::createAst()
             member("name", "std::Cell"),
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
-            member("members", ListOf(std.ast.Slot)),
+            member("members", ListOf(std.ast.Member)),
             member("typeAliases", ListOf(std.ast.Slot)),
             member("memberOf", ListOf(std.Struct)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
@@ -1243,7 +1272,7 @@ void StdLibAst::createAst()
         .members(
             member("id", "Base"),
             member("scopes", "std::List"),
-            member("parameters", ListOf(std.ast.Slot)));
+            member("parameters", ListOf(std.ast.Parameter)));
 
     astScope.add<Struct>("TemplateParam")
         .members(
@@ -1329,8 +1358,8 @@ void StdLibAst::createIndex()
             parameter("indexType", _(std.Struct)))
         .instructions(
             if_(missing(p_("indexType"), _("sharedObject")))
-                .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.ast.Slot))),
-                             set(p_("indexType") / "sharedObject", "key", self()),
+                .then_(block(set(p_("indexType"), "sharedObject", new_(_(std.op.Member))),
+                             set(p_("indexType") / "sharedObject", "name", self()),
                              set(p_("indexType") / "sharedObject", "type", __type__("Index")))),
             set(p_("indexType"), "methods", m_("__type__") / "methods"),
             set(self(), "__type__", p_("indexType")));
@@ -1338,17 +1367,14 @@ void StdLibAst::createIndex()
     /*
     void Index::insert(CellI& key, CellI& value)
     {
-        if (&key == &"__type__") {
+        if (&key == &w.id.__type__) {
             throw "The type key can not be changed!";
         }
-        m_slots[&key] = &value;
+        m_members[&key] = &value;
         if (m_recursiveType) {
             return;
         }
-        Object& slot = *new Object(w, w.type.Slot);
-        slot.set("key", key);
-        slot.set("type", w.type.Slot);
-        m_type->addSlot(key, slot);
+        m_type->addMember(key, w.op.member(key, value.__type__()));
     }
     */
     indexStruct.addMethod("insert")
@@ -1359,38 +1385,38 @@ void StdLibAst::createIndex()
             if_(same(p_("key"), _("__type__")))
                 .then_(return_()),
             set(self(), p_("key"), p_("value")),
-            if_(and_(has(m_("__type__"), "sharedObject"), same(m_("__type__") / "sharedObject" / "key", self())))
+            if_(and_(has(m_("__type__"), "sharedObject"), same(m_("__type__") / "sharedObject" / "name", self())))
                 .then_(return_()),
-            m_("__type__")("addSlot")("key", p_("key"))("type", _(std.ast.Slot)));
+            m_("__type__")("addMember")("name", p_("key"))("type", _(std.op.Member)));
 
     indexStruct.addMethod("empty")
         .returnType(_(std.Boolean))
         .instructions(
-            return_((m_("__type__") / "slots")("empty")));
+            return_((m_("__type__") / "members")("empty")));
 
     /*
     void Index::erase(CellI& key)
     {
-        if (!m_type->hasSlot(key)) {
+        if (!m_type->hasMember(key)) {
             return;
         }
-        m_slots.erase(&key);
-        m_type->removeSlot(key);
+        m_members.erase(&key);
+        m_type->removeMember(key);
     }
     */
     indexStruct.addMethod("remove")
         .parameters(
             parameter("key", _(std.Cell)))
         .instructions(
-            if_(not_(m_("__type__")("hasSlot")("key", p_("key"))))
+            if_(not_(m_("__type__")("hasMember")("key", p_("key"))))
                 .then_(return_()),
             erase(self(), p_("key")),
-            m_("__type__")("removeSlot")("key", p_("key")));
+            m_("__type__")("removeMember")("key", p_("key")));
 
     indexStruct.addMethod("size")
         .returnType(_(std.Number))
         .instructions(
-            return_((m_("__type__") / "slots")("size")));
+            return_((m_("__type__") / "members")("size")));
 #pragma endregion
 }
 
@@ -1646,7 +1672,7 @@ void StdLibAst::createMap()
         .typeAliases(
             typeAlias("keyType", __type__("Cell")),
             typeAlias("valueType", __type__("Cell")),
-            typeAlias("listType", tt_("List", "valueType", __type__("Cell"))))
+            typeAlias("listType", tt_("List", "valueType", __type__("KVPair"))))
         .memberOf(__type__("Container"))
         .members(
             member("list", ta_("listType")),
@@ -1662,7 +1688,7 @@ void StdLibAst::createMap()
                   typeAlias("keyType", tp_("keyType")),
                   typeAlias("valueType", tp_("valueType")),
                   typeAlias("pairType", tt_("KVPair", "keyType", __type__("Cell"), "valueType", __type__("Cell"))),
-                  typeAlias("listType", tt_("List", "valueType", tp_("valueType"))))
+                  typeAlias("listType", tt_("List", "valueType", ta_("pairType"))))
               .memberOf(__type__("Map"))
               .members(
                   member("list", ta_("listType")),
@@ -1845,22 +1871,22 @@ void StdLibAst::createSet()
     setStructT.addMethod("first")
         .returnType(tp_("valueType"))
         .instructions(
-            return_(m_("index") / "__type__" / "slots" / "list" / "first" / "value" / "key"));
+            return_(m_("index") / "__type__" / "members" / "list" / "first" / "value" / "key"));
 
     setStructT.addMethod("last")
         .returnType(tp_("valueType"))
         .instructions(
-            return_(m_("index") / "__type__" / "slots" / "list" / "last" / "value" / "key"));
+            return_(m_("index") / "__type__" / "members" / "list" / "last" / "value" / "key"));
 
     setStructT.addMethod("begin")
         .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
-            return_(m_("index") / "__type__" / "slots" / "list" / "first"));
+            return_(m_("index") / "__type__" / "members" / "list" / "first"));
 
     setStructT.addMethod("end")
         .returnType(tt_("ListNode", "valueType", tp_("valueType")))
         .instructions(
-            return_(m_("index") / "__type__" / "slots" / "list" / "last"));
+            return_(m_("index") / "__type__" / "members" / "list" / "last"));
 
     setStructT.addMethod("size")
         .returnType(_(std.Number))
@@ -1882,27 +1908,27 @@ void StdLibAst::createStruct()
               .members(
                   member("name", tt_("List", "valueType", "Char")),
                   member("fullyQualifiedName", "Cell"),
-                  member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
+                  member("members", tt_("Map", "keyType", "Cell", "valueType", "op::Member")),
                   member("enum", "Boolean"),
                   member("incomplete", "Boolean"),
-                  member("sharedObject", "Slot"),
+                  member("sharedObject", "op::Member"),
                   member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
                   member("memberOf", tt_("Map", "keyType", "Struct", "valueType", "Struct")),
                   member("ast", "std::ast::Struct"),
                   member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")),
                   member("primitiveTool", _(std.Boolean)),
                   member("slotKeyList", tt_("List", "valueType", "Char")),
-                  member("description", "std::Cell"),
-                  member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "std::Slot")),
-                  member("returnType", "std::Cell"));
+                  member("description", "Cell"),
+                  member("parameters", tt_("Map", "keyType", "Cell", "valueType", "op::Parameter")),
+                  member("returnType", "Cell"));
 
     structStruct.addMethod("constructor")
         .instructions(
-            m_("slots") = new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructor"));
+            m_("members") = new_(tt_("Map", "keyType", "Cell", "valueType", "op::Member"), "constructor"));
 
     structStruct.addMethod("constructorWithRecursiveType")
         .instructions(
-            m_("slots") = new_(tt_("Map", "keyType", "Cell", "valueType", "Slot"), "constructorWithIndexType")("indexType", self()));
+            m_("members") = new_(tt_("Map", "keyType", "Cell", "valueType", "op::Member"), "constructorWithIndexType")("indexType", self()));
 
     structStruct.addMethod("addTypeAlias")
         .parameters(
@@ -1921,51 +1947,51 @@ void StdLibAst::createStruct()
                 .then_(m_("memberOf") = new_(tt_("Map", "keyType", "Struct", "valueType", "Struct"), "constructor")),
             m_("memberOf")("add")("key", p_("cell"))("value", p_("cell")));
 
-    structStruct.addMethod("addSlot")
+    structStruct.addMethod("addMember")
         .parameters(
-            parameter("key", _(std.Cell)),
-            parameter("type", _(std.ast.Slot)))
+            parameter("name", _(std.Cell)),
+            parameter("type", _(std.op.Member)))
         .instructions(
-            if_(m_("slots").missing())
-                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.ast.Slot)), "constructor")),
-            var_("slot") = new_(_(std.ast.Slot)),
-            set(*var_("slot"), "key", p_("key")),
-            set(*var_("slot"), "type", p_("type")),
-            m_("slots")("add")("key", p_("key"))("value", *var_("slot")));
+            if_(m_("members").missing())
+                .then_(m_("members") = new_(tt_("Map", "keyType", "Cell", "valueType", "op::Member"), "constructor")),
+            var_("member") = new_("op::Member"),
+            set(*var_("member"), "name", p_("name")),
+            set(*var_("member"), "type", p_("type")),
+            m_("members")("add")("key", p_("name"))("value", *var_("member")));
 
-    structStruct.addMethod("addSlots")
+    structStruct.addMethod("addMembers")
         .parameters(
-            parameter("list", tt_("List", "valueType", _(std.ast.Slot))))
+            parameter("list", tt_("List", "valueType", "op::Member")))
         .instructions(
             if_(equal(p_("list") / "size", _(_0_)))
                 .then_(return_()),
             var_("node") = p_("list") / "first",
-            if_(m_("slots").missing())
-                .then_(m_("slots") = new_(tt_("Map", "keyType", _(std.Cell), "valueType", _(std.ast.Slot)), "constructor")),
+            if_(m_("members").missing())
+                .then_(m_("members") = new_(tt_("Map", "keyType", "Cell", "valueType", "op::Member"), "constructor")),
             do_(block(
                     var_("next") = true_(),
-                    m_("slots")("add")("key", *var_("node") / "value" / "key")("value", *var_("node") / "value"),
+                    m_("members")("add")("key", *var_("node") / "value" / "name")("value", *var_("node") / "value"),
                     if_(has(*var_("node"), "next"))
                         .then_(var_("node") = *var_("node") / "next")
                         .else_(var_("next") = false_())))
                 .while_(same(*var_("next"), true_())));
 
-    structStruct.addMethod("hasSlot")
+    structStruct.addMethod("hasMember")
         .parameters(
             parameter("key", _(std.Cell)))
         .returnType(_(std.Boolean))
         .instructions(
-            if_(m_("slots").missing())
+            if_(m_("members").missing())
                 .then_(return_(false_())),
-            return_(m_("slots")("hasKey")("key", p_("key"))));
+            return_(m_("members")("hasKey")("key", p_("key"))));
 
-    structStruct.addMethod("removeSlot")
+    structStruct.addMethod("removeMember")
         .parameters(
             parameter("key", _(std.Cell)))
         .instructions(
-            if_(m_("slots").missing())
+            if_(m_("members").missing())
                 .then_(return_()),
-            m_("slots")("remove")("key", p_("key")));
+            m_("members")("remove")("key", p_("key")));
 #pragma endregion
 }
 
@@ -2483,7 +2509,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .members(
             member("name", tt_("List", "valueType", "Char")),
             member("fullyQualifiedName", "Cell"),
-            member("slots", tt_("Map", "keyType", "Cell", "valueType", "Slot")),
+            member("members", tt_("Map", "keyType", "Cell", "valueType", "op::Member")),
             member("enum", "Boolean"),
             member("incomplete", "Boolean"),
             member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),
@@ -2632,7 +2658,12 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             member("input", "Index"),
             member("localVars", "Index"));
 
-    stdScope.add<Struct>("String");
+    stdScope.add<Struct>("String")
+        .members(
+            member("first", tt_("ListNode", "valueType", _(std.Char))),
+            member("last", tt_("ListNode", "valueType", _(std.Char))),
+            member("size", _(std.Number)),
+            member("value", tt_("List", "valueType", _(std.Char))));
 
     createStruct();
 
@@ -2669,8 +2700,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     Std& std = w.std;
     StdLibAst stdLibAst(w, parentScope.add<Ast::Scope>("std"));
 
-    compiler.reigisterStructBeforeCompilation(w.ast.tt_("std::List", "valueType", w.ast._(std.Char))); // TODO instantiate on demand in getStruct
-
     compiler.registerBuiltInStruct("std::op::Activate", std.op.Activate);
     compiler.registerBuiltInStruct("std::op::Add", std.op.Add);
     compiler.registerBuiltInStruct("std::op::And", std.op.And);
@@ -2691,6 +2720,10 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::op::If", std.op.If);
     compiler.registerBuiltInStruct("std::op::LessThan", std.op.LessThan);
     compiler.registerBuiltInStruct("std::op::LessThanOrEqual", std.op.LessThanOrEqual);
+    compiler.registerBuiltInStruct("std::op::Member", std.op.Member);
+    compiler.registerBuiltInStruct("std::op::Membership", std.op.Membership);
+    compiler.registerBuiltInEnumValue("std::op::Membership::internal", std.op.Membership.internal);
+    compiler.registerBuiltInEnumValue("std::op::Membership::external", std.op.Membership.external);
     compiler.registerBuiltInStruct("std::op::Missing", std.op.Missing);
     compiler.registerBuiltInStruct("std::op::Multiply", std.op.Multiply);
     compiler.registerBuiltInStruct("std::op::New", std.op.New);
@@ -2698,6 +2731,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::op::NotEqual", std.op.NotEqual);
     compiler.registerBuiltInStruct("std::op::NotSame", std.op.NotSame);
     compiler.registerBuiltInStruct("std::op::Or", std.op.Or);
+    compiler.registerBuiltInStruct("std::op::Parameter", std.op.Parameter);
     compiler.registerBuiltInStruct("std::op::Return", std.op.Return);
     compiler.registerBuiltInStruct("std::op::Same", std.op.Same);
     compiler.registerBuiltInStruct("std::op::SavedState", std.op.SavedState);

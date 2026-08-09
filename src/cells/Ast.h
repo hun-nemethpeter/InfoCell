@@ -217,13 +217,6 @@ public:
         SelfType(World& w);
     };
 
-    class Slot : public BaseT<Slot>
-    {
-    public:
-        Slot(World& w, CellI& key);
-        Slot(World& w, CellI& key, CellI& value);
-    };
-
     class TypeName : public BaseT<TypeName>
     {
     public:
@@ -638,6 +631,12 @@ public:
         Items<TrieMap, Enum> enumsImpl;
     };
 
+    enum class Membership
+    {
+        Internal,
+        External
+    };
+
 // ============================================================================
     Ast(World& w);
 
@@ -678,13 +677,14 @@ public:
     Call& lessThan(Base& lhs, Base& rhs);
     Call& lessThanOrEqual(Base& lhs, Base& rhs);
     Match& match_(Base& enum_);
-    Member& member(CellI& key);
-    Member& member(CellI& key, CellI& type);
+    Member& member(CellI& name);
+    Member& member(CellI& name, CellI& type);
     Member& member(const std::string& nameStr, const std::string& typeStr);
     Member& member(const std::string& nameStr, CellI& type);
     Call& missing(Base& cell, Base& key);
     Call& missing(Base& cell, const std::string& id);
     Call& multiply(Base& lhs, Base& rhs);
+    New& new_(const std::string& typeStr);
     New& new_(Base& objectType);
     New& new_(Base& objectType, Base& constructor);
     New& new_(Base& objectType, const std::string& constructor);
@@ -706,8 +706,6 @@ public:
     SelfType& selfType();
     Call& set(Base& cell, Base& key, Base& value);
     Call& set(Base& cell, const std::string& key, Base& value);
-    Slot& slot(CellI& key, CellI& type);
-    Slot& slot(const std::string& key, CellI& type);
     TypeName& typeName(CellI& id);
     TypeName& typeName(const std::string& idStr);
     Call& subtract(Base& lhs, Base& rhs);

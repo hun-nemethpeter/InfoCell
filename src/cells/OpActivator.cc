@@ -296,7 +296,7 @@ void OpActivator::activateOpCall()
         stackFrame.set(w.id.input, inputIndex);
 
         if (method.has(w.id.localVars)) {
-            CellI& localVarsList = method[w.id.localVars].slotList();
+            CellI& localVarsList = method[w.id.localVars].membersList();
             auto& localVarsIndex = *new Object(w, method[w.id.localVars].__type__(), "StackLocalVarsIndex");
             for (CellI& slot : localVarsList) {
                 localVarsIndex.set(slot[w.id.key], *new Object(w, w.std.op.Var));
@@ -545,7 +545,7 @@ void OpActivator::activateOpFunction()
             previousStackNode.erase(w.id.next);
             delete &inputIndex;
             if (stackFrame.has(w.id.localVars)) {
-                CellI& localVarsList  = self[w.id.localVars].slotList();
+                CellI& localVarsList  = self[w.id.localVars].membersList();
                 CellI& localVarsIndex = stackFrame[w.id.localVars];
                 for (CellI& slot : localVarsList) {
                     delete &localVarsIndex[slot[w.id.key]];

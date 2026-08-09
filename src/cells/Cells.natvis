@@ -3,17 +3,17 @@
   <Type Name="infocell::cells::Object">
     <Intrinsic Name="isList" Expression="&amp;m_type == &amp;w.std.List">
     </Intrinsic>
-    <Intrinsic Name="rbHead" Expression="obj-&gt;m_slots._Mypair._Myval2._Myval2._Myhead">
+    <Intrinsic Name="rbHead" Expression="obj-&gt;m_members._Mypair._Myval2._Myval2._Myhead">
       <Parameter Name="obj" Type="infocell::cells::Object*" />
     </Intrinsic>
-    <Intrinsic Name="rbHeadParent" Expression="obj-&gt;m_slots._Mypair._Myval2._Myval2._Myhead-&gt;_Parent">
+    <Intrinsic Name="rbHeadParent" Expression="obj-&gt;m_members._Mypair._Myval2._Myval2._Myhead-&gt;_Parent">
       <Parameter Name="obj" Type="infocell::cells::Object*" />
     </Intrinsic>
-    <DisplayString>({m_type.m_label,sb}){m_label, sb} [{m_slots._Mypair._Myval2._Myval2._Mysize}]</DisplayString>
+    <DisplayString>({m_type.m_label,sb}){m_label, sb} [{m_members._Mypair._Myval2._Myval2._Mysize}]</DisplayString>
     <Expand>
       <TreeItems Condition="!isList()">
-        <Size>m_slots._Mypair._Myval2._Myval2._Mysize</Size>
-        <HeadPointer>m_slots._Mypair._Myval2._Myval2._Myhead-&gt;_Parent</HeadPointer>
+        <Size>m_members._Mypair._Myval2._Myval2._Mysize</Size>
+        <HeadPointer>m_members._Mypair._Myval2._Myval2._Myhead-&gt;_Parent</HeadPointer>
         <LeftPointer>_Left</LeftPointer>
         <RightPointer>_Right</RightPointer>
         <ValueNode Condition="_Isnil == 0" Name="[{_Myval.first}]">_Myval,view(MapHelper)</ValueNode>

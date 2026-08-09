@@ -62,6 +62,21 @@ Op::Get::Get(World& w, CellI& cell, CellI& key) :
     set(w.id.key, key);
 }
 
+Op::Member::Member(World& w, CellI& name, CellI& type) :
+    BaseT<Member>(w, w.std.op.Member, "op.Member")
+{
+    set(w.id.name, name);
+    set(w.id.type, type);
+}
+
+Op::Parameter::Parameter(World& w, CellI& name, CellI& type) :
+    BaseT<Parameter>(w, w.std.op.Parameter, "op.Parameter")
+{
+    set(w.id.name, name);
+    set(w.id.type, type);
+    set(w.id.state, w.std.op.State.missingInput);
+}
+
 Op::UnknownVar::UnknownVar(World& w, CellI& value) :
     BaseT<UnknownVar>(w, w.std.op.UnknownVar, "op.UnknownVar")
 {
@@ -108,6 +123,16 @@ Op::ConstVar& Op::const_(const std::string& nameStr)
 Op::ConstVar& Op::const_(int number)
 {
     return const_(w.pools.numbers.get(number));
+}
+
+Op::Member& Op::member(CellI& name, CellI& type)
+{
+    return Member::New(w, name, type);
+}
+
+Op::Parameter& Op::parameter(CellI& name, CellI& type)
+{
+    return Parameter::New(w, name, type);
 }
 
 Op::UnknownVar& Op::unknown_(CellI& value)

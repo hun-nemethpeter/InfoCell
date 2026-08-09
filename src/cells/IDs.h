@@ -94,6 +94,7 @@ public:
     String& memberMapping;
     String& memberOf;
     String& members;
+    String& membership;
     String& method;
     String& methods;
     String& name;
@@ -128,7 +129,6 @@ public:
     String& sign;
     String& size;
     String& slotKeyList;
-    String& slots;
     String& stack;
     String& state;
     String& statement;

@@ -125,8 +125,8 @@ public:
                     if (&edge["kind"] == &arc.ShapeEdgeKind.InternalEdge) {
                         if (edge.has("shapes")) {
                             std::stringstream ss;
-                            for (CellI& slot : edge["shapes"]["index"].slotList()) {
-                                CellI& shape = slot["key"];
+                            for (CellI& member : edge["shapes"]["index"].membersList()) {
+                                CellI& shape = member["key"];
                                 ss << fmt::format("shape({}) ", shape["id"].label());
                             }
                             TRACE(shapeRelations, "    edge id {} internal and contains: {}", edge["id"].label(), ss.str());

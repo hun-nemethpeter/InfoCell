@@ -550,6 +550,15 @@ public:
             EState State;
         };
 
+        class EMembership : public Object
+        {
+        public:
+            EMembership(World& w, CellI& type, const std::string& label);
+
+            Object internal;
+            Object external;
+        };
+
         class EState : public Object
         {
         public:
@@ -583,6 +592,8 @@ public:
         EIf If;
         ELessThan LessThan;
         ELessThanOrEqual LessThanOrEqual;
+        Object Member;
+        EMembership Membership;
         EMissing Missing;
         EMultiply Multiply;
         ENew New;
@@ -590,6 +601,7 @@ public:
         ENotEqual NotEqual;
         ENotSame NotSame;
         EOr Or;
+        Object Parameter;
         EReturn Return;
         ESame Same;
         Object SavedState;

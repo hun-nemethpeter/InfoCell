@@ -5,11 +5,11 @@ namespace infocell {
 namespace cells {
 
 template <typename... Args>
-Map& Op::parameters(CellI& key, CellI& value, Args&&... args)
+Map& Op::parameters(CellI& name, CellI& value, Args&&... args)
 {
-    World& w = key.w;
+    World& w = name.w;
     Map& ret = *new Map(w, w.std.Cell, w.std.ast.Slot);
-    ret.add(key, w.ast.parameterInit(key, value));
+    ret.add(name, w.ast.parameterInit(name, value));
     if constexpr (sizeof...(Args) > 0) {
         addParameter(ret, std::forward<Args>(args)...);
     }
@@ -18,9 +18,9 @@ Map& Op::parameters(CellI& key, CellI& value, Args&&... args)
 }
 
 template <typename... Args>
-void Op::addParameter(Map& map, CellI& key, CellI& value, Args&&... args)
+void Op::addParameter(Map& map, CellI& name, CellI& value, Args&&... args)
 {
-    map.add(key, value.w.ast.parameterInit(key, value));
+    map.add(name, value.w.ast.parameterInit(name, value));
     if constexpr (sizeof...(Args) > 0) {
         addParameter(map, std::forward<Args>(args)...);
     }

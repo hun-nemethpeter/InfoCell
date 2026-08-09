@@ -61,6 +61,7 @@ IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ESet);
 IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EState);
 IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::ESubtract);
 IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::Op::EWhile);
+IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Object);
 
 IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::EBoolean);
 IMPLEMENT_GTEST_PRINTER_FOR(infocell::cells::Std::SCell);

@@ -49,19 +49,6 @@ Ast::KVPair::KVPair(World& w, CellI& key, CellI& value) :
     set(w.id.value, value);
 }
 
-Ast::Slot::Slot(World& w, CellI& key) :
-    BaseT<Slot>(w, w.std.ast.Slot, "ast.Slot")
-{
-    set(w.id.key, key);
-}
-
-Ast::Slot::Slot(World& w, CellI& key, CellI& type) :
-    BaseT<Slot>(w, w.std.ast.Slot, "ast.Slot")
-{
-    set(w.id.key, key);
-    set(w.id.type, type);
-}
-
 Ast::Call::Call(World& w, CellI& method) :
     BaseT<Call>(w, w.std.ast.Call, "ast.Call")
 {
@@ -1200,11 +1187,6 @@ Ast::PrimitiveToolName& Ast::primitiveToolName(CellI& key)
     return PrimitiveToolName::New(w, key);
 }
 
-Ast::Slot& Ast::slot(const std::string& key, CellI& type)
-{
-    return Slot::New(w, w.name(key), type);
-}
-
 Ast::KVPair& Ast::kvPair(CellI& key, CellI& value)
 {
     return KVPair::New(w, key, value);
@@ -1223,11 +1205,6 @@ Ast::KVPair& Ast::kvPair(CellI& key, const std::string& valueStr)
 Ast::KVPair& Ast::kvPair(const std::string& keyStr, const std::string& valueStr)
 {
     return KVPair::New(w, w.name(keyStr), w.name(valueStr));
-}
-
-Ast::Slot& Ast::slot(CellI& key, CellI& type)
-{
-    return Slot::New(w, key, type);
 }
 
 Ast::EnumValue& Ast::enumValue(const std::string& nameStr)
@@ -1379,6 +1356,11 @@ Ast::AssociatedType& Ast::associatedType(CellI& key)
     return AssociatedType::New(w, key);
 }
 
+Ast::New& Ast::new_(const std::string& typeStr)
+{
+    return New::NewT<Ast::New>::New(w, w.ast.typeName(typeStr));
+}
+
 Ast::New& Ast::new_(Base& objectType)
 {
     return New::NewT<Ast::New>::New(w, objectType);
@@ -1394,9 +1376,9 @@ Ast::New& Ast::new_(Base& objectType, Base& constructor)
     return New::NewT<Ast::New>::New(w, objectType, constructor);
 }
 
-Ast::New& Ast::new_(const std::string& objectType, const std::string& constructor)
+Ast::New& Ast::new_(const std::string& typeStr, const std::string& constructor)
 {
-    return New::NewT<Ast::New>::New(w, w.ast.typeName(w.name(objectType)), w.ast._(constructor));
+    return New::NewT<Ast::New>::New(w, w.ast.typeName(typeStr), w.ast._(constructor));
 }
 
 Ast::Call& Ast::same(Base& lhs, Base& rhs)

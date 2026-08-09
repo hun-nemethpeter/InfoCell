@@ -50,7 +50,7 @@ Ast::Block& Ast::block(Args&&... args)
 template <typename... Args>
 Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& key, CellI& type, Args&&... args)
 {
-    auto& ret = templatedType(id, w.ast.slot(key, type));
+    auto& ret = templatedType(id, w.ast.parameterDeclaration(key, type));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }
@@ -60,7 +60,7 @@ Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string&
 template <typename... Args>
 Ast::TemplatedType& Ast::templatedType(const std::string& id, const std::string& key, const std::string& type, Args&&... args)
 {
-    auto& ret  = templatedType(id, w.ast.slot(key, w.ast.typeName(type)));
+    auto& ret  = templatedType(id, w.ast.parameterDeclaration(key, w.ast.typeName(type)));
     if constexpr (sizeof...(Args) > 0) {
         ret.addParam(std::forward<Args>(args)...);
     }

@@ -1566,7 +1566,7 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
 
     // TODO: this is a hack now, we have to put it to stdlib
     if (&compiledStruct == &std.op.Call) {
-        List& callSlotKeyList = *new List(w, std.ast.Slot);
+        List& callSlotKeyList = *new List(w, std.Cell);
         callSlotKeyList.add(id.__type__);
         callSlotKeyList.add(id.method);
         callSlotKeyList.add(id.parameters);
@@ -1584,7 +1584,7 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
         }
         compiledStruct.set(id.typeAliases, compiledTypeAliases);
         CellI& typeAliasesIndex = compiledTypeAliases[id.index];
-        for (CellI& typeAlias : typeAliasesIndex.slotList()) {
+        for (CellI& typeAlias : typeAliasesIndex.membersList()) {
             CellI& key      = typeAlias[id.key];
             CellI& value    = typeAliasesIndex[key][id.value];
             List& aliasName = *new List(w, std.Char);
@@ -1606,15 +1606,15 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
 
     // compile members
     if (astStruct.has(id.members)) {
-        Map& compiledMembers = *new Map(w, std.Cell, std.ast.Slot, "members Map<ConstVar, Slot>(...)");
+        Map& compiledMembers = *new Map(w, std.Cell, std.op.Member, "members Map<ConstVar, Slot>(...)");
         for (CellI& memberKV : astStruct.members()) {
-            CellI& member          = memberKV[id.value];
-            CellI& key             = member[id.key];
-            CellI& type            = member[id.type];
-            auto& compiledSlotType = getCompiledTypeFromResolvedType(type);
-            compiledMembers.add(key, w.ast.slot(key, compiledSlotType));
+            CellI& member            = memberKV[id.value];
+            CellI& key               = member[id.key];
+            CellI& type              = member[id.type];
+            auto& compiledMemberType = getCompiledTypeFromResolvedType(type);
+            compiledMembers.add(key, w.op.member(key, compiledMemberType));
         }
-        compiledStruct.set(id.slots, compiledMembers);
+        compiledStruct.set(id.members, compiledMembers);
     }
 
     // compile memberOf list
@@ -1652,9 +1652,9 @@ void Compiler::compileInstructionsInEnum(Ast::Enum& astEnum)
 
     // compile values
     if (astEnum.has(id.values)) {
-        Map& compiledMembers = *new Map(w, std.Cell, std.ast.Slot, "members Map<ConstVar, Slot>(...)");
-        compiledMembers.add(id.tag, w.ast.slot(id.tag, std.Cell));
-        compiledStruct.set(id.slots, compiledMembers);
+        Map& compiledMembers = *new Map(w, std.Cell, std.op.Member, "members Map<ConstVar, Slot>(...)");
+        compiledMembers.add(id.tag, w.op.member(id.tag, std.Cell));
+        compiledStruct.set(id.members, compiledMembers);
         for (CellI& kvPair : astEnum.values()) {
             CellI& valueKey  = kvPair[id.key];
             CellI& valueCell = kvPair[id.value];
@@ -1677,10 +1677,10 @@ void Compiler::compileInstructionsInEnum(Ast::Enum& astEnum)
                     auto& resolvedValue = resolveTypeInEnumValue(value);
                     auto& valueType     = resolvedValue.__type__();
 
-                    compiledMembers.add(valueKey, w.ast.slot(valueKey, valueType));
+                    compiledMembers.add(valueKey, w.op.member(valueKey, valueType));
                     compiledValue.set(valueName, value[id.value]);
                 } else {
-                    compiledMembers.add(valueKey, w.ast.slot(valueKey, compiledStruct));
+                    compiledMembers.add(valueKey, w.op.member(valueKey, compiledStruct));
                     compiledValue.set(valueName, id.emptyObject);
                 }
             } else if (&valueCell.__type__() == &std.ast.TypedEnumValue) {
@@ -1688,7 +1688,7 @@ void Compiler::compileInstructionsInEnum(Ast::Enum& astEnum)
                 auto& enumValueType         = valueCell[id.enumType];
                 auto& compiledEnumValueType = getCompiledTypeFromResolvedType(enumValueType);
                 auto& fullName              = getFullyQualifiedName(enumValue);
-                compiledMembers.add(valueKey, w.ast.slot(valueKey, compiledEnumValueType));
+                compiledMembers.add(valueKey, w.op.member(valueKey, compiledEnumValueType));
             }
         }
     }
@@ -1749,7 +1749,7 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, CellI& compiled
     std::stringstream oss;
     std::string structTypeStr;
     if (astFunction.has(id.parameters)) {
-        Map& parameters = *new Map(w, std.Cell, std.ast.Slot);
+        Map& parameters = *new Map(w, std.Cell, std.op.Parameter);
 
         if (astFunction.has(id.parameters)) {
             const auto _ = [this](auto& cell) -> Ast::ConstVar& { return w.ast._(cell); };
@@ -1762,7 +1762,7 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, CellI& compiled
                 auto& key          = param[id.key];
                 auto& type         = param[id.type];
                 auto& compiledType = getCompiledTypeFromResolvedType(type);
-                parameters.add(key, w.ast.slot(key, compiledType));
+                parameters.add(key, w.op.parameter(key, compiledType));
                 if (&key == &id.self) {
                     if (i != 1) {
                         panic("The self parameter must be the first!");
@@ -1890,7 +1890,7 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
 
         Index& localVarsIndex = *localVarsIndexPtr;
         if (!localVarsIndex.has(ast[id.name])) {
-            localVarsIndex.insert(ast[id.name], w.ast.slot(ast[id.name], std.op.Var));
+            localVarsIndex.insert(ast[id.name], std.op.Var);
         }
 
         CellI& retOp = compile(w.ast.get(_(function), _(id.stack)) / _(id.value) / _(id.localVars) / _(ast[id.name]));
@@ -2086,8 +2086,8 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
             } else {
                 auto& astMembers = static_cast<Map&>(selfType[id.members]);
                 if (astMembers.hasKey(astMemberId)) {
-                    auto& slot = static_cast<Ast::Slot&>(astMembers.getValue(astMemberId));
-                    auto& type = slot[id.type];
+                    auto& member = astMembers.getValue(astMemberId);
+                    auto& type   = member[id.type];
                     checkMethodCall(type, astMethodId);
                     checked = true;
                 } else {
@@ -2102,20 +2102,19 @@ CellI& Compiler::compileInstructionsInFunctionAst(Ast::Function& astFunction, Ce
         } else if (&selfType.__type__() == &std.ast.Parameter && selfType.missing(id.value)) {
             // if the value is missing we referencing a parameter from the parent function
             // if the value is filled, we just pass the value, so nothing to check
-            auto& parameterName                 = selfType[id.key];
-            auto& astFunctionParameters         = function[id.ast][id.parameters];
-            Ast::Slot* astFunctionParameterSlot = nullptr;
-            for (CellI& slot : astFunctionParameters) {
-                CellI& key  = slot[id.key];
-                CellI& type = slot[id.type];
+            auto& parameterName         = selfType[id.key];
+            CellI* astFunctionParameter = nullptr;
+            for (CellI& parameterKV : function[id.ast][id.parameters]) {
+                CellI& parameter = parameterKV[id.value];
+                CellI& key       = parameter[id.name];
                 if (&key == &parameterName) {
-                    astFunctionParameterSlot = &static_cast<Ast::Slot&>(slot);
+                    astFunctionParameter = &parameter;
                     break;
                 }
             }
-            if (astFunctionParameterSlot) {
-                Ast::Slot& slot        = *astFunctionParameterSlot;
-                auto& astParameterType = slot[id.type];
+            if (astFunctionParameter) {
+                CellI& parameter       = *astFunctionParameter;
+                auto& astParameterType = parameter[id.type];
                 checkMethodCall(astParameterType, astMethodId);
                 checked = true;
             } else {

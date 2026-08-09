@@ -84,9 +84,9 @@ CellI& CellI::__type__()
     return (*this)[w.id.__type__];
 }
 
-CellI& CellI::slotList()
+CellI& CellI::membersList()
 {
-    return __type__()[w.id.slots][w.id.list];
+    return __type__()[w.id.members][w.id.list];
 }
 
 void CellI::eval()
@@ -125,14 +125,14 @@ bool CellI::operator==(CellI& rhs)
         return false;
     }
 
-    for (CellI& slot : slotList()) {
-        CellI& key = slot[w.id.key];
+    for (CellI& memberKV : membersList()) {
+        CellI& key = memberKV[w.id.key];
 
-        bool hasLeftSlot = has(key);
-        if (hasLeftSlot != rhs.has(key)) {
+        bool hasLeftMember = has(key);
+        if (hasLeftMember != rhs.has(key)) {
             return false;
         }
-        if (hasLeftSlot && (&(*this)[key] != &rhs[key])) {
+        if (hasLeftMember && (&(*this)[key] != &rhs[key])) {
             return false;
         }
     }
@@ -202,14 +202,14 @@ Object::Object(World& w, CellI& type, const std::string& label) :
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.id.__type__] = &type;
+    m_members[&w.id.__type__] = &type;
 }
 
 Object::Object(World& w, CellI& type, CellI& constructor, const std::string& label) :
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.id.__type__] = &type;
+    m_members[&w.id.__type__] = &type;
     getMethod(constructor)();
 }
 
@@ -217,7 +217,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, const st
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.id.__type__] = &type;
+    m_members[&w.id.__type__] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -228,7 +228,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param pa
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.id.__type__] = &type;
+    m_members[&w.id.__type__] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -240,7 +240,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param pa
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.id.__type__] = &type;
+    m_members[&w.id.__type__] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -256,7 +256,7 @@ Object::Object(World& w, CellI& type, CellI& constructor, Param param1, Param pa
     CellI(w, label),
     m_type(type)
 {
-    m_slots[&w.id.__type__] = &type;
+    m_members[&w.id.__type__] = &type;
 
     CellI& method = getMethod(constructor);
     setFnParam(method, param1);
@@ -282,7 +282,7 @@ bool Object::has(CellI& key)
     if (&key == &w.id.__type__)
         return true;
 
-    return m_slots.find(&key) != m_slots.end();
+    return m_members.find(&key) != m_members.end();
 }
 
 void Object::set(CellI& key, CellI& value)
@@ -291,11 +291,11 @@ void Object::set(CellI& key, CellI& value)
         throw "Type change not allowed.";
     }
     if (w.initPhase() == InitPhase::Init || w.initPhase() == InitPhase::Compiling) {
-        m_slots[&key] = &value;
+        m_members[&key] = &value;
         return;
     }
-    if (isA(w.std.Index) || __type__()[w.id.slots][w.id.index].has(key)) {
-        m_slots[&key] = &value;
+    if (isA(w.std.Index) || __type__()[w.id.members][w.id.index].has(key)) {
+        m_members[&key] = &value;
     } else {
         throw "The type doesn't contains this key.";
     }
@@ -307,11 +307,11 @@ void Object::erase(CellI& key)
         throw "Type change not allowed.";
     }
 
-    auto slotIt = m_slots.find(&key);
-    if (slotIt == m_slots.end()) {
+    auto memberIt = m_members.find(&key);
+    if (memberIt == m_members.end()) {
         return;
     }
-    m_slots.erase(slotIt);
+    m_members.erase(memberIt);
 }
 
 void Object::createSelfStack()
@@ -337,8 +337,8 @@ void Object::operator()()
 
 CellI& Object::operator[](CellI& key)
 {
-    auto findIt = m_slots.find(&key);
-    if (findIt == m_slots.end())
+    auto findIt = m_members.find(&key);
+    if (findIt == m_members.end())
         throw "No such key!";
 
     return *findIt->second;
@@ -467,16 +467,16 @@ void Object::initLocalVars(CellI& method)
         return;
     }
 
-    CellI& localVarsList   = method[w.id.localVars].slotList();
+    CellI& localVarsList   = method[w.id.localVars].membersList();
     Object& localVarsIndex = *new Object(w, method[w.id.localVars].__type__(), "LocalVarsIndex");
     CellI& stackFrame      = method[w.id.stack][w.id.value];
     stackFrame.set(w.id.localVars, localVarsIndex);
     for (CellI& localVarKV : localVarsList) {
-        auto& slot       = localVarKV[w.id.value];
-        auto& key        = slot[w.id.key];
-        Object& localVar = *new Object(w, w.std.op.Var, fmt::format("var {}", key.label()));
-        localVar.set(w.id.type, slot[w.id.type]);
-        localVarsIndex.set(key, localVar);
+        auto& localVar      = localVarKV[w.id.value];
+        auto& key           = localVar[w.id.name];
+        Object& newLocalVar = *new Object(w, w.std.op.Var, fmt::format("var {}", key.label()));
+        newLocalVar.set(w.id.type, localVar[w.id.type]);
+        localVarsIndex.set(key, newLocalVar);
     }
 }
 
@@ -723,13 +723,13 @@ void List::clear()
 // ============================================================================
 Struct::Struct(World& w, const std::string& label) :
     CellI(w, label),
-    m_slots(*new Map(w, w.std.Cell, w.std.ast.Slot))
+    m_members(*new Map(w, w.std.Cell, w.std.op.Member))
 {
 }
 
 Struct::Struct(World& w, WithRecursiveType recursiveType, const std::string& label) :
     CellI(w, label),
-    m_slots(*new Map(w, w.std.Cell, w.std.ast.Slot, *this))
+    m_members(*new Map(w, w.std.Cell, w.std.op.Member, *this))
 {
 }
 
@@ -741,7 +741,7 @@ bool Struct::has(CellI& key)
     if (&key == &w.id.name) {
         return true;
     }
-    if (&key == &w.id.slots) {
+    if (&key == &w.id.members) {
         return true;
     }
     if (&key == &w.id.typeAliases) {
@@ -788,8 +788,8 @@ CellI& Struct::operator[](CellI& key)
             return *m_name;
         }
     }
-    if (&key == &w.id.slots) {
-        return m_slots;
+    if (&key == &w.id.members) {
+        return m_members;
     }
     if (&key == &w.id.typeAliases) {
         return *m_typeAliases;
@@ -807,19 +807,19 @@ CellI& Struct::operator[](CellI& key)
     throw "No such key!";
 }
 
-void Struct::addSlot(CellI& key, CellI& slot)
+void Struct::addMember(CellI& key, CellI& member)
 {
-    m_slots.add(key, slot);
+    m_members.add(key, member);
 }
 
-bool Struct::hasSlot(CellI& key)
+bool Struct::hasMember(CellI& key)
 {
-    return m_slots.hasKey(key);
+    return m_members.hasKey(key);
 }
 
-void Struct::removeSlot(CellI& key)
+void Struct::removeMember(CellI& key)
 {
-    m_slots.remove(key);
+    m_members.remove(key);
 }
 #pragma endregion
 #pragma region Index
@@ -842,7 +842,7 @@ bool Index::has(CellI& key)
     if (&key == &w.id.__type__) {
         return true;
     }
-    if (m_slots.find(&key) != m_slots.end()) {
+    if (m_members.find(&key) != m_members.end()) {
         return true;
     }
 
@@ -854,16 +854,16 @@ void Index::set(CellI& key, CellI& value)
     if (&key == &w.id.__type__) {
         throw "The type key can not be changed!";
     }
-    m_slots[&key] = &value;
+    m_members[&key] = &value;
 }
 
 void Index::erase(CellI& key)
 {
-    if (!m_type->hasSlot(key)) {
+    if (!m_type->hasMember(key)) {
         return;
     }
-    m_slots.erase(&key);
-    m_type->removeSlot(key);
+    m_members.erase(&key);
+    m_type->removeMember(key);
 }
 
 void Index::operator()()
@@ -876,9 +876,9 @@ CellI& Index::operator[](CellI& key)
     if (&key == &w.id.__type__) {
         return *m_type;
     }
-    auto slotIt = m_slots.find(&key);
-    if (slotIt != m_slots.end()) {
-        return *slotIt->second;
+    auto memberIt = m_members.find(&key);
+    if (memberIt != m_members.end()) {
+        return *memberIt->second;
     }
 
     throw "No such key!";
@@ -889,31 +889,28 @@ void Index::insert(CellI& key, CellI& value)
     if (&key == &w.id.__type__) {
         throw "The type key can not be changed!";
     }
-    m_slots[&key] = &value;
+    m_members[&key] = &value;
     if (m_recursiveType) {
         return;
     }
-    Object& slot = *new Object(w, w.std.ast.Slot);
-    slot.set(w.id.key, key);
-    slot.set(w.id.type, w.std.ast.Slot);
-    m_type->addSlot(key, slot);
+    m_type->addMember(key, w.op.member(key, value.__type__()));
 }
 
 bool Index::empty() const
 {
-    return m_slots.empty();
+    return m_members.empty();
 }
 
 int Index::size()
 {
-    return (int)m_slots.size();
+    return (int)m_members.size();
 }
 #pragma endregion
 #pragma region Map
 // ============================================================================
 Map::Map(World& w, CellI& keyType, CellI& valueType, const std::string& label) :
     CellI(w, label),
-    m_list(w, valueType),
+    m_list(w, w.std.KVPair),
     m_index(w),
     m_keyType(keyType),
     m_valueType(valueType)
@@ -1203,8 +1200,8 @@ bool TrieMap::hasValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    for (CellI& slot : key.slotList()) {
-        CellI& keyNode  = key[slot[w.id.key]];
+    for (CellI& memberKV : key.membersList()) {
+        CellI& keyNode  = key[memberKV[w.id.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             currentNode = nullptr;
@@ -1232,8 +1229,8 @@ CellI& TrieMap::getValueWithDataKey(CellI& key)
 {
     CellI* currentNode = &m_rootNode;
 
-    for (CellI& slot : key.slotList()) {
-        CellI& keyNode  = key[slot[w.id.key]];
+    for (CellI& memberKV : key.membersList()) {
+        CellI& keyNode  = key[memberKV[w.id.key]];
         CellI* children = nullptr;
         if (currentNode->missing(w.id.children)) {
             currentNode = nullptr;
@@ -1261,8 +1258,8 @@ void TrieMap::addWithDataKey(CellI& key, CellI& value)
 {
     CellI* currentNode = &m_rootNode;
 
-    for (CellI& slot : key.slotList()) {
-        CellI& keyNode = key[slot[w.id.key]];
+    for (CellI& memberKV : key.membersList()) {
+        CellI& keyNode = key[memberKV[w.id.key]];
         CellI* child = nullptr;
         if (currentNode->missing(w.id.children)) {
             currentNode->set(w.id.children, *new Index(w));
@@ -1467,7 +1464,7 @@ int Set::size()
 
 CellI& Set::first()
 {
-    return m_index.slotList()["first"]["value"]["key"];
+    return m_index.membersList()["first"]["value"]["key"];
 }
 #pragma endregion
 #pragma region Number
