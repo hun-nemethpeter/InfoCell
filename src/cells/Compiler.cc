@@ -127,12 +127,12 @@ CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
     }
     CellI& structId = *structIdPtr;
     if (m_earlyStructs.hasKey(structId)) {
-        return m_earlyStructs.getValue(structId)[id.type];
+        return m_earlyStructs.getValue(structId)[id.value];
     } else {
         auto& unresolvedStruct = *new Object(w, std.Struct, fmt::format("{}", structId.label()));
         unresolvedStruct.set(id.incomplete, w.true_);
 
-        m_earlyStructs.add(structId, w.ast.slot(structAst, unresolvedStruct));
+        m_earlyStructs.add(structId, w.ast.kvPair(structAst, unresolvedStruct));
         return unresolvedStruct;
     }
 }
@@ -180,7 +180,7 @@ void Compiler::registerBuiltInStruct(const std::string& fullName, CellI& compile
     }
     idCell.label(ss.str());
     compiledStruct.set(id.incomplete, w.true_);
-    m_earlyStructs.add(idCell, w.ast.slot(w.__type__(fullName), compiledStruct));
+    m_earlyStructs.add(idCell, w.ast.kvPair(w.ast.typeName(fullName), compiledStruct));
 }
 
 void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& compiledEnumValue)
@@ -255,7 +255,7 @@ void Compiler::registerEarlyStructs()
     for (CellI& earlyStructKV : m_earlyStructs) {
         auto& structId       = earlyStructKV[id.key];
         auto& structRefAst   = earlyStructKV[id.value][id.key];
-        auto& compiledStruct = earlyStructKV[id.value][id.type];
+        auto& compiledStruct = earlyStructKV[id.value][id.value];
 
         TRACE(compileStruct, "early struct: {}", earlyStructKV[id.key].label());
 
@@ -279,7 +279,7 @@ void Compiler::resolveEarlyStructsInScope(Ast::Scope& scope, Ast::Scope& resolve
     for (CellI& earlyStructKV : m_earlyStructs) {
         auto& structId       = earlyStructKV[id.key];
         auto& structRefAst   = earlyStructKV[id.value][id.key];
-        auto& compiledStruct = earlyStructKV[id.value][id.type];
+        auto& compiledStruct = earlyStructKV[id.value][id.value];
 
         TRACE(compileStruct, "resolve early struct: {}", earlyStructKV[id.key].label());
 
@@ -1478,9 +1478,9 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
             auto& constructor = ast[id.constructor];
             Ast::Base& ret    = w.ast.new_(objectType, static_cast<Ast::Base&>(constructor));
             if (ast.has(id.parameters)) {
-                auto& newParameters = *new List(w, std.ast.Slot);
-                for (CellI& slot : ast[id.parameters]) {
-                    newParameters.add(w.ast.parameterInit(slot[id.key], instantiate(slot[id.value])));
+                auto& newParameters = *new List(w, std.ast.Parameter);
+                for (CellI& param : ast[id.parameters]) {
+                    newParameters.add(w.ast.parameterInit(param[id.key], instantiate(param[id.value])));
                 }
                 ret.set(id.parameters, newParameters);
             }

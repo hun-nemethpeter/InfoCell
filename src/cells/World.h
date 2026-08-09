@@ -110,11 +110,6 @@ protected:
     friend class Std;
 
 public:
-    template <typename... Args>
-    Ast::TemplatedType& tt_(const std::string& name, Args&&... args);
-    Ast::TypeName& __type__(const std::string& name);
-
-public:
     World(std::function<void()> loggerLevelInit = []() {});
     ~World();
 
@@ -173,12 +168,6 @@ public:
 void splitNamespacedString(std::vector<std::string>& out, const std::string& input);
 
 #pragma region World
-template <typename... Args>
-Ast::TemplatedType& World::tt_(const std::string& nameStr, Args&&... args)
-{
-    return ast.templatedType(nameStr, std::forward<Args>(args)...);
-}
-
 template <typename... Args>
 CellI& World::templateId(const std::string& nameStr, Args&&... args)
 {

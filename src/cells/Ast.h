@@ -731,6 +731,8 @@ public:
     CellI& name(const std::string& str);
     Ast::ConstVar& true_();
     Ast::ConstVar& false_();
+    template <typename... Args>
+    Ast::TemplatedType& tt_(const std::string& nameStr, Args&&... args);
 
 protected:
     CellI& processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb);
@@ -777,8 +779,6 @@ protected:
     Ast::TypeAlias& ta_(const std::string& nameStr, Args&&... args);
     Ast::TemplateParam& tp_(const std::string& nameStr);
     Ast::AssociatedType& at_(const std::string& nameStr);
-    template <typename... Args>
-    Ast::TemplatedType& tt_(const std::string& nameStr, Args&&... args);
     Ast::TypeName& __type__(const std::string& nameStr);
     CellI& ListOf(CellI& type);
     CellI& MapOf(CellI& keyType, CellI& valueType);

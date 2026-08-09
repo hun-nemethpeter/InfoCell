@@ -257,11 +257,6 @@ CellI& World::getVariable(CellI& name)
     throw "Unhandled state!";
 }
 
-Ast::TypeName& World::__type__(const std::string& nameStr)
-{
-    return ast.typeName(nameStr);
-}
-
 String& World::name(const std::string& str)
 {
     return pools.strings.get(str);
@@ -271,7 +266,7 @@ CellI& World::ListOf(CellI& valueType)
 {
     switch (m_initPhase) {
     case InitPhase::Init: {
-        auto& ret = tt_("std::List", "valueType", ast._(valueType));
+        auto& ret = ast.tt_("std::List", "valueType", ast._(valueType));
         m_stdCompiler->reigisterStructBeforeCompilation(ret);
         return ret;
     }
@@ -290,7 +285,7 @@ CellI& World::MapOf(CellI& keyType, CellI& valueType)
 {
     switch (m_initPhase) {
     case InitPhase::Init: {
-        auto& ret = tt_("std::Map", "keyType", ast._(keyType), "valueType", ast._(valueType));
+        auto& ret = ast.tt_("std::Map", "keyType", ast._(keyType), "valueType", ast._(valueType));
         m_stdCompiler->reigisterStructBeforeCompilation(ret);
         return ret;
     }

@@ -12,7 +12,7 @@ Ast::TypeAlias& AstHelper::ta_(const std::string& nameStr, Args&&... args)
 }
 
 template <typename... Args>
-Ast::TemplatedType& AstHelper::tt_(const std::string& nameStr, Args&&... args)
+Ast::TemplatedType& Ast::tt_(const std::string& nameStr, Args&&... args)
 {
     return templatedType(nameStr, std::forward<Args>(args)...);
 }

@@ -1759,7 +1759,7 @@ hybridarc::ShapeField& EdgeDetector::createResult()
         auto& y                = static_cast<Number&>(firstPoint["y"]);
         auto& offset           = *new hybridarc::Vector(w, x, y);
         auto& externalEdgeLine = *new List(w, arc.Direction);
-        auto& internalEdges    = *new TrieMap(w, arc.Vector, w.tt_("std::List", "valueType", "Direction"));
+        auto& internalEdges    = *new TrieMap(w, arc.Vector, ast.tt_("std::List", "valueType", "Direction"));
 
         int i = 0;
         for (CellI& currentEdgeKV : currentShape["edges"]) {

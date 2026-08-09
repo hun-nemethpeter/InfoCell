@@ -2669,7 +2669,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     Std& std = w.std;
     StdLibAst stdLibAst(w, parentScope.add<Ast::Scope>("std"));
 
-    compiler.reigisterStructBeforeCompilation(w.tt_("std::List", "valueType", w.ast._(std.Char))); // TODO instantiate on demand in getStruct
+    compiler.reigisterStructBeforeCompilation(w.ast.tt_("std::List", "valueType", w.ast._(std.Char))); // TODO instantiate on demand in getStruct
 
     compiler.registerBuiltInStruct("std::op::Activate", std.op.Activate);
     compiler.registerBuiltInStruct("std::op::Add", std.op.Add);
