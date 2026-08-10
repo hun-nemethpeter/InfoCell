@@ -668,8 +668,8 @@ void CellValuePrinter::printImpl(CellI& cell)
     } else if (cell.isA(w.std.op.Member)) {
         m_ss << cell[w.id.name].label() << ": " << cell[w.id.type].label();
         return;
-    } else if (cell.isA(w.std.ast.Slot)) {
-        m_ss << cell[w.id.key].label() << ": " << cell[w.id.type].label();
+    } else if (cell.isA(w.std.ast.Parameter)) {
+        m_ss << cell[w.id.name].label() << ": " << cell[w.id.type].label();
         return;
     } else if (cell.isA(w.std.List)) {
         if (&cell.__type__()[w.id.typeAliases][w.id.index][w.id.valueType][w.id.value][w.id.value] == &w.std.Char) {

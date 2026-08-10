@@ -593,7 +593,6 @@ Std::Ast::Ast(World& w) :
     Scope(w, w.std.Struct, "ast::Scope"),
     Self(w, w.std.Struct, "ast::Self"),
     SelfType(w, w.std.Struct, "ast::SelfType"),
-    Slot(w, w.std.Struct, "ast::Slot"),
     Struct(w, w.std.Struct, "ast::Struct"),
     StructT(w, w.std.Struct, "ast::StructT"),
     TemplatedType(w, w.std.Struct, "ast::TemplatedType"),
@@ -1218,7 +1217,7 @@ void StdLibAst::createAst()
             member("structs", "std::TrieMap"),
             member("structTs", "std::TrieMap"),
             member("enums", "std::TrieMap"),
-            member("variables", ListOf(std.ast.Slot)));
+            member("variables", ListOf(std.ast.Var)));
 
     astScope.add<Struct>("Self")
         .members(
@@ -1245,7 +1244,7 @@ void StdLibAst::createAst()
             member("scope", "Scope"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("members", MapOf(std.Cell, std.ast.Member)),
-            member("typeAliases", ListOf(std.ast.Slot)),
+            member("typeAliases", ListOf(std.KVPair)),
             member("memberOf", ListOf(std.Struct)));
 
     astScope.add<Struct>("TypeName")
@@ -1259,7 +1258,7 @@ void StdLibAst::createAst()
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("members", ListOf(std.ast.Member)),
-            member("typeAliases", ListOf(std.ast.Slot)),
+            member("typeAliases", ListOf(std.KVPair)),
             member("memberOf", ListOf(std.Struct)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
 
@@ -1283,8 +1282,8 @@ void StdLibAst::createAst()
             member("name", "std::Cell"),
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
-            member("associatedTypes", ListOf(std.ast.Slot)),
-            member("typeAliases", ListOf(std.ast.Slot)),
+            member("associatedTypes", MapOf(std.Cell, std.Struct)),
+            member("typeAliases", ListOf(std.KVPair)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
 
     astScope.add<Struct>("TraitImpl")
@@ -1294,7 +1293,7 @@ void StdLibAst::createAst()
             member("scope", "Base"),
             member("methods", MapOf(std.Cell, std.ast.Function)),
             member("associatedTypes", MapOf(std.Cell, std.ast.Base)),
-            member("typeAliases", ListOf(std.ast.Slot)),
+            member("typeAliases", ListOf(std.KVPair)),
             member("templateParams", MapOf(std.Cell, std.Struct)));
 
     astScope.add<Struct>("TypedEnumValue")
@@ -2768,7 +2767,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::Scope", std.ast.Scope);
     compiler.registerBuiltInStruct("std::ast::Self", std.ast.Self);
     compiler.registerBuiltInStruct("std::ast::SelfType", std.ast.SelfType);
-    compiler.registerBuiltInStruct("std::ast::Slot", std.ast.Slot);
     compiler.registerBuiltInStruct("std::ast::Struct", std.ast.Struct);
     compiler.registerBuiltInStruct("std::ast::StructT", std.ast.StructT);
     compiler.registerBuiltInStruct("std::ast::TemplatedType", std.ast.TemplatedType);
@@ -2810,7 +2808,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ListNode", std.ListNode);
     compiler.registerBuiltInStruct("std::Map", std.Map);
     compiler.registerBuiltInStruct("std::Number", std.Number);
-    compiler.registerBuiltInStruct("std::Slot", std.ast.Slot);
     compiler.registerBuiltInStruct("std::Stack", std.Stack);
     compiler.registerBuiltInStruct("std::StackFrame", std.StackFrame);
     compiler.registerBuiltInStruct("std::String", std.String);

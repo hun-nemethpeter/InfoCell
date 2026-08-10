@@ -904,7 +904,7 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                     retPtr->set(retKey[id.key], *newObj);
                 } else if (&retKey.__type__() == &std.ast.Parameter) {
                     CellI& paramKey = retKey[id.key];
-                    CellI& slot     = *new Object(w, std.ast.Slot);
+                    CellI& slot     = *new Object(w, std.op.Parameter);
                     slot.set(w.id.key, paramKey);
                     slot.set(w.id.value, (*newObj));
                     (*newObj).set(w.id.stack, (*retPtr)[id.method][id.value]);
@@ -973,7 +973,7 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                 CellI* valuePtr     = getValuePtrFromValueCell(matchedEffect, valueCell);
 
                 if (ret.missing(id.parameters)) {
-                    ret.set(id.parameters, *new Map(w, std.Cell, std.ast.Slot));
+                    ret.set(id.parameters, *new Map(w, std.Cell, std.op.Parameter));
                     TRACE(toolFinderLookup, "BUILD: parameters");
                 }
                 auto& parameters = static_cast<Map&>(ret[id.parameters]);
@@ -981,10 +981,10 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                     subEffects.push_back({ retPtr, &key, valuePtr });
                     TRACE(toolFinderLookup, "BUILD: param: '{}' is a sub effect", unwrappedKey.label());
                 } else {
-                    CellI& slot = *new Object(w, std.ast.Slot);
-                    slot.set(w.id.key, unwrappedKey);
-                    slot.set(w.id.value, *valuePtr);
-                    parameters.add(unwrappedKey, slot);
+                    CellI& newParam = *new Object(w, std.op.Parameter);
+                    newParam.set(w.id.key, unwrappedKey);
+                    newParam.set(w.id.value, *valuePtr);
+                    parameters.add(unwrappedKey, newParam);
                     TRACE(toolFinderLookup, "BUILD: param: '{}':{}", unwrappedKey.label(), (*valuePtr).label());
                 }
                 slotItemPtr = &nextSlotItem;

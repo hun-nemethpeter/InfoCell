@@ -646,7 +646,6 @@ public:
         Object Scope;
         Object Self;
         Object SelfType;
-        Object Slot;
         Object Struct;
         Object StructT;
         Object TemplatedType;

@@ -131,7 +131,7 @@ protected:
     Map& parameters(CellI& key, CellI& value, Args&&... args)
     {
         World& w = key.w;
-        Map& ret = *new Map(w, w.std.Cell, w.std.ast.Slot);
+        Map& ret = *new Map(w, w.std.Cell, w.std.ast.Parameter);
         ret.add(key, w.ast.parameterInit(key, value));
         if constexpr (sizeof...(Args) > 0) {
             addParameter(ret, std::forward<Args>(args)...);
