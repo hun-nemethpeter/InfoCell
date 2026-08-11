@@ -1596,3 +1596,113 @@ subtract return can be found in add.rhs:2
 so we can build the following:
 subtract(lhs=add.return:3, rhs=add.lhs:1) == add.rhs:2
 3 - 1 = 2
+
+2026-08-12
+==========
+
+Ok, so the plan is to distinguish between self variants (symmetries) and conclusions. So currently we put both to the matching database (ToolFinder). It has a sideeffect of that the `equal` tool's builder will match
+with every equations, so basically we get back the original equation. Instead, we should separate the self bulders from conclusions. We can do this something like this:
+
+```
+    Cell.addPrimitiveFunction(std.Cell.Equal, op.Equal, "equal")
+        ...
+        .description(
+            selfBuilders(
+                equal(self(), p_("other"))),
+                equal(p_("other"), self()))
+            )
+        ...
+
+    Number.addPrimitiveFunction(std.Number.Add, op.Add, "add")
+        ...
+        .description(
+            conclusions(
+                equal(subtract(return_(), p_("other")), self())
+             // equal(subtract(return_(), self()), p_("other")), // this conclusion can be discovered during the discovery phase
+            )
+            selfBuilders(
+                add(self(), p_("other")),
+                add(p_("other"), self()))
+            )
+        ...
+```
+
+So the new thing is to introduce sub sections to the description segment. The plan is that the missing conclusions can be discovered during a discovery phase.
+So the idea is to rebuild the original request by using the new `selfBuilders` subsegment and then finding conclusions. After this step we should check that a new state was found or not.
+For the first step we excpect new states. For every additional step we can go back to an already existing state. So we can discover inverse functions or other cyclical operations. For
+example in case of a Rubik's Cube we can consider the start state, when every color is on the right place and the operation when we twist one layer. 4 twist on the same layer will gives back the
+original state, or just twist back and forth, and so on.
+
+Round 1 Start with `add`
+
+- Equation: `2 + X == 4`  or `equal(add(2, X), 4)`
+- Matching: in `subtract` with matcher: `equal(add(return_(), p_("other")), self())`
+- Builders: `subtract` has only one builder `subtract(self(), p_("other"))` so we can not rebuild the matcher
+```
+                               |input    |  |input      |   |input |
+   original request: equal(add(|2        |, |X          |), |4     |)
+matcher in subtract: equal(add(|return_()|, |p_("other")|), |self()|)
+```
+
+- unify `return()` with `2`
+- unify `p_("other")` with `X`
+- unify `self()` with `4`
+
+so building from matcher `equal(subtract(self(), p_("other"), return())` leads to `equal(subtract(2, X), 2)` which is `4 - X == 2`
+
+- Results:
+  - `4 - X == 2` or `equal(subtract(4, X), 2)`
+
+Round 2. Level `subtract`
+
+- Equations:
+  - `4 - X == 2` or `equal(subtract(4, X), 2)`
+- Matching:
+  - in `add` with matcher: `equal(subtract(return_(), p_("other")), self())`
+- Builders for:
+  - `subtract`
+    - `subtract(self(), p_("other"))`
+- Builders for:
+  - `add`
+    - `add(self(), p_("other"))`
+    - `add(p_("other"), self())`
+
+here we can rebuild with `add`
+```
+    where return_() is 2, p_("other") is X, self() is 4
+    equal(add(return_(), p_("other")), self())    // orig add
+              2          X             4          // 2 + X == 4
+    equal(add(p_("other"), return_()), self())    // add rebuild
+              X            2           4          // X + 2 == 4
+```
+
+- Results:
+  - `2 + X == 4` or `equal(add(2, X), 4)`
+  - `X + 2 == 4` or `equal(add(X, 2), 4)`
+
+Round 3. Go back to `add`
+
+- Equations:
+   - `2 + X == 4` - hey thats the original, do nothing
+   - `X + 2 == 4`
+- Matching:
+  - in `subtract` with matcher: `equal(add(return_(), p_("other")), self())`
+- Builders for:
+  - `subtract`
+    - `subtract(self(), p_("other"))`
+
+```
+        original request: equal(add(x             , 2          )    ,           4)
+     matcher in subtract: equal(add(return_()     , p_("other"))    , self())
+                                    return_() is x, p_("other") is 2, self() is 4
+     so building subtract(self(), p_("other")) == return() leads to
+                          4     - 2            == X
+```
+
+So here we precalculated that `const p1 + unknown p2 == const p3` can go to `const p3 - const p2 == unknown p2` and the route is:
+
+- rebuild original `add` with builder `add(p_("other"), self())` to get `unknown p2 + const p1 == const p3`
+- rebuild `unknown p2 + const p1 == const p3` with matcher `equal(subtract(return_(), p_("other")), self())` to get
+  `const p3 - const p1 == unknown p2` then execute the `const p3 - const p1` to get a simpler state.
+
+  So we are looking for simplification steps.
