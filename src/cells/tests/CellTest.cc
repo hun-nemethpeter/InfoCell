@@ -358,11 +358,11 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     } testResponse(w, pixel, theme);
 
     LibraryTester libraryTester(w, testLib);
-    auto& testRequestFn  = libraryTester.compileAsPrompt("getInGet", "request", *testPrompt.astPtr);
-//    auto& testResponseFn = libraryTester.compile("getInGet", "response", *testResponse.astPtr);
+    auto& prompt = libraryTester.compileAsPrompt(*testPrompt.astPtr);
+    //    auto& testResponseFn = libraryTester.compile("getInGet", "response", *testResponse.astPtr);
     //    printAs.value(testRequestFn);
 
-    List& serializedEffect = toolFinder.serializeEffect(testRequestFn);
+    List& serializedEffect = toolFinder.serializeEffect(prompt);
     List& expectedIds      = w.list(id.op, id.type, std.op.Equal, id.lhs, id.op, id.push, id.op, id.type, std.op.Get, id.cell, pixel, id.key, id.op, id.push, id.op, id.type, std.op.Get, id.cell, theme, id.key, id.color, id.op, id.pop, id.op, id.pop, id.rhs, _5_);
     EXPECT_EQ(serializedEffect.size(), expectedIds.size());
     auto* expectedIdNodePtr = &expectedIds[id.first];
@@ -377,11 +377,11 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     }
     std::cout << std::endl;
 
-    List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
+    List& resultTools = toolFinder.findToolsByEffect(prompt);
 
     EXPECT_EQ(resultTools.size(), 1);
 
-    printAs.value(testRequestFn, "request");
+    printAs.value(prompt, "prompt");
     if (resultTools.size() != 1) {
         for (auto& resultTool : resultTools) {
             if (&resultTool.__type__() == &std.op.Set) {
@@ -423,7 +423,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     } testRequest(w);
 
     LibraryTester libraryTester(w, testLib);
-    auto& testRequestFn = libraryTester.compileAsPrompt("getInGet", "request", testRequest.ast);
+    auto& testRequestFn = libraryTester.compileAsPrompt(testRequest.ast);
 
     List& serializedEffect   = toolFinder.serializeEffect(testRequestFn);
     List& expectedIds      = w.list(id.op, id.type, std.op.Equal, id.lhs, id.op, id.push, id.op, id.type, std.op.Add, id.lhs, id.op, id.push, id.op, id.type, std.op.Get, id.cell, testRequest.x, id.key, id.value, id.op, id.pop, id.rhs, _2_, id.op, id.pop, id.rhs, _4_);

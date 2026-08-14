@@ -1699,10 +1699,21 @@ Round 3. Go back to `add`
                           4     - 2            == X
 ```
 
-So here we precalculated that `const p1 + unknown p2 == const p3` can go to `const p3 - const p2 == unknown p2` and the route is:
+So here we precalculated that `const p1 + unknown p2 == const p3` can go to `const p3 - const p1 == unknown p2` and the route is:
 
 - rebuild original `add` with builder `add(p_("other"), self())` to get `unknown p2 + const p1 == const p3`
 - rebuild `unknown p2 + const p1 == const p3` with matcher `equal(subtract(return_(), p_("other")), self())` to get
   `const p3 - const p1 == unknown p2` then execute the `const p3 - const p1` to get a simpler state.
 
   So we are looking for simplification steps.
+
+  `equal(add(const_(_2_), unknown_(x) / const_(id.value)), const_(_4_))` =>
+  `equal(subtract(const_(_4_), const_(_2_)), unknown_(x) / const_(id.value))` =>
+  `equal(const_(_2_), unknown_(x) / const_(id.value))` =>
+  `set(unknown_(x), const_(id.value), const_(_2_))`
+
+  So in case of:
+
+  - `equal(add(const 2, unknown X), const 4)`
+    - with builder `add(p_("other"), self())` in `subtract` => `equal(add(unknown X, const 2), const 4)`
+    - with matcher `equal(subtract(return_(), p_("other")), self())` in `add` => `equal(subtract(const_(_4_), const_(_2_)), unknown_(x))`

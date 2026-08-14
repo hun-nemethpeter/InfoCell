@@ -629,6 +629,7 @@ public:
         Object Call;
         Object ConstVar;
         Object Continue;
+        Object Description;
         Object Do;
         Object Enum;
         Object EnumValue;

@@ -271,7 +271,6 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBluep
 // ============================================================================
 void ToolFinder::add(Object& tool)
 {
-    auto& description = tool[id.description];
     if (tool.has(id.returnType)) {
         // so this can be a conversion tool
         CellI& returnType = tool[id.returnType];
@@ -288,14 +287,17 @@ void ToolFinder::add(Object& tool)
     m_tools.add(tool);
 
     TRACE(toolFinder, "{} =>", tool.label());
-    // TODO: getting the hybrid List type during compilation is not possible, so using heuristic here
-    // TODO: use enum here instead!
-    if (description.has(w.id.first) && description.has(w.id.last) && description.has(w.id.size)) {
-        for (CellI& effect : description) {
-            add(effect, tool);
+
+    auto& description = tool[id.description];
+    if (description.has(id.conclusions)) {
+        for (CellI& conclusion : description[id.conclusions]) {
+            add(conclusion, tool);
         }
-    } else {
-        add(description, tool);
+    }
+    if (description.has(id.selfBuilders)) {
+        for (CellI& selfBuilder : description[id.selfBuilders]) {
+            add(selfBuilder, tool);
+        }
     }
 }
 
@@ -589,7 +591,7 @@ bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPus
                     }
                 }
 
-                if (opKey == &id.push && (&value.__type__() != &std.ast.ConstVar)) {
+                if (opKey == &id.push && (&value.__type__() != &std.op.ConstVar)) {
                     if (!((&value.__type__() == &std.op.Call) || (value.__type__().has(id.primitiveTool)))) {
                         panic("Not supported type!");
                     }

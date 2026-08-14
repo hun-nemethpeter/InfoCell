@@ -16,7 +16,7 @@ public:
 
     void compile(Library& library);
     Library& compile(Ast::Scope& scope);
-    Object& compileAsPrompt(Ast::Function& prompt);
+    Object& compileAsPrompt(Ast::Description& prompt);
 
     CellI& reigisterStructBeforeCompilation(CellI& id);
     void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct, Ast::Scope* parentScope = nullptr);
@@ -75,9 +75,9 @@ protected:
 
     void compileDescriptionInScope(Ast::Scope& scope, Ast::Scope& resolvedScope);
     void compileDescriptionInFunction(Ast::Function& function, Ast::StructBase* astStructPtr = nullptr);
-    Ast::Base& resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr = nullptr);
+    CellI& resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function* astFunctionPtr, Ast::StructBase* astStructPtr = nullptr);
     CellI& compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr = nullptr);
-    CellI& compilePromptInFunctionAst(CellI& ast, Ast::Function& astFunction);
+    CellI& compilePromptInFunctionAst(CellI& ast);
 
     World& w;
     ID& id;

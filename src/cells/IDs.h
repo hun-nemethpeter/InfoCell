@@ -51,6 +51,7 @@ public:
     String& compiled;
     String& compiledStruct;
     String& compiledType;
+    String& conclusions;
     String& condition;
     String& constructor;
     String& container;
@@ -115,6 +116,7 @@ public:
     String& previous;
     String& primitiveTool;
     String& process;
+    String& prompt;
     String& push;
     String& red;
     String& resolvedScope;
@@ -126,6 +128,7 @@ public:
     String& scope;
     String& scopes;
     String& self;
+    String& selfBuilders;
     String& sign;
     String& size;
     String& slotKeyList;

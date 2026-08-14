@@ -378,6 +378,29 @@ public:
         CellI& resolveEnumValue(CellI& ast);
     };
 
+    class FunctionBase;
+    class Description : public Object
+    {
+    public:
+        Description(World& w);
+        Description(FunctionBase& parent);
+
+        template <typename... Args>
+        Description& conclusions(Args&&... args);
+        template <typename... Args>
+        Description& selfBuilders(Args&&... args);
+
+        FunctionBase& descriptionEnd();
+
+        void addPrompt(Base& prompt);
+        void addPrompt(List& prompt);
+
+    private:
+        void addConclusions(List& conclusions);
+        void addSelfBuilders(List& selfBuilders);
+        FunctionBase* m_parent = nullptr;
+    };
+
     class FunctionBase : public Base
     {
     public:
@@ -411,8 +434,7 @@ public:
         template <typename... Args>
         void instructions(Args&&... args);
 
-        template <typename... Args>
-        FunctionBase& description(Args&&... args);
+        Description& descriptionBegin();
 
         Map& memberMapping();
         Map& parameters();
@@ -421,7 +443,6 @@ public:
         Base& description();
 
     protected:
-        void addDescriptionBlock(Block& block);
         void addInstructionBlock(Block& block);
     };
 
@@ -732,6 +753,12 @@ public:
     template <typename... Args>
     Ast::TemplatedType& tt_(const std::string& nameStr, Args&&... args);
 
+    template <typename... Args>
+    List& list(CellI& value, Args&&... args);
+
+    template <typename... Args>
+    Map& map(CellI& key, CellI& value, Args&&... args);
+
 protected:
     CellI& processNamespacedName(const std::string& inputName, std::function<CellI&(const std::string& outName)> createCb);
     World& w;
@@ -780,12 +807,6 @@ protected:
     Ast::TypeName& __type__(const std::string& nameStr);
     CellI& ListOf(CellI& type);
     CellI& MapOf(CellI& keyType, CellI& valueType);
-
-    template <typename... Args>
-    List& list(CellI& value, Args&&... args);
-
-    template <typename... Args>
-    Map& map(CellI& key, CellI& value, Args&&... args);
 };
 
 } // namespace cells

@@ -71,13 +71,13 @@ Library& Compiler::compile(Ast::Scope& scope)
     return *m_libraryPtr;
 }
 
-Object& Compiler::compileAsPrompt(Ast::Function& prompt)
+Object& Compiler::compileAsPrompt(Ast::Description& prompt)
 {
-    auto& resolvedPrompt = resolveTypesInFunction(prompt);
+    auto& resolvedPrompt = resolveDescriptionTypesInFunctionCode(prompt, nullptr, nullptr);
 
     instantiateTemplateInstances();
 
-    return static_cast<Object&>(compilePromptInFunctionAst(resolvedPrompt.description(), resolvedPrompt));
+    return static_cast<Object&>(compilePromptInFunctionAst(resolvedPrompt));
 }
 
 
@@ -427,7 +427,7 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function, Ast::St
     }
 
     if (function.has(id.description)) {
-        auto& resolvedDescriptionAst = resolveDescriptionTypesInFunctionCode(function.description(), ret, astStructPtr);
+        auto& resolvedDescriptionAst = resolveDescriptionTypesInFunctionCode(function.description(), &ret, astStructPtr);
         ret.set(id.description, resolvedDescriptionAst);
     }
 
@@ -2228,22 +2228,42 @@ void Compiler::compileDescriptionInFunction(Ast::Function& astFunction, Ast::Str
     Object& compiledFunction = static_cast<Object&>(astFunction[id.compiledType]);
 
     if (astFunction.has(id.description)) {
-        compiledFunction.set(id.description, compileDescriptionInFunctionAst(astFunction.description(), astFunction, astStructPtr));
+        CellI& description = compileDescriptionInFunctionAst(astFunction.description(), astFunction, astStructPtr);
+        compiledFunction.set(id.description, description);
         m_toolFinder.add(compiledFunction);
     }
 }
 
-Ast::Base& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function& astFunction, Ast::StructBase* astStructPtr)
+CellI& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function* astFunctionPtr, Ast::StructBase* astStructPtr)
 {
-    auto resolve = [this, &astFunction, &astStructPtr](CellI& ast) -> Ast::Base& { return resolveDescriptionTypesInFunctionCode(ast, astFunction, astStructPtr); };
+    auto resolve = [this, &astFunctionPtr, &astStructPtr](CellI& ast) -> CellI& { return resolveDescriptionTypesInFunctionCode(ast, astFunctionPtr, astStructPtr); };
 
-    if (&ast.__type__() == &std.ast.Block) {
+    if (&ast.__type__() == &std.ast.Description) {
         // do nothing just traverse and copy the AST nodes
-        auto& instantiedAsts = *new List(w, std.ast.Base);
-        for (CellI& ast : ast[id.asts]) {
-            instantiedAsts.add(resolve(ast));
+        CellI& list          = ast;
+        auto& ret = *new Object(w, ast.__type__(), ast.label());
+        if (ast.has(id.prompt)) {
+            auto& resolvedPrompt = *new List(w, std.ast.Base);
+            for (CellI& prompt : ast[id.prompt]) {
+                resolvedPrompt.add(resolve(prompt));
+            }
+            ret.set(id.prompt, resolvedPrompt);
         }
-        return *new Ast::Block(w, instantiedAsts);
+        if (ast.has(id.conclusions)) {
+            auto& resolvedConclusions = *new List(w, std.ast.Base);
+            for (CellI& conclusion : ast[id.conclusions]) {
+                resolvedConclusions.add(resolve(conclusion));
+            }
+            ret.set(id.conclusions, resolvedConclusions);
+        }
+        if (ast.has(id.selfBuilders)) {
+            auto& resolvedSelfBuilders = *new List(w, std.ast.Base);
+            for (CellI& selfBuilder : ast[id.selfBuilders]) {
+                resolvedSelfBuilders.add(resolve(selfBuilder));
+            }
+            ret.set(id.selfBuilders, resolvedSelfBuilders);
+        }
+        return ret;
     } else if (&ast.__type__() == &std.ast.TypeName) {
         return resolveType(ast);
     } else if (&ast.__type__() == &std.ast.Self) {
@@ -2270,6 +2290,10 @@ Ast::Base& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Func
         auto& member = static_cast<Ast::Member&>(astStruct.members().getValue(memberKey));
         return member;
     } else if (&ast.__type__() == &std.ast.Parameter) {
+        if (!astFunctionPtr) {
+            panic("Referencing a function parameter, but there is no function!");
+        }
+        CellI& astFunction = *astFunctionPtr;
         Map& parameters = static_cast<Map&>(astFunction[id.parameters]);
         auto& key       = ast[id.key];
         auto& ret       = w.ast.parameter(key);
@@ -2319,8 +2343,33 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
 {
     auto compile = [this, &astFunction, &astStructPtr](CellI& ast) -> CellI& { return compileDescriptionInFunctionAst(ast, astFunction, astStructPtr); };
 
-    if (&ast.__type__() == &std.ast.Block) {
-        CellI& list = ast[id.asts];
+    if (&ast.__type__() == &std.ast.Description) {
+        CellI& list = ast;
+        auto& ret   = *new Object(w, ast.__type__(), ast.label());
+        if (ast.has(id.prompt)) {
+            auto& compiledPrompt = *new List(w, std.ast.Base);
+            for (CellI& prompt : ast[id.prompt]) {
+                compiledPrompt.add(compile(prompt));
+            }
+            ret.set(id.prompt, compiledPrompt);
+        }
+        if (ast.has(id.conclusions)) {
+            auto& compiledConclusions = *new List(w, std.ast.Base);
+            for (CellI& conclusion : ast[id.conclusions]) {
+                compiledConclusions.add(compile(conclusion));
+            }
+            ret.set(id.conclusions, compiledConclusions);
+        }
+        if (ast.has(id.selfBuilders)) {
+            auto& compiledSelfBuilders = *new List(w, std.ast.Base);
+            for (CellI& selfBuilder : ast[id.selfBuilders]) {
+                compiledSelfBuilders.add(compile(selfBuilder));
+            }
+            ret.set(id.selfBuilders, compiledSelfBuilders);
+        }
+        return ret;
+    } else if (&ast.__type__() == &std.List) {
+        CellI& list = ast;
         if (&list[id.size] == &w._1_) {
             return compile(list[id.first][id.value]);
         }
@@ -2375,11 +2424,26 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
 }
 
 
-CellI& Compiler::compilePromptInFunctionAst(CellI& ast, Ast::Function& astFunction)
+CellI& Compiler::compilePromptInFunctionAst(CellI& ast)
 {
-    auto compile = [this, &astFunction](CellI& ast) -> CellI& { return compileDescriptionInFunctionAst(ast, astFunction); };
+    auto compile = [this](CellI& ast) -> CellI& { return compilePromptInFunctionAst(ast); };
 
-    if (&ast.__type__() == &std.ast.Block) {
+    if (&ast.__type__() == &std.ast.Description) {
+        CellI& list = ast;
+        auto& ret   = *new Object(w, ast.__type__(), ast.label());
+        if (ast.has(id.prompt)) {
+            CellI& list = ast[id.prompt];
+            if (&list[id.size] == &w._1_) {
+                return compile(list[id.first][id.value]);
+            }
+            auto& compiledPrompt = *new List(w, std.ast.Base);
+            for (CellI& prompt : list) {
+                compiledPrompt.add(compile(prompt));
+            }
+            ret.set(id.prompt, compiledPrompt);
+        }
+        return ret;
+    } else if (&ast.__type__() == &std.ast.Block) {
         CellI& list = ast[id.asts];
         if (&list[id.size] == &w._1_) {
             return compile(list[id.first][id.value]);

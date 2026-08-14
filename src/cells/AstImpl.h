@@ -18,7 +18,7 @@ Ast::TemplatedType& Ast::tt_(const std::string& nameStr, Args&&... args)
 }
 
 template <typename... Args>
-List& AstHelper::list(CellI& value, Args&&... args)
+List& Ast::list(CellI& value, Args&&... args)
 {
     List& ret = *new List(w, value.__type__());
     ret.add(value);
@@ -30,7 +30,7 @@ List& AstHelper::list(CellI& value, Args&&... args)
 }
 
 template <typename... Args>
-Map& AstHelper::map(CellI& key, CellI& value, Args&&... args)
+Map& Ast::map(CellI& key, CellI& value, Args&&... args)
 {
     Map& ret = *new Map(w, key.__type__(), value.__type__(), fmt::format("Map<{}, {}>(...)", key.__type__().label(), value.__type__().label()));
     if constexpr (sizeof...(Args) > 0) {
@@ -74,9 +74,16 @@ void Ast::FunctionBase::instructions(Args&&... args)
 }
 
 template <typename... Args>
-Ast::FunctionBase& Ast::FunctionBase::description(Args&&... args)
+Ast::Description& Ast::Description::conclusions(Args&&... args)
 {
-    addDescriptionBlock(*new Block(w, w.list(std::forward<Args>(args)...)));
+    addConclusions(w.list(std::forward<Args>(args)...));
+    return *this;
+}
+
+template <typename... Args>
+Ast::Description& Ast::Description::selfBuilders(Args&&... args)
+{
+    addSelfBuilders(w.list(std::forward<Args>(args)...));
     return *this;
 }
 #pragma endregion

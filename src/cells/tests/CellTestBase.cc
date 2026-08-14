@@ -90,6 +90,7 @@ CellTest::LibraryTester::LibraryTester(World& w, TestLib& testLib) :
 {
 }
 
+#if 0
 Object& CellTest::LibraryTester::compile(const std::string& scopeName, const std::string& fnName, Ast::Base& ast)
 {
     Ast::Scope* testScopePtr = nullptr;
@@ -103,11 +104,13 @@ Object& CellTest::LibraryTester::compile(const std::string& scopeName, const std
     testFunction.instructions(ast);
     include(testLib);
 
-    return compiler.compileAsPrompt(testFunction);
+    return compiler.compileFunction(testFunction); // TODO implement compileFunction
 }
+#endif
 
-Object& CellTest::LibraryTester::compileAsPrompt(const std::string& scopeName, const std::string& fnName, Ast::Base& ast)
+Object& CellTest::LibraryTester::compileAsPrompt(Ast::Base& ast)
 {
+    const std::string scopeName = "promptScope";
     Ast::Scope* testScopePtr = nullptr;
     if (rootScope.hasItem<Ast::Scope>(w.name(scopeName))) {
         testScopePtr = &rootScope.getItem<Ast::Scope>(scopeName);
@@ -115,11 +118,11 @@ Object& CellTest::LibraryTester::compileAsPrompt(const std::string& scopeName, c
         testScopePtr = &rootScope.add<Ast::Scope>(scopeName);
     }
     Ast::Scope& testScope = *testScopePtr;
-    auto& testFunction    = testScope.add<Ast::Function>(fnName);
-    testFunction.description(ast);
     include(testLib);
+    auto& description = *new Ast::Description(w);
+    description.addPrompt(ast);
 
-    return compiler.compileAsPrompt(testFunction);
+    return compiler.compileAsPrompt(description);
 }
 
 // ============================================================================

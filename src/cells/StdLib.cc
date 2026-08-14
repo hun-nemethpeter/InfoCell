@@ -576,6 +576,7 @@ Std::Ast::Ast(World& w) :
     Call(w, w.std.Struct, "ast::Call"),
     ConstVar(w, w.std.Struct, "ast::ConstVar"),
     Continue(w, w.std.Struct, "ast::Continue"),
+    Description(w, w.std.Struct, "ast::Description"),
     Do(w, w.std.Struct, "ast::Do"),
     Enum(w, w.std.Struct, "ast::Enum"),
     EnumValue(w, w.std.Struct, "ast::EnumValue"),
@@ -1093,6 +1094,12 @@ void StdLibAst::createAst()
         .members(
             member("cell", "Base"));
 
+    astScope.add<Struct>("Description")
+        .members(
+            member("conclusions", tt_("std::List", "valueType", "Base")),
+            member("prompt", tt_("std::List", "valueType", "Base")),
+            member("selfBuilders", tt_("std::List", "valueType", "Base")));
+
     astScope.add<Struct>("Do")
         .members(
             member("condition", _(std.Boolean)),
@@ -1131,7 +1138,7 @@ void StdLibAst::createAst()
             member("parameters", ListOf(std.ast.Parameter)),
             member("returnType", "std::Struct"),
             member("instructions", "Base"),
-            member("description", "Base"),
+            member("description", "Description"),
             member("scope", "Base"),
             member("static", "std::Boolean"));
 
@@ -1366,7 +1373,7 @@ void StdLibAst::createIndex()
     /*
     void Index::insert(CellI& key, CellI& value)
     {
-        if (&key == &w.id.__type__) {
+        if (&key == &id.__type__) {
             throw "The type key can not be changed!";
         }
         m_members[&key] = &value;
@@ -1725,7 +1732,7 @@ void StdLibAst::createMap()
     CellI& Map::getValue(CellI& key)
     {
         if (m_index.has(key)) {
-            return m_index[key][w.id.value];
+            return m_index[key][id.value];
         }
         throw "No such key!";
     }
@@ -2045,12 +2052,12 @@ void StdLibAst::createTrieMap()
 
         forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(w.id.children)) {
+            if (currentNode->missing(id.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(id.children));
             if (childrenIndex.has(keyNode)) {
                 children = &childrenIndex.get(keyNode);
             } else {
@@ -2061,7 +2068,7 @@ void StdLibAst::createTrieMap()
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(w.id.data)) {
+        if (!currentNode || currentNode->missing(id.data)) {
             return false;
         }
 
@@ -2106,12 +2113,12 @@ void StdLibAst::createTrieMap()
 
         forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(w.id.children)) {
+            if (currentNode->missing(id.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(id.children));
             if (childrenIndex.has(keyNode)) {
                 children = &childrenIndex.get(keyNode);
             } else {
@@ -2122,11 +2129,11 @@ void StdLibAst::createTrieMap()
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(w.id.data)) {
+        if (!currentNode || currentNode->missing(id.data)) {
             throw "No such key!";
         }
 
-        return (*currentNode)[w.id.data][w.id.value][w.id.value];
+        return (*currentNode)[id.data][id.value][id.value];
     }
     */
     trieMapStructT.addMethod("getValue")
@@ -2167,22 +2174,22 @@ void StdLibAst::createTrieMap()
 
         forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* child = nullptr;
-            if (currentNode->missing(w.id.children)) {
-                currentNode->set(w.id.children, *new Index(w));
+            if (currentNode->missing(id.children)) {
+                currentNode->set(id.children, *new Index(w));
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(id.children));
             if (childrenIndex.has(keyNode)) {
                 child = &childrenIndex.get(keyNode);
             } else {
                 child = new Object(w, w.type.TrieMapNode);
-                child->set(w.id.parent, *currentNode);
+                child->set(id.parent, *currentNode);
                 childrenIndex.insert(keyNode, *child);
             }
             currentNode = child;
         });
 
         List::Node& node = *m_list.add(w.type.kvPair(key, value));
-        currentNode->set(w.id.data, node);
+        currentNode->set(id.data, node);
         ++m_size;
     }
     */
@@ -2223,7 +2230,7 @@ void StdLibAst::createTrieMap()
             throw "Key is not a list!";
         }
 
-        if (&key[w.id.size] == &w._0_) {
+        if (&key[id.size] == &w._0_) {
             return;
         }
 
@@ -2231,12 +2238,12 @@ void StdLibAst::createTrieMap()
 
         forEach(key, [this, &currentNode](CellI& keyNode, int i, bool& stop) {
             CellI* children = nullptr;
-            if (currentNode->missing(w.id.children)) {
+            if (currentNode->missing(id.children)) {
                 stop        = true;
                 currentNode = nullptr;
                 return;
             }
-            Index& childrenIndex = static_cast<Index&>(currentNode->get(w.id.children));
+            Index& childrenIndex = static_cast<Index&>(currentNode->get(id.children));
             if (childrenIndex.has(keyNode)) {
                 children = &childrenIndex.get(keyNode);
             } else {
@@ -2247,26 +2254,26 @@ void StdLibAst::createTrieMap()
             currentNode = children;
         });
 
-        if (!currentNode || currentNode->missing(w.id.data)) {
+        if (!currentNode || currentNode->missing(id.data)) {
             return;
         }
-        List::Node* valueNode = &static_cast<List::Node&>((*currentNode)[w.id.data]);
-        currentNode->erase(w.id.data);
+        List::Node* valueNode = &static_cast<List::Node&>((*currentNode)[id.data]);
+        currentNode->erase(id.data);
 
-        CellI* keyNodePtr = &key[w.id.last];
-        while (currentNode->has(w.id.parent)) {
+        CellI* keyNodePtr = &key[id.last];
+        while (currentNode->has(id.parent)) {
             CellI& keyNode = *keyNodePtr;
-            CellI& parent = currentNode->get(w.id.parent);
+            CellI& parent = currentNode->get(id.parent);
             CellI& child = *currentNode;
-            if (child.missing(w.id.data)) {
-                if (child.missing(w.id.children) || ( child.has(w.id.children) && static_cast<Index&>(child[w.id.children]).empty())) {
+            if (child.missing(id.data)) {
+                if (child.missing(id.children) || ( child.has(id.children) && static_cast<Index&>(child[id.children]).empty())) {
                     delete currentNode;
-                    parent[w.id.children].erase(keyNode[w.id.value]);
+                    parent[id.children].erase(keyNode[id.value]);
                 }
             }
             currentNode = &parent;
-            if (keyNode.has(w.id.previous)) {
-                keyNodePtr = &keyNode[w.id.previous];
+            if (keyNode.has(id.previous)) {
+                keyNodePtr = &keyNode[id.previous];
             } else {
                 break;
             }
@@ -2371,132 +2378,162 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     Boolean.addPrimitiveFunction(std.Boolean.And, op.And, "and")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Boolean"))
-        .description(
-            equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
-            equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
-            equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.false_)),
-            equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
-            and_(self(), p_("other")),
-            and_(p_("other"), self()))
+        .descriptionBegin()
+            .conclusions(
+                equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
+                equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
+                equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.false_)),
+                equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)))
+            .selfBuilders(
+                and_(self(), p_("other")),
+                and_(p_("other"), self()))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Boolean.addPrimitiveFunction(std.Boolean.Not, op.Not, "not")
         .memberMapping(
-            kvPair(w.id.self, "input"))
-        .description(
-            not_(self()))
+            kvPair(id.self, "input"))
+        .descriptionBegin()
+            .selfBuilders(
+                not_(self()))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Boolean.addPrimitiveFunction(std.Boolean.Or, op.Or, "or")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Boolean"))
-        .description(
-            or_(self(), p_("other")),
-            or_(p_("other"), self()))
+        .descriptionBegin()
+            .selfBuilders(
+                or_(self(), p_("other")),
+                or_(p_("other"), self()))
+        .descriptionEnd()
         .returnType("Boolean");
 
     auto& Cell = stdScope.add<Struct>("Cell");
     Cell.addPrimitiveFunction(std.Cell.Delete, op.Delete, "delete")
         .memberMapping(
-            kvPair(w.id.self, "input"));
+            kvPair(id.self, "input"));
 
     Cell.addPrimitiveFunction(std.Cell.Equal, op.Equal, "equal")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Cell"))
-        .description(
-            equal(self(), p_("other")))
+        .descriptionBegin()
+            .selfBuilders(
+                equal(self(), p_("other")),
+                equal(p_("other"), self()))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Cell.addPrimitiveFunction(std.Cell.Erase, op.Erase, "erase")
         .memberMapping(
-            kvPair(w.id.self, "cell"),
+            kvPair(id.self, "cell"),
             kvPair("key", "key"))
         .parameters(
             parameter("key", "Cell"))
+        .descriptionBegin()
+            .conclusions(
+                equal(has(self(), p_("key")), false_()))
+            .selfBuilders(
+                erase(self(), p_("key")))
+        .descriptionEnd()
         .description(
-            equal(has(self(), p_("key")), false_()));
+            );
 
     Cell.addPrimitiveFunction(std.Cell.Get, op.Get, "get")
         .memberMapping(
-            kvPair(w.id.self, "cell"),
+            kvPair(id.self, "cell"),
             kvPair("key", "key"))
         .parameters(
             parameter("key", "Cell"))
-        .description(
-            get(self(), p_("key")))
+        .descriptionBegin()
+            .selfBuilders(
+                get(self(), p_("key")))
+        .descriptionEnd()
         .returnType("Cell");
 
     Cell.addPrimitiveFunction(std.Cell.Has, op.Has, "has")
         .memberMapping(
-            kvPair(w.id.self, "cell"),
+            kvPair(id.self, "cell"),
             kvPair("key", "key"))
         .parameters(
             parameter("key", "Cell"))
-        .description(
-            has(self(), p_("key")))
+        .descriptionBegin()
+            .selfBuilders(
+                has(self(), p_("key")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Cell.addPrimitiveFunction(std.Cell.Missing, op.Missing, "missing")
         .memberMapping(
-            kvPair(w.id.self, "cell"),
+            kvPair(id.self, "cell"),
             kvPair("key", "key"))
         .parameters(
             parameter("key", "Cell"))
-        .description(
-            missing(self(), p_("key")))
+        .descriptionBegin()
+            .selfBuilders(
+                missing(self(), p_("key")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Cell.addPrimitiveFunction(std.Cell.NotEqual, op.NotEqual, "notEqual")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Cell"))
-        .description(
-            notEqual(self(), p_("other")))
+        .descriptionBegin()
+            .selfBuilders(
+                notEqual(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Cell.addPrimitiveFunction(std.Cell.NotSame, op.NotSame, "notSame")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Cell"))
-        .description(
-            notSame(self(), p_("other")))
+        .descriptionBegin()
+            .selfBuilders(
+                notSame(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Cell.addPrimitiveFunction(std.Cell.Same, op.Same, "same")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Cell"))
-        .description(
-            same(self(), p_("other")))
+        .descriptionBegin()
+            .selfBuilders(
+                same(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Cell.addPrimitiveFunction(std.Cell.Set, op.Set, "set")
         .memberMapping(
-            kvPair(w.id.self, "cell"),
+            kvPair(id.self, "cell"),
             kvPair("key", "key"),
             kvPair("value", "value"))
         .constructor()
         .parameters(
             parameter("key", "Cell"),
             parameter("value", "Cell"))
-        .description(
-            equal(get(self(), p_("key")), p_("value")));
+        .descriptionBegin()
+            .conclusions(
+                equal(get(self(), p_("key")), p_("value")))
+        .descriptionEnd();
 
     stdScope.add<Struct>("Char");
 
@@ -2540,103 +2577,127 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     Number.addPrimitiveFunction(std.Number.Add, op.Add, "add")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Number"))
-        .description(
-            equal(subtract(return_(), p_("other")), self()),
-            equal(subtract(return_(), self()), p_("other")),
-            add(self(), p_("other")),
-            add(p_("other"), self()))
+        .descriptionBegin()
+            .conclusions(
+                equal(subtract(return_(), p_("other")), self()))
+        //      equal(subtract(return_(), self()), p_("other"))
+            .selfBuilders(
+                add(self(), p_("other")),
+                add(p_("other"), self()))
+        .descriptionEnd()
         .returnType("Number");
 
     Number.addPrimitiveFunction(std.Number.Divide, op.Divide, "divide")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Number"))
-        .description(
-            // TODO check p_("other") != 0
-            equal(multiply(return_(), p_("other")), self()),
-            equal(multiply(p_("other"), return_()), self()),
-            divide(self(), p_("other")))
+        .descriptionBegin()
+            .conclusions(
+                equal(multiply(return_(), p_("other")), self()),
+                equal(multiply(p_("other"), return_()), self()))
+            .selfBuilders(
+                // TODO check p_("other") != 0
+                divide(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Number");
 
     Number.addPrimitiveFunction(std.Number.GreaterThan, op.GreaterThan, "greaterThan")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Number"))
-        .description(
-            lessThan(subtract(p_("other"), self()), _(_0_)),
-            greaterThan(self(), p_("other")))
+        .descriptionBegin()
+            .conclusions(
+                lessThan(subtract(p_("other"), self()), _(_0_)))
+            .selfBuilders(
+                greaterThan(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Number.addPrimitiveFunction(std.Number.GreaterThanOrEqual, op.GreaterThanOrEqual, "greaterThanOrEqual")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Number"))
-        .description(
-            lessThanOrEqual(subtract(p_("other"), self()), _(_0_)),
-            greaterThanOrEqual(self(), p_("other")))
+        .descriptionBegin()
+            .conclusions(
+                lessThanOrEqual(subtract(p_("other"), self()), _(_0_)))
+            .selfBuilders(
+                greaterThanOrEqual(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Number.addPrimitiveFunction(std.Number.LessThan, op.LessThan, "lessThan")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Number"))
-        .description(
-            greaterThan(subtract(p_("other"), self()), _(_0_)),
-            lessThan(self(), p_("other")))
+        .descriptionBegin()
+            .conclusions(
+                greaterThan(subtract(p_("other"), self()), _(_0_)))
+            .selfBuilders(
+                lessThan(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Number.addPrimitiveFunction(std.Number.LessThanOrEqual, op.LessThanOrEqual, "lessThanOrEqual")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Number"))
-        .description(
-            greaterThanOrEqual(subtract(p_("other"), self()), _(_0_)),
-            lessThanOrEqual(self(), p_("other")))
+        .descriptionBegin()
+            .conclusions(
+                greaterThanOrEqual(subtract(p_("other"), self()), _(_0_)))
+            .selfBuilders(
+                lessThanOrEqual(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Boolean");
 
     Number.addPrimitiveFunction(std.Number.Multiply, op.Multiply, "multiply")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Number"))
-        .description(
-            // TODO check p_("other") != 0
-            equal(divide(return_(), self()), p_("other")),
-            equal(divide(return_(), p_("other")), self()),
-            multiply(p_("other"), self()), multiply(self(), p_("other")))
+        .descriptionBegin()
+            .conclusions(
+                // TODO check p_("other") != 0
+                equal(divide(return_(), self()), p_("other")),
+                equal(divide(return_(), p_("other")), self()))
+            .selfBuilders(
+                multiply(p_("other"), self()),
+                multiply(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Number");
 
     Number.addPrimitiveFunction(std.Number.Subtract, op.Subtract, "subtract")
         .memberMapping(
-            kvPair(w.id.self, "lhs"),
+            kvPair(id.self, "lhs"),
             kvPair("other", "rhs"))
         .parameters(
             parameter("other", "Number"))
-        .description(
-            equal(add(return_(), p_("other")), self()),
-            equal(add(p_("other"), return_()), self()),
-
+        .descriptionBegin()
+            .conclusions(
+                equal(add(return_(), p_("other")), self()))
 #if 0
-            equal(self(), add(return_(), p_("other"))),
-            equal(self(), add(p_("other"), return_())),
+                equal(add(p_("other"), return_()), self()),
+                equal(self(), add(return_(), p_("other"))),
+                equal(self(), add(p_("other"), return_()))
+                // equal(subtract(self(), return_()), p_("other")), // TODO is this still useful? Maybe calculate this?!
 #endif
-            // equal(subtract(self(), return_()), p_("other")), TODO maybe calculate this?!
-            subtract(self(), p_("other")))
+            .selfBuilders(
+                subtract(self(), p_("other")))
+        .descriptionEnd()
         .returnType("Number");
 
     createSet();
@@ -2750,6 +2811,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::ast::Call", std.ast.Call);
     compiler.registerBuiltInStruct("std::ast::ConstVar", std.ast.ConstVar);
     compiler.registerBuiltInStruct("std::ast::Continue", std.ast.Continue);
+    compiler.registerBuiltInStruct("std::ast::Description", std.ast.Description);
     compiler.registerBuiltInStruct("std::ast::Do", std.ast.Do);
     compiler.registerBuiltInStruct("std::ast::Enum", std.ast.Enum);
     compiler.registerBuiltInStruct("std::ast::EnumValue", std.ast.EnumValue);

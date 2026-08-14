@@ -288,7 +288,7 @@ void Ast::Scope::mergeTo(Scope& targetScope, MergeMode mergeMode)
 
     TrieMap& toScopeMap = to.items<Ast::Scope>();
 
-    for (CellI& kvPair : from.items<Ast::Scope>()[w.id.list]) {
+    for (CellI& kvPair : from.items<Ast::Scope>()) {
         auto& libScopeKey   = kvPair[w.id.key];
         auto& libScopeValue = static_cast<Ast::Scope&>(kvPair[w.id.value]);
         switch (mergeMode) {
@@ -727,9 +727,49 @@ Ast::FunctionBase& Ast::FunctionBase::returnType(const std::string& typeStr)
     return returnType(w.ast.typeName(typeStr));
 }
 
-void Ast::FunctionBase::addDescriptionBlock(Block& block)
+Ast::Description& Ast::FunctionBase::descriptionBegin()
 {
-    set(w.id.description, block);
+    Description& ret = *new Description(*this);
+    set(w.id.description, ret);
+    return ret;
+}
+
+Ast::Description::Description(World& w) :
+    Object(w, w.std.ast.Description, "ast.Description"),
+    m_parent(nullptr)
+{
+}
+
+
+Ast::Description::Description(FunctionBase& parent) :
+    Object(parent.w, parent.w.std.ast.Description, "ast.Description"),
+    m_parent(&parent)
+{
+}
+
+void Ast::Description::addPrompt(Base& prompt)
+{
+    addPrompt(w.ast.list(prompt));
+}
+
+void Ast::Description::addPrompt(List& prompt)
+{
+    set(w.id.prompt, prompt);
+}
+
+void Ast::Description::addConclusions(List& conclusions)
+{
+    set(w.id.conclusions, conclusions);
+}
+
+void Ast::Description::addSelfBuilders(List& selfBuilders)
+{
+    set(w.id.selfBuilders, selfBuilders);
+}
+
+Ast::FunctionBase& Ast::Description::descriptionEnd()
+{
+    return *m_parent;
 }
 
 void Ast::FunctionBase::addInstructionBlock(Block& block)
