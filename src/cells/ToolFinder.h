@@ -33,6 +33,12 @@ class ToolFinder
     };
 
 public:
+    enum class DescriptionKind
+    {
+        consequence,
+        selfBuilder
+    };
+
     class ConversionToolKey
     {
     public:
@@ -61,8 +67,9 @@ public:
     bool empty();
     List& serializeEffect(CellI& effect);
     void add(Object& tool);
-    void add(CellI& effect, CellI& tool);
-    List& findToolsByEffect(CellI& effect);
+    void add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
+    List& recombine(CellI& description);
+    List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
     CellI& findConversionTools(CellI& from, CellI& to);
     void exploreSlotManipulations();
 
@@ -96,7 +103,7 @@ private:
     };
 
     bool checkUnknownsInTool(CellI& effect);
-    List* findBuildersForEffect(CellI& effect);
+    List* findBuildersForDescription(CellI& description, DescriptionKind descriptionKind);
     void buildTool(const BuildToolInfo& buildToolInfo);
     void serializeKeyWithConstValue(List& result, CellI& key, CellI& value);
     void serializeKeyWithParamValue(List& result, CellI& key, CellI& value, ParamValueKind& paramValueKind);
@@ -111,15 +118,18 @@ private:
     void findConversionToolsByType(CellI& from, CellI& to, List& results);
     void findConversionToolsByContainer(CellI& from, CellI& to, List& results);
     std::string printTool(CellI& tool);
+    Node* getRootNodeForDescriptionKind(DescriptionKind descriptionKind);
 
     World& w;
     ID& id;
     Std& std;
-    std::unique_ptr<Node> m_root;
+    std::unique_ptr<Node> m_consequenceRootNode;
+    std::unique_ptr<Node> m_selfBuilderRootNode;
     List m_tools;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;
 };
 
+std::ostream& operator<<(std::ostream& os, const ToolFinder::DescriptionKind& descriptionKind);
 std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolKey& key);
 std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBlueprint& blueprint);
 

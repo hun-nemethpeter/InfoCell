@@ -20,6 +20,10 @@ template <>
 struct fmt::formatter<infocell::cells::ToolFinder::ConversionToolBlueprint> : ostream_formatter
 { };
 
+template <>
+struct fmt::formatter<infocell::cells::ToolFinder::DescriptionKind> : ostream_formatter
+{ };
+
 namespace infocell {
 namespace cells {
 
@@ -100,13 +104,14 @@ ToolFinder::ToolFinder(World& w) :
     std(w.std),
     m_tools(w, std.String)
 {
-    m_root = std::make_unique<Node>();
+    m_consequenceRootNode = std::make_unique<Node>();
+    m_selfBuilderRootNode = std::make_unique<Node>();
 }
 
 // ============================================================================
 bool ToolFinder::empty()
 {
-    return m_root->m_children.empty();
+    return m_consequenceRootNode->m_children.empty() && m_selfBuilderRootNode->m_children.empty();
 }
 // ============================================================================
 void ToolFinder::serializeKeyWithConstValue(List& result, CellI& key, CellI& value)
@@ -167,11 +172,10 @@ void ToolFinder::serializeKeyWithParamValue(List& result, CellI& key, CellI& val
 List& ToolFinder::serializeEffect(CellI& effect)
 {
     std::deque<StackNode> stack;
-    List& ret              = *new List(w, std.Cell);
-    Node* currentNode      = m_root.get();
-    CellI* slotItemPtr     = &effect.__type__()["slotKeyList"][id.first];
-    CellI* paramItemPtr    = nullptr;
-    CellI* currentPtr      = &effect;
+    List& ret           = *new List(w, std.Cell);
+    CellI* slotItemPtr  = &effect.__type__()["slotKeyList"][id.first];
+    CellI* paramItemPtr = nullptr;
+    CellI* currentPtr   = &effect;
 
     while (slotItemPtr) {
         CellI& slotItem               = *slotItemPtr;
@@ -233,6 +237,20 @@ List& ToolFinder::serializeEffect(CellI& effect)
     return ret;
 }
 
+std::ostream& operator<<(std::ostream& os, const ToolFinder::DescriptionKind& descriptionKind)
+{
+    switch (descriptionKind) {
+    case ToolFinder::DescriptionKind::consequence:
+        os << "consequence";
+        break;
+    case ToolFinder::DescriptionKind::selfBuilder:
+        os << "selfBuilder";
+        break;
+    }
+
+    return os;
+}
+
 // ============================================================================
 ToolFinder::ConversionToolKey::ConversionToolKey(CellI& inputType, CellI& outputType) :
     m_inputType(&inputType),
@@ -291,12 +309,12 @@ void ToolFinder::add(Object& tool)
     auto& description = tool[id.description];
     if (description.has(id.consequences)) {
         for (CellI& consequence : description[id.consequences]) {
-            add(consequence, tool);
+            add(tool, consequence, DescriptionKind::consequence);
         }
     }
     if (description.has(id.selfBuilders)) {
         for (CellI& selfBuilder : description[id.selfBuilders]) {
-            add(selfBuilder, tool);
+            add(tool, selfBuilder, DescriptionKind::selfBuilder);
         }
     }
 }
@@ -384,13 +402,13 @@ void ToolFinder::addKeyWithParamValue(Node*& node, CellI& key, CellI& value, Par
 }
 
 // ============================================================================
-void ToolFinder::add(CellI& effect, CellI& tool)
+void ToolFinder::add(CellI& tool, CellI& description, DescriptionKind descriptionKind)
 {
     std::deque<StackNode> stack;
-    Node* currentNode      = m_root.get();
-    CellI* slotItemPtr     = &effect.__type__()["slotKeyList"][id.first];
+    Node* currentNode      = getRootNodeForDescriptionKind(descriptionKind);
+    CellI* slotItemPtr     = &description.__type__()["slotKeyList"][id.first];
     CellI* paramItemPtr    = nullptr;
-    CellI* currentPtr      = &effect;
+    CellI* currentPtr      = &description;
     bool hasReturnInEffect = false;
     Map memberIds(w, std.Cell, std.Cell);
 
@@ -464,10 +482,10 @@ void ToolFinder::add(CellI& effect, CellI& tool)
     }
     currentNode->m_builders->add(createBuilder(tool, memberIds, hasReturnInEffect));
     currentNode->m_tool   = &tool;
-    currentNode->m_effect = &effect;
+    currentNode->m_effect = &description;
 
     if (IS_LOG_ENABLED) {
-        CellI& astAsList = serializeEffect(effect);
+        CellI& astAsList = serializeEffect(description);
         std::stringstream ss;
         for (CellI& value: astAsList) {
             if (value.has(id.primitiveTool)) {
@@ -476,7 +494,7 @@ void ToolFinder::add(CellI& effect, CellI& tool)
                 ss << value.label() << " ";
             }
         }
-        TRACE(toolFinder, "  {}", ss.str());
+        TRACE(toolFinder, "  {}: {}", descriptionKind, ss.str());
     }
 }
 
@@ -640,7 +658,7 @@ bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPus
 }
 
 // ============================================================================
-List& ToolFinder::findToolsByEffect(CellI& effect)
+List& ToolFinder::findToolsByDescription(CellI& effect, DescriptionKind descriptionKind)
 {
     List& ret = *new List(w, std.ast.Base);
     if (checkUnknownsInTool(effect)) {
@@ -648,7 +666,7 @@ List& ToolFinder::findToolsByEffect(CellI& effect)
     } else {
         TRACE(toolFinderLookup, "Only constants in the effect");
     }
-    List* buildersPtr = findBuildersForEffect(effect);
+    List* buildersPtr = findBuildersForDescription(effect, descriptionKind);
     if (!buildersPtr) {
         return ret;
     }
@@ -680,13 +698,13 @@ List& ToolFinder::findToolsByEffect(CellI& effect)
 }
 
 // ============================================================================
-List* ToolFinder::findBuildersForEffect(CellI& inputEffect)
+List* ToolFinder::findBuildersForDescription(CellI& description, DescriptionKind descriptionKind)
 {
     //    DEBUG(toolFinderLookup, "input: {}", inputEffectAst.printAsValue());
     List& ret           = *new List(w, std.Cell);
-    Node* node          = m_root.get();
-    CellI* effectPtr    = &inputEffect;
-    CellI* slotItemPtr  = &inputEffect.__type__()["slotKeyList"][id.first];
+    Node* node          = getRootNodeForDescriptionKind(descriptionKind);
+    CellI* effectPtr    = &description;
+    CellI* slotItemPtr  = &description.__type__()["slotKeyList"][id.first];
     CellI* paramItemPtr = nullptr;
 
     std::deque<StackNode> stack;
@@ -811,6 +829,12 @@ List* ToolFinder::findBuildersForEffect(CellI& inputEffect)
 
 
     return &ret;
+}
+
+List& ToolFinder::recombine(CellI& description)
+{
+    List& ret = *new List(w, std.ast.Base);
+    return ret;
 }
 
 class SubEffect
@@ -1000,16 +1024,29 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
             CellI& cell              = *subEffect.cell;
             CellI& key               = *subEffect.key;
             CellI& effect            = *subEffect.effect;
-            List* subToolBuildersPtr = findBuildersForEffect(effect);
+            List* subToolBuildersPtr = findBuildersForDescription(effect, DescriptionKind::selfBuilder);
 
             if (!subToolBuildersPtr) {
                 panic("Sub effect not found!");
             }
-            CellI* subToolBuilder  = &(*subToolBuildersPtr)[id.first][id.value]; // TODO
+            CellI* subToolBuilder  = &(*subToolBuildersPtr)[id.first][id.value]; // the first self builder is the copy constructor
             toCreate.push_back({ cell, key, effect, *subToolBuilder });
         }
         toCreate.erase(toCreate.begin());
     }
+}
+
+// ============================================================================
+ToolFinder::Node* ToolFinder::getRootNodeForDescriptionKind(DescriptionKind descriptionKind)
+{
+    switch (descriptionKind) {
+    case DescriptionKind::consequence:
+        return m_consequenceRootNode.get();
+    case DescriptionKind::selfBuilder:
+        return m_selfBuilderRootNode.get();
+    }
+
+    panic("Unknown description kind!");
 }
 
 // ============================================================================
@@ -1145,7 +1182,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& tool = *toolPtr;
     CellI& missingSlotEquation = w.op.equal(tool, w.op.const_(to));
     missingSlotEquation.label("tool(from, x) == to");
-    List& missingSlotSolvers = findToolsByEffect(missingSlotEquation);
+    List& missingSlotSolvers = findToolsByDescription(missingSlotEquation, DescriptionKind::consequence);
 
     for (CellI& missingSlotSolver : missingSlotSolvers) {
         //        std::cout << blueprint << '\n';
@@ -1213,10 +1250,10 @@ void ToolFinder::exploreSlotManipulations()
         opEqual.label(fmt::format("{}(x, y) == z", tool.label()));
         DEBUG(toolFinderExplore, "equation: {}", opEqual.printAsValue());
 
-        List& tools1 = findToolsByEffect(opEqual);
+        List& tools1 = findToolsByDescription(opEqual, DescriptionKind::consequence);
         for (auto& tool1 : tools1) {
             DEBUG(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
-            List& tools2 = findToolsByEffect(tool1);
+            List& tools2 = findToolsByDescription(tool1, DescriptionKind::consequence);
             for (auto& tool2 : tools2) {
                 DEBUG(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
             }

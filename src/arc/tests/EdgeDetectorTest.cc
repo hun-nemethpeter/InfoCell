@@ -976,7 +976,7 @@ public:
         List toCopyList(w, w.std.List);
         List fullSourceObjList(w, w.std.List);
         List toTransformList(w, w.std.List);
-        for (CellI& kvPair : inputShapeField["shapesMap"][w.id.list]) {
+        for (CellI& kvPair : inputShapeField["shapesMap"]) {
             auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
             auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
             fullSourceObjList.add(kvPair);
@@ -989,7 +989,7 @@ public:
             }
             toCopyList.add(w.std.kvPair(w.false_, kvPair));
         }
-        for (CellI& kvPair : outputShapeField["shapesMap"][w.id.list]) {
+        for (CellI& kvPair : outputShapeField["shapesMap"]) {
             auto& offset = static_cast<cells::arc::Vector&>(kvPair[w.id.key]);
             auto& shape  = static_cast<cells::arc::Shape&>(kvPair[w.id.value]);
             if (inputShapeField.hasShape(offset)) {

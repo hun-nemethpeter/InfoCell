@@ -251,7 +251,7 @@ TEST_F(CellTest, ToolFinderTestForSet)
     }
     std::cout << std::endl;
 
-    List& resultTools = toolFinder.findToolsByEffect(requestForSet);
+    List& resultTools = toolFinder.findToolsByDescription(requestForSet, ToolFinder::DescriptionKind::consequence);
 
     EXPECT_EQ(resultTools.size(), 1);
 
@@ -309,7 +309,7 @@ TEST_F(CellTest, ToolFinderTestForGet)
     }
     std::cout << std::endl;
 
-    List& resultTools = toolFinder.findToolsByEffect(requestForGet);
+    List& resultTools = toolFinder.findToolsByDescription(requestForGet, ToolFinder::DescriptionKind::selfBuilder);
 
     EXPECT_EQ(resultTools.size(), 1);
 
@@ -377,7 +377,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     }
     std::cout << std::endl;
 
-    List& resultTools = toolFinder.findToolsByEffect(prompt);
+    List& resultTools = toolFinder.findToolsByDescription(prompt, ToolFinder::DescriptionKind::consequence);
 
     EXPECT_EQ(resultTools.size(), 1);
 
@@ -441,7 +441,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     std::cout << std::endl;
 //    EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self op variable key value op pop other 2 op pop other 4 ");
 
-    List& resultTools = toolFinder.findToolsByEffect(testRequestFn);
+    List& resultTools = toolFinder.findToolsByDescription(testRequestFn, ToolFinder::DescriptionKind::consequence);
 
     EXPECT_EQ(resultTools.size(), 1);
 
