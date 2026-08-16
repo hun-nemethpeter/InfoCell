@@ -37,7 +37,7 @@ ID::ID(World& w) :
     compiled(w.name("compiled")),
     compiledStruct(w.name("compiledStruct")),
     compiledType(w.name("compiledType")),
-    conclusions(w.name("conclusions")),
+    consequences(w.name("consequences")),
     condition(w.name("condition")),
     constructor(w.name("constructor")),
     container(w.name("container")),

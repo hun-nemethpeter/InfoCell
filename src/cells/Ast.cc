@@ -757,9 +757,9 @@ void Ast::Description::addPrompt(List& prompt)
     set(w.id.prompt, prompt);
 }
 
-void Ast::Description::addConclusions(List& conclusions)
+void Ast::Description::addConclusions(List& consequences)
 {
-    set(w.id.conclusions, conclusions);
+    set(w.id.consequences, consequences);
 }
 
 void Ast::Description::addSelfBuilders(List& selfBuilders)

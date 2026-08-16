@@ -2249,12 +2249,12 @@ CellI& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function
             }
             ret.set(id.prompt, resolvedPrompt);
         }
-        if (ast.has(id.conclusions)) {
-            auto& resolvedConclusions = *new List(w, std.ast.Base);
-            for (CellI& conclusion : ast[id.conclusions]) {
-                resolvedConclusions.add(resolve(conclusion));
+        if (ast.has(id.consequences)) {
+            auto& resolvedConsequences = *new List(w, std.ast.Base);
+            for (CellI& consequence : ast[id.consequences]) {
+                resolvedConsequences.add(resolve(consequence));
             }
-            ret.set(id.conclusions, resolvedConclusions);
+            ret.set(id.consequences, resolvedConsequences);
         }
         if (ast.has(id.selfBuilders)) {
             auto& resolvedSelfBuilders = *new List(w, std.ast.Base);
@@ -2353,12 +2353,12 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
             }
             ret.set(id.prompt, compiledPrompt);
         }
-        if (ast.has(id.conclusions)) {
-            auto& compiledConclusions = *new List(w, std.ast.Base);
-            for (CellI& conclusion : ast[id.conclusions]) {
-                compiledConclusions.add(compile(conclusion));
+        if (ast.has(id.consequences)) {
+            auto& compiledConsequences = *new List(w, std.ast.Base);
+            for (CellI& consequence : ast[id.consequences]) {
+                compiledConsequences.add(compile(consequence));
             }
-            ret.set(id.conclusions, compiledConclusions);
+            ret.set(id.consequences, compiledConsequences);
         }
         if (ast.has(id.selfBuilders)) {
             auto& compiledSelfBuilders = *new List(w, std.ast.Base);

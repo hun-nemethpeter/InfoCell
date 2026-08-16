@@ -289,9 +289,9 @@ void ToolFinder::add(Object& tool)
     TRACE(toolFinder, "{} =>", tool.label());
 
     auto& description = tool[id.description];
-    if (description.has(id.conclusions)) {
-        for (CellI& conclusion : description[id.conclusions]) {
-            add(conclusion, tool);
+    if (description.has(id.consequences)) {
+        for (CellI& consequence : description[id.consequences]) {
+            add(consequence, tool);
         }
     }
     if (description.has(id.selfBuilders)) {

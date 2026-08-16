@@ -1717,3 +1717,48 @@ So here we precalculated that `const p1 + unknown p2 == const p3` can go to `con
   - `equal(add(const 2, unknown X), const 4)`
     - with builder `add(p_("other"), self())` in `subtract` => `equal(add(unknown X, const 2), const 4)`
     - with matcher `equal(subtract(return_(), p_("other")), self())` in `add` => `equal(subtract(const_(_4_), const_(_2_)), unknown_(x))`
+
+2026-08-16
+==========
+
+What bothers me is the lack of node for OneOrMore like things, like this Description node
+
+```
+    if (&ast.__type__() == &std.ast.Description) {
+        // do nothing just traverse and copy the AST nodes
+        CellI& list          = ast;
+        auto& ret = *new Object(w, ast.__type__(), ast.label());
+        if (ast.has(id.prompt)) {
+            auto& resolvedPrompt = *new List(w, std.ast.Base);
+            for (CellI& prompt : ast[id.prompt]) {
+                resolvedPrompt.add(resolve(prompt));
+            }
+            ret.set(id.prompt, resolvedPrompt);
+        }
+        if (ast.has(id.conclusions)) {
+            auto& resolvedConclusions = *new List(w, std.ast.Base);
+            for (CellI& conclusion : ast[id.conclusions]) {
+                resolvedConclusions.add(resolve(conclusion));
+            }
+            ret.set(id.conclusions, resolvedConclusions);
+        }
+        if (ast.has(id.selfBuilders)) {
+            auto& resolvedSelfBuilders = *new List(w, std.ast.Base);
+            for (CellI& selfBuilder : ast[id.selfBuilders]) {
+                resolvedSelfBuilders.add(resolve(selfBuilder));
+            }
+            ret.set(id.selfBuilders, resolvedSelfBuilders);
+        }
+        return ret;
+```
+
+The other thing is, the hard coded slot list for serialize / find cells in ToolFinder, like this:
+
+```
+        if (&key == &id.__type__) { // &key == &id.__type__ hardcoded, maybe ok
+            serializeKeyWithConstValue(ret, key, current.__type__());
+        } else {
+            if (&key == &id.method) { // but hardcoded &key == &id.method seems bad
+                serializeKeyWithConstValue(ret, key, current[key]);
+            } else if (&key == &id.parameters && current.has(key)) { // this is just straight up awful
+```

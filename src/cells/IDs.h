@@ -51,7 +51,7 @@ public:
     String& compiled;
     String& compiledStruct;
     String& compiledType;
-    String& conclusions;
+    String& consequences;
     String& condition;
     String& constructor;
     String& container;

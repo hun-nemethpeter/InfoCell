@@ -386,7 +386,7 @@ public:
         Description(FunctionBase& parent);
 
         template <typename... Args>
-        Description& conclusions(Args&&... args);
+        Description& consequences(Args&&... args);
         template <typename... Args>
         Description& selfBuilders(Args&&... args);
 
@@ -396,7 +396,7 @@ public:
         void addPrompt(List& prompt);
 
     private:
-        void addConclusions(List& conclusions);
+        void addConclusions(List& consequences);
         void addSelfBuilders(List& selfBuilders);
         FunctionBase* m_parent = nullptr;
     };

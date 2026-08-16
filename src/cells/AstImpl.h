@@ -74,7 +74,7 @@ void Ast::FunctionBase::instructions(Args&&... args)
 }
 
 template <typename... Args>
-Ast::Description& Ast::Description::conclusions(Args&&... args)
+Ast::Description& Ast::Description::consequences(Args&&... args)
 {
     addConclusions(w.list(std::forward<Args>(args)...));
     return *this;

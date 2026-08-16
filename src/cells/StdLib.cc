@@ -1096,7 +1096,7 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("Description")
         .members(
-            member("conclusions", tt_("std::List", "valueType", "Base")),
+            member("consequences", tt_("std::List", "valueType", "Base")),
             member("prompt", tt_("std::List", "valueType", "Base")),
             member("selfBuilders", tt_("std::List", "valueType", "Base")));
 
@@ -2383,7 +2383,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Boolean"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
                 equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
                 equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.false_)),
@@ -2441,7 +2441,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("key", "Cell"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 equal(has(self(), p_("key")), false_()))
             .selfBuilders(
                 erase(self(), p_("key")))
@@ -2531,7 +2531,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("key", "Cell"),
             parameter("value", "Cell"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 equal(get(self(), p_("key")), p_("value")))
         .descriptionEnd();
 
@@ -2582,7 +2582,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Number"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 equal(subtract(return_(), p_("other")), self()))
         //      equal(subtract(return_(), self()), p_("other"))
             .selfBuilders(
@@ -2598,7 +2598,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Number"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 equal(multiply(return_(), p_("other")), self()),
                 equal(multiply(p_("other"), return_()), self()))
             .selfBuilders(
@@ -2614,7 +2614,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Number"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 lessThan(subtract(p_("other"), self()), _(_0_)))
             .selfBuilders(
                 greaterThan(self(), p_("other")))
@@ -2628,7 +2628,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Number"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 lessThanOrEqual(subtract(p_("other"), self()), _(_0_)))
             .selfBuilders(
                 greaterThanOrEqual(self(), p_("other")))
@@ -2642,7 +2642,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Number"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 greaterThan(subtract(p_("other"), self()), _(_0_)))
             .selfBuilders(
                 lessThan(self(), p_("other")))
@@ -2656,7 +2656,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Number"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 greaterThanOrEqual(subtract(p_("other"), self()), _(_0_)))
             .selfBuilders(
                 lessThanOrEqual(self(), p_("other")))
@@ -2670,7 +2670,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Number"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 // TODO check p_("other") != 0
                 equal(divide(return_(), self()), p_("other")),
                 equal(divide(return_(), p_("other")), self()))
@@ -2687,7 +2687,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Number"))
         .descriptionBegin()
-            .conclusions(
+            .consequences(
                 equal(add(return_(), p_("other")), self()))
 #if 0
                 equal(add(p_("other"), return_()), self()),
