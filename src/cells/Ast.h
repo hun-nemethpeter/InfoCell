@@ -163,6 +163,15 @@ public:
         Call& exist();
         Call& missing();
         Call& operator()(const std::string& method);
+
+        template <typename... Args>
+        void addKV(Member& member, CellI& key, CellI& value, Args&&... args)
+        {
+            member.set(key, value);
+            if constexpr (sizeof...(Args) > 0) {
+                addKV(member, std::forward<Args>(args)...);
+            }
+        }
     };
 
     class New : public BaseT<New>
@@ -702,6 +711,16 @@ public:
     Member& member(CellI& name, CellI& type);
     Member& member(const std::string& nameStr, const std::string& typeStr);
     Member& member(const std::string& nameStr, CellI& type);
+    template <typename... Args>
+    Member& member(const std::string& nameStr, const std::string& typeStr, Args&&... args)
+    {
+        auto& ret = member(name(nameStr), typeName(typeStr));
+        if constexpr (sizeof...(Args) > 0) {
+            ret.addKV(ret, std::forward<Args>(args)...);
+        }
+        return ret;
+    }
+
     Call& missing(Base& cell, Base& key);
     Call& missing(Base& cell, const std::string& id);
     Call& multiply(Base& lhs, Base& rhs);

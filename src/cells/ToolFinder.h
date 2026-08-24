@@ -84,6 +84,7 @@ private:
         CellI& m_matchedEffect;
         CellI& m_builder;
     };
+
     enum class ParamValueKind
     {
         NonParamValue,
@@ -102,6 +103,7 @@ private:
         Skip
     };
 
+    void createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList);
     bool checkUnknownsInTool(CellI& effect);
     List* findBuildersForDescription(CellI& description, DescriptionKind descriptionKind);
     void buildTool(const BuildToolInfo& buildToolInfo);

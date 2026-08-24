@@ -550,13 +550,34 @@ public:
             EState State;
         };
 
-        class EMembership : public Object
+        class EMember : public Object
         {
         public:
-            EMembership(World& w, CellI& type, const std::string& label);
+            class ERelation : public Object
+            {
+            public:
+                ERelation(World& w, CellI& type, const std::string& label);
 
-            Object internal;
-            Object external;
+                Object internal;
+                Object external;
+            };
+            class ERole : public Object
+            {
+            public:
+                ERole(World& w, CellI& type, const std::string& label);
+
+                Object constant;
+                Object construct;
+                Object debug;
+                Object input;
+                Object output;
+                Object state;
+            };
+
+            EMember(World& w, CellI& type, const std::string& label);
+
+            ERelation Relation;
+            ERole Role;
         };
 
         class EState : public Object
@@ -592,8 +613,7 @@ public:
         EIf If;
         ELessThan LessThan;
         ELessThanOrEqual LessThanOrEqual;
-        Object Member;
-        EMembership Membership;
+        EMember Member;
         EMissing Missing;
         EMultiply Multiply;
         ENew New;
@@ -605,6 +625,7 @@ public:
         EReturn Return;
         ESame Same;
         Object SavedState;
+        Object SelfBuilders;
         ESet Set;
         EState State;
         ESubtract Subtract;

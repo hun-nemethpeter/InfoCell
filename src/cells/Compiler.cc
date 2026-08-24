@@ -359,9 +359,7 @@ Ast::Function& Compiler::resolveTypesInFunction(Ast::Function& function, Ast::St
     m_currentFn = &ret;
     std::stringstream ss;
 
-    if (function.has(id.isConstructor)) {
-        ret.set(id.isConstructor, function[id.isConstructor]);
-    }
+    ret.copyMemberFrom(function, id.isConstructor);
     if (function.has(id.static_)) {
         ret.set(id.static_, function[id.static_]);
         ss << "static ";
@@ -652,7 +650,10 @@ Ast::Struct& Compiler::resolveTypesInStruct(Ast::Struct& astStruct)
             CellI& memberId           = member[id.key];
             CellI& memberType         = member[id.type];
             CellI& resolvedMemberType = resolveType(memberType);
-            ret.addMember(w.ast.member(memberId, resolvedMemberType));
+            auto& resolvedMember      = w.ast.member(memberId, resolvedMemberType);
+            resolvedMember.copyMemberFrom(member, id.relation);
+            resolvedMember.copyMemberFrom(member, id.role);
+            ret.addMember(resolvedMember);
             TRACE(compileStruct, "    {}: {};", memberId.label(), getCompiledTypeFromResolvedType(resolvedMemberType).label());
         }
     }
@@ -1100,38 +1101,34 @@ Ast::Base& Compiler::findEnumOrStructByAstStructName(Ast::Scope& scope, CellI& a
     CellI* scopeListPtr = astStructName.has(id.scopes) ? &astStructName[id.scopes] : &emptyList;
     auto& scopes        = *scopeListPtr;
 
-    if (Ast::Base* astStruct = findStructByNameInScopes(scope, scopes, name)) {
-        return *astStruct;
-    }
-    if (auto* enum_ = findEnumByNameInScopes(scope, scopes, name)) {
-        return *enum_;
+    if (Ast::Base* astStructBase = findStructBaseByNameInScopes(scope, scopes, name)) {
+        return *astStructBase;
     }
 
     panic("Unknown type name!");
 }
 
-Ast::Enum* Compiler::findEnumByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name)
+Ast::Base* Compiler::findStructBaseByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name)
 {
-    const auto& hasCb = [&name](Ast::Scope& currentScope) -> bool {
+    const auto& enumHasCb = [&name](Ast::Scope& currentScope) -> bool {
         return currentScope.hasItem<Ast::Enum>(name);
     };
-    const auto& getCb = [&name](Ast::Scope& currentScope) -> Ast::Enum* {
+    const auto& enumGetCb = [&name](Ast::Scope& currentScope) -> Ast::Enum* {
         return &currentScope.getItem<Ast::Enum>(name);
     };
 
-    return static_cast<Ast::Enum*>(findAstByNameInAllScope(scope, scopeList, hasCb, getCb));
-}
+    if (Ast::Base* ret = findAstByNameInAllScope(scope, scopeList, enumHasCb, enumGetCb)) {
+        return ret;
+    }
 
-Ast::Struct* Compiler::findStructByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name)
-{
-    const auto& hasCb = [&name](Ast::Scope& currentScope) -> bool {
+    const auto& structHasCb = [&name](Ast::Scope& currentScope) -> bool {
         return currentScope.hasItem<Ast::Struct>(name);
     };
-    const auto& getCb = [&name](Ast::Scope& currentScope) -> Ast::Struct* {
+    const auto& structGetCb = [&name](Ast::Scope& currentScope) -> Ast::Struct* {
         return &currentScope.getItem<Ast::Struct>(name);
     };
 
-    return static_cast<Ast::Struct*>(findAstByNameInAllScope(scope, scopeList, hasCb, getCb));
+    return findAstByNameInAllScope(scope, scopeList, structHasCb, structGetCb);
 }
 
 Ast::StructT& Compiler::findTemplateByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name)
@@ -1303,11 +1300,14 @@ Ast::Struct& Compiler::instantiateStructT(Ast::StructT& structT, Ast::Struct& co
     // instantiate members
     if (structT.has(id.members)) {
         for (CellI& memberKV : structT.members()) {
-            CellI& member                = memberKV[id.value];
-            CellI& key                   = member[id.key];
-            CellI& type                  = member[id.type];
-            CellI& instantiatedParamType = instantiateTemplateParamType(type, ret, inputParameters);
-            ret.addMember(w.ast.member(key, instantiatedParamType));
+            CellI& member                 = memberKV[id.value];
+            CellI& key                    = member[id.key];
+            CellI& type                   = member[id.type];
+            CellI& instantiatedMemberType = instantiateTemplateParamType(type, ret, inputParameters);
+            auto& instantiatedMember      = w.ast.member(key, instantiatedMemberType);
+            instantiatedMember.copyMemberFrom(member, id.relation);
+            instantiatedMember.copyMemberFrom(member, id.role);
+            ret.addMember(instantiatedMember);
         }
     }
 
@@ -1606,15 +1606,22 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
 
     // compile members
     if (astStruct.has(id.members)) {
+        List& memberIds      = *new List(w, std.Cell, "member id list");
+        memberIds.add(id.__type__);
         Map& compiledMembers = *new Map(w, std.Cell, std.op.Member, "members Map<ConstVar, Slot>(...)");
         for (CellI& memberKV : astStruct.members()) {
             CellI& member            = memberKV[id.value];
             CellI& key               = member[id.key];
             CellI& type              = member[id.type];
             auto& compiledMemberType = getCompiledTypeFromResolvedType(type);
-            compiledMembers.add(key, w.op.member(key, compiledMemberType));
+            auto& compiledMember     = w.op.member(key, compiledMemberType);
+            compiledMember.copyMemberFrom(member, id.relation);
+            compiledMember.copyMemberFrom(member, id.role);
+            compiledMembers.add(key, compiledMember);
+            memberIds.add(key);
         }
         compiledStruct.set(id.members, compiledMembers);
+        compiledStruct.set(id.memberIds, memberIds);
     }
 
     // compile memberOf list

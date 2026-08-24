@@ -313,10 +313,51 @@ void ToolFinder::add(Object& tool)
         }
     }
     if (description.has(id.selfBuilders)) {
+        bool firstBuilder = true;
+        List& mappingList = *new List(w, std.Cell);
+
         for (CellI& selfBuilder : description[id.selfBuilders]) {
             add(tool, selfBuilder, DescriptionKind::selfBuilder);
+            if (firstBuilder) {
+                firstBuilder = false;
+                mappingList.add(id.emptyObject);
+            } else {
+                createParametersMappingForAlternativeParameterOrder(selfBuilder, mappingList);
+            }
         }
+
+        CellI& selfBuilders = tool[id.selfBuilders];
+        selfBuilders.set(id.memberMapping, mappingList);
     }
+}
+
+// ============================================================================
+void ToolFinder::createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList)
+{
+    if (alternativeParameterOrder.__type__().has(id.primitiveTool)) {
+        auto& generatedMapping = *new Map(w, w.std.String, w.std.String);
+        auto& memberMapping = static_cast<Map&>(alternativeParameterOrder.__type__()[id.ast][id.memberMapping]);
+        for (auto& parameterKV : alternativeParameterOrder[id.ast][id.parameters]) {
+            auto& fromKey       = parameterKV[id.key];
+            auto& mappedFromKey = memberMapping.getValue(fromKey);
+            CellI* toKeyPtr     = nullptr;
+            auto& parameter     = parameterKV[id.value];
+            if (&parameter.__type__() == &std.ast.Parameter) {
+                toKeyPtr = &parameter[id.key];
+            } else if (&parameter.__type__() == &std.ast.Self) {
+                toKeyPtr = &id.self;
+            } else {
+                panic("Unknown parameter type!");
+            }
+            CellI& toKey      = *toKeyPtr;
+            auto& mappedToKey = memberMapping.getValue(toKey);
+            generatedMapping.add(mappedFromKey, mappedToKey);
+        }
+        mappingList.add(generatedMapping);
+    } else {
+        panic("TODO");
+    }
+
 }
 
 // ============================================================================
@@ -480,7 +521,13 @@ void ToolFinder::add(CellI& tool, CellI& description, DescriptionKind descriptio
     if (currentNode->m_builders == nullptr) {
         currentNode->m_builders = new List(w, std.List, "builders");
     }
-    currentNode->m_builders->add(createBuilder(tool, memberIds, hasReturnInEffect));
+    auto& builder = createBuilder(tool, memberIds, hasReturnInEffect);
+    if (descriptionKind == DescriptionKind::selfBuilder && tool.missing(id.selfBuilders)) {
+        Object& selfBuilders = *new Object(w, std.op.SelfBuilders, "SelfBuilders");
+        selfBuilders.set(id.builder, *currentNode->m_builders);
+        tool.set(id.selfBuilders, selfBuilders);
+    }
+    currentNode->m_builders->add(builder);
     currentNode->m_tool   = &tool;
     currentNode->m_effect = &description;
 
@@ -609,7 +656,7 @@ bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPus
                     }
                 }
 
-                if (opKey == &id.push && (&value.__type__() != &std.op.ConstVar)) {
+                if (opKey == &id.push && ((&value.__type__() != &std.op.ConstVar) && (&value.__type__() != &std.op.UnknownVar))) {
                     if (!((&value.__type__() == &std.op.Call) || (value.__type__().has(id.primitiveTool)))) {
                         panic("Not supported type!");
                     }
@@ -831,9 +878,157 @@ List* ToolFinder::findBuildersForDescription(CellI& description, DescriptionKind
     return &ret;
 }
 
+// ============================================================================
+class RecombineInfo
+{
+public:
+    RecombineInfo(CellI& outCell) :
+        w(outCell.w),
+        m_parent(nullptr),
+        m_outCellPtr(&outCell),
+        m_outKeyPtr(nullptr),
+        m_referenceOutKeyPtr(nullptr),
+        m_cellToRecombine(nullptr),
+        m_firstBuilderNodePtr(nullptr),
+        m_builderNodePtr(nullptr),
+        m_firstMappingNodePtr(nullptr),
+        m_mappingNodePtr(nullptr)
+    {
+    }
+
+    RecombineInfo(RecombineInfo& parent, CellI& outKey, CellI& cellToRecombine) :
+        w(parent.w),
+        m_parent(&parent),
+        m_outCellPtr(nullptr),
+        m_outKeyPtr(nullptr),
+        m_referenceOutKeyPtr(&outKey),
+        m_cellToRecombine(&cellToRecombine),
+        m_firstBuilderNodePtr(&cellToRecombine.__type__()[w.id.selfBuilders][w.id.builder][w.id.first]),
+        m_builderNodePtr(m_firstBuilderNodePtr),
+        m_firstMappingNodePtr(&cellToRecombine.__type__()[w.id.selfBuilders][w.id.memberMapping][w.id.first]),
+        m_mappingNodePtr(m_firstMappingNodePtr)
+    {
+    }
+
+    bool prepareBuild()
+    {
+        if (!m_parent) {
+            return false;
+        }
+        m_outCellPtr = m_parent->outCell();
+        m_outKeyPtr  = m_parent->mappedKey(*m_referenceOutKeyPtr);
+
+        return true;
+    }
+
+    CellI* outCell()
+    {
+        if (!m_parent) {
+            return m_outCellPtr;
+        }
+        return &(*m_outCellPtr)[*m_outKeyPtr];
+    }
+
+    CellI* mappedKey(CellI& key)
+    {
+        if (!m_parent || m_mappingNodePtr == m_firstMappingNodePtr) {
+            return &key;
+        } else {
+            auto& mapping = static_cast<Map&>((*m_mappingNodePtr)[w.id.value]);
+            return &mapping.getValue(key);
+        }
+    }
+
+    bool step() // true if wrap around, so go from last to first
+    {
+        if (!m_parent) {
+            return true;
+        }
+        if (CellI* nextOrNull = m_builderNodePtr->getNextOrNullptr()) {
+            m_builderNodePtr = nextOrNull;
+            m_mappingNodePtr = m_mappingNodePtr->getNextOrNullptr();
+            return false;
+        } else {
+            m_builderNodePtr = m_firstBuilderNodePtr;
+            m_mappingNodePtr = m_firstMappingNodePtr;
+            return true;
+        }
+    }
+
+    bool isLast()
+    {
+        return m_parent == nullptr;
+    }
+
+    World& w;
+    RecombineInfo* m_parent;
+    CellI* m_outCellPtr;
+    CellI* m_outKeyPtr;
+    CellI* m_referenceOutKeyPtr;
+    CellI* m_cellToRecombine;
+    CellI* m_firstBuilderNodePtr;
+    CellI* m_builderNodePtr;
+    CellI* m_firstMappingNodePtr;
+    CellI* m_mappingNodePtr;
+};
+
+// ============================================================================
 List& ToolFinder::recombine(CellI& description)
 {
+    std::deque<RecombineInfo> recombineInfos;
+    Object outCell(w, std.ast.ConstVar);
     List& ret = *new List(w, std.ast.Base);
+    recombineInfos.push_back({ outCell });
+    recombineInfos.push_back({ recombineInfos.back(), id.value, description });
+
+    std::deque<CellI*> cellsToInspect;
+    cellsToInspect.push_back(&description);
+
+    while (!cellsToInspect.empty()) {
+        CellI& currentCell = *cellsToInspect.back();
+        cellsToInspect.pop_back();
+
+        auto& parentInfo = recombineInfos.back();
+        for (auto& memberKV : currentCell.__type__()[id.members]) {
+            auto& member = memberKV[id.value];
+            if (&member[id.role] != &std.op.Member.Role.input) {
+                continue;
+            }
+            CellI& memberName = member[id.name];
+            CellI& inputValue = currentCell[memberName];
+            if ((&inputValue.__type__() != &std.op.ConstVar) && (&inputValue.__type__() != &std.op.UnknownVar)) {
+                cellsToInspect.push_back(&inputValue);
+                recombineInfos.push_back({ parentInfo, memberName, inputValue });
+            }
+        }
+    }
+    bool hasMorePermutation = true;
+    while (hasMorePermutation) {
+        for (auto& recombineInfo : recombineInfos) {
+            if (recombineInfo.prepareBuild()) {
+                buildTool({ *recombineInfo.m_outCellPtr, w.ast.member(*recombineInfo.m_outKeyPtr), *recombineInfo.m_cellToRecombine, (*recombineInfo.m_builderNodePtr)[id.value] });
+            }
+        }
+        CellI& tool = outCell[id.value];
+        TRACE(toolFinderExplore, "recombined: {}", tool.printAsValue());
+        ret.add(tool);
+
+        // stepping
+        bool wrapAround = true;
+        auto lastIt     = recombineInfos.begin() + recombineInfos.size() - 1;
+        while (true) {
+            auto& recombineInfo = *lastIt;
+            if (wrapAround) {
+                wrapAround = recombineInfo.step();
+            }
+            if (recombineInfo.isLast() || !wrapAround) {
+                break;
+            }
+            --lastIt;
+        }
+        hasMorePermutation = !wrapAround;
+    }
+
     return ret;
 }
 
@@ -1248,14 +1443,25 @@ void ToolFinder::exploreSlotManipulations()
 
         auto& opEqual = w.op.equal(numberTool, w.op.const_(4));
         opEqual.label(fmt::format("{}(x, y) == z", tool.label()));
-        DEBUG(toolFinderExplore, "equation: {}", opEqual.printAsValue());
-
-        List& tools1 = findToolsByDescription(opEqual, DescriptionKind::consequence);
-        for (auto& tool1 : tools1) {
-            DEBUG(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
-            List& tools2 = findToolsByDescription(tool1, DescriptionKind::consequence);
-            for (auto& tool2 : tools2) {
-                DEBUG(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
+        DEBUG(toolFinderExplore, "");
+        DEBUG(toolFinderExplore, "input: {}", opEqual.printAsValue());
+        List& permutations = recombine(opEqual);
+        for (auto& permutation : permutations) {
+            List& tools1 = findToolsByDescription(permutation, DescriptionKind::consequence);
+            for (auto& tool1 : tools1) {
+                TRACE(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
+                List& tool1Permutations = recombine(tool1);
+                for (auto& tool1Permutation : tool1Permutations) {
+                    DEBUG(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
+                    List& tools2 = findToolsByDescription(tool1Permutation, DescriptionKind::consequence);
+                    for (auto& tool2 : tools2) {
+                        TRACE(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
+                        List& tool2Permutations = recombine(tool2);
+                        for (auto& tool2Permutation : tool2Permutations) {
+                            DEBUG(toolFinderExplore, "    2. permutation: {}", tool2Permutation.printAsValue());
+                        }
+                    }
+                }
             }
         }
     }

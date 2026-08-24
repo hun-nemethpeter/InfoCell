@@ -92,10 +92,10 @@ public:
     String& list;
     String& listType;
     String& localVars;
+    String& memberIds;
     String& memberMapping;
     String& memberOf;
     String& members;
-    String& membership;
     String& method;
     String& methods;
     String& name;
@@ -119,11 +119,13 @@ public:
     String& prompt;
     String& push;
     String& red;
+    String& relation;
     String& resolvedScope;
     String& result;
     String& return_;
     String& returnType;
     String& rhs;
+    String& role;
     String& rootNode;
     String& scope;
     String& scopes;

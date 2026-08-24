@@ -52,8 +52,7 @@ protected:
     Ast::Base& resolveTemplatedType(CellI& ast);
 
     Ast::Base& findEnumOrStructByAstStructName(Ast::Scope& scope, CellI& astStructName);
-    Ast::Enum* findEnumByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
-    Ast::Struct* findStructByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
+    Ast::Base* findStructBaseByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
     Ast::StructT& findTemplateByNameInScopes(Ast::Scope& scope, CellI& scopeList, CellI& name);
     Ast::Base* findAstByNameInAllScope(Ast::Scope& scope, CellI& scopeList, std::function<bool(Ast::Scope& )> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb);
     Ast::Base* findAstByNameInOneScope(Ast::Scope* currentScope, CellI& scopeList, std::function<bool(Ast::Scope&)> hasCb, std::function<Ast::Base*(Ast::Scope&)> getCb);

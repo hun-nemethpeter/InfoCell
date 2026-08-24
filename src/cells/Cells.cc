@@ -94,6 +94,13 @@ void CellI::eval()
     return (*this)();
 }
 
+void CellI::copyMemberFrom(CellI& from, CellI& id)
+{
+    if (from.has(id)) {
+        set(id, from[id]);
+    }
+}
+
 std::string CellI::label() const
 {
     return m_label;

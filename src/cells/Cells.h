@@ -39,6 +39,7 @@ public:
     CellI& __type__();
     CellI& membersList();
     void eval();
+    void copyMemberFrom(CellI& from, CellI& id);
 
     std::string label() const;
     void label(const std::string& label);
