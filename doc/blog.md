@@ -1762,3 +1762,38 @@ The other thing is, the hard coded slot list for serialize / find cells in ToolF
                 serializeKeyWithConstValue(ret, key, current[key]);
             } else if (&key == &id.parameters && current.has(key)) { // this is just straight up awful
 ```
+
+
+2026-08-19
+==========
+
+Current log messages:
+```
+equation: 2 + X == 4
+  1. result: 4 - X == 2
+    2. result: 2 + X == 4
+```
+
+Expected:
+```
+  equation: 2 + X == 4
+recombined: X + 2 == 4
+recombined: 4 == 2 + X
+recombined: 4 == X + 2 *
+  1. result: 4 - X == 2
+  1. result: 4 - 2 == X
+  1. result: 2 == 4 - X
+  1. result: X == 4 - 2 *
+    2. result: 2 + X == 4
+```
+
+2026-08-20
+==========
+
+The case with `value` and `return_()` also bothers me.
+
+For `Set` we have `cell`, `key`, and `value` parameters. But the `value` parameter here is an input one.
+On the other hand in `Add` or `Get` and also in `ConstVar` the `value` is the output parameter.
+For describing consequences we use the `ast.return_()`.
+Maybe we should introduce the dunder value `__value__` for `(Const)Var` and every function that returns something.
+So we can keep the `Set` parameters as it is now `Set(cell, key, value)` but we will have `var.__value__`
