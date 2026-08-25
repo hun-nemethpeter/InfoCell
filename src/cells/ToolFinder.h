@@ -68,7 +68,6 @@ public:
     List& serializeEffect(CellI& effect);
     void add(Object& tool);
     void add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
-    List& recombine(CellI& description);
     List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
     CellI& findConversionTools(CellI& from, CellI& to);
     void exploreSlotManipulations();
@@ -103,6 +102,10 @@ private:
         Skip
     };
 
+    List& recombine(Node* rootNode, CellI& description);
+    void addPermutation(Node* rootNode, CellI& description);
+    bool hasPermutation(Node* rootNode, CellI& description);
+    List& add(CellI& tool, CellI& description, Node* rootNode);
     bool isConstantFoldingPossible(CellI& description);
     void createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList);
     bool checkUnknownsInTool(CellI& effect);
@@ -114,6 +117,7 @@ private:
     void addKeyWithConstValue(Node*& node, CellI& key, CellI& value);
     void addKeyWithParamValue(Node*& node, CellI& key, CellI& value, ParamValueKind& paramValueKind);
     void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
+    bool checkConstValue(Node*& node, CellI& key, CellI& value);
     bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush, MultiMatchState& multiMatchState, CellI*& multiMatch);
     List& createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);

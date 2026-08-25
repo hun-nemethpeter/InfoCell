@@ -1606,8 +1606,19 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
 
     // compile members
     if (astStruct.has(id.members)) {
-        List& memberIds      = *new List(w, std.Cell, "member id list");
-        memberIds.add(id.__type__);
+        // kinda hack, but there is no good solution here
+        // the problem, the __type__ can not be a regular key in a Map, namely in the compiledMembers
+        // but this __type__ is the most important member. On the other hand, the __type__ can be a value
+        // in a member, also in a ListNode.value. So here we creating an extra list, which first member
+        // the memberIdsTypeNode act like it is belongs to the compiledMembers.list as a first node.
+        // this list is very useful, when we want to traverse structures for serialization in ToolFinder
+        Object& memberIds         = *new Object(w, std.List, "member id list");
+        Object& memberIdsTypeNode = *new Object(w, std.ListNode, "member id listNode");
+        auto& typeMember          = w.op.member(id.__type__, compiledStruct);
+        typeMember.set(id.relation, std.op.Member.Relation.external);
+        typeMember.set(id.role, std.op.Member.Role.constant);
+        memberIds.set(id.first, memberIdsTypeNode);
+        memberIdsTypeNode.set(id.value, std.kvPair(id.type, typeMember));
         Map& compiledMembers = *new Map(w, std.Cell, std.op.Member, "members Map<ConstVar, Slot>(...)");
         for (CellI& memberKV : astStruct.members()) {
             CellI& member            = memberKV[id.value];
@@ -1618,8 +1629,10 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
             compiledMember.copyMemberFrom(member, id.relation);
             compiledMember.copyMemberFrom(member, id.role);
             compiledMembers.add(key, compiledMember);
-            memberIds.add(key);
         }
+        memberIds.set(id.last, compiledMembers[id.list][id.last]);
+        memberIds.set(id.size, w.pools.numbers.get(compiledMembers.size() + 1));
+        memberIdsTypeNode.set(id.next, compiledMembers[id.list][id.first]);
         compiledStruct.set(id.members, compiledMembers);
         compiledStruct.set(id.memberIds, memberIds);
     }

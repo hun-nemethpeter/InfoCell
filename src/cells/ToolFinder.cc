@@ -445,8 +445,32 @@ void ToolFinder::addKeyWithParamValue(Node*& node, CellI& key, CellI& value, Par
 // ============================================================================
 void ToolFinder::add(CellI& tool, CellI& description, DescriptionKind descriptionKind)
 {
+    auto& builders = add(tool, description, getRootNodeForDescriptionKind(descriptionKind));
+    if (descriptionKind == DescriptionKind::selfBuilder && tool.missing(id.selfBuilders)) {
+        Object& selfBuilders = *new Object(w, std.op.SelfBuilders, "SelfBuilders");
+        selfBuilders.set(id.builder, builders);
+        tool.set(id.selfBuilders, selfBuilders);
+    }
+
+    if (IS_LOG_ENABLED) {
+        CellI& astAsList = serializeEffect(description);
+        std::stringstream ss;
+        for (CellI& value : astAsList) {
+            if (value.has(id.primitiveTool)) {
+                ss << value[id.name].label() << " ";
+            } else {
+                ss << value.label() << " ";
+            }
+        }
+        TRACE(toolFinder, "  {}: {}", descriptionKind, ss.str());
+    }
+}
+
+// ============================================================================
+List& ToolFinder::add(CellI& tool, CellI& description, Node* rootNode)
+{
     std::deque<StackNode> stack;
-    Node* currentNode      = getRootNodeForDescriptionKind(descriptionKind);
+    Node* currentNode      = rootNode;
     CellI* slotItemPtr     = &description.__type__()["slotKeyList"][id.first];
     CellI* paramItemPtr    = nullptr;
     CellI* currentPtr      = &description;
@@ -521,28 +545,14 @@ void ToolFinder::add(CellI& tool, CellI& description, DescriptionKind descriptio
     if (currentNode->m_builders == nullptr) {
         currentNode->m_builders = new List(w, std.List, "builders");
     }
-    auto& builder = createBuilder(tool, memberIds, hasReturnInEffect);
-    if (descriptionKind == DescriptionKind::selfBuilder && tool.missing(id.selfBuilders)) {
-        Object& selfBuilders = *new Object(w, std.op.SelfBuilders, "SelfBuilders");
-        selfBuilders.set(id.builder, *currentNode->m_builders);
-        tool.set(id.selfBuilders, selfBuilders);
-    }
-    currentNode->m_builders->add(builder);
+    List& builders = *currentNode->m_builders;
+    auto& builder  = createBuilder(tool, memberIds, hasReturnInEffect);
+    builders.add(builder);
+
     currentNode->m_tool   = &tool;
     currentNode->m_effect = &description;
 
-    if (IS_LOG_ENABLED) {
-        CellI& astAsList = serializeEffect(description);
-        std::stringstream ss;
-        for (CellI& value: astAsList) {
-            if (value.has(id.primitiveTool)) {
-                ss << value[id.name].label() << " ";
-            } else {
-                ss << value.label() << " ";
-            }
-        }
-        TRACE(toolFinder, "  {}: {}", descriptionKind, ss.str());
-    }
+    return builders;
 }
 
 // ============================================================================
@@ -972,6 +982,170 @@ public:
     CellI* m_mappingNodePtr;
 };
 
+// ============================================================================
+void ToolFinder::addPermutation(Node* rootNode, CellI& description)
+{
+    std::deque<StackNode> stack;
+    Node* currentNode    = rootNode;
+    CellI* memberItemPtr = &description.__type__()[id.memberIds][id.first];
+    CellI* currentPtr    = &description;
+
+    while (memberItemPtr) {
+        CellI& current        = *currentPtr;
+        CellI& memberItem     = *memberItemPtr;
+        CellI& memberKV       = memberItem[id.value];
+        CellI& member         = memberKV[id.value];
+        CellI& memberName     = member[id.name];
+        CellI& memberRelation = member[id.relation];
+        CellI& memberRole     = member[id.role];
+
+        if (&memberRelation == &std.op.Member.Relation.external) {
+            if (&memberRole == &std.op.Member.Role.constant) {
+                addKeyWithConstValue(currentNode, memberName, current[memberName]);
+            } else if (&memberRole == &std.op.Member.Role.input) {
+                CellI& memberValue = current[memberName];
+                if ((&memberValue.__type__() == &std.op.ConstVar) || (&memberValue.__type__() == &std.op.UnknownVar)) {
+                    addKeyWithConstValue(currentNode, memberName, memberValue);
+                } else {
+                    addKeyWithConstValue(currentNode, id.op, id.push);
+                    stack.push_back({ currentPtr, memberItemPtr, nullptr });
+                    currentPtr    = &memberValue;
+                    memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+                }
+            }
+        } else {
+            CellI& memberValue = current[memberName];
+            addKeyWithConstValue(currentNode, id.op, id.push);
+            stack.push_back({ currentPtr, memberItemPtr, nullptr });
+            currentPtr    = &memberValue;
+            memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+        }
+
+        memberItemPtr = memberItemPtr->getNextOrNullptr();
+        while (!memberItemPtr && !stack.empty()) {
+            currentPtr   = stack.back().effectPtr;
+            memberItemPtr = stack.back().slotItemPtr;
+            stack.pop_back();
+            addKeyWithConstValue(currentNode, id.op, id.pop);
+            memberItemPtr = memberItemPtr->getNextOrNullptr();
+        }
+    }
+    currentNode->m_isLeaf = 1;
+    currentNode->m_effect = &description;
+}
+
+// ============================================================================
+bool ToolFinder::checkConstValue(Node*& node, CellI& key, CellI& value)
+{
+    // __type__ is a special key as it can not be a key in a trie node so escaped with "op type"
+    if (&key == &id.__type__) {
+        auto opFindIt = node->m_children.find(&id.op);
+        if (opFindIt != node->m_children.end()) {
+            Node* opNode = opFindIt->second;
+            for (auto& [opKey, nextNode] : opNode->m_children) {
+                if (opKey == &id.type) {
+                    node             = nextNode;
+                    auto valueFindIt = node->m_children.find(&value);
+                    if (valueFindIt != node->m_children.end()) {
+                        TRACE(toolFinderLookup, "MATCH: op");
+                        TRACE(toolFinderLookup, "MATCH: type");
+                        TRACE(toolFinderLookup, "MATCH: {}", value.label());
+                        node = valueFindIt->second;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    } else {
+        auto keyFindIt = node->m_children.find(&key);
+        if (keyFindIt == node->m_children.end()) {
+            return false;
+        } else {
+            TRACE(toolFinderLookup, "MATCH: {}", key.label());
+            node = keyFindIt->second;
+        }
+    }
+
+    // ok, key was found, now check the value
+    auto findIt = node->m_children.find(&value);
+    if (findIt == node->m_children.end()) {
+        return false;
+    } else {
+        TRACE(toolFinderLookup, "MATCH: {}", value.label());
+        node = findIt->second;
+        return true;
+    }
+
+    return false;
+}
+
+// ============================================================================
+bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)
+{
+    std::deque<StackNode> stack;
+    Node* currentNode    = rootNode;
+    CellI* memberItemPtr = &description.__type__()[id.memberIds][id.first];
+    CellI* currentPtr    = &description;
+
+    while (memberItemPtr) {
+        CellI& current        = *currentPtr;
+        CellI& memberItem     = *memberItemPtr;
+        CellI& memberKV       = memberItem[id.value];
+        CellI& member         = memberKV[id.value];
+        CellI& memberName     = member[id.name];
+        CellI& memberRelation = member[id.relation];
+        CellI& memberRole     = member[id.role];
+
+        if (&memberRelation == &std.op.Member.Relation.external) {
+            if (&memberRole == &std.op.Member.Role.constant) {
+                CellI& memberValue = current[memberName];
+                if (!checkConstValue(currentNode, memberName, memberValue)) {
+                    return false;
+                }
+            } else if (&memberRole == &std.op.Member.Role.input) {
+                CellI& memberValue = current[memberName];
+                if ((&memberValue.__type__() == &std.op.ConstVar) || (&memberValue.__type__() == &std.op.UnknownVar)) {
+                    if (!checkConstValue(currentNode, memberName, memberValue)) {
+                        return false;
+                    }
+                } else {
+                    if (!checkConstValue(currentNode, id.op, id.push)) {
+                        return false;
+                    }
+                    stack.push_back({ currentPtr, memberItemPtr, nullptr });
+                    currentPtr    = &memberValue;
+                    memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+                }
+            }
+        } else {
+            CellI& memberValue = current[memberName];
+            if (!checkConstValue(currentNode, id.op, id.push)) {
+                return false;
+            }
+            stack.push_back({ currentPtr, memberItemPtr, nullptr });
+            currentPtr    = &memberValue;
+            memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+        }
+
+        memberItemPtr = memberItemPtr->getNextOrNullptr();
+        while (!memberItemPtr && !stack.empty()) {
+            currentPtr    = stack.back().effectPtr;
+            memberItemPtr = stack.back().slotItemPtr;
+            stack.pop_back();
+            if (!checkConstValue(currentNode, id.op, id.pop)) {
+                return false;
+            }
+            memberItemPtr = memberItemPtr->getNextOrNullptr();
+        }
+    }
+    if (currentNode && currentNode->m_isLeaf) {
+        return true;
+    }
+    return false;
+}
+
+// ============================================================================
 bool ToolFinder::isConstantFoldingPossible(CellI& description)
 {
     std::deque<CellI*> cellsToInspect;
@@ -1006,7 +1180,7 @@ bool ToolFinder::isConstantFoldingPossible(CellI& description)
 }
 
 // ============================================================================
-List& ToolFinder::recombine(CellI& description)
+List& ToolFinder::recombine(Node* rootNode, CellI& description)
 {
     std::deque<RecombineInfo> recombineInfos;
     Object outCell(w, std.ast.ConstVar);
@@ -1043,8 +1217,10 @@ List& ToolFinder::recombine(CellI& description)
             }
         }
         CellI& tool = outCell[id.value];
-        TRACE(toolFinderExplore, "recombined: {}", tool.printAsValue());
-        ret.add(tool);
+        if (!hasPermutation(rootNode, tool)) {
+            ret.add(tool);
+            addPermutation(rootNode, tool);
+        }
 
         // stepping
         bool wrapAround = true;
@@ -1479,12 +1655,15 @@ void ToolFinder::exploreSlotManipulations()
         DEBUG(toolFinderExplore, "");
 
         DEBUG(toolFinderExplore, "input: {}", opEqual.printAsValue());
-        List& permutations = recombine(opEqual);
+
+
+        Node* rootNode = new Node();
+        List& permutations = recombine(rootNode, opEqual);
         for (auto& permutation : permutations) {
             List& tools1 = findToolsByDescription(permutation, DescriptionKind::consequence);
             for (auto& tool1 : tools1) {
                 TRACE(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
-                List& tool1Permutations = recombine(tool1);
+                List& tool1Permutations = recombine(rootNode, tool1);
                 for (auto& tool1Permutation : tool1Permutations) {
                     DEBUG(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
                     if (&tool1Permutation[id.lhs].__type__() == &std.op.Subtract) {
@@ -1498,7 +1677,7 @@ void ToolFinder::exploreSlotManipulations()
                     List& tools2 = findToolsByDescription(tool1Permutation, DescriptionKind::consequence);
                     for (auto& tool2 : tools2) {
                         TRACE(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
-                        List& tool2Permutations = recombine(tool2);
+                        List& tool2Permutations = recombine(rootNode, tool2);
                         for (auto& tool2Permutation : tool2Permutations) {
                             DEBUG(toolFinderExplore, "    2. permutation: {}", tool2Permutation.printAsValue());
                             if (isConstantFoldingPossible(tool2Permutation)) {
