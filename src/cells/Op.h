@@ -90,7 +90,7 @@ public:
 
     Add& add(Base& lhs, Base& rhs);
     Call& call(CellI& self, CellI& method);
-    Equal& equal(CellI& lhs, Base& rhs);
+    Equal& equal(CellI& lhs, CellI& rhs);
     Get& get(Base& cell, Base& key);
 
     ConstVar& const_(CellI& value);

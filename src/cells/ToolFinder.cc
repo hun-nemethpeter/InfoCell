@@ -972,6 +972,39 @@ public:
     CellI* m_mappingNodePtr;
 };
 
+bool ToolFinder::isConstantFoldingPossible(CellI& description)
+{
+    std::deque<CellI*> cellsToInspect;
+    cellsToInspect.push_back(&description);
+
+    while (!cellsToInspect.empty()) {
+        CellI& currentCell = *cellsToInspect.back();
+        cellsToInspect.pop_back();
+
+        bool allInputMemberIsConst = true;
+        for (auto& memberKV : currentCell.__type__()[id.members]) {
+            auto& member = memberKV[id.value];
+            if (&member[id.role] != &std.op.Member.Role.input) {
+                continue;
+            }
+            CellI& memberName = member[id.name];
+            CellI& inputValue = currentCell[memberName];
+            if (&inputValue.__type__() != &std.op.ConstVar) {
+                allInputMemberIsConst = false;
+            }
+            if ((&inputValue.__type__() != &std.op.ConstVar) && (&inputValue.__type__() != &std.op.UnknownVar)) {
+                cellsToInspect.push_back(&inputValue);
+                break;
+            }
+        }
+        if (allInputMemberIsConst) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // ============================================================================
 List& ToolFinder::recombine(CellI& description)
 {
@@ -1444,6 +1477,7 @@ void ToolFinder::exploreSlotManipulations()
         auto& opEqual = w.op.equal(numberTool, w.op.const_(4));
         opEqual.label(fmt::format("{}(x, y) == z", tool.label()));
         DEBUG(toolFinderExplore, "");
+
         DEBUG(toolFinderExplore, "input: {}", opEqual.printAsValue());
         List& permutations = recombine(opEqual);
         for (auto& permutation : permutations) {
@@ -1453,12 +1487,23 @@ void ToolFinder::exploreSlotManipulations()
                 List& tool1Permutations = recombine(tool1);
                 for (auto& tool1Permutation : tool1Permutations) {
                     DEBUG(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
+                    if (&tool1Permutation[id.lhs].__type__() == &std.op.Subtract) {
+                        if (&tool1Permutation[id.lhs][id.lhs].__type__() == &std.op.ConstVar) {
+                            std::cout << "";
+                        }
+                    }
+                    if (isConstantFoldingPossible(tool1Permutation)) {
+                        DEBUG(toolFinderExplore, "  Constant folding is possible!");
+                    }
                     List& tools2 = findToolsByDescription(tool1Permutation, DescriptionKind::consequence);
                     for (auto& tool2 : tools2) {
                         TRACE(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
                         List& tool2Permutations = recombine(tool2);
                         for (auto& tool2Permutation : tool2Permutations) {
                             DEBUG(toolFinderExplore, "    2. permutation: {}", tool2Permutation.printAsValue());
+                            if (isConstantFoldingPossible(tool2Permutation)) {
+                                DEBUG(toolFinderExplore, "    Constant folding is possible!");
+                            }
                         }
                     }
                 }

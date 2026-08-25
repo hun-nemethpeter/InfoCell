@@ -103,6 +103,7 @@ private:
         Skip
     };
 
+    bool isConstantFoldingPossible(CellI& description);
     void createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList);
     bool checkUnknownsInTool(CellI& effect);
     List* findBuildersForDescription(CellI& description, DescriptionKind descriptionKind);

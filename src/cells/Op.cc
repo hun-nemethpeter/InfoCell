@@ -100,7 +100,7 @@ Op::Call& Op::call(CellI& self, CellI& method)
     return Call::New(w, self, method);
 }
 
-Op::Equal& Op::equal(CellI& lhs, Base& rhs)
+Op::Equal& Op::equal(CellI& lhs, CellI& rhs)
 {
     return Equal::New(w, lhs, rhs);
 }
