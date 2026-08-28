@@ -1179,12 +1179,62 @@ bool ToolFinder::isConstantFoldingPossible(CellI& description)
     return false;
 }
 
+struct FoldingData
+{
+    CellI& m_cell;
+    CellI* m_parent;
+    CellI* m_parentKey;
+};
+
 // ============================================================================
-List& ToolFinder::recombine(Node* rootNode, CellI& description)
+CellI& ToolFinder::doConstantFolding(CellI& description)
+{
+    std::deque<FoldingData> cellsToInspect;
+    cellsToInspect.push_back({ description, nullptr, nullptr });
+    CellI* ret = &description;
+
+    while (!cellsToInspect.empty()) {
+        CellI& currentCell = cellsToInspect.back().m_cell;
+        CellI* parent      = cellsToInspect.back().m_parent;
+        CellI* parentKey   = cellsToInspect.back().m_parentKey;
+        cellsToInspect.pop_back();
+
+        bool allInputMemberIsConst = true;
+        for (auto& memberKV : currentCell.__type__()[id.members]) {
+            auto& member = memberKV[id.value];
+            if (&member[id.role] != &std.op.Member.Role.input) {
+                continue;
+            }
+            CellI& memberName = member[id.name];
+            CellI& inputValue = currentCell[memberName];
+            if (&inputValue.__type__() != &std.op.ConstVar) {
+                allInputMemberIsConst = false;
+            }
+            if ((&inputValue.__type__() != &std.op.ConstVar) && (&inputValue.__type__() != &std.op.UnknownVar)) {
+                cellsToInspect.push_back({ inputValue, &currentCell, &memberName });
+                break;
+            }
+        }
+        if (allInputMemberIsConst) {
+            currentCell();
+            CellI& simplifiedTool = currentCell[id.value];
+            if (parent) {
+                (*parent).set(*parentKey, w.op.const_(simplifiedTool));
+            } else {
+                return simplifiedTool;
+            }
+        }
+    }
+
+    return *ret;
+}
+
+// ============================================================================
+std::list<ToolFinder::RecombineResult> ToolFinder::recombine(Node* rootNode, CellI& description)
 {
     std::deque<RecombineInfo> recombineInfos;
     Object outCell(w, std.ast.ConstVar);
-    List& ret = *new List(w, std.ast.Base);
+    std::list<ToolFinder::RecombineResult> ret;
     recombineInfos.push_back({ outCell });
     recombineInfos.push_back({ recombineInfos.back(), id.value, description });
 
@@ -1218,8 +1268,18 @@ List& ToolFinder::recombine(Node* rootNode, CellI& description)
         }
         CellI& tool = outCell[id.value];
         if (!hasPermutation(rootNode, tool)) {
-            ret.add(tool);
             addPermutation(rootNode, tool);
+            if (isConstantFoldingPossible(tool)) {
+                List& builders = *new List(w, std.Cell);
+                for (auto& recombineInfo : recombineInfos) {
+                    if (recombineInfo.m_builderNodePtr) {
+                        builders.add((*recombineInfo.m_builderNodePtr)[id.value]);
+                    }
+                }
+                ret.push_back({ &builders, tool });
+            } else {
+                ret.push_back({ nullptr, tool });
+            }
         }
 
         // stepping
@@ -1658,30 +1718,33 @@ void ToolFinder::exploreSlotManipulations()
 
 
         Node* rootNode = new Node();
-        List& permutations = recombine(rootNode, opEqual);
-        for (auto& permutation : permutations) {
+        auto permutations = recombine(rootNode, opEqual);
+        for (auto& permutationResult : permutations) {
+            CellI& permutation = permutationResult.m_recombinedTool;
             List& tools1 = findToolsByDescription(permutation, DescriptionKind::consequence);
             for (auto& tool1 : tools1) {
                 TRACE(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
-                List& tool1Permutations = recombine(rootNode, tool1);
-                for (auto& tool1Permutation : tool1Permutations) {
-                    DEBUG(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
+                auto tool1Permutations = recombine(rootNode, tool1);
+                for (auto& tool1PermutationResult : tool1Permutations) {
+                    CellI& tool1Permutation = tool1PermutationResult.m_recombinedTool;
+                    TRACE(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
                     if (&tool1Permutation[id.lhs].__type__() == &std.op.Subtract) {
                         if (&tool1Permutation[id.lhs][id.lhs].__type__() == &std.op.ConstVar) {
                             std::cout << "";
                         }
                     }
-                    if (isConstantFoldingPossible(tool1Permutation)) {
-                        DEBUG(toolFinderExplore, "  Constant folding is possible!");
+                    if (tool1PermutationResult.m_builderForTool && (&tool1Permutation[id.lhs].__type__() == &std.op.UnknownVar)) {
+                        DEBUG(toolFinderExplore, "  result: {}", tool1Permutation.printAsValue());
                     }
                     List& tools2 = findToolsByDescription(tool1Permutation, DescriptionKind::consequence);
                     for (auto& tool2 : tools2) {
                         TRACE(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
-                        List& tool2Permutations = recombine(rootNode, tool2);
-                        for (auto& tool2Permutation : tool2Permutations) {
-                            DEBUG(toolFinderExplore, "    2. permutation: {}", tool2Permutation.printAsValue());
-                            if (isConstantFoldingPossible(tool2Permutation)) {
-                                DEBUG(toolFinderExplore, "    Constant folding is possible!");
+                        auto tool2Permutations = recombine(rootNode, tool2);
+                        for (auto& tool2PermutationResult : tool2Permutations) {
+                            CellI& tool2Permutation = tool2PermutationResult.m_recombinedTool;
+                            TRACE(toolFinderExplore, "    2. permutation: {}", tool2Permutation.printAsValue());
+                            if (tool2PermutationResult.m_builderForTool && (&tool2Permutation[id.lhs].__type__() == &std.op.UnknownVar)) {
+                                DEBUG(toolFinderExplore, "  result: {}", tool2Permutation.printAsValue());
                             }
                         }
                     }

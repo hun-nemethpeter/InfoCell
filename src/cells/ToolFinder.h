@@ -102,11 +102,18 @@ private:
         Skip
     };
 
-    List& recombine(Node* rootNode, CellI& description);
+    struct RecombineResult
+    {
+        CellI* m_builderForTool = nullptr;
+        CellI& m_recombinedTool;
+    };
+
+    std::list<RecombineResult> recombine(Node* rootNode, CellI& description);
     void addPermutation(Node* rootNode, CellI& description);
     bool hasPermutation(Node* rootNode, CellI& description);
     List& add(CellI& tool, CellI& description, Node* rootNode);
     bool isConstantFoldingPossible(CellI& description);
+    CellI& doConstantFolding(CellI& description);
     void createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList);
     bool checkUnknownsInTool(CellI& effect);
     List* findBuildersForDescription(CellI& description, DescriptionKind descriptionKind);
