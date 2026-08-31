@@ -30,7 +30,7 @@ public:
 
     ToolFinder& toolFinder();
 
-    ToolFinder* m_toolFinderPtr = nullptr;
+    ToolFinder& m_toolFinder;
 };
 
 } // namespace cells

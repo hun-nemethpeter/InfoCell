@@ -51,8 +51,8 @@ public:
     String& compiled;
     String& compiledStruct;
     String& compiledType;
-    String& consequences;
     String& condition;
+    String& consequences;
     String& constructor;
     String& container;
     String& continue_;
@@ -105,6 +105,7 @@ public:
     String& objectType;
     String& op;
     String& ops;
+    String& originalKey;
     String& other;
     String& output;
     String& parameters;
@@ -147,6 +148,7 @@ public:
     String& then;
     String& throw_;
     String& traitImpls;
+    String& transformedKey;
     String& type;
     String& typeAliases;
     String& unknownInstances;

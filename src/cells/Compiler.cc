@@ -18,7 +18,6 @@ Compiler::Compiler(World& w) :
     w(w),
     id(w.id),
     std(w.std),
-    m_toolFinder(*new ToolFinder(w)),
     m_earlyStructs(w, std.Cell, std.KVPair, "earlyStructs"),
     m_earlyEnumValues(w, std.Cell, std.Cell, "earlyEnumValues"),
     m_structs(*new TrieMap(w, std.Cell, std.Struct, "structs")),
@@ -29,7 +28,8 @@ Compiler::Compiler(World& w) :
 
 void Compiler::compile(Library& library)
 {
-    m_libraryPtr = &library;
+    m_libraryPtr    = &library;
+    m_toolFinderPtr = &m_libraryPtr->toolFinder();
     compile(library.scope());
 }
 
@@ -48,6 +48,7 @@ Library& Compiler::compile(Ast::Scope& scope)
 {
     if (!m_libraryPtr) {
         m_libraryPtr = new Library(w, scope);
+        m_toolFinderPtr = &m_libraryPtr->toolFinder();
     }
 
     registerEarlyStructs();
@@ -66,7 +67,6 @@ Library& Compiler::compile(Ast::Scope& scope)
 
     m_libraryPtr->set(id.scope, scope);
     m_libraryPtr->set(id.resolvedScope, resolvedScope);
-    m_libraryPtr->m_toolFinderPtr = &m_toolFinder;
 
     return *m_libraryPtr;
 }
@@ -228,7 +228,7 @@ void Compiler::registerBuiltInEnumValue(const std::string& fullName, CellI& comp
 
 ToolFinder& Compiler::getToolFinder()
 {
-    return m_toolFinder;
+    return *m_toolFinderPtr;
 }
 
 Library& Compiler::library()
@@ -2250,7 +2250,7 @@ void Compiler::compileDescriptionInFunction(Ast::Function& astFunction, Ast::Str
     if (astFunction.has(id.description)) {
         CellI& description = compileDescriptionInFunctionAst(astFunction.description(), astFunction, astStructPtr);
         compiledFunction.set(id.description, description);
-        m_toolFinder.add(compiledFunction);
+        m_toolFinderPtr->add(compiledFunction);
     }
 }
 

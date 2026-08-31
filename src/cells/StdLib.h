@@ -598,6 +598,7 @@ public:
         EAnd And;
         Object Base;
         EBlock Block;
+        Object BuilderNode;
         ECall Call;
         Object ConstVar;
         EDelete Delete;

@@ -547,6 +547,7 @@ Std::Op::Op(World& w) :
     And(w, w.std.Struct, "op::And"),
     Base(w, w.std.Struct, "op::Base"),
     Block(w, w.std.Struct, "op::Block"),
+    BuilderNode(w, w.std.Struct, "op::BuilderNode"),
     Call(w, w.std.Struct, "op::Call"),
     ConstVar(w, w.std.Struct, "op::ConstVar"),
     Delete(w, w.std.Struct, "op::Delete"),
@@ -783,6 +784,13 @@ void StdLibAst::createOp()
             member("status", "std::Cell"),
             member("input", "std::Cell"),
             member("value", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.output));
+
+    opScope.add<Struct>("BuilderNode")
+        .members(
+            member("builder", tt_("std::List", "valueType", "std::Cell")),
+            member("transformedKey", "std::Cell"),
+            member("originalKey", "std::Cell"),
+            member("children", tt_("std::List", "valueType", "BuilderNode")));
 
     opScope.add<Struct>("Call")
         .members(
@@ -2800,6 +2808,7 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::op::And", std.op.And);
     compiler.registerBuiltInStruct("std::op::Base", std.op.Base);
     compiler.registerBuiltInStruct("std::op::Block", std.op.Block);
+    compiler.registerBuiltInStruct("std::op::BuilderNode", std.op.BuilderNode);
     compiler.registerBuiltInStruct("std::op::Call", std.op.Call);
     compiler.registerBuiltInStruct("std::op::ConstVar", std.op.ConstVar);
     compiler.registerBuiltInStruct("std::op::Delete", std.op.Delete);

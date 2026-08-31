@@ -81,7 +81,6 @@ protected:
     World& w;
     ID& id;
     Std& std;
-    ToolFinder& m_toolFinder;
 
     Ast::Function* m_currentFn  = nullptr;
     Ast::Base* m_currentStruct  = nullptr;
@@ -97,6 +96,7 @@ protected:
     TrieMap& m_unknownInstances;
 
     Library* m_libraryPtr           = nullptr;
+    ToolFinder* m_toolFinderPtr     = nullptr;
     TrieMap* m_compiledFunctionsPtr = nullptr;
     TrieMap* m_compiledStructsPtr   = nullptr;
     TrieMap* m_compiledVariablesPtr = nullptr;

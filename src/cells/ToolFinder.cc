@@ -106,6 +106,7 @@ ToolFinder::ToolFinder(World& w) :
 {
     m_consequenceRootNode = std::make_unique<Node>();
     m_selfBuilderRootNode = std::make_unique<Node>();
+    m_solverRootNode      = std::make_unique<Node>();
 }
 
 // ============================================================================
@@ -113,6 +114,15 @@ bool ToolFinder::empty()
 {
     return m_consequenceRootNode->m_children.empty() && m_selfBuilderRootNode->m_children.empty();
 }
+
+// ============================================================================
+void ToolFinder::mergeTo(ToolFinder& target)
+{
+    for (CellI& tool : m_tools) {
+        target.add(tool);
+    }
+}
+
 // ============================================================================
 void ToolFinder::serializeKeyWithConstValue(List& result, CellI& key, CellI& value)
 {
@@ -287,7 +297,7 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBluep
 }
 
 // ============================================================================
-void ToolFinder::add(Object& tool)
+void ToolFinder::add(CellI& tool)
 {
     if (tool.has(id.returnType)) {
         // so this can be a conversion tool
@@ -394,6 +404,7 @@ void ToolFinder::addValue(Node*& node, CellI& value)
 // ============================================================================
 void ToolFinder::addKeyWithConstValue(Node*& node, CellI& key, CellI& value)
 {
+    TRACE(toolFinderExplore, "addKeyWithConstValue {}: {}", key.label(), value.label());
     if (&key == &id.__type__) {
         addValue(node, id.op);
         addValue(node, id.type);
@@ -889,98 +900,183 @@ List* ToolFinder::findBuildersForDescription(CellI& description, DescriptionKind
 }
 
 // ============================================================================
-class RecombineInfo
+void ToolFinder::solve(CellI& equation)
 {
-public:
-    RecombineInfo(CellI& outCell) :
-        w(outCell.w),
-        m_parent(nullptr),
-        m_outCellPtr(&outCell),
-        m_outKeyPtr(nullptr),
-        m_referenceOutKeyPtr(nullptr),
-        m_cellToRecombine(nullptr),
-        m_firstBuilderNodePtr(nullptr),
-        m_builderNodePtr(nullptr),
-        m_firstMappingNodePtr(nullptr),
-        m_mappingNodePtr(nullptr)
-    {
+    if (auto* solver = getSolver(equation)) {
+        DEBUG(toolFinderExplore, "Has solver!");
+    } else {
+        DEBUG(toolFinderExplore, "No solver!");
     }
+}
 
-    RecombineInfo(RecombineInfo& parent, CellI& outKey, CellI& cellToRecombine) :
-        w(parent.w),
-        m_parent(&parent),
-        m_outCellPtr(nullptr),
-        m_outKeyPtr(nullptr),
-        m_referenceOutKeyPtr(&outKey),
-        m_cellToRecombine(&cellToRecombine),
-        m_firstBuilderNodePtr(&cellToRecombine.__type__()[w.id.selfBuilders][w.id.builder][w.id.first]),
-        m_builderNodePtr(m_firstBuilderNodePtr),
-        m_firstMappingNodePtr(&cellToRecombine.__type__()[w.id.selfBuilders][w.id.memberMapping][w.id.first]),
-        m_mappingNodePtr(m_firstMappingNodePtr)
-    {
-    }
+// ============================================================================
+void ToolFinder::addSolver(CellI& description, std::list<BuilderChainNode>& solver)
+{
+    TRACE(toolFinderExplore, "addSolver {}", description.label());
+    std::deque<StackNode> stack;
+    Node* currentNode    = getRootNodeForDescriptionKind(DescriptionKind::solver);
+    CellI* memberItemPtr = &description.__type__()[id.memberIds][id.first];
+    CellI* currentPtr    = &description;
 
-    bool prepareBuild()
-    {
-        if (!m_parent) {
-            return false;
-        }
-        m_outCellPtr = m_parent->outCell();
-        m_outKeyPtr  = m_parent->mappedKey(*m_referenceOutKeyPtr);
+    while (memberItemPtr) {
+        CellI& current        = *currentPtr;
+        CellI& memberItem     = *memberItemPtr;
+        CellI& memberKV       = memberItem[id.value];
+        CellI& member         = memberKV[id.value];
+        CellI& memberName     = member[id.name];
+        CellI& memberRelation = member[id.relation];
+        CellI& memberRole     = member[id.role];
 
-        return true;
-    }
-
-    CellI* outCell()
-    {
-        if (!m_parent) {
-            return m_outCellPtr;
-        }
-        return &(*m_outCellPtr)[*m_outKeyPtr];
-    }
-
-    CellI* mappedKey(CellI& key)
-    {
-        if (!m_parent || m_mappingNodePtr == m_firstMappingNodePtr) {
-            return &key;
+        if (&memberRelation == &std.op.Member.Relation.external) {
+            if (&memberRole == &std.op.Member.Role.constant) {
+                addKeyWithConstValue(currentNode, memberName, current[memberName]);
+            } else if (&memberRole == &std.op.Member.Role.input) {
+                CellI& memberValue = current[memberName];
+                TRACE(toolFinderExplore, "addValue {}", memberName.label());
+                addValue(currentNode, memberName);
+                if (&memberValue.__type__() == &std.op.ConstVar) {
+                    addKeyWithConstValue(currentNode, id.op, id.push);
+                    addKeyWithConstValue(currentNode, id.__type__, std.op.ConstVar);
+                    addKeyWithConstValue(currentNode, id.op, id.pop);
+                } else if (&memberValue.__type__() == &std.op.UnknownVar) {
+                    addKeyWithConstValue(currentNode, id.op, id.push);
+                    addKeyWithConstValue(currentNode, id.__type__, std.op.UnknownVar);
+                    addKeyWithConstValue(currentNode, id.op, id.pop);
+                } else {
+                    addKeyWithConstValue(currentNode, id.op, id.push);
+                    stack.push_back({ currentPtr, memberItemPtr, nullptr });
+                    currentPtr    = &memberValue;
+                    memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+                    continue;
+                }
+            }
         } else {
-            auto& mapping = static_cast<Map&>((*m_mappingNodePtr)[w.id.value]);
-            return &mapping.getValue(key);
+            CellI& memberValue = current[memberName];
+            addKeyWithConstValue(currentNode, id.op, id.push);
+            stack.push_back({ currentPtr, memberItemPtr, nullptr });
+            currentPtr    = &memberValue;
+            memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+            continue;
+        }
+
+        memberItemPtr = memberItemPtr->getNextOrNullptr();
+        while (!memberItemPtr && !stack.empty()) {
+            currentPtr    = stack.back().effectPtr;
+            memberItemPtr = stack.back().slotItemPtr;
+            stack.pop_back();
+            addKeyWithConstValue(currentNode, id.op, id.pop);
+            memberItemPtr = memberItemPtr->getNextOrNullptr();
         }
     }
+    if (!currentNode->m_solver.empty()) {
+        std::cout << "";
+    }
+    currentNode->m_isLeaf = 1;
+    currentNode->m_effect = &description;
+    currentNode->m_solver = solver;
+}
 
-    bool step() // true if wrap around, so go from last to first
-    {
-        if (!m_parent) {
-            return true;
-        }
-        if (CellI* nextOrNull = m_builderNodePtr->getNextOrNullptr()) {
-            m_builderNodePtr = nextOrNull;
-            m_mappingNodePtr = m_mappingNodePtr->getNextOrNullptr();
-            return false;
+// ============================================================================
+std::list<ToolFinder::BuilderChainNode>* ToolFinder::getSolver(CellI& description)
+{
+    TRACE(toolFinderExplore, "getSolver {}", description.label());
+    std::deque<StackNode> stack;
+    Node* currentNode = getRootNodeForDescriptionKind(DescriptionKind::solver);
+    CellI* memberItemPtr = &description.__type__()[id.memberIds][id.first];
+    CellI* currentPtr    = &description;
+
+    while (memberItemPtr) {
+        CellI& current        = *currentPtr;
+        CellI& memberItem     = *memberItemPtr;
+        CellI& memberKV       = memberItem[id.value];
+        CellI& member         = memberKV[id.value];
+        CellI& memberName     = member[id.name];
+        CellI& memberRelation = member[id.relation];
+        CellI& memberRole     = member[id.role];
+
+        if (&memberRelation == &std.op.Member.Relation.external) {
+            if (&memberRole == &std.op.Member.Role.constant) {
+                CellI& memberValue = current[memberName];
+                if (!checkConstKeyValue(currentNode, memberName, memberValue)) {
+                    return nullptr;
+                }
+            } else if (&memberRole == &std.op.Member.Role.input) {
+                TRACE(toolFinderExplore, "checkConstValue {}", memberName.label());
+                if (!checkConstValue(currentNode, memberName)) {
+                    return nullptr;
+                }
+                CellI& memberValue = current[memberName];
+                if (&memberValue.__type__() == &std.op.ConstVar) {
+                    if (!checkConstKeyValue(currentNode, id.op, id.push)) {
+                        return nullptr;
+                    }
+                    if (!checkConstKeyValue(currentNode, id.__type__, std.op.ConstVar)) {
+                        return nullptr;
+                    }
+                    if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
+                        return nullptr;
+                    }
+                } else if (&memberValue.__type__() == &std.op.UnknownVar) {
+                    if (!checkConstKeyValue(currentNode, id.op, id.push)) {
+                        return nullptr;
+                    }
+                    if (!checkConstKeyValue(currentNode, id.__type__, std.op.UnknownVar)) {
+                        return nullptr;
+                    }
+                    if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
+                        return nullptr;
+                    }
+                } else {
+                    if (memberValue.has(id.state) && (&memberValue[id.state] == &std.op.State.missingInput)) {
+                        if (!checkConstKeyValue(currentNode, id.op, id.push)) {
+                            return nullptr;
+                        }
+                        if (!checkConstKeyValue(currentNode, id.__type__, std.op.UnknownVar)) {
+                            return nullptr;
+                        }
+                        if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
+                            return nullptr;
+                        }
+                    } else {
+                        if (!checkConstKeyValue(currentNode, id.op, id.push)) {
+                            return nullptr;
+                        }
+                        stack.push_back({ currentPtr, memberItemPtr, nullptr });
+                        currentPtr    = &memberValue;
+                        memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+                        continue;
+                    }
+                }
+            }
         } else {
-            m_builderNodePtr = m_firstBuilderNodePtr;
-            m_mappingNodePtr = m_firstMappingNodePtr;
-            return true;
+            CellI& memberValue = current[memberName];
+            if (!checkConstKeyValue(currentNode, id.op, id.push)) {
+                return nullptr;
+            }
+            stack.push_back({ currentPtr, memberItemPtr, nullptr });
+            currentPtr    = &memberValue;
+            memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+            continue;
+        }
+
+        memberItemPtr = memberItemPtr->getNextOrNullptr();
+        while (!memberItemPtr && !stack.empty()) {
+            currentPtr    = stack.back().effectPtr;
+            memberItemPtr = stack.back().slotItemPtr;
+            stack.pop_back();
+            if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
+                return nullptr;
+            }
+            memberItemPtr = memberItemPtr->getNextOrNullptr();
         }
     }
 
-    bool isLast()
-    {
-        return m_parent == nullptr;
+    if (currentNode && currentNode->m_isLeaf) {
+        return &currentNode->m_solver;
     }
 
-    World& w;
-    RecombineInfo* m_parent;
-    CellI* m_outCellPtr;
-    CellI* m_outKeyPtr;
-    CellI* m_referenceOutKeyPtr;
-    CellI* m_cellToRecombine;
-    CellI* m_firstBuilderNodePtr;
-    CellI* m_builderNodePtr;
-    CellI* m_firstMappingNodePtr;
-    CellI* m_mappingNodePtr;
-};
+    return nullptr;
+}
 
 // ============================================================================
 void ToolFinder::addPermutation(Node* rootNode, CellI& description)
@@ -1035,8 +1131,21 @@ void ToolFinder::addPermutation(Node* rootNode, CellI& description)
 }
 
 // ============================================================================
-bool ToolFinder::checkConstValue(Node*& node, CellI& key, CellI& value)
+bool ToolFinder::checkConstValue(Node*& node, CellI& value)
 {
+    auto keyFindIt = node->m_children.find(&value);
+    if (keyFindIt == node->m_children.end()) {
+        return false;
+    }
+    TRACE(toolFinderLookup, "MATCH: {}", value.label());
+    node = keyFindIt->second;
+    return true;
+}
+
+// ============================================================================
+bool ToolFinder::checkConstKeyValue(Node*& node, CellI& key, CellI& value)
+{
+    TRACE(toolFinderExplore, "checkConstKeyValue {}: {}", key.label(), value.label());
     // __type__ is a special key as it can not be a key in a trie node so escaped with "op type"
     if (&key == &id.__type__) {
         auto opFindIt = node->m_children.find(&id.op);
@@ -1100,17 +1209,17 @@ bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)
         if (&memberRelation == &std.op.Member.Relation.external) {
             if (&memberRole == &std.op.Member.Role.constant) {
                 CellI& memberValue = current[memberName];
-                if (!checkConstValue(currentNode, memberName, memberValue)) {
+                if (!checkConstKeyValue(currentNode, memberName, memberValue)) {
                     return false;
                 }
             } else if (&memberRole == &std.op.Member.Role.input) {
                 CellI& memberValue = current[memberName];
                 if ((&memberValue.__type__() == &std.op.ConstVar) || (&memberValue.__type__() == &std.op.UnknownVar)) {
-                    if (!checkConstValue(currentNode, memberName, memberValue)) {
+                    if (!checkConstKeyValue(currentNode, memberName, memberValue)) {
                         return false;
                     }
                 } else {
-                    if (!checkConstValue(currentNode, id.op, id.push)) {
+                    if (!checkConstKeyValue(currentNode, id.op, id.push)) {
                         return false;
                     }
                     stack.push_back({ currentPtr, memberItemPtr, nullptr });
@@ -1120,7 +1229,7 @@ bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)
             }
         } else {
             CellI& memberValue = current[memberName];
-            if (!checkConstValue(currentNode, id.op, id.push)) {
+            if (!checkConstKeyValue(currentNode, id.op, id.push)) {
                 return false;
             }
             stack.push_back({ currentPtr, memberItemPtr, nullptr });
@@ -1133,7 +1242,7 @@ bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)
             currentPtr    = stack.back().effectPtr;
             memberItemPtr = stack.back().slotItemPtr;
             stack.pop_back();
-            if (!checkConstValue(currentNode, id.op, id.pop)) {
+            if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
                 return false;
             }
             memberItemPtr = memberItemPtr->getNextOrNullptr();
@@ -1230,13 +1339,114 @@ CellI& ToolFinder::doConstantFolding(CellI& description)
 }
 
 // ============================================================================
+class RecombineInfo
+{
+public:
+    RecombineInfo(CellI& outCell) :
+        w(outCell.w),
+        m_parent(nullptr),
+        m_outCellPtr(&outCell),
+        m_outKeyPtr(nullptr),
+        m_referenceOutKeyPtr(nullptr),
+        m_cellToRecombine(nullptr),
+        m_firstBuilderNodePtr(nullptr),
+        m_builderNodePtr(nullptr),
+        m_firstMappingNodePtr(nullptr),
+        m_mappingNodePtr(nullptr)
+    {
+    }
+
+    RecombineInfo(RecombineInfo& parent, CellI& outKey, CellI& cellToRecombine) :
+        w(parent.w),
+        m_parent(&parent),
+        m_outCellPtr(nullptr),
+        m_outKeyPtr(nullptr),
+        m_referenceOutKeyPtr(&outKey),
+        m_cellToRecombine(&cellToRecombine),
+        m_firstBuilderNodePtr(&cellToRecombine.__type__()[w.id.selfBuilders][w.id.builder][w.id.first]),
+        m_builderNodePtr(m_firstBuilderNodePtr),
+        m_firstMappingNodePtr(&cellToRecombine.__type__()[w.id.selfBuilders][w.id.memberMapping][w.id.first]),
+        m_mappingNodePtr(m_firstMappingNodePtr)
+    {
+    }
+
+    void setParent()
+    {
+        m_parent->m_children.push_back(this);
+    }
+
+    bool prepareBuild()
+    {
+        if (!m_parent) {
+            return false;
+        }
+        m_outCellPtr = m_parent->outCell();
+        m_outKeyPtr  = m_parent->mappedKey(*m_referenceOutKeyPtr);
+
+        return true;
+    }
+
+    CellI* outCell()
+    {
+        if (!m_parent) {
+            return m_outCellPtr;
+        }
+        return &(*m_outCellPtr)[*m_outKeyPtr];
+    }
+
+    CellI* mappedKey(CellI& key)
+    {
+        if (!m_parent || m_mappingNodePtr == m_firstMappingNodePtr) {
+            return &key;
+        } else {
+            auto& mapping = static_cast<Map&>((*m_mappingNodePtr)[w.id.value]);
+            return &mapping.getValue(key);
+        }
+    }
+
+    bool step() // true if wrap around, so go from last to first
+    {
+        if (!m_parent) {
+            return true;
+        }
+        if (CellI* nextOrNull = m_builderNodePtr->getNextOrNullptr()) {
+            m_builderNodePtr = nextOrNull;
+            m_mappingNodePtr = m_mappingNodePtr->getNextOrNullptr();
+            return false;
+        } else {
+            m_builderNodePtr = m_firstBuilderNodePtr;
+            m_mappingNodePtr = m_firstMappingNodePtr;
+            return true;
+        }
+    }
+
+    bool isLast()
+    {
+        return m_parent == nullptr;
+    }
+
+    World& w;
+    RecombineInfo* m_parent;
+    std::list<RecombineInfo*> m_children;
+    CellI* m_outCellPtr;
+    CellI* m_outKeyPtr;
+    CellI* m_referenceOutKeyPtr;
+    CellI* m_cellToRecombine;
+    CellI* m_firstBuilderNodePtr;
+    CellI* m_builderNodePtr;
+    CellI* m_firstMappingNodePtr;
+    CellI* m_mappingNodePtr;
+};
+
+// ============================================================================
 std::list<ToolFinder::RecombineResult> ToolFinder::recombine(Node* rootNode, CellI& description)
 {
     std::deque<RecombineInfo> recombineInfos;
-    Object outCell(w, std.ast.ConstVar);
+    Object outCell(w, std.op.ConstVar);
     std::list<ToolFinder::RecombineResult> ret;
     recombineInfos.push_back({ outCell });
     recombineInfos.push_back({ recombineInfos.back(), id.value, description });
+    recombineInfos.back().setParent();
 
     std::deque<CellI*> cellsToInspect;
     cellsToInspect.push_back(&description);
@@ -1256,6 +1466,7 @@ std::list<ToolFinder::RecombineResult> ToolFinder::recombine(Node* rootNode, Cel
             if ((&inputValue.__type__() != &std.op.ConstVar) && (&inputValue.__type__() != &std.op.UnknownVar)) {
                 cellsToInspect.push_back(&inputValue);
                 recombineInfos.push_back({ parentInfo, memberName, inputValue });
+                recombineInfos.back().setParent();
             }
         }
     }
@@ -1269,16 +1480,45 @@ std::list<ToolFinder::RecombineResult> ToolFinder::recombine(Node* rootNode, Cel
         CellI& tool = outCell[id.value];
         if (!hasPermutation(rootNode, tool)) {
             addPermutation(rootNode, tool);
-            if (isConstantFoldingPossible(tool)) {
-                List& builders = *new List(w, std.Cell);
-                for (auto& recombineInfo : recombineInfos) {
-                    if (recombineInfo.m_builderNodePtr) {
-                        builders.add((*recombineInfo.m_builderNodePtr)[id.value]);
-                    }
+            struct TreeNode
+            {
+                RecombineInfo& m_recombineInfo;
+                Object& m_builderNode;
+            };
+            std::list<TreeNode> nodes;
+            RecombineInfo& firstRecombineInfo = recombineInfos.at(1);
+            Object& firstBuilderNode          = *new Object(w, std.op.BuilderNode);
+            firstBuilderNode.set(id.originalKey, id.emptyObject);
+            firstBuilderNode.set(id.transformedKey, id.emptyObject);
+            firstBuilderNode.set(id.builder, (*firstRecombineInfo.m_builderNodePtr)[id.value]);
+            nodes.push_back({ firstRecombineInfo, firstBuilderNode });
+            bool first = true;
+
+            while (!nodes.empty()) {
+                RecombineInfo& currentInfo = nodes.front().m_recombineInfo;
+                Object& builderNode        = nodes.front().m_builderNode;
+
+                if (currentInfo.m_children.empty()) {
+                    nodes.pop_front();
+                    continue;
                 }
-                ret.push_back({ &builders, tool });
+
+                List& children = *new List(w, std.op.BuilderNode);
+                builderNode.set(id.children, children);
+                for (RecombineInfo* recombineInfoChild : currentInfo.m_children) {
+                    Object& newBuilderNode = *new Object(w, std.op.BuilderNode);
+                    newBuilderNode.set(id.originalKey, *recombineInfoChild->m_referenceOutKeyPtr);
+                    newBuilderNode.set(id.transformedKey, *recombineInfoChild->m_outKeyPtr);
+                    newBuilderNode.set(id.builder, (*recombineInfoChild->m_builderNodePtr)[id.value]);
+                    children.add(newBuilderNode);
+                    nodes.push_back({ *recombineInfoChild, newBuilderNode });
+                }
+                nodes.pop_front();
+            }
+            if (isConstantFoldingPossible(tool)) {
+                ret.push_back({ true, &firstBuilderNode, tool });
             } else {
-                ret.push_back({ nullptr, tool });
+                ret.push_back({ false, &firstBuilderNode, tool });
             }
         }
 
@@ -1508,6 +1748,8 @@ ToolFinder::Node* ToolFinder::getRootNodeForDescriptionKind(DescriptionKind desc
         return m_consequenceRootNode.get();
     case DescriptionKind::selfBuilder:
         return m_selfBuilderRootNode.get();
+    case DescriptionKind::solver:
+        return m_solverRootNode.get();
     }
 
     panic("Unknown description kind!");
@@ -1630,37 +1872,99 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     // this is the from in "tool(from, x) == to"
     Object unknownX(w, std.op.ConstVar, "unknownX");
     CellI& missingSlotId = *missingSlotIdPtr;
+    auto& getValueFromX  = w.op.get(w.op.unknown_(unknownX), w.op.const_(id.value));
+    getValueFromX.set(id.state, std.op.State.missingInput);
     if (blueprintTool.has(w.id.primitiveTool)) {
         Map& membersMapping = static_cast<Map&>(blueprintTool[w.id.ast][w.id.memberMapping]);
         CellI& tool         = *new Object(w, blueprintTool);
         toolPtr             = &tool;
         tool.set(membersMapping.getValue(blueprintKey), w.op.const_(from));
-        tool.set(membersMapping.getValue(missingSlotId), w.op.get(w.op.unknown_(unknownX), w.op.const_(id.value)));
+        tool.set(membersMapping.getValue(missingSlotId), getValueFromX);
     } else {
         CellI& tool = *new Object(w, std.op.Call);
         toolPtr     = &tool;
         tool.set(id.method, *blueprint.m_tool);
-        Map& parameters = w.op.parameters(blueprintKey, w.op.const_(from), missingSlotId, w.op.get(w.op.unknown_(unknownX), w.op.const_(id.value)));
+        Map& parameters = w.op.parameters(blueprintKey, w.op.const_(from), missingSlotId, getValueFromX);
         tool.set(id.parameters, parameters);
     }
     CellI& tool = *toolPtr;
     CellI& missingSlotEquation = w.op.equal(tool, w.op.const_(to));
     missingSlotEquation.label("tool(from, x) == to");
-    List& missingSlotSolvers = findToolsByDescription(missingSlotEquation, DescriptionKind::consequence);
+    List* missingSlotSolversPtr         = nullptr;
+    std::list<BuilderChainNode>* solver = getSolver(missingSlotEquation);
+    DEBUG(toolFinderExplore, "");
+    DEBUG(toolFinderExplore, "missingSlotEquation: {}", missingSlotEquation.printAsValue());
+
+    if (solver) {
+        Object resultVar(w, std.op.ConstVar, "solved");
+        resultVar.set(id.value, missingSlotEquation);
+        for (BuilderChainNode& builderChainNode : *solver) {
+            if (builderChainNode.m_transformerBuilder) {
+                buildTool({ resultVar, w.ast.member(id.value), resultVar[id.value], *builderChainNode.m_transformerBuilder });
+                TRACE(toolFinderExplore, "transfered as: {}", resultVar[id.value].printAsValue());
+            }
+            if (builderChainNode.m_mutatingBuilders) {
+                struct TreeNode
+                {
+                    CellI& m_outCell;
+                    CellI& m_outKey;
+                    CellI& m_cellToRebuildFrom;
+                    CellI& m_builderNode;
+                };
+                std::list<TreeNode> nodes;
+                nodes.push_back({ resultVar, id.value, resultVar[id.value], *builderChainNode.m_mutatingBuilders });
+                bool first = true;
+
+                int i = 1;
+                while (!nodes.empty()) {
+                    TreeNode& treeNode = nodes.front();
+                    CellI& builderNode = treeNode.m_builderNode;
+                    buildTool({ treeNode.m_outCell, w.ast.member(treeNode.m_outKey), treeNode.m_cellToRebuildFrom, builderNode[id.builder] });
+
+                    TRACE(toolFinderExplore, "mutate step #{}: {}", i++, resultVar[id.value].printAsValue());
+
+                    if (builderNode.missing(id.children)) {
+                        nodes.pop_front();
+                        continue;
+                    }
+
+                    auto& outCell = treeNode.m_outCell[treeNode.m_outKey];
+                    auto& parent  = treeNode.m_cellToRebuildFrom;
+
+                    for (auto& childBuilderNode : builderNode[id.children]) {
+                        nodes.push_back({ outCell, childBuilderNode[id.transformedKey], parent[childBuilderNode[id.originalKey]], childBuilderNode });
+                    }
+                    nodes.pop_front();
+                }
+                TRACE(toolFinderExplore, "mutated as: {}", resultVar[id.value].printAsValue());
+            }
+        }
+
+        DEBUG(toolFinderExplore, "solved as: {}", resultVar[id.value].printAsValue());
+        missingSlotSolversPtr = &findToolsByDescription(resultVar[id.value], DescriptionKind::consequence);
+        std::cout << "";
+    }
+    if (!missingSlotSolversPtr) {
+        return;
+    }
+
+    List& missingSlotSolvers = *missingSlotSolversPtr;
 
     for (CellI& missingSlotSolver : missingSlotSolvers) {
         //        std::cout << blueprint << '\n';
-        printAsValue(missingSlotSolver, "");
-        continue; // TODO
+        // printAsValue(missingSlotSolver, "");
         missingSlotSolver();
 
         CellI& solvedX = unknownX[id.value];
-        //        std::cout << "unknownX.value = " << solvedX.label() << std::endl;
+        DEBUG(toolFinderExplore, "unknownX.value = {}", solvedX.label());
 
         Ast::Scope rootScope2(w, "toolFinder");
         Compiler compiler2(w);
+        DEBUG(toolFinderExplore, "{}({}, {}) == {}", blueprint.m_tool->label(), solvedX.label(), from.label(), to.label());
+
         std::string conversionToolName = fmt::format("conversionToolFor{}", blueprint.m_tool->label());
-        CellI& conversionToolAst       = *new Object(w, std.ast.Function);
+        return; // TODO
+        CellI& conversionToolAst = *new Object(w, std.ast.Function);
         conversionToolAst.set(*blueprint.m_slotId, w.ast.parameter(w.name("from")));
         conversionToolAst.set(missingSlotId, w.ast._(solvedX));
         ConversionLib conversionLib(w, rootScope2, conversionToolName, conversionToolAst, from.__type__(), to.__type__());
@@ -1712,40 +2016,91 @@ void ToolFinder::exploreSlotManipulations()
 
         auto& opEqual = w.op.equal(numberTool, w.op.const_(4));
         opEqual.label(fmt::format("{}(x, y) == z", tool.label()));
-        DEBUG(toolFinderExplore, "");
+        exploreSlotManipulationFor(opEqual);
 
-        DEBUG(toolFinderExplore, "input: {}", opEqual.printAsValue());
+        numberTool.set(id.lhs, w.op.unknown_(x));
+        numberTool.set(id.rhs, w.op.const_(2));
 
+        opEqual.label(fmt::format("{}(y, x) == z", tool.label()));
+        exploreSlotManipulationFor(opEqual);
+    }
+}
 
-        Node* rootNode = new Node();
-        auto permutations = recombine(rootNode, opEqual);
-        for (auto& permutationResult : permutations) {
-            CellI& permutation = permutationResult.m_recombinedTool;
-            List& tools1 = findToolsByDescription(permutation, DescriptionKind::consequence);
-            for (auto& tool1 : tools1) {
-                TRACE(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
-                auto tool1Permutations = recombine(rootNode, tool1);
-                for (auto& tool1PermutationResult : tool1Permutations) {
-                    CellI& tool1Permutation = tool1PermutationResult.m_recombinedTool;
-                    TRACE(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
-                    if (&tool1Permutation[id.lhs].__type__() == &std.op.Subtract) {
-                        if (&tool1Permutation[id.lhs][id.lhs].__type__() == &std.op.ConstVar) {
-                            std::cout << "";
-                        }
-                    }
-                    if (tool1PermutationResult.m_builderForTool && (&tool1Permutation[id.lhs].__type__() == &std.op.UnknownVar)) {
-                        DEBUG(toolFinderExplore, "  result: {}", tool1Permutation.printAsValue());
-                    }
-                    List& tools2 = findToolsByDescription(tool1Permutation, DescriptionKind::consequence);
-                    for (auto& tool2 : tools2) {
-                        TRACE(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
-                        auto tool2Permutations = recombine(rootNode, tool2);
-                        for (auto& tool2PermutationResult : tool2Permutations) {
-                            CellI& tool2Permutation = tool2PermutationResult.m_recombinedTool;
-                            TRACE(toolFinderExplore, "    2. permutation: {}", tool2Permutation.printAsValue());
-                            if (tool2PermutationResult.m_builderForTool && (&tool2Permutation[id.lhs].__type__() == &std.op.UnknownVar)) {
-                                DEBUG(toolFinderExplore, "  result: {}", tool2Permutation.printAsValue());
-                            }
+struct BuilderWithTool
+{
+    CellI& m_builder;
+    CellI& m_tool;
+};
+
+// ============================================================================
+void ToolFinder::exploreSlotManipulationFor(CellI& description)
+{
+    DEBUG(toolFinderExplore, "");
+    DEBUG(toolFinderExplore, "input: {}", description.printAsValue());
+
+    Node* rootNode    = new Node();
+    auto permutations = recombine(rootNode, description);
+    for (auto& permutationResult : permutations) {
+        CellI& permutation = permutationResult.m_recombinedTool;
+        List* buildersPtr = findBuildersForDescription(permutation, DescriptionKind::consequence);
+        if (!buildersPtr) {
+            continue;
+        }
+        std::list<BuilderWithTool> tools1;
+        for (auto& builder : *buildersPtr) {
+            TRACE(toolFinder, "build with {}", builder.label());
+            Object retVal(w, std.ast.ConstVar);
+            buildTool({ retVal, w.ast.member(id.value), permutation, builder });
+            auto& tool = retVal[id.value];
+            tools1.push_back({ builder, tool });
+        }
+
+        for (auto& builderWithTool1 : tools1) {
+            auto& tool1 = builderWithTool1.m_tool;
+            TRACE(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
+            auto tool1Permutations = recombine(rootNode, tool1);
+            for (auto& tool1PermutationResult : tool1Permutations) {
+                CellI& tool1Permutation = tool1PermutationResult.m_recombinedTool;
+                TRACE(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
+                if (tool1PermutationResult.m_isConstantFoldingPossible && (&tool1Permutation[id.lhs].__type__() == &std.op.UnknownVar)) {
+                    DEBUG(toolFinderExplore, "  1. result: {}", tool1Permutation.printAsValue());
+                    std::list<BuilderChainNode> builderChain;
+                    builderChain.push_back({ nullptr, permutationResult.m_builderForTool });
+                    builderChain.push_back({ &builderWithTool1.m_builder, nullptr });
+                    builderChain.push_back({ nullptr, tool1PermutationResult.m_builderForTool });
+                    addSolver(description, builderChain);
+                    return;
+                }
+                List* buildersPtr = findBuildersForDescription(tool1Permutation, DescriptionKind::consequence);
+                if (!buildersPtr) {
+                    continue;
+                }
+                std::list<BuilderWithTool> tools2;
+                for (auto& builder : *buildersPtr) {
+                    TRACE(toolFinder, "build with {}", builder.label());
+                    Object retVal(w, std.ast.ConstVar);
+                    buildTool({ retVal, w.ast.member(id.value), tool1Permutation, builder });
+                    auto& tool = retVal[id.value];
+                    tools2.push_back({ builder, tool });
+                }
+                for (auto& builderWithTool2 : tools2) {
+                    auto& tool2 = builderWithTool2.m_tool;
+                    TRACE(toolFinderExplore, "    2. result: {}", tool2.printAsValue());
+                    auto tool2Permutations = recombine(rootNode, tool2);
+                    for (auto& tool2PermutationResult : tool2Permutations) {
+                        CellI& tool2Permutation = tool2PermutationResult.m_recombinedTool;
+                        TRACE(toolFinderExplore, "    2. permutation: {}", tool2Permutation.printAsValue());
+                        if (tool2PermutationResult.m_isConstantFoldingPossible && (&tool2Permutation[id.lhs].__type__() == &std.op.UnknownVar)) {
+                            TRACE(toolFinderExplore, "  1. result: {}", tool1Permutation.printAsValue());
+                            DEBUG(toolFinderExplore, "  2. result: {}", tool2Permutation.printAsValue());
+                            std::list<BuilderChainNode> builderChain;
+                            builderChain.push_back({ nullptr, permutationResult.m_builderForTool });
+                            builderChain.push_back({ &builderWithTool1.m_builder, nullptr });
+                            builderChain.push_back({ nullptr, tool1PermutationResult.m_builderForTool });
+                            builderChain.push_back({ &builderWithTool2.m_builder, nullptr });
+                            builderChain.push_back({ nullptr, tool2PermutationResult.m_builderForTool });
+                            addSolver(description, builderChain);
+                            return;
                         }
                     }
                 }

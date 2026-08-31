@@ -18,6 +18,12 @@ class ToolFinder
         CellI* paramItemPtr;
     };
 
+    struct BuilderChainNode
+    {
+        CellI* m_transformerBuilder = nullptr;
+        CellI* m_mutatingBuilders   = nullptr;
+    };
+
     struct Node
     {
         ~Node();
@@ -29,6 +35,7 @@ class ToolFinder
         CellI* m_effect  = nullptr;
         CellI* m_tool    = nullptr;
         Node* m_parent   = nullptr;
+        std::list<BuilderChainNode> m_solver;
         std::map<CellI*, Node*> m_children;
     };
 
@@ -36,7 +43,8 @@ public:
     enum class DescriptionKind
     {
         consequence,
-        selfBuilder
+        selfBuilder,
+        solver
     };
 
     class ConversionToolKey
@@ -64,11 +72,13 @@ public:
 public:
     ToolFinder(World& w);
 
+    void mergeTo(ToolFinder& target);
     bool empty();
     List& serializeEffect(CellI& effect);
-    void add(Object& tool);
+    void add(CellI& tool);
     void add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
     List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
+    void solve(CellI& equation);
     CellI& findConversionTools(CellI& from, CellI& to);
     void exploreSlotManipulations();
 
@@ -104,11 +114,15 @@ private:
 
     struct RecombineResult
     {
-        CellI* m_builderForTool = nullptr;
+        bool m_isConstantFoldingPossible = false;
+        CellI* m_builderForTool;
         CellI& m_recombinedTool;
     };
 
     std::list<RecombineResult> recombine(Node* rootNode, CellI& description);
+    void exploreSlotManipulationFor(CellI& description);
+    void addSolver(CellI& description, std::list<BuilderChainNode>& solver);
+    std::list<BuilderChainNode>* getSolver(CellI& description);
     void addPermutation(Node* rootNode, CellI& description);
     bool hasPermutation(Node* rootNode, CellI& description);
     List& add(CellI& tool, CellI& description, Node* rootNode);
@@ -124,7 +138,8 @@ private:
     void addKeyWithConstValue(Node*& node, CellI& key, CellI& value);
     void addKeyWithParamValue(Node*& node, CellI& key, CellI& value, ParamValueKind& paramValueKind);
     void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
-    bool checkConstValue(Node*& node, CellI& key, CellI& value);
+    bool checkConstValue(Node*& node, CellI& value);
+    bool checkConstKeyValue(Node*& node, CellI& key, CellI& value);
     bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush, MultiMatchState& multiMatchState, CellI*& multiMatch);
     List& createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
@@ -139,6 +154,7 @@ private:
     Std& std;
     std::unique_ptr<Node> m_consequenceRootNode;
     std::unique_ptr<Node> m_selfBuilderRootNode;
+    std::unique_ptr<Node> m_solverRootNode;
     List m_tools;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;
 };

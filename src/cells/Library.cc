@@ -11,11 +11,13 @@ Library::Library(World& w, Ast::Scope& scope) :
 }
 
 Library::Library(World& w) :
-    Object(w, w.std.Library, "library")
+    Object(w, w.std.Library, "library"),
+    m_toolFinder(*new ToolFinder(w))
 {
     set(w.id.functions, *new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions"));
     set(w.id.structs, *new TrieMap(w, w.std.Cell, w.std.Struct, "Structs"));
     set(w.id.variables, *new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables"));
+
 }
 
 void Library::include(Library& library)
@@ -43,6 +45,7 @@ void Library::mergeTo(Library& target)
         CellI& value = kvPair[w.id.value];
         target.variables().add(key, value);
     }
+    toolFinder().mergeTo(target.toolFinder());
 }
 
 Ast::Scope& Library::scope()
@@ -97,7 +100,7 @@ CellI& Library::getVariable(CellI& name)
 
 ToolFinder& Library::toolFinder()
 {
-    return *m_toolFinderPtr;
+    return m_toolFinder;
 }
 
 } // namespace cells
