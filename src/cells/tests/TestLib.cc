@@ -83,7 +83,7 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
 }
 
 TestLib::TestLib(World& w, Ast::Scope& parentScope, Compiler& compiler, TestSyms& test) :
-    Library(w, parentScope)
+    Library(w, parentScope, "test")
 {
     TestLibAst testLibAst(w, parentScope.add<Ast::Scope>("test"));
 

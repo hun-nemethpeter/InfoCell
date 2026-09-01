@@ -10,8 +10,8 @@ class World;
 class Library : public Object
 {
 public:
-    Library(World& w);
-    Library(World& w, Ast::Scope& scope);
+    Library(World& w, const std::string& name);
+    Library(World& w, Ast::Scope& scope, const std::string& name);
 
     void include(Library& library);
     void mergeTo(Library& target);

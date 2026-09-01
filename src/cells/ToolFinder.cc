@@ -900,13 +900,59 @@ List* ToolFinder::findBuildersForDescription(CellI& description, DescriptionKind
 }
 
 // ============================================================================
-void ToolFinder::solve(CellI& equation)
+CellI* ToolFinder::solve(CellI& equation)
 {
-    if (auto* solver = getSolver(equation)) {
-        DEBUG(toolFinderExplore, "Has solver!");
-    } else {
+    DEBUG(toolFinderExplore, "solve equation: {}", equation.printAsValue());
+    std::list<BuilderChainNode>* solver = getSolver(equation);
+    if (!solver) {
         DEBUG(toolFinderExplore, "No solver!");
+        return nullptr;
     }
+
+    Object resultVar(w, std.op.ConstVar, "solved");
+    resultVar.set(id.value, equation);
+    for (BuilderChainNode& builderChainNode : *solver) {
+        if (builderChainNode.m_transformerBuilder) {
+            buildTool({ resultVar, w.ast.member(id.value), resultVar[id.value], *builderChainNode.m_transformerBuilder });
+            TRACE(toolFinderExplore, "transfered as: {}", resultVar[id.value].printAsValue());
+        }
+        if (builderChainNode.m_mutatingBuilders) {
+            struct TreeNode
+            {
+                CellI& m_outCell;
+                CellI& m_outKey;
+                CellI& m_cellToRebuildFrom;
+                CellI& m_builderNode;
+            };
+            std::list<TreeNode> nodes;
+            nodes.push_back({ resultVar, id.value, resultVar[id.value], *builderChainNode.m_mutatingBuilders });
+            bool first = true;
+
+            int i = 1;
+            while (!nodes.empty()) {
+                TreeNode& treeNode = nodes.front();
+                CellI& builderNode = treeNode.m_builderNode;
+                buildTool({ treeNode.m_outCell, w.ast.member(treeNode.m_outKey), treeNode.m_cellToRebuildFrom, builderNode[id.builder] });
+
+                TRACE(toolFinderExplore, "mutate step #{}: {}", i++, resultVar[id.value].printAsValue());
+
+                if (builderNode.missing(id.children)) {
+                    nodes.pop_front();
+                    continue;
+                }
+
+                auto& outCell = treeNode.m_outCell[treeNode.m_outKey];
+                auto& parent  = treeNode.m_cellToRebuildFrom;
+
+                for (auto& childBuilderNode : builderNode[id.children]) {
+                    nodes.push_back({ outCell, childBuilderNode[id.transformedKey], parent[childBuilderNode[id.originalKey]], childBuilderNode });
+                }
+                nodes.pop_front();
+            }
+            TRACE(toolFinderExplore, "mutated as: {}", resultVar[id.value].printAsValue());
+        }
+    }
+    return &resultVar[id.value];
 }
 
 // ============================================================================
@@ -1099,6 +1145,7 @@ void ToolFinder::addPermutation(Node* rootNode, CellI& description)
             if (&memberRole == &std.op.Member.Role.constant) {
                 addKeyWithConstValue(currentNode, memberName, current[memberName]);
             } else if (&memberRole == &std.op.Member.Role.input) {
+                addValue(currentNode, memberName);
                 CellI& memberValue = current[memberName];
                 if ((&memberValue.__type__() == &std.op.ConstVar) || (&memberValue.__type__() == &std.op.UnknownVar)) {
                     addKeyWithConstValue(currentNode, memberName, memberValue);
@@ -1107,6 +1154,7 @@ void ToolFinder::addPermutation(Node* rootNode, CellI& description)
                     stack.push_back({ currentPtr, memberItemPtr, nullptr });
                     currentPtr    = &memberValue;
                     memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+                    continue;
                 }
             }
         } else {
@@ -1115,6 +1163,7 @@ void ToolFinder::addPermutation(Node* rootNode, CellI& description)
             stack.push_back({ currentPtr, memberItemPtr, nullptr });
             currentPtr    = &memberValue;
             memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+            continue;
         }
 
         memberItemPtr = memberItemPtr->getNextOrNullptr();
@@ -1213,6 +1262,9 @@ bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)
                     return false;
                 }
             } else if (&memberRole == &std.op.Member.Role.input) {
+                if (!checkConstValue(currentNode, memberName)) {
+                    return false;
+                }
                 CellI& memberValue = current[memberName];
                 if ((&memberValue.__type__() == &std.op.ConstVar) || (&memberValue.__type__() == &std.op.UnknownVar)) {
                     if (!checkConstKeyValue(currentNode, memberName, memberValue)) {
@@ -1225,6 +1277,7 @@ bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)
                     stack.push_back({ currentPtr, memberItemPtr, nullptr });
                     currentPtr    = &memberValue;
                     memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+                    continue;
                 }
             }
         } else {
@@ -1235,6 +1288,7 @@ bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)
             stack.push_back({ currentPtr, memberItemPtr, nullptr });
             currentPtr    = &memberValue;
             memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+            continue;
         }
 
         memberItemPtr = memberItemPtr->getNextOrNullptr();
@@ -1824,7 +1878,7 @@ SolverLibAst::SolverLibAst(World& w, Ast::Scope& parentScope, CellI& solverAst) 
 }
 
 SolverLib::SolverLib(World& w, Ast::Scope& parentScope, CellI& solverAst) :
-    Library(w, parentScope)
+    Library(w, parentScope, "solver")
 {
     SolverLibAst solverLibAst(w, parentScope.add<Ast::Scope>("solver"), solverAst);
 }
@@ -1852,7 +1906,7 @@ ConversionLibAst::ConversionLibAst(World& w, Ast::Scope& parentScope, const std:
 }
 
 ConversionLib::ConversionLib(World& w, Ast::Scope& parentScope, const std::string& conversionToolName, CellI& conversionToolAst, CellI& inputType, CellI& returnType) :
-    Library(w, parentScope)
+    Library(w, parentScope, "conversion")
 {
     ConversionLibAst solverLibAst(w, parentScope.add<Ast::Scope>("conversion"), conversionToolName, conversionToolAst, inputType, returnType);
 }
@@ -1890,60 +1944,15 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& tool = *toolPtr;
     CellI& missingSlotEquation = w.op.equal(tool, w.op.const_(to));
     missingSlotEquation.label("tool(from, x) == to");
-    List* missingSlotSolversPtr         = nullptr;
-    std::list<BuilderChainNode>* solver = getSolver(missingSlotEquation);
-    DEBUG(toolFinderExplore, "");
-    DEBUG(toolFinderExplore, "missingSlotEquation: {}", missingSlotEquation.printAsValue());
-
-    if (solver) {
-        Object resultVar(w, std.op.ConstVar, "solved");
-        resultVar.set(id.value, missingSlotEquation);
-        for (BuilderChainNode& builderChainNode : *solver) {
-            if (builderChainNode.m_transformerBuilder) {
-                buildTool({ resultVar, w.ast.member(id.value), resultVar[id.value], *builderChainNode.m_transformerBuilder });
-                TRACE(toolFinderExplore, "transfered as: {}", resultVar[id.value].printAsValue());
-            }
-            if (builderChainNode.m_mutatingBuilders) {
-                struct TreeNode
-                {
-                    CellI& m_outCell;
-                    CellI& m_outKey;
-                    CellI& m_cellToRebuildFrom;
-                    CellI& m_builderNode;
-                };
-                std::list<TreeNode> nodes;
-                nodes.push_back({ resultVar, id.value, resultVar[id.value], *builderChainNode.m_mutatingBuilders });
-                bool first = true;
-
-                int i = 1;
-                while (!nodes.empty()) {
-                    TreeNode& treeNode = nodes.front();
-                    CellI& builderNode = treeNode.m_builderNode;
-                    buildTool({ treeNode.m_outCell, w.ast.member(treeNode.m_outKey), treeNode.m_cellToRebuildFrom, builderNode[id.builder] });
-
-                    TRACE(toolFinderExplore, "mutate step #{}: {}", i++, resultVar[id.value].printAsValue());
-
-                    if (builderNode.missing(id.children)) {
-                        nodes.pop_front();
-                        continue;
-                    }
-
-                    auto& outCell = treeNode.m_outCell[treeNode.m_outKey];
-                    auto& parent  = treeNode.m_cellToRebuildFrom;
-
-                    for (auto& childBuilderNode : builderNode[id.children]) {
-                        nodes.push_back({ outCell, childBuilderNode[id.transformedKey], parent[childBuilderNode[id.originalKey]], childBuilderNode });
-                    }
-                    nodes.pop_front();
-                }
-                TRACE(toolFinderExplore, "mutated as: {}", resultVar[id.value].printAsValue());
-            }
-        }
-
-        DEBUG(toolFinderExplore, "solved as: {}", resultVar[id.value].printAsValue());
-        missingSlotSolversPtr = &findToolsByDescription(resultVar[id.value], DescriptionKind::consequence);
-        std::cout << "";
+    CellI* solvedMissingSlotEquationPtr = solve(missingSlotEquation);
+    if (!solvedMissingSlotEquationPtr) {
+        return;
     }
+
+    CellI& missingSlotSolver = *solvedMissingSlotEquationPtr;
+    DEBUG(toolFinderExplore, "solved as: {}", missingSlotSolver.printAsValue());
+    List* missingSlotSolversPtr = &findToolsByDescription(missingSlotSolver, DescriptionKind::consequence);
+
     if (!missingSlotSolversPtr) {
         return;
     }

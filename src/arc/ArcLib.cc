@@ -666,7 +666,7 @@ ArcLibAst::ArcLibAst(World& w, Ast::Scope& scope) :
 }
 
 ArcLib::ArcLib(World& w, Ast::Scope& parentScope, Compiler& compiler) :
-    Library(w, parentScope)
+    Library(w, parentScope, "arc")
 {
     Arc& arc = w.arc;
     ArcLibAst stdLibAst(w, parentScope.add<Ast::Scope>("arc"));

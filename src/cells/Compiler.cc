@@ -46,11 +46,6 @@ Resolve template related references in normal functions or structs:
 */
 Library& Compiler::compile(Ast::Scope& scope)
 {
-    if (!m_libraryPtr) {
-        m_libraryPtr = new Library(w, scope);
-        m_toolFinderPtr = &m_libraryPtr->toolFinder();
-    }
-
     registerEarlyStructs();
 
     // Creating a shadow AST tree where templated thing are resolved

@@ -78,7 +78,7 @@ public:
     void add(CellI& tool);
     void add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
     List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
-    void solve(CellI& equation);
+    CellI* solve(CellI& equation);
     CellI& findConversionTools(CellI& from, CellI& to);
     void exploreSlotManipulations();
 

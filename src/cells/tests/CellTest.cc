@@ -117,7 +117,7 @@ TEST_F(CellTest, ForLoop)
     {
     public:
         ForLoopTestLib(World& w, Ast::Scope& parentScope, Ast::Base& forLoop) :
-            Library(w, parentScope)
+            Library(w, parentScope, "forLoopTest")
         {
             auto& forLoopTestScope = parentScope.add<Ast::Scope>("forLoopTest");
             auto& forLoopTestFunction = forLoopTestScope.add<Ast::Function>("forLoopTestFunction");
@@ -441,7 +441,13 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     std::cout << std::endl;
 //    EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self op variable key value op pop other 2 op pop other 4 ");
 
-    List& resultTools = toolFinder.findToolsByDescription(testRequestFn, ToolFinder::DescriptionKind::consequence);
+    CellI* simplifiedForm = toolFinder.solve(testRequestFn);
+    EXPECT_NE(simplifiedForm, nullptr);
+    if (!simplifiedForm) {
+        return;
+    }
+
+    List& resultTools = toolFinder.findToolsByDescription(*simplifiedForm, ToolFinder::DescriptionKind::consequence);
 
     EXPECT_EQ(resultTools.size(), 1);
 

@@ -15,6 +15,9 @@ class UniversalPrinter<infocell::cells::CellI*>
 public:
     static void Print(const infocell::cells::CellI* val, ::std::ostream* os)
     {
+        if (!val) {
+            return;
+        }
         *os << val->label();
     }
 };

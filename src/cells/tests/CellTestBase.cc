@@ -83,7 +83,7 @@ std::unique_ptr<World> CellTest::m_world;
 std::unique_ptr<CellTestStaticData> CellTest::m_staticData;
 
 CellTest::LibraryTester::LibraryTester(World& w, TestLib& testLib) :
-    Library(w, rootScope),
+    Library(w, rootScope, "tester"),
     compiler(w),
     rootScope(w, "root"),
     testLib(testLib)

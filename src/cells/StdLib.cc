@@ -2602,6 +2602,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     stdScope.add<Struct>("Library")
         .members(
+            member("name", "std::String"),
             member("scope", "ast::Scope"),
             member("resolvedScope", "ast::Scope"),
             member("functions", tt_("TrieMap", "keyType", "Cell", "valueType", "op::Function")),
@@ -2798,7 +2799,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 }
 
 StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
-    Library(w, parentScope)
+    Library(w, parentScope, "std")
 {
     Std& std = w.std;
     StdLibAst stdLibAst(w, parentScope.add<Ast::Scope>("std"));

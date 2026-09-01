@@ -165,6 +165,10 @@ World::World(std::function<void()> loggerLevelInit) :
 
     arcLib().include(stdLib());
     m_arcCompiler->compile(arcLib());
+    stdLib().toolFinder().exploreSlotManipulations();
+
+    stdLib().toolFinder().mergeTo(arcLib().toolFinder()); // TODO copy seems slow solution
+    arcLib().toolFinder().exploreSlotManipulations(); // TODO this is waay too heavyweight
 
     if (IS_LOG_ENABLED) {
         TRACE(compiledSymbols, "All compiled symbols:");

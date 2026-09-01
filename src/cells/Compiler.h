@@ -15,7 +15,6 @@ public:
     Compiler(World& w);
 
     void compile(Library& library);
-    Library& compile(Ast::Scope& scope);
     Object& compileAsPrompt(Ast::Description& prompt);
 
     CellI& reigisterStructBeforeCompilation(CellI& id);
@@ -24,6 +23,7 @@ public:
     ToolFinder& getToolFinder();
 
 protected:
+    Library& compile(Ast::Scope& scope);
     Library& library();
     TrieMap& compiledFunctions();
     TrieMap& compiledStructs();

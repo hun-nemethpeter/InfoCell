@@ -4,20 +4,20 @@
 namespace infocell {
 namespace cells {
 
-Library::Library(World& w, Ast::Scope& scope) :
-    Library(w)
+Library::Library(World& w, Ast::Scope& scope, const std::string& name) :
+    Library(w, name)
 {
     set(w.id.scope, scope);
 }
 
-Library::Library(World& w) :
+Library::Library(World& w, const std::string& name) :
     Object(w, w.std.Library, "library"),
     m_toolFinder(*new ToolFinder(w))
 {
+    set(w.id.name, w.name(name));
     set(w.id.functions, *new TrieMap(w, w.std.Cell, w.std.op.Function, "Functions"));
     set(w.id.structs, *new TrieMap(w, w.std.Cell, w.std.Struct, "Structs"));
     set(w.id.variables, *new TrieMap(w, w.std.Cell, w.std.op.Var, "Variables"));
-
 }
 
 void Library::include(Library& library)
@@ -45,7 +45,6 @@ void Library::mergeTo(Library& target)
         CellI& value = kvPair[w.id.value];
         target.variables().add(key, value);
     }
-    toolFinder().mergeTo(target.toolFinder());
 }
 
 Ast::Scope& Library::scope()
