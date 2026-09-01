@@ -1797,3 +1797,48 @@ On the other hand in `Add` or `Get` and also in `ConstVar` the `value` is the ou
 For describing consequences we use the `ast.return_()`.
 Maybe we should introduce the dunder value `__value__` for `(Const)Var` and every function that returns something.
 So we can keep the `Set` parameters as it is now `Set(cell, key, value)` but we will have `var.__value__`
+
+2026-09-01
+==========
+
+Equation solving almost working now.
+
+```
+input: 2 + X == 4
+  1. result: X == 4 - 2
+
+input: X + 2 == 4
+  1. result: X == 4 - 2
+
+input: 2 / X == 4
+  2. result: X == 2 / 4
+
+input: X / 2 == 4
+  1. result: X == 4 * 2
+
+input: 2 * X == 4
+  1. result: X == 4 / 2
+
+input: X * 2 == 4
+  1. result: X == 4 / 2
+
+input: 2 - X == 4
+  2. result: X == 2 - 4
+
+input: X - 2 == 4
+  1. result: X == 4 + 2
+```
+
+1. Still there are some issues. Recombined input doesn't added back to the consequences.
+
+2. `ToolFinder::getSolver` bails out on input `equal(add(unknown_(x) / const_(id.value), const_(_2_)), const_(_4_))` as the `add(...)` "inherits" an unknown state so handle it as an unknown variable, so we basicaly try to find a simpler case for `equal(X, 4)` and we didn't find any.
+
+   I will try to handle both case in this if ... else
+
+   ```
+     if (memberValue.has(id.state) && (&memberValue[id.state] == &std.op.State.missingInput)) {
+        ...
+     } else {
+        ...
+     }
+   ```
