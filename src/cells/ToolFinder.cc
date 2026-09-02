@@ -1022,11 +1022,17 @@ void ToolFinder::addSolver(CellI& description, std::list<BuilderChainNode>& solv
     currentNode->m_solver = solver;
 }
 
+struct SolverStackNode
+{
+    CellI* effectPtr;
+    CellI* slotItemPtr;
+};
+
 // ============================================================================
 std::list<ToolFinder::BuilderChainNode>* ToolFinder::getSolver(CellI& description)
 {
     TRACE(toolFinderExplore, "getSolver {}", description.label());
-    std::deque<StackNode> stack;
+    std::deque<SolverStackNode> stack;
     Node* currentNode = getRootNodeForDescriptionKind(DescriptionKind::solver);
     CellI* memberItemPtr = &description.__type__()[id.memberIds][id.first];
     CellI* currentPtr    = &description;
@@ -1077,8 +1083,13 @@ std::list<ToolFinder::BuilderChainNode>* ToolFinder::getSolver(CellI& descriptio
                         if (!checkConstKeyValue(currentNode, id.op, id.push)) {
                             return nullptr;
                         }
+                        Node* savedNode = currentNode;
                         if (!checkConstKeyValue(currentNode, id.__type__, std.op.UnknownVar)) {
-                            return nullptr;
+                            currentNode = savedNode;
+                            stack.push_back({ currentPtr, memberItemPtr });
+                            currentPtr    = &memberValue;
+                            memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
+                            continue;
                         }
                         if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
                             return nullptr;
@@ -1087,7 +1098,7 @@ std::list<ToolFinder::BuilderChainNode>* ToolFinder::getSolver(CellI& descriptio
                         if (!checkConstKeyValue(currentNode, id.op, id.push)) {
                             return nullptr;
                         }
-                        stack.push_back({ currentPtr, memberItemPtr, nullptr });
+                        stack.push_back({ currentPtr, memberItemPtr });
                         currentPtr    = &memberValue;
                         memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
                         continue;
@@ -1099,7 +1110,7 @@ std::list<ToolFinder::BuilderChainNode>* ToolFinder::getSolver(CellI& descriptio
             if (!checkConstKeyValue(currentNode, id.op, id.push)) {
                 return nullptr;
             }
-            stack.push_back({ currentPtr, memberItemPtr, nullptr });
+            stack.push_back({ currentPtr, memberItemPtr });
             currentPtr    = &memberValue;
             memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
             continue;

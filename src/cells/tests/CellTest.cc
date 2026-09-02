@@ -411,6 +411,7 @@ TEST_F(CellTest, ToolFinderTestForGetInGet)
     std::cout << "";
 }
 
+
 TEST_F(CellTest, ToolFinderTestForMathAdd)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
@@ -418,6 +419,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     struct RequestHelper : public AstHelper { RequestHelper(World& w) : AstHelper(w) { }
 
         Object& x = *new Object(w, std.Number, "X");
+        // test x + 2 = 4
         Base& ast = equal(add(unknown_(x) / const_(id.value), const_(_2_)), const_(_4_));
 
     } testRequest(w);
@@ -458,8 +460,7 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
 
     // set(_(x), _(id.value), subtract(_(4), _(2)))
     EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
-#if 0 // TODO
-    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.UnknownVar);
     EXPECT_EQ(&resultTool[id.cell][id.value], &testRequest.x);
     EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.key][id.value], &id.value);
@@ -468,75 +469,72 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     EXPECT_EQ(&resultTool[id.value][id.lhs][id.value], &_4_);
     EXPECT_EQ(&resultTool[id.value][id.rhs].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.value][id.rhs][id.value], &_2_);
-#endif
 }
 
-#if 0
+// same as ToolFinderTestForMathAdd but testing  2 + x = 4 instead of x + 2 = 4
 TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
 {
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
 
-    class RequestHelper : public AstHelper
+
+    struct RequestHelper : public AstHelper
     {
-    public:
-        Base* varX    = nullptr;
-        Base* request = nullptr;
-        RequestHelper(World& w) :
-            AstHelper(w)
-        {
-            Var& x = var_("x");
+        RequestHelper(World& w) : AstHelper(w) { }
 
-            // test 2 + x = 4 => equal(add(2, get(x, value))), 4)
-            Base& ast = equal(add(_(_2_), _(x) / _(id.value)), _(_4_));
+        Object& x = *new Object(w, std.Number, "X");
+        // 2 + x = 4
+        Base& ast = equal(add(const_(_2_), unknown_(x) / const_(id.value)), const_(_4_));
 
-            varX    = &x;
-            request = &ast;
+    } testRequest(w);
+
+    LibraryTester libraryTester(w, testLib);
+    auto& testRequestFn = libraryTester.compileAsPrompt(testRequest.ast);
+
+    List& serializedEffect = toolFinder.serializeEffect(testRequestFn);
+    List& expectedIds      = w.list(id.op, id.type, std.op.Equal, id.lhs, id.op, id.push, id.op, id.type, std.op.Add, id.lhs, _2_, id.rhs, id.op, id.push, id.op, id.type, std.op.Get, id.cell, testRequest.x, id.key, id.value, id.op, id.pop, id.op, id.pop, id.rhs, _4_);
+    EXPECT_EQ(serializedEffect.size(), expectedIds.size());
+    auto* expectedIdNodePtr = &expectedIds[id.first];
+    for (auto& resultId : serializedEffect) {
+        EXPECT_TRUE(expectedIdNodePtr != nullptr);
+        if (expectedIdNodePtr) {
+            auto& expectedId = (*expectedIdNodePtr)[id.value];
+            EXPECT_EQ(&resultId, &expectedId);
+            expectedIdNodePtr = expectedIdNodePtr->getNextOrNullptr();
         }
-    } requestHelper(w);
-
-    CellI& request = *requestHelper.request;
-    CellI& varX    = *requestHelper.varX;
-
-    CellI& serializedRequest = toolFinder.serializeEffectAst(request);
-    {
-        std::stringstream ss;
-        forEach(serializedRequest, [&ss](CellI& value, int, bool& stop) {
-            ss << value.label() << " ";
-        });
-        EXPECT_EQ(ss.str(), "__type__ ast::Equal lhs op push __type__ ast::Add lhs 2 rhs op push __type__ ast::Get cell x key value op pop op pop rhs 4 ");
+        std::cout << resultId.label() << " ";
     }
-#if 0
-Find:     equal(lhs: add(lhs: 2,         rhs: get(cell: x, value: value))), lhs: 4        )
-Subtract: equal(lhs: add(lhs: return_(), rhs: m_("rhs")                  ), lhs: m_("lhs")),
+    std::cout << std::endl;
+    //    EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self op variable key value op pop other 2 op pop other 4 ");
 
-[toolFinder][T] Subtract(lhs: Number, rhs: Number): Number =>
-[toolFinder][T]   __type__ ast::Equal lhs op push __type__ ast::Add lhs op return_ rhs op variable op pop rhs op variable
-[toolFinder][T]   __type__ ast::Equal lhs op push __type__ ast::Add lhs op variable rhs op return_ op pop rhs op variable
-
-#endif
-
-    List& resultToolAsts = toolFinder.findToolsByEffectAst(request);
-
-    EXPECT_EQ(resultToolAsts.size(), 1);
-
-    if (resultToolAsts.size() != 1) {
+    CellI* simplifiedForm = toolFinder.solve(testRequestFn);
+    EXPECT_NE(simplifiedForm, nullptr);
+    if (!simplifiedForm) {
         return;
     }
-    CellI& resultToolAst = resultToolAsts[id.first][id.value];
+
+    List& resultTools = toolFinder.findToolsByDescription(*simplifiedForm, ToolFinder::DescriptionKind::consequence);
+
+    EXPECT_EQ(resultTools.size(), 1);
+
+    if (resultTools.size() != 1) {
+        return;
+    }
+    CellI& resultTool = resultTools[id.first][id.value];
 
     // set(_(x), _(id.value), subtract(_(4), _(2)))
-    EXPECT_EQ(&resultToolAst.__type__(), &std.ast.Set);
-    EXPECT_EQ(&resultToolAst[id.cell].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.cell][id.value], &varX);
-    EXPECT_EQ(&resultToolAst[id.key].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.key][id.value], &id.value);
-    EXPECT_EQ(&resultToolAst[id.value].__type__(), &std.ast.Subtract);
-    EXPECT_EQ(&resultToolAst[id.value][id.lhs].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.value][id.lhs][id.value], &_4_);
-    EXPECT_EQ(&resultToolAst[id.value][id.rhs].__type__(), &std.ast.Cell);
-    EXPECT_EQ(&resultToolAst[id.value][id.rhs][id.value], &_2_);
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Set);
+    EXPECT_EQ(&resultTool[id.cell].__type__(), &std.op.UnknownVar);
+    EXPECT_EQ(&resultTool[id.cell][id.value], &testRequest.x);
+    EXPECT_EQ(&resultTool[id.key].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.key][id.value], &id.value);
+    EXPECT_EQ(&resultTool[id.value].__type__(), &std.op.Subtract);
+    EXPECT_EQ(&resultTool[id.value][id.lhs].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.value][id.lhs][id.value], &_4_);
+    EXPECT_EQ(&resultTool[id.value][id.rhs].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.value][id.rhs][id.value], &_2_);
+    resultTool();
+    std::cout << "";
 }
-#endif
 
 TEST_F(CellTest, Numbers)
 {
