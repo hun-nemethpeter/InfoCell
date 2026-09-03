@@ -902,7 +902,7 @@ List* ToolFinder::findBuildersForDescription(CellI& description, DescriptionKind
 // ============================================================================
 CellI* ToolFinder::solve(CellI& equation)
 {
-    DEBUG(toolFinderExplore, "solve equation: {}", equation.printAsValue());
+    DEBUG(toolFinderExplore, "solving equation: {}", equation.printAsValue());
     std::list<BuilderChainNode>* solver = getSolver(equation);
     if (!solver) {
         DEBUG(toolFinderExplore, "No solver!");
@@ -1870,30 +1870,6 @@ static CellI* findMissingParameterKey(ToolFinder::ConversionToolBlueprint& bluep
     return nullptr;
 }
 
-class SolverLib : public Library
-{
-public:
-    SolverLib(World& w, Ast::Scope& parentScope, CellI& solverAst);
-};
-class SolverLibAst : public AstHelper
-{
-public:
-    SolverLibAst(World& w, Ast::Scope& scope, CellI& solverAst);
-};
-
-SolverLibAst::SolverLibAst(World& w, Ast::Scope& parentScope, CellI& solverAst) :
-    AstHelper(w)
-{
-    parentScope.add<Function>("solverFunction")
-        .instructions(solverAst);
-}
-
-SolverLib::SolverLib(World& w, Ast::Scope& parentScope, CellI& solverAst) :
-    Library(w, parentScope, "solver")
-{
-    SolverLibAst solverLibAst(w, parentScope.add<Ast::Scope>("solver"), solverAst);
-}
-
 class ConversionLib : public Library
 {
 public:
@@ -1925,7 +1901,6 @@ ConversionLib::ConversionLib(World& w, Ast::Scope& parentScope, const std::strin
 // ============================================================================
 void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolFinder::ConversionToolBlueprint& blueprint, List& results)
 {
-    CellI* toolPtr = nullptr;
     CellI& blueprintTool = *blueprint.m_tool;
     CellI& blueprintKey  = *blueprint.m_slotId;
 
@@ -1939,6 +1914,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& missingSlotId = *missingSlotIdPtr;
     auto& getValueFromX  = w.op.get(w.op.unknown_(unknownX), w.op.const_(id.value));
     getValueFromX.set(id.state, std.op.State.missingInput);
+    CellI* toolPtr = nullptr;
     if (blueprintTool.has(w.id.primitiveTool)) {
         Map& membersMapping = static_cast<Map&>(blueprintTool[w.id.ast][w.id.memberMapping]);
         CellI& tool         = *new Object(w, blueprintTool);
@@ -1960,9 +1936,8 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         return;
     }
 
-    CellI& missingSlotSolver = *solvedMissingSlotEquationPtr;
-    DEBUG(toolFinderExplore, "solved as: {}", missingSlotSolver.printAsValue());
-    List* missingSlotSolversPtr = &findToolsByDescription(missingSlotSolver, DescriptionKind::consequence);
+    CellI& solvedMissingSlotEquation = *solvedMissingSlotEquationPtr;
+    List* missingSlotSolversPtr = &findToolsByDescription(solvedMissingSlotEquation, DescriptionKind::consequence);
 
     if (!missingSlotSolversPtr) {
         return;
@@ -1976,24 +1951,30 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         missingSlotSolver();
 
         CellI& solvedX = unknownX[id.value];
-        DEBUG(toolFinderExplore, "unknownX.value = {}", solvedX.label());
+        DEBUG(toolFinderExplore, " solved equation: {}  =>  {}  =>  {} = {}", solvedMissingSlotEquation.printAsValue(), missingSlotSolver.printAsValue(), unknownX.label(), solvedX.label());
+        //        DEBUG(toolFinderExplore, "unknownX.value = {}", solvedX.label());
 
         Ast::Scope rootScope2(w, "toolFinder");
         Compiler compiler2(w);
-        DEBUG(toolFinderExplore, "{}({}, {}) == {}", blueprint.m_tool->label(), solvedX.label(), from.label(), to.label());
+        DEBUG(toolFinderExplore, " generating fn {}(X:{}, from:{})", blueprint.m_tool->label(), solvedX.label(), from.label());
 
-        std::string conversionToolName = fmt::format("conversionToolFor{}", blueprint.m_tool->label());
-        return; // TODO
-        CellI& conversionToolAst = *new Object(w, std.ast.Function);
-        conversionToolAst.set(*blueprint.m_slotId, w.ast.parameter(w.name("from")));
-        conversionToolAst.set(missingSlotId, w.ast._(solvedX));
+        std::string conversionToolName = fmt::format("conversionToolFor_{}", blueprintTool[id.name].label());
+        //        CellI& conversionToolAst       = w.ast.call(blueprintTool);
+
+        CellI* conversionToolAstPtr = nullptr;
+        if (blueprintTool.has(w.id.primitiveTool)) {
+            conversionToolAstPtr = &w.ast.call(w.ast.parameter(w.name("from")), w.ast.primitiveToolName(blueprintTool))(id.other, w.ast._(solvedX));
+        } else {
+            panic("TODO");
+        }
+        CellI& conversionToolAst = *conversionToolAstPtr;
         ConversionLib conversionLib(w, rootScope2, conversionToolName, conversionToolAst, from.__type__(), to.__type__());
         conversionLib.include(w.arcLib());
         compiler2.compile(conversionLib);
-        auto& conversionToolFn = conversionLib.getFunction(fmt::format("conversion::{}", conversionToolName));
+        auto& conversionTool = conversionLib.getFunction(fmt::format("conversion::{}", conversionToolName));
 
-        printAsValue(conversionToolFn, "");
-        results.add(conversionToolFn);
+        DEBUG(toolFinderExplore, " generated\n{}", conversionTool.printAsValue());
+        results.add(conversionTool);
     }
 }
 
