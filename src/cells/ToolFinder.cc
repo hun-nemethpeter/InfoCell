@@ -24,6 +24,14 @@ template <>
 struct fmt::formatter<infocell::cells::ToolFinder::DescriptionKind> : ostream_formatter
 { };
 
+template <>
+struct fmt::formatter<infocell::cells::ToolFinder::SolverStateNode::InputCommand> : ostream_formatter
+{ };
+
+template <>
+struct fmt::formatter<infocell::cells::ToolFinder::SolverStateNode::SubCommand::Kind> : ostream_formatter
+{ };
+
 namespace infocell {
 namespace cells {
 
@@ -630,6 +638,7 @@ bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPus
     } else {
         auto keyFindIt = node->m_children.find(&key);
         if (keyFindIt == node->m_children.end()) {
+            TRACE(toolFinderLookup, "MATCH failed");
             return false;
         } else {
             TRACE(toolFinderLookup, "MATCH: {}", key.label());
@@ -1022,18 +1031,382 @@ void ToolFinder::addSolver(CellI& description, std::list<BuilderChainNode>& solv
     currentNode->m_solver = solver;
 }
 
+std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::SubCommand::Kind& kind)
+{
+    using Kind = ToolFinder::SolverStateNode::SubCommand::Kind;
+
+    switch (kind) {
+    case Kind::nop:
+        os << "nop";
+        break;
+    case Kind::checkKey:
+        os << "checkKey";
+        break;
+    case Kind::checkKeyValue:
+        os << "checkKeyValue";
+        break;
+    };
+
+    return os;
+}
+std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::InputCommand& command)
+{
+    using Command = ToolFinder::SolverStateNode::InputCommand;
+
+    switch (command) {
+    case Command::check:
+        os << "check";
+        break;
+    case Command::push:
+        os << "push";
+        break;
+    };
+
+    return os;
+}
+
+// ============================================================================
+ToolFinder::SolverState::SolverState(ToolFinder& toolFinder, CellI& description) :
+    m_toolFinder(toolFinder),
+    m_description(description),
+    m_rootNode(*toolFinder.getRootNodeForDescriptionKind(DescriptionKind::solver))
+{
+    auto& id = description.w.id;
+    SolverPointer solverPointer(m_description);
+    m_startSolverNode = std::make_unique<SolverStateNode>(*this, solverPointer, &m_rootNode, nullptr);
+}
+
+// ============================================================================
+ToolFinder::SolverStateNode& ToolFinder::SolverState::startSolverNode()
+{
+    return *m_startSolverNode;
+}
+
+// ============================================================================
+void ToolFinder::SolverState::buildStates()
+{
+    TRACE(toolFinderExplore, "getSolver2 buildStates");
+
+    auto& id  = m_description.w.id;
+    auto& std = m_description.w.std;
+
+    std::deque<SolverStateNode*> nextStates;
+    SolverStateNode* startSolverNodePtr = &startSolverNode();
+    nextStates.push_back(startSolverNodePtr);
+
+    while (!nextStates.empty()) {
+        SolverStateNode* solverNodePtr = nextStates.front();
+        nextStates.pop_front();
+        if (!(solverNodePtr == startSolverNodePtr && solverNodePtr->empty())) {
+            bool success  = false;
+            solverNodePtr = solverNodePtr->step(success);
+            if (success) {
+                DEBUG(toolFinderExplore, "getSolver2 solver found");
+                continue;
+            }
+            if (!solverNodePtr) {
+                TRACE(toolFinderExplore, "getSolver2 deadend");
+                continue;
+            }
+        }
+        SolverPointer pointer = solverNodePtr->pointer();
+        auto& solverNode      = *solverNodePtr;
+        CellI* currentCellPtr = pointer.m_cellPtr;
+        CellI& currentCell    = *currentCellPtr;
+        CellI* memberNodePtr  = pointer.m_memberNodePtr;
+        CellI& memberNode     = *memberNodePtr;
+        CellI& memberKV       = memberNode[id.value];
+        CellI& member         = memberKV[id.value];
+        CellI& memberName     = member[id.name];
+        CellI& memberRelation = member[id.relation];
+        CellI& memberRole     = member[id.role];
+
+        if (&memberRelation == &std.op.Member.Relation.external) {
+            if (&memberRole == &std.op.Member.Role.constant) {
+                CellI& memberValue = currentCell[memberName];
+                solverNode.checkKeyValue(memberName, memberValue);
+            } else if (&memberRole == &std.op.Member.Role.input) {
+                CellI& memberValue = currentCell[memberName];
+                if (&memberValue.__type__() == &std.op.ConstVar) {
+                    solverNode.checkKey(memberName);
+                    solverNode.checkKeyValue(id.op, id.push);
+                    solverNode.checkKeyValue(id.__type__, std.op.ConstVar);
+                    solverNode.checkKeyValue(id.op, id.pop);
+                } else if (&memberValue.__type__() == &std.op.UnknownVar) {
+                    solverNode.checkKey(memberName);
+                    solverNode.checkKeyValue(id.op, id.push);
+                    solverNode.checkKeyValue(id.__type__, std.op.UnknownVar);
+                    solverNode.checkKeyValue(id.op, id.pop);
+                } else {
+                    if (memberValue.has(id.state) && (&memberValue[id.state] == &std.op.State.missingInput)) {
+                        // there are two option here:
+                        // 1. this is an uninitialized variable
+                        solverNode.checkKey(memberName);
+                        solverNode.checkKeyValue(id.op, id.push);
+                        solverNode.checkKeyValue(id.__type__, std.op.UnknownVar);
+                        solverNode.checkKeyValue(id.op, id.pop);
+
+                        // 2. this a function which depends on an uninitialized variable
+                        auto& child = solverNodePtr->addChild(solverNode);
+                        child.checkKey(memberName);
+                        child.checkKeyValue(id.op, id.push);
+                        child.push();
+                        nextStates.push_back(&child);
+                    } else {
+                        solverNode.checkKeyValue(id.op, id.push);
+                        solverNode.push();
+                    }
+                }
+            } else {
+                panic("Unprocessed member!");
+            }
+        } else {
+            solverNode.checkKeyValue(id.op, id.push);
+            solverNode.push();
+        }
+        TRACE(toolFinderExplore, "getSolver2 processed: {}, {}:{}", solverNodePtr->m_subCommands.back().m_kind, currentCell.__type__().label(), memberName.label());
+        nextStates.push_back(solverNodePtr);
+    }
+}
+
+void ToolFinder::SolverState::executeStates()
+{
+}
+
+// ============================================================================
+ToolFinder::SolverPointer::SolverPointer() :
+    m_cellPtr(nullptr), m_memberNodePtr(nullptr), m_parent(nullptr)
+{
+}
+
+// ============================================================================
+ToolFinder::SolverPointer::SolverPointer(CellI& description)
+{
+    auto& id        = description.w.id;
+    m_cellPtr       = &description;
+    m_memberNodePtr = &(description).__type__()[id.memberIds][id.first];
+}
+
+// ============================================================================
+ToolFinder::SolverPointer::SolverPointer(SolverPointer* parent, CellI* cellPtr, CellI* memberNodePtr) :
+    m_parent(parent), m_cellPtr(cellPtr), m_memberNodePtr(memberNodePtr)
+{
+
+}
+
+// ============================================================================
+CellI& ToolFinder::SolverPointer::memberName()
+{
+    auto& id          = (*m_cellPtr).w.id;
+    CellI& memberNode = *m_memberNodePtr;
+    CellI& memberKV   = memberNode[id.value];
+    CellI& member     = memberKV[id.value];
+
+    return member[id.name];
+}
+
+// ============================================================================
+CellI& ToolFinder::SolverPointer::memberValue()
+{
+    CellI& current = *m_cellPtr;
+    return current[memberName()];
+}
+
+// ============================================================================
+ToolFinder::SolverPointer ToolFinder::SolverPointer::step(SolverStateNode& solverStateNode, int& popCount)
+{
+    auto& id  = (*m_cellPtr).w.id;
+    auto& std = (*m_cellPtr).w.std;
+
+    if (solverStateNode.m_inputCommand == SolverStateNode::InputCommand::push) {
+        CellI* cellPtr       = &memberValue();
+        CellI* memberNodePtr = &(*cellPtr).__type__()[id.memberIds][id.first];
+        return { this, cellPtr, memberNodePtr };
+    }
+
+    CellI* cellPtr        = m_cellPtr;
+    CellI* memberNodePtr  = m_memberNodePtr;
+    SolverPointer* parent = m_parent;
+
+    while (true) {
+        memberNodePtr = memberNodePtr->getNextOrNullptr();
+        while (!memberNodePtr && parent) {
+            cellPtr       = parent->m_cellPtr;
+            memberNodePtr = parent->m_memberNodePtr;
+            parent        = parent->m_parent;
+            ++popCount;
+            memberNodePtr = memberNodePtr->getNextOrNullptr();
+        }
+
+        if (!memberNodePtr) {
+            return { parent, cellPtr, memberNodePtr };
+        }
+
+        CellI& memberKV   = (*memberNodePtr)[id.value];
+        CellI& member     = memberKV[id.value];
+        CellI& memberRole = member[id.role];
+        if (&memberRole == &std.op.Member.Role.constant || &memberRole == &std.op.Member.Role.input) {
+            return { parent, cellPtr, memberNodePtr };
+        }
+    }
+
+    return SolverPointer();
+}
+
+// ============================================================================
+bool ToolFinder::SolverPointer::isLast()
+{
+    return !m_cellPtr || !m_memberNodePtr;
+}
+
+// ============================================================================
+bool ToolFinder::SolverPointer::isUninitialized()
+{
+    return (m_parent == nullptr) && (m_cellPtr == nullptr) && (m_memberNodePtr == nullptr);
+}
+
+// ============================================================================
+bool ToolFinder::SolverPointer::operator==(const SolverPointer& rhs) const
+{
+    return m_cellPtr == rhs.m_cellPtr && m_memberNodePtr == rhs.m_memberNodePtr;
+}
+
+// ============================================================================
+ToolFinder::SolverStateNode::SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr, SolverStateNode* previous) :
+    m_state(state),
+    m_inputCommand(InputCommand::check),
+    m_nodePtr(nodePtr),
+    m_previous(previous),
+    m_solverPointer(solverPointer)
+{
+}
+
+void ToolFinder::SolverStateNode::checkKey(CellI& key)
+{
+    m_subCommands.emplace_back(SubCommand::Kind::checkKey, &key, nullptr);
+}
+
+void ToolFinder::SolverStateNode::checkKeyValue(CellI& key, CellI& value)
+{
+    m_subCommands.emplace_back(SubCommand::Kind::checkKeyValue, &key, &value);
+}
+
+void ToolFinder::SolverStateNode::push()
+{
+    m_inputCommand = InputCommand::push;
+}
+
+bool ToolFinder::SolverStateNode::empty()
+{
+    return m_subCommands.empty();
+}
+
+bool ToolFinder::SolverStateNode::evaluate()
+{
+    bool ret = true;
+    for (auto& command : m_subCommands) {
+        ret &= command.evaluate(m_state.m_toolFinder, m_nodePtr);
+        if (ret == false) {
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+bool ToolFinder::SolverStateNode::SubCommand::evaluate(ToolFinder& toolFinder, Node*& node)
+{
+    switch (m_kind) {
+    case Kind::nop:
+        return true;
+    case Kind::checkKey:
+        return toolFinder.checkConstValue(node, *m_key1);
+    case Kind::checkKeyValue:
+        return toolFinder.checkConstKeyValue(node, *m_key1, *m_key2);
+    };
+
+    return false;
+}
+
+ToolFinder::SolverStateNode& ToolFinder::SolverStateNode::addNext(SolverStateNode*& solverNodePtr)
+{
+    m_children.push_back(std::make_unique<SolverStateNode>(m_state, solverNodePtr->m_solverPointer, solverNodePtr->m_nodePtr, this));
+    auto* ret     = m_children.back().get();
+    solverNodePtr = ret;
+
+    return *ret;
+}
+
+ToolFinder::SolverStateNode& ToolFinder::SolverStateNode::addChild(SolverStateNode& solverNode)
+{
+    m_children.push_back(std::make_unique<SolverStateNode>(m_state, solverNode.m_solverPointer, solverNode.m_nodePtr, this));
+    auto* ret = m_children.back().get();
+    ret->m_parent = this;
+
+    return *ret;
+}
+
+ToolFinder::SolverStateNode* ToolFinder::SolverStateNode::step(bool& success)
+{
+    auto& id = m_state.m_toolFinder.id;
+    if (!evaluate()) {
+        return nullptr;
+    }
+    int popCount = 0;
+    SolverPointer nextPointer = pointer().step(*this, popCount);
+    if (nextPointer.isLast()) {
+        success = true;
+        return nullptr;
+    }
+
+    SolverStateNode* solverNodePtr = this;
+    solverNodePtr->addNext(solverNodePtr).pointer(nextPointer);
+    for (int i = 0; i < popCount; ++i) {
+        (*solverNodePtr).checkKeyValue(id.op, id.pop);
+    }
+
+    return solverNodePtr;
+}
+
+ToolFinder::SolverPointer& ToolFinder::SolverStateNode::pointer()
+{
+    return m_solverPointer;
+}
+
+void ToolFinder::SolverStateNode::pointer(CellI& description)
+{
+    m_solverPointer = SolverPointer(description);
+}
+
+void ToolFinder::SolverStateNode::pointer(SolverPointer& solverPointer)
+{
+    m_solverPointer = solverPointer;
+}
+
+// ============================================================================
+ToolFinder::SolverState& ToolFinder::getSolver2(CellI& description)
+{
+    DEBUG(toolFinderExplore, "getSolver2 {}", description.label());
+
+    SolverState& solverState  = *new SolverState(*this, description);
+    solverState.buildStates();
+
+    return solverState;
+}
+
 struct SolverStackNode
 {
-    CellI* effectPtr;
-    CellI* slotItemPtr;
+    CellI* effectPtr   = nullptr;
+    CellI* slotItemPtr = nullptr;
 };
 
 // ============================================================================
 std::list<ToolFinder::BuilderChainNode>* ToolFinder::getSolver(CellI& description)
 {
     TRACE(toolFinderExplore, "getSolver {}", description.label());
+
     std::deque<SolverStackNode> stack;
-    Node* currentNode = getRootNodeForDescriptionKind(DescriptionKind::solver);
+    Node* currentNode    = getRootNodeForDescriptionKind(DescriptionKind::solver);
     CellI* memberItemPtr = &description.__type__()[id.memberIds][id.first];
     CellI* currentPtr    = &description;
 
@@ -1080,6 +1453,9 @@ std::list<ToolFinder::BuilderChainNode>* ToolFinder::getSolver(CellI& descriptio
                     }
                 } else {
                     if (memberValue.has(id.state) && (&memberValue[id.state] == &std.op.State.missingInput)) {
+                        // there are two option here:
+                        // 1. this is an uninitialized variable
+                        // 2. this a function which depends on an uninitialized variable
                         if (!checkConstKeyValue(currentNode, id.op, id.push)) {
                             return nullptr;
                         }

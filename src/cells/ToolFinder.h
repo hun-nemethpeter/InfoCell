@@ -79,6 +79,88 @@ public:
     void add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
     List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
     CellI* solve(CellI& equation);
+
+    struct SolverStateNode;
+
+    struct SolverPointer
+    {
+        SolverPointer();
+        SolverPointer(CellI& description);
+        SolverPointer(SolverPointer* parent, CellI* cellPtr, CellI* memberNodePtr);
+        CellI& memberName();
+        CellI& memberValue();
+        SolverPointer step(SolverStateNode& solverStateNode, int& popCount);
+        bool isLast();
+        bool isUninitialized();
+        bool operator==(const SolverPointer& rhs) const;
+
+        SolverPointer* m_parent = nullptr;
+        CellI* m_cellPtr        = nullptr;
+        CellI* m_memberNodePtr  = nullptr;
+    };
+
+    struct SolverState
+    {
+        SolverState(ToolFinder& toolFinder, CellI& description);
+
+        SolverStateNode& startSolverNode();
+        void buildStates();
+        void executeStates();
+
+        ToolFinder& m_toolFinder;
+        CellI& m_description;
+        Node& m_rootNode;
+        std::unique_ptr<SolverStateNode> m_startSolverNode;
+    };
+
+    struct SolverStateNode
+    {
+        enum class InputCommand
+        {
+            check,
+            push
+        };
+        struct SubCommand
+        {
+            enum class Kind
+            {
+                nop,
+                checkKey,
+                checkKeyValue
+            };
+
+            bool evaluate(ToolFinder& toolFinder, Node*& node);
+            Kind m_kind   = Kind::nop;
+            CellI* m_key1 = nullptr;
+            CellI* m_key2 = nullptr;
+        };
+
+        SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* m_nodePtr, SolverStateNode* previous);
+
+        void checkKey(CellI& key);
+        void checkKeyValue(CellI& key, CellI& value);
+        void push();
+        SolverStateNode& addNext(SolverStateNode*& solverNodePtr);
+        SolverStateNode& addChild(SolverStateNode& solverNodePtr);
+        SolverStateNode* step(bool& success);
+        SolverPointer& pointer();
+        void pointer(CellI& description);
+        void pointer(SolverPointer& solverPointer);
+        bool evaluate();
+        bool empty();
+
+        SolverState& m_state;
+        InputCommand m_inputCommand = InputCommand::check;
+        Node* m_nodePtr             = nullptr;
+        CellI* m_inputCell          = nullptr;
+        SolverStateNode* m_parent   = nullptr;
+        SolverStateNode* m_previous = nullptr;
+        std::vector<SubCommand> m_subCommands;
+        std::vector<std::unique_ptr<SolverStateNode>> m_children;
+        SolverPointer m_solverPointer;
+    };
+
+    SolverState& getSolver2(CellI& description);
     CellI& findConversionTools(CellI& from, CellI& to);
     void exploreSlotManipulations();
 
@@ -162,6 +244,8 @@ private:
 std::ostream& operator<<(std::ostream& os, const ToolFinder::DescriptionKind& descriptionKind);
 std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolKey& key);
 std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBlueprint& blueprint);
+std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::InputCommand& inputCommand);
+std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::SubCommand::Kind& kind);
 
 } // namespace cells
 } // namespace infocell
