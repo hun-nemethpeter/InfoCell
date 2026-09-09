@@ -2427,6 +2427,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("other", "Boolean"))
         .descriptionBegin()
             .consequences(
+                equal(not_(or_(not_(self()), not_(p_("other")))), return_()), // TODO: do we need this?!
                 equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
                 equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
                 equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.false_)),

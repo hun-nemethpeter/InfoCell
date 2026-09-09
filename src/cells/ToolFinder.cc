@@ -1963,7 +1963,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
 
         CellI* conversionToolAstPtr = nullptr;
         if (blueprintTool.has(w.id.primitiveTool)) {
-            conversionToolAstPtr = &w.ast.call(w.ast.parameter(w.name("from")), w.ast.primitiveToolName(blueprintTool))(id.other, w.ast._(solvedX));
+            conversionToolAstPtr = &w.ast.call(w.ast._(solvedX), w.ast.primitiveToolName(blueprintTool))(id.other, w.ast.parameter(w.name("from")));
         } else {
             panic("TODO");
         }
