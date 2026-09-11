@@ -1267,26 +1267,22 @@ void ToolFinder::SolverState::run()
         if (&memberRelation == &std.op.Member.Relation.external) {
             if (&memberRole == &std.op.Member.Role.constant) {
                 solverNode.checkKeyValue(memberName, memberValue);
-                addNextState(solverNode);
             } else if (&memberRole == &std.op.Member.Role.input) {
                 if (&memberValue.__type__() == &std.op.ConstVar) {
                     solverNode.checkKey(memberName);
                     solverNode.checkKeyValue(id.op, id.push);
                     solverNode.checkKeyValue(id.__type__, std.op.ConstVar);
                     solverNode.checkKeyValue(id.op, id.pop);
-                    addNextState(solverNode);
                 } else if (&memberValue.__type__() == &std.op.UnknownVar) {
                     solverNode.checkKey(memberName);
                     solverNode.checkKeyValue(id.op, id.push);
                     solverNode.checkKeyValue(id.__type__, std.op.UnknownVar);
                     solverNode.checkKeyValue(id.op, id.pop);
-                    addNextState(solverNode);
                 } else {
                     if (memberValue.has(id.state) && (&memberValue[id.state] == &std.op.State.missingInput)) {
 
                         // there are two option here:
                         solverNode.or_();
-                        addNextState(solverNode);
 
                         // 1. this is an uninitialized variable
                         auto& child1 = solverNode.addChild(solverNode);
@@ -1294,18 +1290,15 @@ void ToolFinder::SolverState::run()
                         child1.checkKeyValue(id.op, id.push);
                         child1.checkKeyValue(id.__type__, std.op.UnknownVar);
                         child1.checkKeyValue(id.op, id.pop);
-                        addNextState(child1);
 
                         // 2. this is a function which depends on an uninitialized variable
                         auto& child2 = solverNode.addChild(solverNode);
                         child2.checkKey(memberName);
                         child2.checkKeyValue(id.op, id.push);
                         child2.push();
-                        addNextState(child2);
                     } else {
                         solverNode.checkKeyValue(id.op, id.push);
                         solverNode.push();
-                        addNextState(solverNode);
                     }
                 }
             } else {
@@ -1314,8 +1307,8 @@ void ToolFinder::SolverState::run()
         } else {
             solverNode.checkKeyValue(id.op, id.push);
             solverNode.push();
-            addNextState(solverNode);
         }
+        addNextState(solverNode);
     }
 }
 
@@ -1325,6 +1318,9 @@ void ToolFinder::SolverState::addNextState(SolverStateNode& solverStateNode)
     TRACE(toolFinderExplore, "getSolver2 accepted: {}, {}", solverStateNode.m_inputCommand, solverStateNode.m_solverPointer.printKV());
     solverStateNode.m_matchStatus = SolverStateNode::MatchStatus::accepted;
     m_nextStates.push_back(&solverStateNode);
+    for (auto& child : solverStateNode.m_children) {
+        addNextState(*child);
+    }
 }
 
 // ============================================================================
