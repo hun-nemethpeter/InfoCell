@@ -25,6 +25,10 @@ struct fmt::formatter<infocell::cells::ToolFinder::DescriptionKind> : ostream_fo
 { };
 
 template <>
+struct fmt::formatter<infocell::cells::ToolFinder::SolverStateNode::MatchStatus> : ostream_formatter
+{ };
+
+template <>
 struct fmt::formatter<infocell::cells::ToolFinder::SolverStateNode::InputCommand> : ostream_formatter
 { };
 
@@ -1031,6 +1035,7 @@ void ToolFinder::addSolver(CellI& description, std::list<BuilderChainNode>& solv
     currentNode->m_solver = solver;
 }
 
+// ============================================================================
 std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::SubCommand::Kind& kind)
 {
     using Kind = ToolFinder::SolverStateNode::SubCommand::Kind;
@@ -1049,6 +1054,34 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::Su
 
     return os;
 }
+
+// ============================================================================
+std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::MatchStatus& matchStatus)
+{
+    using MatchStatus = ToolFinder::SolverStateNode::MatchStatus;
+
+    switch (matchStatus) {
+    case MatchStatus::created:
+        os << "created";
+        break;
+    case MatchStatus::accepted:
+        os << "accepted";
+        break;
+    case MatchStatus::checked:
+        os << "checked";
+        break;
+    case MatchStatus::failed:
+        os << "failed";
+        break;
+    case MatchStatus::finished:
+        os << "finished";
+        break;
+    };
+
+    return os;
+}
+
+// ============================================================================
 std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::InputCommand& command)
 {
     using Command = ToolFinder::SolverStateNode::InputCommand;
@@ -1056,6 +1089,9 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::In
     switch (command) {
     case Command::check:
         os << "check";
+        break;
+    case Command::or_:
+        os << "or";
         break;
     case Command::push:
         os << "push";
@@ -1083,6 +1119,100 @@ std::list<std::list<ToolFinder::BuilderChainNode>*>& ToolFinder::SolverState::re
 }
 
 // ============================================================================
+void ToolFinder::SolverState::printAsDot()
+{
+    auto& id  = m_description.w.id;
+    auto& std = m_description.w.std;
+
+    std::stringstream ss;
+    ss <<
+        R"(digraph structs {
+    node  [shape=plaintext]
+    graph [fontname = "Helvetica",
+           fontsize = 36,
+           label = "Parse char:1",
+          ];
+)";
+    struct Edge
+    {
+        SolverStateNode* from;
+        SolverStateNode* to;
+    };
+    std::deque<Edge> edges;
+    std::set<SolverStateNode*> states;
+    edges.push_back({ nullptr, &startSolverNode() });
+
+    while (!edges.empty()) {
+        Edge edge = edges.front();
+        edges.pop_front();
+        states.insert(edge.from);
+        states.insert(edge.to);
+        for (auto& child : edge.to->m_children) {
+            edges.push_back({ edge.to, child.get() });
+        }
+    }
+    for (SolverStateNode* stateNodePtr : states) {
+        if (!stateNodePtr) {
+            continue;
+        }
+        SolverStateNode& stateNode = *stateNodePtr;
+        ss << fmt::format(
+            R"("state{}" [label=<
+              <TABLE BORDER="1" CELLBORDER="0">
+                  <TR>
+                      <TD COLSPAN="4" bgcolor="dodgerblue1">{}</TD>
+                  </TR>
+                  <TR>
+                      <TD COLSPAN="2" bgcolor="wheat">{}</TD>
+                      <TD COLSPAN="2" bgcolor="wheat">{}</TD>
+                  </TR>
+)",
+            fmt::ptr(stateNodePtr), (*stateNode.m_solverPointer.m_cellPtr).__type__().label(), stateNode.m_matchStatus, stateNode.m_inputCommand);
+        std::string currentMemberNameStr = stateNode.m_solverPointer.memberName().label();
+        int i = 0;
+        for (auto& memberKV : (*stateNode.m_solverPointer.m_cellPtr).__type__()[id.memberIds]) {
+            CellI& member             = memberKV[id.value];
+            CellI& memberName         = member[id.name];
+            CellI& memberRelation     = member[id.relation];
+            CellI& memberRole         = member[id.role];
+            std::string memberNameStr = memberName.label();
+
+            if (!(&memberRole == &std.op.Member.Role.constant || &memberRole == &std.op.Member.Role.input)) {
+                continue;
+            }
+            ss << fmt::format(
+R"(
+                  <TR>
+                      <TD bgcolor="lightgoldenrod2">{}</TD>
+                      <TD COLSPAN="3" {} port="f0">{}</TD>
+                  </TR>
+)",
+                i++, (currentMemberNameStr == memberNameStr ? "bgcolor=\"orangered\"" : ""), memberNameStr);
+    }
+        ss << fmt::format(
+            R"(
+              </TABLE>
+         >];
+)");
+    }
+
+    edges.push_back({ nullptr, &startSolverNode() });
+    while (!edges.empty()) {
+        Edge edge = edges.front();
+        edges.pop_front();
+        states.insert(edge.from);
+        states.insert(edge.to);
+        ss << fmt::format("\"state{}\" -> \"state{}\"\n", fmt::ptr(edge.from), fmt::ptr(edge.to));
+        for (auto& child : edge.to->m_children) {
+            edges.push_back({ edge.to, child.get() });
+        }
+    }
+
+    ss << "}\n";
+    std::cout << ss.str();
+}
+
+// ============================================================================
 ToolFinder::SolverStateNode& ToolFinder::SolverState::startSolverNode()
 {
     return *m_startSolverNode;
@@ -1103,9 +1233,15 @@ void ToolFinder::SolverState::run()
         SolverStateNode* solverNodePtr = m_nextStates.front();
         m_nextStates.pop_front();
 
+        if (solverNodePtr->m_inputCommand == SolverStateNode::InputCommand::or_) {
+            solverNodePtr->m_matchStatus = SolverStateNode::MatchStatus::checked;
+            continue;
+        }
+
         if (solverNodePtr->m_matchStatus == SolverStateNode::MatchStatus::accepted) {
             SolverStateNode& lastSolverNode = *solverNodePtr;
             solverNodePtr = solverNodePtr->step();
+            printAsDot();
             if (lastSolverNode.m_matchStatus == SolverStateNode::MatchStatus::finished) {
                 DEBUG(toolFinderExplore, "getSolver2 solver found");
                 m_results.push_back(&lastSolverNode.m_nodePtr->m_solver);
@@ -1131,35 +1267,45 @@ void ToolFinder::SolverState::run()
         if (&memberRelation == &std.op.Member.Relation.external) {
             if (&memberRole == &std.op.Member.Role.constant) {
                 solverNode.checkKeyValue(memberName, memberValue);
+                addNextState(solverNode);
             } else if (&memberRole == &std.op.Member.Role.input) {
                 if (&memberValue.__type__() == &std.op.ConstVar) {
                     solverNode.checkKey(memberName);
                     solverNode.checkKeyValue(id.op, id.push);
                     solverNode.checkKeyValue(id.__type__, std.op.ConstVar);
                     solverNode.checkKeyValue(id.op, id.pop);
+                    addNextState(solverNode);
                 } else if (&memberValue.__type__() == &std.op.UnknownVar) {
                     solverNode.checkKey(memberName);
                     solverNode.checkKeyValue(id.op, id.push);
                     solverNode.checkKeyValue(id.__type__, std.op.UnknownVar);
                     solverNode.checkKeyValue(id.op, id.pop);
+                    addNextState(solverNode);
                 } else {
                     if (memberValue.has(id.state) && (&memberValue[id.state] == &std.op.State.missingInput)) {
+
                         // there are two option here:
+                        solverNode.or_();
+                        addNextState(solverNode);
+
                         // 1. this is an uninitialized variable
-                        solverNode.checkKey(memberName);
-                        solverNode.checkKeyValue(id.op, id.push);
-                        solverNode.checkKeyValue(id.__type__, std.op.UnknownVar);
-                        solverNode.checkKeyValue(id.op, id.pop);
+                        auto& child1 = solverNode.addChild(solverNode);
+                        child1.checkKey(memberName);
+                        child1.checkKeyValue(id.op, id.push);
+                        child1.checkKeyValue(id.__type__, std.op.UnknownVar);
+                        child1.checkKeyValue(id.op, id.pop);
+                        addNextState(child1);
 
                         // 2. this is a function which depends on an uninitialized variable
-                        auto& child = solverNodePtr->addChild(solverNode);
-                        child.checkKey(memberName);
-                        child.checkKeyValue(id.op, id.push);
-                        child.push();
-                        addNextState(child);
+                        auto& child2 = solverNode.addChild(solverNode);
+                        child2.checkKey(memberName);
+                        child2.checkKeyValue(id.op, id.push);
+                        child2.push();
+                        addNextState(child2);
                     } else {
                         solverNode.checkKeyValue(id.op, id.push);
                         solverNode.push();
+                        addNextState(solverNode);
                     }
                 }
             } else {
@@ -1168,15 +1314,15 @@ void ToolFinder::SolverState::run()
         } else {
             solverNode.checkKeyValue(id.op, id.push);
             solverNode.push();
+            addNextState(solverNode);
         }
-        addNextState(solverNode);
     }
 }
 
 // ============================================================================
 void ToolFinder::SolverState::addNextState(SolverStateNode& solverStateNode)
 {
-    TRACE(toolFinderExplore, "getSolver2 accepted: {}, {}", solverStateNode.m_subCommands.back().m_kind, solverStateNode.m_solverPointer.printKV());
+    TRACE(toolFinderExplore, "getSolver2 accepted: {}, {}", solverStateNode.m_inputCommand, solverStateNode.m_solverPointer.printKV());
     solverStateNode.m_matchStatus = SolverStateNode::MatchStatus::accepted;
     m_nextStates.push_back(&solverStateNode);
 }
@@ -1304,6 +1450,11 @@ void ToolFinder::SolverStateNode::checkKey(CellI& key)
 void ToolFinder::SolverStateNode::checkKeyValue(CellI& key, CellI& value)
 {
     m_subCommands.emplace_back(SubCommand::Kind::checkKeyValue, &key, &value);
+}
+
+void ToolFinder::SolverStateNode::or_()
+{
+    m_inputCommand = InputCommand::or_;
 }
 
 void ToolFinder::SolverStateNode::push()

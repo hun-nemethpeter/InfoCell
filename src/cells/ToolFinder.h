@@ -108,6 +108,7 @@ public:
         SolverStateNode& startSolverNode();
         void addNextState(SolverStateNode& solverStateNode);
         std::list<std::list<ToolFinder::BuilderChainNode>*>& results();
+        void printAsDot();
 
         ToolFinder& m_toolFinder;
         CellI& m_description;
@@ -130,6 +131,7 @@ public:
         enum class InputCommand
         {
             check,
+            or_,
             push
         };
         struct SubCommand
@@ -151,6 +153,7 @@ public:
 
         void checkKey(CellI& key);
         void checkKeyValue(CellI& key, CellI& value);
+        void or_();
         void push();
         SolverStateNode& addNext(SolverStateNode*& solverNodePtr);
         SolverStateNode& addChild(SolverStateNode& solverNodePtr);
@@ -257,6 +260,7 @@ private:
 std::ostream& operator<<(std::ostream& os, const ToolFinder::DescriptionKind& descriptionKind);
 std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolKey& key);
 std::ostream& operator<<(std::ostream& os, const ToolFinder::ConversionToolBlueprint& blueprint);
+std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::MatchStatus& matchStatus);
 std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::InputCommand& inputCommand);
 std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::SubCommand::Kind& kind);
 
