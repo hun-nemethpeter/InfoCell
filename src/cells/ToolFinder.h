@@ -89,6 +89,7 @@ public:
         SolverPointer(SolverPointer* parent, CellI* cellPtr, CellI* memberNodePtr);
         CellI& memberName();
         CellI& memberValue();
+        std::string printKV();
         SolverPointer step(SolverStateNode& solverStateNode, int& popCount);
         bool isLast();
         bool isUninitialized();
@@ -103,18 +104,29 @@ public:
     {
         SolverState(ToolFinder& toolFinder, CellI& description);
 
+        void run();
         SolverStateNode& startSolverNode();
-        void buildStates();
-        void executeStates();
+        void addNextState(SolverStateNode& solverStateNode);
+        std::list<std::list<ToolFinder::BuilderChainNode>*>& results();
 
         ToolFinder& m_toolFinder;
         CellI& m_description;
         Node& m_rootNode;
         std::unique_ptr<SolverStateNode> m_startSolverNode;
+        std::deque<SolverStateNode*> m_nextStates;
+        std::list<std::list<ToolFinder::BuilderChainNode>*> m_results;
     };
 
     struct SolverStateNode
     {
+        enum class MatchStatus
+        {
+            created,
+            accepted,
+            checked,
+            failed,
+            finished
+        };
         enum class InputCommand
         {
             check,
@@ -142,7 +154,7 @@ public:
         void push();
         SolverStateNode& addNext(SolverStateNode*& solverNodePtr);
         SolverStateNode& addChild(SolverStateNode& solverNodePtr);
-        SolverStateNode* step(bool& success);
+        SolverStateNode* step();
         SolverPointer& pointer();
         void pointer(CellI& description);
         void pointer(SolverPointer& solverPointer);
@@ -158,9 +170,10 @@ public:
         std::vector<SubCommand> m_subCommands;
         std::vector<std::unique_ptr<SolverStateNode>> m_children;
         SolverPointer m_solverPointer;
+        MatchStatus m_matchStatus = MatchStatus::created;
     };
 
-    SolverState& getSolver2(CellI& description);
+    std::unique_ptr<ToolFinder::SolverState> getSolver2(CellI& description);
     CellI& findConversionTools(CellI& from, CellI& to);
     void exploreSlotManipulations();
 

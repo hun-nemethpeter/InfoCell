@@ -506,7 +506,7 @@ TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
     std::cout << std::endl;
 
     CellI* simplifiedForm = toolFinder.solve(testRequestFn);
-    auto& test = toolFinder.getSolver2(testRequestFn);
+    auto test = toolFinder.getSolver2(testRequestFn);
     std::cout << "";
 
     EXPECT_NE(simplifiedForm, nullptr);
