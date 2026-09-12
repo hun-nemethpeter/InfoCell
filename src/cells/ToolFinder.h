@@ -130,7 +130,7 @@ public:
         };
         enum class InputCommand
         {
-            check,
+            and_,
             or_,
             push
         };
@@ -149,7 +149,7 @@ public:
             CellI* m_key2 = nullptr;
         };
 
-        SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* m_nodePtr, SolverStateNode* previous);
+        SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* m_nodePtr, SolverStateNode* parent);
 
         void checkKey(CellI& key);
         void checkKeyValue(CellI& key, CellI& value);
@@ -165,11 +165,10 @@ public:
         bool empty();
 
         SolverState& m_state;
-        InputCommand m_inputCommand = InputCommand::check;
+        InputCommand m_inputCommand = InputCommand::and_;
         Node* m_nodePtr             = nullptr;
         CellI* m_inputCell          = nullptr;
         SolverStateNode* m_parent   = nullptr;
-        SolverStateNode* m_previous = nullptr;
         std::vector<SubCommand> m_subCommands;
         std::vector<std::unique_ptr<SolverStateNode>> m_children;
         SolverPointer m_solverPointer;

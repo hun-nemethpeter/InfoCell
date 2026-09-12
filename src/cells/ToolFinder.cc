@@ -1087,8 +1087,8 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::In
     using Command = ToolFinder::SolverStateNode::InputCommand;
 
     switch (command) {
-    case Command::check:
-        os << "check";
+    case Command::and_:
+        os << "and";
         break;
     case Command::or_:
         os << "or";
@@ -1129,9 +1129,9 @@ void ToolFinder::SolverState::printAsDot()
         R"(digraph structs {
     node  [shape=plaintext]
     graph [fontname = "Helvetica",
-           fontsize = 36,
-           label = "Parse char:1",
+           fontsize = 36
           ];
+
 )";
     struct Edge
     {
@@ -1153,14 +1153,20 @@ void ToolFinder::SolverState::printAsDot()
     }
     for (SolverStateNode* stateNodePtr : states) {
         if (!stateNodePtr) {
+            ss << fmt::format(R"("state{}" [shape=Mdiamond style=filled,color="#bde0fe" label=Start];
+)",
+                              fmt::ptr(stateNodePtr));
+            continue;
+        }
+        if (stateNodePtr->m_inputCommand == SolverStateNode::InputCommand::or_) {
             continue;
         }
         SolverStateNode& stateNode = *stateNodePtr;
         ss << fmt::format(
             R"("state{}" [label=<
-              <TABLE BORDER="1" CELLBORDER="0">
+              <TABLE BORDER="0" CELLBORDER="0">
                   <TR>
-                      <TD COLSPAN="4" bgcolor="dodgerblue1">{}</TD>
+                      <TD COLSPAN="4" bgcolor="#a2d2ff">{}</TD>
                   </TR>
                   <TR>
                       <TD COLSPAN="2" bgcolor="wheat">{}</TD>
@@ -1180,6 +1186,10 @@ void ToolFinder::SolverState::printAsDot()
             if (!(&memberRole == &std.op.Member.Role.constant || &memberRole == &std.op.Member.Role.input)) {
                 continue;
             }
+            std::string bgcolor;
+            if (currentMemberNameStr == memberNameStr) {
+                bgcolor = stateNode.m_matchStatus == SolverStateNode::MatchStatus::failed ? R"(bgcolor="orangered")" : R"(bgcolor="#a7c957")";
+            }
             ss << fmt::format(
 R"(
                   <TR>
@@ -1187,7 +1197,7 @@ R"(
                       <TD COLSPAN="3" {} port="f0">{}</TD>
                   </TR>
 )",
-                i++, (currentMemberNameStr == memberNameStr ? "bgcolor=\"orangered\"" : ""), memberNameStr);
+                i++, bgcolor, memberNameStr);
     }
         ss << fmt::format(
             R"(
@@ -1202,7 +1212,14 @@ R"(
         edges.pop_front();
         states.insert(edge.from);
         states.insert(edge.to);
-        ss << fmt::format("\"state{}\" -> \"state{}\"\n", fmt::ptr(edge.from), fmt::ptr(edge.to));
+
+        if (edge.from && edge.from->m_inputCommand == SolverStateNode::InputCommand::or_) {
+            ss << fmt::format("\"state{}\" -> \"state{}\"\n", fmt::ptr(edge.from->m_parent), fmt::ptr(edge.to));
+        } else {
+            if (edge.to->m_inputCommand != SolverStateNode::InputCommand::or_) {
+                ss << fmt::format("\"state{}\" -> \"state{}\"\n", fmt::ptr(edge.from), fmt::ptr(edge.to));
+            }
+        }
         for (auto& child : edge.to->m_children) {
             edges.push_back({ edge.to, child.get() });
         }
@@ -1428,11 +1445,11 @@ bool ToolFinder::SolverPointer::operator==(const SolverPointer& rhs) const
 }
 
 // ============================================================================
-ToolFinder::SolverStateNode::SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr, SolverStateNode* previous) :
+ToolFinder::SolverStateNode::SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr, SolverStateNode* parent) :
     m_state(state),
-    m_inputCommand(InputCommand::check),
+    m_inputCommand(InputCommand::and_),
     m_nodePtr(nodePtr),
-    m_previous(previous),
+    m_parent(parent),
     m_solverPointer(solverPointer),
     m_matchStatus(MatchStatus::created)
 {
