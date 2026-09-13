@@ -87,13 +87,12 @@ public:
         SolverPointer();
         SolverPointer(CellI& description);
         SolverPointer(SolverPointer* parent, CellI* cellPtr, CellI* memberNodePtr);
+
         CellI& memberName();
         CellI& memberValue();
         std::string printKV();
         SolverPointer step(SolverStateNode& solverStateNode, int& popCount);
         bool isLast();
-        bool isUninitialized();
-        bool operator==(const SolverPointer& rhs) const;
 
         SolverPointer* m_parent = nullptr;
         CellI* m_cellPtr        = nullptr;
@@ -112,7 +111,6 @@ public:
 
         ToolFinder& m_toolFinder;
         CellI& m_description;
-        Node& m_rootNode;
         std::unique_ptr<SolverStateNode> m_startSolverNode;
         std::deque<SolverStateNode*> m_nextStates;
         std::list<std::list<ToolFinder::BuilderChainNode>*> m_results;
@@ -128,12 +126,14 @@ public:
             failed,
             finished
         };
+
         enum class InputCommand
         {
             and_,
             or_,
             push
         };
+
         struct SubCommand
         {
             enum class Kind
@@ -144,19 +144,22 @@ public:
             };
 
             bool evaluate(ToolFinder& toolFinder, Node*& node);
+            std::string printKey1();
+            std::string printKey2();
+
             Kind m_kind   = Kind::nop;
             CellI* m_key1 = nullptr;
             CellI* m_key2 = nullptr;
         };
 
-        SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* m_nodePtr, SolverStateNode* parent);
+        SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr, SolverStateNode* parent);
 
         void checkKey(CellI& key);
         void checkKeyValue(CellI& key, CellI& value);
         void or_();
         void push();
         SolverStateNode& addNext(SolverStateNode*& solverNodePtr);
-        SolverStateNode& addChild(SolverStateNode& solverNodePtr);
+        SolverStateNode& addChild(SolverStateNode& solverNode);
         SolverStateNode* step();
         SolverPointer& pointer();
         void pointer(CellI& description);
@@ -167,7 +170,6 @@ public:
         SolverState& m_state;
         InputCommand m_inputCommand = InputCommand::and_;
         Node* m_nodePtr             = nullptr;
-        CellI* m_inputCell          = nullptr;
         SolverStateNode* m_parent   = nullptr;
         std::vector<SubCommand> m_subCommands;
         std::vector<std::unique_ptr<SolverStateNode>> m_children;

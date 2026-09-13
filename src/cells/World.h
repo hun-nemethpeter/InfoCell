@@ -39,18 +39,6 @@ public:
         World& w;
     };
 
-    class Digits
-    {
-    public:
-        Digits(World& w);
-        void init();
-        Object& operator[](int digit);
-
-    protected:
-        std::vector<Object> m_digits;
-        World& w;
-    };
-
     class Numbers
     {
     public:
@@ -77,7 +65,6 @@ public:
     void init();
 
     Chars chars;
-    Digits digits;
     Numbers numbers;
     Strings strings;
 };

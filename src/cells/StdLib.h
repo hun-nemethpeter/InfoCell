@@ -715,6 +715,26 @@ public:
         Object Set;
     };
 
+    class EDigit : public Object
+    {
+        EDigit(World& w, CellI& type, const std::string& label);
+        friend class Std;
+
+    public:
+        Object& from(int digit);
+
+        Object _0_;
+        Object _1_;
+        Object _2_;
+        Object _3_;
+        Object _4_;
+        Object _5_;
+        Object _6_;
+        Object _7_;
+        Object _8_;
+        Object _9_;
+    };
+
     class EDirection : public Object
     {
         EDirection(World& w, CellI& type, const std::string& label);
@@ -765,7 +785,7 @@ public:
     SCell Cell;
     Object Char;
     Object Container;
-    Object Digit;
+    EDigit Digit;
     EDirection Direction;
     Object Enum;
     Object Index;

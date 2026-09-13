@@ -446,7 +446,11 @@ void ToolFinder::addKeyWithParamValue(Node*& node, CellI& key, CellI& value, Par
         paramValueKind = ParamValueKind::ConstVar;
     } else if (&value.__type__() == &std.ast.Self) {
         addValue(node, id.op);
-        addValue(node, id.variable);
+        if (value.has(id.value)) {
+            addValue(node, value[id.value]);
+        } else {
+            addValue(node, id.variable);
+        }
         paramValueKind = ParamValueKind::Self;
     } else if (&value.__type__() == &std.ast.Return) {
         addValue(node, id.op);
@@ -454,7 +458,11 @@ void ToolFinder::addKeyWithParamValue(Node*& node, CellI& key, CellI& value, Par
         paramValueKind = ParamValueKind::Return;
     } else if (&value.__type__() == &std.ast.Parameter) {
         addValue(node, id.op);
-        addValue(node, id.variable);
+        if (value.has(id.value)) {
+            addValue(node, value[id.value]);
+        } else {
+            addValue(node, id.variable);
+        }
         paramValueKind = ParamValueKind::Parameter;
     } else if (&value.__type__() == &std.op.Call || value.__type__().has(id.primitiveTool)) {
         addValue(node, id.op);
@@ -1104,12 +1112,12 @@ std::ostream& operator<<(std::ostream& os, const ToolFinder::SolverStateNode::In
 // ============================================================================
 ToolFinder::SolverState::SolverState(ToolFinder& toolFinder, CellI& description) :
     m_toolFinder(toolFinder),
-    m_description(description),
-    m_rootNode(*toolFinder.getRootNodeForDescriptionKind(DescriptionKind::solver))
+    m_description(description)
 {
     auto& id = description.w.id;
     SolverPointer solverPointer(m_description);
-    m_startSolverNode = std::make_unique<SolverStateNode>(*this, solverPointer, &m_rootNode, nullptr);
+    Node* rootNode    = toolFinder.getRootNodeForDescriptionKind(DescriptionKind::solver);
+    m_startSolverNode = std::make_unique<SolverStateNode>(*this, solverPointer, rootNode, nullptr);
 }
 
 // ============================================================================
@@ -1166,15 +1174,16 @@ void ToolFinder::SolverState::printAsDot()
             R"("state{}" [label=<
               <TABLE BORDER="0" CELLBORDER="0">
                   <TR>
-                      <TD COLSPAN="4" bgcolor="#a2d2ff">{}</TD>
+                      <TD COLSPAN="5" bgcolor="#a2d2ff">{}</TD>
                   </TR>
                   <TR>
+                      <TD COLSPAN="1" bgcolor="wheat"></TD>
                       <TD COLSPAN="2" bgcolor="wheat">{}</TD>
                       <TD COLSPAN="2" bgcolor="wheat">{}</TD>
                   </TR>
 )",
             fmt::ptr(stateNodePtr), (*stateNode.m_solverPointer.m_cellPtr).__type__().label(), stateNode.m_matchStatus, stateNode.m_inputCommand);
-        std::string currentMemberNameStr = stateNode.m_solverPointer.memberName().label();
+        CellI& currentMemberName = stateNode.m_solverPointer.memberName();
         int i = 0;
         for (auto& memberKV : (*stateNode.m_solverPointer.m_cellPtr).__type__()[id.memberIds]) {
             CellI& member             = memberKV[id.value];
@@ -1187,18 +1196,51 @@ void ToolFinder::SolverState::printAsDot()
                 continue;
             }
             std::string bgcolor;
-            if (currentMemberNameStr == memberNameStr) {
+            if (&currentMemberName == &memberName) {
                 bgcolor = stateNode.m_matchStatus == SolverStateNode::MatchStatus::failed ? R"(bgcolor="orangered")" : R"(bgcolor="#a7c957")";
-            }
-            ss << fmt::format(
-R"(
+                auto subCommandsNum = stateNode.m_subCommands.size();
+                ss << fmt::format(
+                    R"(
                   <TR>
-                      <TD bgcolor="lightgoldenrod2">{}</TD>
-                      <TD COLSPAN="3" {} port="f0">{}</TD>
+                      <TD COLSPAN="1" ROWSPAN="{}" bgcolor="lightgoldenrod2">{}</TD>
+                      <TD COLSPAN="2" ROWSPAN="{}" {}>{}</TD>
+                      <TD COLSPAN="1">{}</TD>
+                      <TD COLSPAN="1">{}</TD>
                   </TR>
 )",
-                i++, bgcolor, memberNameStr);
-    }
+                    subCommandsNum, i++,
+                    subCommandsNum, bgcolor, memberNameStr,
+                    stateNode.m_subCommands.empty() ? "" : stateNode.m_subCommands.front().printKey1(),
+                    stateNode.m_subCommands.empty() ? "" : stateNode.m_subCommands.front().printKey2());
+                bool first = true;
+                for (auto subCommand : stateNode.m_subCommands) {
+                    if (first) {
+                        first = false;
+                        continue;
+                    }
+                    ss << fmt::format(
+                        R"(
+                  <TR>
+                          <TD COLSPAN="1">{}</TD>
+                          <TD COLSPAN="1">{}</TD>
+                  </TR>
+)",
+                        subCommand.printKey1(), subCommand.printKey2());
+                }
+            } else {
+                ss << fmt::format(
+                    R"(
+                  <TR>
+                      <TD COLSPAN="1" bgcolor="lightgoldenrod2">{}</TD>
+                      <TD COLSPAN="2" {}>{}</TD>
+                      <TD COLSPAN="2"></TD>
+                  </TR>
+)",
+                    i++,
+                    bgcolor, memberNameStr);
+            }
+        }
+
         ss << fmt::format(
             R"(
               </TABLE>
@@ -1433,18 +1475,6 @@ bool ToolFinder::SolverPointer::isLast()
 }
 
 // ============================================================================
-bool ToolFinder::SolverPointer::isUninitialized()
-{
-    return (m_parent == nullptr) && (m_cellPtr == nullptr) && (m_memberNodePtr == nullptr);
-}
-
-// ============================================================================
-bool ToolFinder::SolverPointer::operator==(const SolverPointer& rhs) const
-{
-    return m_cellPtr == rhs.m_cellPtr && m_memberNodePtr == rhs.m_memberNodePtr;
-}
-
-// ============================================================================
 ToolFinder::SolverStateNode::SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr, SolverStateNode* parent) :
     m_state(state),
     m_inputCommand(InputCommand::and_),
@@ -1505,6 +1535,22 @@ bool ToolFinder::SolverStateNode::SubCommand::evaluate(ToolFinder& toolFinder, N
     };
 
     return false;
+}
+
+std::string ToolFinder::SolverStateNode::SubCommand::printKey1()
+{
+    if (!m_key1) {
+        return "";
+    }
+    return (*m_key1).label();
+}
+
+std::string ToolFinder::SolverStateNode::SubCommand::printKey2()
+{
+    if (!m_key2) {
+        return "";
+    }
+    return (*m_key2).label();
 }
 
 ToolFinder::SolverStateNode& ToolFinder::SolverStateNode::addNext(SolverStateNode*& solverNodePtr)

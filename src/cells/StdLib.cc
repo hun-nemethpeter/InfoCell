@@ -1,6 +1,7 @@
 ﻿#include "Compiler.h"
 #include "StdLib.h"
 #include "World.h"
+#include "util/Panic.h"
 
 namespace infocell {
 namespace cells {
@@ -510,6 +511,49 @@ Std::SCell::SCell(World& w, CellI& type, const std::string& label) :
 {
 }
 
+Std::EDigit::EDigit(World& w, CellI& type, const std::string& label) :
+    Object(w, type, label),
+    _0_(w, w.std.Digit, "Digit_0"),
+    _1_(w, w.std.Digit, "Digit_1"),
+    _2_(w, w.std.Digit, "Digit_2"),
+    _3_(w, w.std.Digit, "Digit_3"),
+    _4_(w, w.std.Digit, "Digit_4"),
+    _5_(w, w.std.Digit, "Digit_5"),
+    _6_(w, w.std.Digit, "Digit_6"),
+    _7_(w, w.std.Digit, "Digit_7"),
+    _8_(w, w.std.Digit, "Digit_8"),
+    _9_(w, w.std.Digit, "Digit_9")
+{
+}
+
+Object& Std::EDigit::from(int digit)
+{
+    switch (digit) {
+    case 0:
+        return _0_;
+    case 1:
+        return _1_;
+    case 2:
+        return _2_;
+    case 3:
+        return _3_;
+    case 4:
+        return _4_;
+    case 5:
+        return _5_;
+    case 6:
+        return _6_;
+    case 7:
+        return _7_;
+    case 8:
+        return _8_;
+    case 9:
+        return _9_;
+    }
+
+    panic("Not a digit!");
+}
+
 Std::EDirection::EDirection(World& w, CellI& type, const std::string& label) :
     Object(w, type, label),
     up(w, w.std.Direction, "up"),
@@ -635,7 +679,7 @@ Std::Std(World& w) :
     Cell(w, w.std.Struct, "Cell"),
     Char(w, w.std.Struct, "Char"),
     Container(w, w.std.Struct, "Conatainer"),
-    Digit(w, w.std.Struct, "Digit"),
+    Digit(w, w.std.Enum, "Digit"),
     Direction(w, w.std.Enum, "Direction"),
     Enum(w, w.std.Struct, "Enum"),
     Index(w, w.std.Struct, "Index"),
@@ -687,7 +731,6 @@ public:
 private:
     void createOp();
     void createAst();
-    void createEnums();
 
     void createIndex();
     void createKVPair();
@@ -1368,22 +1411,6 @@ void StdLibAst::createAst()
         .members(
             member("condition", _(std.Boolean)),
             member("statement", "Base"));
-}
-
-// ============================================================================
-void StdLibAst::createEnums()
-{
-    stdScope.add<Enum>("Direction")
-        .values(
-            ev_("up"),
-            ev_("down"),
-            ev_("left"),
-            ev_("right"));
-
-    stdScope.add<Enum>("NumberSign")
-        .values(
-            ev_("positive"),
-            ev_("negative"));
 }
 
 // ============================================================================
@@ -2427,7 +2454,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("other", "Boolean"))
         .descriptionBegin()
             .consequences(
-                equal(not_(or_(not_(self()), not_(p_("other")))), return_()), // TODO: do we need this?!
+//                equal(not_(or_(not_(self()), not_(p_("other")))), return_()), // TODO: do we need this?!
                 equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
                 equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
                 equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.false_)),
@@ -2442,7 +2469,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .memberMapping(
             kvPair(id.self, "input"))
         .descriptionBegin()
-            .selfBuilders(
+            .consequences(
+                equal(not_(self(std.Boolean.false_)), _(std.Boolean.true_)),
+                equal(not_(self(std.Boolean.true_)), _(std.Boolean.false_)))
+        .selfBuilders(
                 not_(self()))
         .descriptionEnd()
         .returnType("Boolean");
@@ -2454,7 +2484,12 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .parameters(
             parameter("other", "Boolean"))
         .descriptionBegin()
-            .selfBuilders(
+            .consequences(
+                equal(or_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
+                equal(or_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.true_)),
+                equal(or_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
+                equal(or_(self(std.Boolean.false_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)))
+        .selfBuilders(
                 or_(self(), p_("other")),
                 or_(p_("other"), self()))
         .descriptionEnd()
@@ -2583,7 +2618,26 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     stdScope.add<Struct>("Container");
 
-    stdScope.add<Struct>("Digit");
+    auto& Digit = stdScope.add<Enum>("Digit");
+    Digit
+        .values(
+            ev_("0"),
+            ev_("1"),
+            ev_("2"),
+            ev_("3"),
+            ev_("4"),
+            ev_("5"),
+            ev_("6"),
+            ev_("7"),
+            ev_("8"),
+            ev_("9"));
+
+    stdScope.add<Enum>("Direction")
+        .values(
+            ev_("up"),
+            ev_("down"),
+            ev_("left"),
+            ev_("right"));
 
     stdScope.add<Struct>("Enum")
         .members(
@@ -2617,7 +2671,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     auto& Number = stdScope.add<Struct>("Number");
     Number
         .members(
-            member("value", ListOf(std.Digit)),
+            member("value", tt_("List", "valueType", "Digit")),
             member("sign", "NumberSign"));
 
     Number.addPrimitiveFunction(std.Number.Add, op.Add, "add")
@@ -2745,6 +2799,11 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .descriptionEnd()
         .returnType("Number");
 
+    stdScope.add<Enum>("NumberSign")
+        .values(
+            ev_("positive"),
+            ev_("negative"));
+
     createSet();
 
     stdScope.add<Struct>("Slot")
@@ -2795,7 +2854,6 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
     stdScope.add<Struct>("Void");
 
     createOp();
-    createEnums();
     createAst();
 }
 
@@ -2901,6 +2959,18 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInEnumValue("std::Boolean::true", std.Boolean.true_);
     compiler.registerBuiltInEnumValue("std::Boolean::false", std.Boolean.false_);
 
+    compiler.registerBuiltInStruct("std::Digit", std.Digit);
+    compiler.registerBuiltInEnumValue("std::Digit::0", std.Digit._0_);
+    compiler.registerBuiltInEnumValue("std::Digit::1", std.Digit._1_);
+    compiler.registerBuiltInEnumValue("std::Digit::2", std.Digit._2_);
+    compiler.registerBuiltInEnumValue("std::Digit::3", std.Digit._3_);
+    compiler.registerBuiltInEnumValue("std::Digit::4", std.Digit._4_);
+    compiler.registerBuiltInEnumValue("std::Digit::5", std.Digit._5_);
+    compiler.registerBuiltInEnumValue("std::Digit::6", std.Digit._6_);
+    compiler.registerBuiltInEnumValue("std::Digit::7", std.Digit._7_);
+    compiler.registerBuiltInEnumValue("std::Digit::8", std.Digit._8_);
+    compiler.registerBuiltInEnumValue("std::Digit::9", std.Digit._9_);
+
     compiler.registerBuiltInStruct("std::Direction", std.Direction);
     compiler.registerBuiltInEnumValue("std::Direction::up", std.Direction.up);
     compiler.registerBuiltInEnumValue("std::Direction::down", std.Direction.down);
@@ -2915,7 +2985,6 @@ StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
     compiler.registerBuiltInStruct("std::Cell", std.Cell);
     compiler.registerBuiltInStruct("std::Char", std.Char);
     compiler.registerBuiltInStruct("std::Container", std.Container);
-    compiler.registerBuiltInStruct("std::Digit", std.Digit);
     compiler.registerBuiltInStruct("std::Enum", std.Enum);
     compiler.registerBuiltInStruct("std::Index", std.Index);
     compiler.registerBuiltInStruct("std::KVPair", std.KVPair);

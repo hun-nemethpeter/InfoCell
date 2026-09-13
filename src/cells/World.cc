@@ -51,26 +51,6 @@ void Pools::Chars::registerUnicodeBlock(char32_t from, char32_t to)
 }
 
 // ============================================================================
-Pools::Digits::Digits(World& w) :
-    w(w)
-{
-}
-
-void Pools::Digits::init()
-{
-    m_digits.reserve(10);
-    for (int i = 0; i < 10; ++i) {
-        std::string digitName = "Digit_" + std::to_string(i);
-        m_digits.emplace_back(w, w.std.Digit, digitName);
-    }
-}
-
-Object& Pools::Digits::operator[](int digit)
-{
-    return m_digits[digit];
-}
-
-// ============================================================================
 Pools::Numbers::Numbers(World& w) :
     w(w)
 {
@@ -115,7 +95,6 @@ String& Pools::Strings::get(const std::string& str)
 // ============================================================================
 Pools::Pools(World& w) :
     chars(w),
-    digits(w),
     numbers(w),
     strings(w)
 {
@@ -124,7 +103,6 @@ Pools::Pools(World& w) :
 void Pools::init()
 {
     chars.init();
-    digits.init();
 }
 
 // ============================================================================

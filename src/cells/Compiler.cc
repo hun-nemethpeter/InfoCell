@@ -2287,6 +2287,9 @@ CellI& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function
         }
         auto& ret = w.ast.self();
         ret.set(id.type, (*astStructPtr)[id.compiledStruct]);
+        if (ast.has(id.value)) {
+            ret.set(id.value, ast[id.value]);
+        }
         return ret;
     } else if (&ast.__type__() == &std.ast.Member) {
         if (!astStructPtr) {
@@ -2315,6 +2318,9 @@ CellI& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function
         auto& parameter = parameters.getValue(key);
         auto& type      = getCompiledTypeFromResolvedType(parameter[id.type]);
         ret.set(id.type, type);
+        if (ast.has(id.value)) {
+            ret.set(id.value, ast[id.value]);
+        }
         return ret;
     } else if (&ast.__type__() == &std.ast.ConstVar) {
         auto& ret = w.ast.const_(ast[id.value]);

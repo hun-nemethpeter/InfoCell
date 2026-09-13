@@ -1551,12 +1551,12 @@ void Number::increase()
 void Number::calculateDigits()
 {
     if (m_value == 0) {
-        m_digits.push_back(&w.pools.digits[0]);
+        m_digits.push_back(&w.std.Digit.from(0));
         return;
     }
     int value = m_value;
     while (value) {
-        m_digits.push_back(&w.pools.digits[value % 10]);
+        m_digits.push_back(&w.std.Digit.from(value % 10));
         value /= 10;
     }
     std::reverse(m_digits.begin(), m_digits.end());

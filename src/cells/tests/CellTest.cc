@@ -540,16 +540,16 @@ TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
 
 TEST_F(CellTest, Numbers)
 {
-    CellI& digit_0 = w.pools.digits[0];
-    CellI& digit_1 = w.pools.digits[1];
-    CellI& digit_2 = w.pools.digits[2];
-    CellI& digit_3 = w.pools.digits[3];
-    CellI& digit_4 = w.pools.digits[4];
-    CellI& digit_5 = w.pools.digits[5];
-    CellI& digit_6 = w.pools.digits[6];
-    CellI& digit_7 = w.pools.digits[7];
-    CellI& digit_8 = w.pools.digits[8];
-    CellI& digit_9 = w.pools.digits[9];
+    CellI& digit_0 = w.std.Digit.from(0);
+    CellI& digit_1 = w.std.Digit.from(1);
+    CellI& digit_2 = w.std.Digit.from(2);
+    CellI& digit_3 = w.std.Digit.from(3);
+    CellI& digit_4 = w.std.Digit.from(4);
+    CellI& digit_5 = w.std.Digit.from(5);
+    CellI& digit_6 = w.std.Digit.from(6);
+    CellI& digit_7 = w.std.Digit.from(7);
+    CellI& digit_8 = w.std.Digit.from(8);
+    CellI& digit_9 = w.std.Digit.from(9);
 
     CellI& number_123 = toCellNumber(1234567890);
     EXPECT_EQ(&number_123[id.sign], &std.NumberSign.positive);
