@@ -91,6 +91,10 @@ public:
         std::list<std::list<ToolFinder::BuilderChainNode>*>& results();
         void printAsDot();
 
+        std::function<void(std::vector<std::function<void(SolverStateNode& solverNode, CellI& memberName, CellI& memberValue)>>& commandFns, SolverStateNode* solverNodePtr)> m_processFn;
+        std::vector<std::function<void(SolverStateNode& solverNode, CellI& memberName, CellI& memberValue)>> m_commandFns;
+        std::function<bool(CellI& memberRole)> m_filterFn;
+        std::function<void(SolverStateNode& solverNode)> m_popFn;
         ToolFinder& m_toolFinder;
         CellI& m_description;
         std::unique_ptr<SolverStateNode> m_startSolverNode;
