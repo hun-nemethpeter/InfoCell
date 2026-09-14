@@ -85,7 +85,7 @@ public:
     struct SolverStateNode;
     struct SolverState
     {
-        SolverState(ToolFinder& toolFinder, CellI& description);
+        SolverState(Node* rootNode, ToolFinder& toolFinder, CellI& description);
 
         void run();
         SolverStateNode& startSolverNode();
@@ -231,6 +231,7 @@ private:
     void createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList);
     bool checkUnknownsInTool(CellI& effect);
     List* findBuildersForDescription(CellI& description, DescriptionKind descriptionKind);
+    std::unique_ptr<SolverState> findBuildersForDescription2(CellI& description, DescriptionKind descriptionKind);
     void buildTool(const BuildToolInfo& buildToolInfo);
     void serializeKeyWithConstValue(List& result, CellI& key, CellI& value);
     void serializeKeyWithParamValue(List& result, CellI& key, CellI& value, ParamValueKind& paramValueKind);
