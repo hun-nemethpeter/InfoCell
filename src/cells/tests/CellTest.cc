@@ -443,13 +443,15 @@ TEST_F(CellTest, ToolFinderTestForMathAdd)
     std::cout << std::endl;
 //    EXPECT_EQ(ss.str(), "op type op::Call method op::Equal self op push op type op::Call method op::Add self op push op type op::Call method op::Get self op variable key value op pop other 2 op pop other 4 ");
 
-    CellI* simplifiedForm = toolFinder.solve(testRequestFn);
-    EXPECT_NE(simplifiedForm, nullptr);
-    if (!simplifiedForm) {
+    List* simplifiedFormsPtr = toolFinder.solve(testRequestFn);
+
+    EXPECT_NE(simplifiedFormsPtr, nullptr);
+    if (!simplifiedFormsPtr) {
         return;
     }
 
-    List& resultTools = toolFinder.findToolsByDescription(*simplifiedForm, ToolFinder::DescriptionKind::consequence);
+    CellI& simplifiedForm = (*simplifiedFormsPtr)[id.first][id.value];
+    List& resultTools = toolFinder.findToolsByDescription(simplifiedForm, ToolFinder::DescriptionKind::consequence);
 
     EXPECT_EQ(resultTools.size(), 1);
 
@@ -503,18 +505,15 @@ TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
         }
         std::cout << resultId.label() << " ";
     }
-    std::cout << std::endl;
+    List* simplifiedFormsPtr = toolFinder.solve(testRequestFn);
 
-    CellI* simplifiedForm = toolFinder.solve(testRequestFn);
-    auto test = toolFinder.getSolver2(testRequestFn);
-    std::cout << "";
-
-    EXPECT_NE(simplifiedForm, nullptr);
-    if (!simplifiedForm) {
+    EXPECT_NE(simplifiedFormsPtr, nullptr);
+    if (!simplifiedFormsPtr) {
         return;
     }
 
-    List& resultTools = toolFinder.findToolsByDescription(*simplifiedForm, ToolFinder::DescriptionKind::consequence);
+    CellI& simplifiedForm = (*simplifiedFormsPtr)[id.first][id.value];
+    List& resultTools = toolFinder.findToolsByDescription(simplifiedForm, ToolFinder::DescriptionKind::consequence);
 
     EXPECT_EQ(resultTools.size(), 1);
 

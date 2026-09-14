@@ -945,59 +945,64 @@ List* ToolFinder::findBuildersForDescription(CellI& description, DescriptionKind
 }
 
 // ============================================================================
-CellI* ToolFinder::solve(CellI& equation)
+List* ToolFinder::solve(CellI& equation)
 {
     DEBUG(toolFinderExplore, "solving equation: {}", equation.printAsValue());
-    std::list<BuilderChainNode>* solver = getSolver(equation);
-    if (!solver) {
+    auto solvers = getSolvers(equation)->results();
+    if (solvers.empty()) {
         DEBUG(toolFinderExplore, "No solver!");
         return nullptr;
     }
 
-    Object resultVar(w, std.op.ConstVar, "solved");
-    resultVar.set(id.value, equation);
-    for (BuilderChainNode& builderChainNode : *solver) {
-        if (builderChainNode.m_transformerBuilder) {
-            buildTool({ resultVar, w.ast.member(id.value), resultVar[id.value], *builderChainNode.m_transformerBuilder });
-            TRACE(toolFinderExplore, "transfered as: {}", resultVar[id.value].printAsValue());
-        }
-        if (builderChainNode.m_mutatingBuilders) {
-            struct TreeNode
-            {
-                CellI& m_outCell;
-                CellI& m_outKey;
-                CellI& m_cellToRebuildFrom;
-                CellI& m_builderNode;
-            };
-            std::list<TreeNode> nodes;
-            nodes.push_back({ resultVar, id.value, resultVar[id.value], *builderChainNode.m_mutatingBuilders });
-            bool first = true;
-
-            int i = 1;
-            while (!nodes.empty()) {
-                TreeNode& treeNode = nodes.front();
-                CellI& builderNode = treeNode.m_builderNode;
-                buildTool({ treeNode.m_outCell, w.ast.member(treeNode.m_outKey), treeNode.m_cellToRebuildFrom, builderNode[id.builder] });
-
-                TRACE(toolFinderExplore, "mutate step #{}: {}", i++, resultVar[id.value].printAsValue());
-
-                if (builderNode.missing(id.children)) {
-                    nodes.pop_front();
-                    continue;
-                }
-
-                auto& outCell = treeNode.m_outCell[treeNode.m_outKey];
-                auto& parent  = treeNode.m_cellToRebuildFrom;
-
-                for (auto& childBuilderNode : builderNode[id.children]) {
-                    nodes.push_back({ outCell, childBuilderNode[id.transformedKey], parent[childBuilderNode[id.originalKey]], childBuilderNode });
-                }
-                nodes.pop_front();
+    List& ret = *new List(w, w.std.List, "solvers");
+    for (auto solver : solvers) {
+        Object resultVar(w, std.op.ConstVar, "solved");
+        resultVar.set(id.value, equation);
+        for (BuilderChainNode& builderChainNode : *solver) {
+            if (builderChainNode.m_transformerBuilder) {
+                buildTool({ resultVar, w.ast.member(id.value), resultVar[id.value], *builderChainNode.m_transformerBuilder });
+                TRACE(toolFinderExplore, "transfered as: {}", resultVar[id.value].printAsValue());
             }
-            TRACE(toolFinderExplore, "mutated as: {}", resultVar[id.value].printAsValue());
+            if (builderChainNode.m_mutatingBuilders) {
+                struct TreeNode
+                {
+                    CellI& m_outCell;
+                    CellI& m_outKey;
+                    CellI& m_cellToRebuildFrom;
+                    CellI& m_builderNode;
+                };
+                std::list<TreeNode> nodes;
+                nodes.push_back({ resultVar, id.value, resultVar[id.value], *builderChainNode.m_mutatingBuilders });
+                bool first = true;
+
+                int i = 1;
+                while (!nodes.empty()) {
+                    TreeNode& treeNode = nodes.front();
+                    CellI& builderNode = treeNode.m_builderNode;
+                    buildTool({ treeNode.m_outCell, w.ast.member(treeNode.m_outKey), treeNode.m_cellToRebuildFrom, builderNode[id.builder] });
+
+                    TRACE(toolFinderExplore, "mutate step #{}: {}", i++, resultVar[id.value].printAsValue());
+
+                    if (builderNode.missing(id.children)) {
+                        nodes.pop_front();
+                        continue;
+                    }
+
+                    auto& outCell = treeNode.m_outCell[treeNode.m_outKey];
+                    auto& parent  = treeNode.m_cellToRebuildFrom;
+
+                    for (auto& childBuilderNode : builderNode[id.children]) {
+                        nodes.push_back({ outCell, childBuilderNode[id.transformedKey], parent[childBuilderNode[id.originalKey]], childBuilderNode });
+                    }
+                    nodes.pop_front();
+                }
+                TRACE(toolFinderExplore, "mutated as: {}", resultVar[id.value].printAsValue());
+            }
         }
+        ret.add(resultVar[id.value]);
     }
-    return &resultVar[id.value];
+
+    return &ret;
 }
 
 // ============================================================================
@@ -1291,8 +1296,11 @@ void ToolFinder::SolverState::printAsDot()
         }
     }
 
-    ss << "}\n";
-    std::cout << ss.str();
+    ss << "}";
+
+    // offline graphviz: https://graphviz.org/download/
+    //  online graphviz: https://dreampuf.github.io/GraphvizOnline/
+    TRACE(toolFinderGraphviz, "\n{}", ss.str());
 }
 
 // ============================================================================
@@ -1584,9 +1592,9 @@ void ToolFinder::SolverStateNode::pointer(SolverPointer& solverPointer)
 }
 
 // ============================================================================
-std::unique_ptr<ToolFinder::SolverState> ToolFinder::getSolver2(CellI& description)
+std::unique_ptr<ToolFinder::SolverState> ToolFinder::getSolvers(CellI& description)
 {
-    DEBUG(toolFinderExplore, "getSolver2 {}", description.label());
+    DEBUG(toolFinderExplore, "getSolvers {}", description.label());
 
     std::unique_ptr<SolverState> solverState = std::make_unique<SolverState>(*this, description);
 
@@ -1687,117 +1695,6 @@ struct SolverStackNode
     CellI* effectPtr   = nullptr;
     CellI* slotItemPtr = nullptr;
 };
-
-// ============================================================================
-std::list<ToolFinder::BuilderChainNode>* ToolFinder::getSolver(CellI& description)
-{
-    TRACE(toolFinderExplore, "getSolver {}", description.label());
-
-    std::deque<SolverStackNode> stack;
-    Node* currentNode    = getRootNodeForDescriptionKind(DescriptionKind::solver);
-    CellI* memberItemPtr = &description.__type__()[id.memberIds][id.first];
-    CellI* currentPtr    = &description;
-
-    while (memberItemPtr) {
-        CellI& current        = *currentPtr;
-        CellI& memberItem     = *memberItemPtr;
-        CellI& memberKV       = memberItem[id.value];
-        CellI& member         = memberKV[id.value];
-        CellI& memberName     = member[id.name];
-        CellI& memberRelation = member[id.relation];
-        CellI& memberRole     = member[id.role];
-
-        if (&memberRelation == &std.op.Member.Relation.external) {
-            if (&memberRole == &std.op.Member.Role.constant) {
-                CellI& memberValue = current[memberName];
-                if (!checkConstKeyValue(currentNode, memberName, memberValue)) {
-                    return nullptr;
-                }
-            } else if (&memberRole == &std.op.Member.Role.input) {
-                TRACE(toolFinderExplore, "checkConstValue {}", memberName.label());
-                if (!checkConstValue(currentNode, memberName)) {
-                    return nullptr;
-                }
-                CellI& memberValue = current[memberName];
-                if (&memberValue.__type__() == &std.op.ConstVar) {
-                    if (!checkConstKeyValue(currentNode, id.op, id.push)) {
-                        return nullptr;
-                    }
-                    if (!checkConstKeyValue(currentNode, id.__type__, std.op.ConstVar)) {
-                        return nullptr;
-                    }
-                    if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
-                        return nullptr;
-                    }
-                } else if (&memberValue.__type__() == &std.op.UnknownVar) {
-                    if (!checkConstKeyValue(currentNode, id.op, id.push)) {
-                        return nullptr;
-                    }
-                    if (!checkConstKeyValue(currentNode, id.__type__, std.op.UnknownVar)) {
-                        return nullptr;
-                    }
-                    if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
-                        return nullptr;
-                    }
-                } else {
-                    if (memberValue.has(id.state) && (&memberValue[id.state] == &std.op.State.missingInput)) {
-                        // there are two option here:
-                        // 1. this is an uninitialized variable
-                        // 2. this a function which depends on an uninitialized variable
-                        if (!checkConstKeyValue(currentNode, id.op, id.push)) {
-                            return nullptr;
-                        }
-                        Node* savedNode = currentNode;
-                        if (!checkConstKeyValue(currentNode, id.__type__, std.op.UnknownVar)) {
-                            currentNode = savedNode;
-                            stack.push_back({ currentPtr, memberItemPtr });
-                            currentPtr    = &memberValue;
-                            memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
-                            continue;
-                        }
-                        if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
-                            return nullptr;
-                        }
-                    } else {
-                        if (!checkConstKeyValue(currentNode, id.op, id.push)) {
-                            return nullptr;
-                        }
-                        stack.push_back({ currentPtr, memberItemPtr });
-                        currentPtr    = &memberValue;
-                        memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
-                        continue;
-                    }
-                }
-            }
-        } else {
-            CellI& memberValue = current[memberName];
-            if (!checkConstKeyValue(currentNode, id.op, id.push)) {
-                return nullptr;
-            }
-            stack.push_back({ currentPtr, memberItemPtr });
-            currentPtr    = &memberValue;
-            memberItemPtr = &memberValue.__type__()[id.memberIds][id.first];
-            continue;
-        }
-
-        memberItemPtr = memberItemPtr->getNextOrNullptr();
-        while (!memberItemPtr && !stack.empty()) {
-            currentPtr    = stack.back().effectPtr;
-            memberItemPtr = stack.back().slotItemPtr;
-            stack.pop_back();
-            if (!checkConstKeyValue(currentNode, id.op, id.pop)) {
-                return nullptr;
-            }
-            memberItemPtr = memberItemPtr->getNextOrNullptr();
-        }
-    }
-
-    if (currentNode && currentNode->m_isLeaf) {
-        return &currentNode->m_solver;
-    }
-
-    return nullptr;
-}
 
 // ============================================================================
 void ToolFinder::addPermutation(Node* rootNode, CellI& description)

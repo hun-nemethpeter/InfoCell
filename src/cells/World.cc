@@ -301,6 +301,7 @@ World::Logger::Logger(std::function<void()> loggerLevelInit)
     registerLogger("toolFinder");
     registerLogger("toolFinderLookup");
     registerLogger("toolFinderExplore");
+    registerLogger("toolFinderGraphviz");
     loggerLevelInit();
 }
 

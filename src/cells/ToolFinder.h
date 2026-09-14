@@ -78,7 +78,9 @@ public:
     void add(CellI& tool);
     void add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
     List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
-    CellI* solve(CellI& equation);
+    List* solve(CellI& equation);
+    CellI& findConversionTools(CellI& from, CellI& to);
+    void exploreSlotManipulations();
 
     struct SolverStateNode;
     struct SolverState
@@ -180,10 +182,6 @@ public:
         MatchStatus m_matchStatus = MatchStatus::created;
     };
 
-    std::unique_ptr<ToolFinder::SolverState> getSolver2(CellI& description);
-    CellI& findConversionTools(CellI& from, CellI& to);
-    void exploreSlotManipulations();
-
 private:
     class BuildToolInfo
     {
@@ -224,7 +222,7 @@ private:
     std::list<RecombineResult> recombine(Node* rootNode, CellI& description);
     void exploreSlotManipulationFor(CellI& description);
     void addSolver(CellI& description, std::list<BuilderChainNode>& solver);
-    std::list<BuilderChainNode>* getSolver(CellI& description);
+    std::unique_ptr<SolverState> getSolvers(CellI& description);
     void addPermutation(Node* rootNode, CellI& description);
     bool hasPermutation(Node* rootNode, CellI& description);
     List& add(CellI& tool, CellI& description, Node* rootNode);

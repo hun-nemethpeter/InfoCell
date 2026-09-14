@@ -2403,6 +2403,7 @@ int main(int argc, char** argv)
         spdlog::get("toolFinder")->set_level(spdlog::level::off);
         spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
         spdlog::get("toolFinderExplore")->set_level(spdlog::level::debug);
+        spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::off);
         spdlog::get("edge")->set_level(spdlog::level::off);
         spdlog::get("shapeCorners")->set_level(spdlog::level::off);
         spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
