@@ -81,6 +81,22 @@ public:
     CellI* solve(CellI& equation);
 
     struct SolverStateNode;
+    struct SolverState
+    {
+        SolverState(ToolFinder& toolFinder, CellI& description);
+
+        void run();
+        SolverStateNode& startSolverNode();
+        void addNextState(SolverStateNode& solverStateNode);
+        std::list<std::list<ToolFinder::BuilderChainNode>*>& results();
+        void printAsDot();
+
+        ToolFinder& m_toolFinder;
+        CellI& m_description;
+        std::unique_ptr<SolverStateNode> m_startSolverNode;
+        std::deque<SolverStateNode*> m_nextStates;
+        std::list<std::list<ToolFinder::BuilderChainNode>*> m_results;
+    };
 
     struct SolverPointer
     {
@@ -97,23 +113,6 @@ public:
         SolverPointer* m_parent = nullptr;
         CellI* m_cellPtr        = nullptr;
         CellI* m_memberNodePtr  = nullptr;
-    };
-
-    struct SolverState
-    {
-        SolverState(ToolFinder& toolFinder, CellI& description);
-
-        void run();
-        SolverStateNode& startSolverNode();
-        void addNextState(SolverStateNode& solverStateNode);
-        std::list<std::list<ToolFinder::BuilderChainNode>*>& results();
-        void printAsDot();
-
-        ToolFinder& m_toolFinder;
-        CellI& m_description;
-        std::unique_ptr<SolverStateNode> m_startSolverNode;
-        std::deque<SolverStateNode*> m_nextStates;
-        std::list<std::list<ToolFinder::BuilderChainNode>*> m_results;
     };
 
     struct SolverStateNode

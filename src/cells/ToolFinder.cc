@@ -445,10 +445,12 @@ void ToolFinder::addKeyWithParamValue(Node*& node, CellI& key, CellI& value, Par
         }
         paramValueKind = ParamValueKind::ConstVar;
     } else if (&value.__type__() == &std.ast.Self) {
-        addValue(node, id.op);
         if (value.has(id.value)) {
+            addValue(node, id.op);
+            addValue(node, id.value);
             addValue(node, value[id.value]);
         } else {
+            addValue(node, id.op);
             addValue(node, id.variable);
         }
         paramValueKind = ParamValueKind::Self;
@@ -457,10 +459,12 @@ void ToolFinder::addKeyWithParamValue(Node*& node, CellI& key, CellI& value, Par
         addValue(node, id.variable);
         paramValueKind = ParamValueKind::Return;
     } else if (&value.__type__() == &std.ast.Parameter) {
-        addValue(node, id.op);
         if (value.has(id.value)) {
+            addValue(node, id.op);
+            addValue(node, id.value);
             addValue(node, value[id.value]);
         } else {
+            addValue(node, id.op);
             addValue(node, id.variable);
         }
         paramValueKind = ParamValueKind::Parameter;
@@ -689,9 +693,29 @@ bool ToolFinder::checkValue(Node*& node, CellI& key, CellI& value, bool& needPus
                         TRACE(toolFinderLookup, "MULTIMATCH: variable");
                     } else {
                         TRACE(toolFinderLookup, "MATCH: variable");
-                        node = nextNode;
+                        node       = nextNode;
                         matchFound = true;
                         firstMatch = &id.variable;
+                    }
+                    if (multiMatchState == MultiMatchState::Skip) {
+                        return true;
+                    }
+                }
+
+                if (opKey == &id.value) {
+                    if (matchFound) {
+                        TRACE(toolFinderLookup, "MULTIMATCH: op.value");
+                    } else {
+                        if (value.has(id.value)) {
+                            CellI& insideValue = value[id.value];
+                            auto valueFindIt   = nextNode->m_children.find(&insideValue);
+                            if (valueFindIt != nextNode->m_children.end()) {
+                                TRACE(toolFinderLookup, "MATCH: op.value");
+                                node       = valueFindIt->second;
+                                matchFound = true;
+                                firstMatch = &id.value;
+                            }
+                        }
                     }
                     if (multiMatchState == MultiMatchState::Skip) {
                         return true;
@@ -2600,7 +2624,6 @@ CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
 // ============================================================================
 void ToolFinder::exploreSlotManipulations()
 {
-    ConversionToolKey conversionToolKey(std.Number, std.Number);
     Object& x = *new Object(w, std.Number, "X");
 
     for (CellI& tool : m_tools) {
@@ -2610,6 +2633,29 @@ void ToolFinder::exploreSlotManipulations()
             continue;
         }
         CellI& returnType = tool[id.returnType];
+        if (&returnType == &std.Boolean) {
+            auto& parameters  = static_cast<Map&>(tool[id.parameters]);
+            if (parameters.size() != 2) {
+                continue;
+            }
+            bool allInputParamIsBoolean = true;
+            for (auto& parameter : parameters) {
+                CellI& parameterType = parameter[id.value][id.type];
+                if (&parameterType != &std.Boolean) {
+                    allInputParamIsBoolean = false;
+                    break;
+                }
+            }
+            if (!allInputParamIsBoolean) {
+                continue;
+            }
+            auto& booleanTool = *new Object(w, tool);
+            booleanTool.set(id.lhs, w.op.const_(w.false_));
+            booleanTool.set(id.rhs, w.op.unknown_(x));
+            auto& opEqual = w.op.equal(booleanTool, w.op.const_(w.true_));
+            List* buildersPtr = findBuildersForDescription(opEqual, DescriptionKind::consequence);
+            continue;
+        }
         if (&returnType != &std.Number) {
             continue;
         }

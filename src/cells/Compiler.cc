@@ -940,7 +940,7 @@ Ast::Base& Compiler::resolveType(CellI& typeAst)
         return static_cast<Ast::ResolvedType&>(typeAst);
     }
     if (&typeAst.__type__() == &std.ast.SelfType) {
-        return w.ast._(*m_currentStruct);
+        return w.ast._((*m_currentStruct)[id.compiledStruct]);
     }
     if (&typeAst.__type__() == &std.ast.TypeName) {
         auto& resolveAstStruct   = findEnumOrStructByAstStructName(*m_scope, typeAst);
