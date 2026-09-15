@@ -97,6 +97,7 @@ public:
         std::vector<std::function<void(SolverStateNode& solverNode, CellI& memberName, CellI& memberValue)>> m_commandFns;
         std::function<bool(CellI& memberRole)> m_filterFn;
         std::function<void(SolverStateNode& solverNode)> m_popFn;
+        std::function<void(Node& node)> m_resultFn;
         ToolFinder& m_toolFinder;
         CellI& m_description;
         std::unique_ptr<SolverStateNode> m_startSolverNode;
@@ -205,13 +206,6 @@ private:
         Call
     };
 
-    enum class MultiMatchState
-    {
-        Detect,
-        Restore,
-        Skip
-    };
-
     struct RecombineResult
     {
         bool m_isConstantFoldingPossible = false;
@@ -222,7 +216,7 @@ private:
     std::list<RecombineResult> recombine(Node* rootNode, CellI& description);
     void exploreSlotManipulationFor(CellI& description);
     void addSolver(CellI& description, std::list<BuilderChainNode>& solver);
-    std::unique_ptr<SolverState> getSolvers(CellI& description);
+    std::list<std::list<ToolFinder::BuilderChainNode>*> getSolvers(CellI& description);
     void addPermutation(Node* rootNode, CellI& description);
     bool hasPermutation(Node* rootNode, CellI& description);
     List& add(CellI& tool, CellI& description, Node* rootNode);
@@ -230,8 +224,7 @@ private:
     CellI& doConstantFolding(CellI& description);
     void createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList);
     bool checkUnknownsInTool(CellI& effect);
-    List* findBuildersForDescription(CellI& description, DescriptionKind descriptionKind);
-    std::unique_ptr<SolverState> findBuildersForDescription2(CellI& description, DescriptionKind descriptionKind);
+    std::unique_ptr<List> findBuildersForDescription(CellI& description, DescriptionKind descriptionKind);
     void buildTool(const BuildToolInfo& buildToolInfo);
     void serializeKeyWithConstValue(List& result, CellI& key, CellI& value);
     void serializeKeyWithParamValue(List& result, CellI& key, CellI& value, ParamValueKind& paramValueKind);
@@ -241,10 +234,8 @@ private:
     void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
     bool checkConstValue(Node*& node, CellI& value);
     bool checkConstKeyValue(Node*& node, CellI& key, CellI& value);
-    bool checkValue(Node*& node, CellI& key, CellI& value, bool& needPush, MultiMatchState& multiMatchState, CellI*& multiMatch);
     List& createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
-    void findConversionToolsByValue(CellI& from, CellI& to, List& results);
     void findConversionToolsByType(CellI& from, CellI& to, List& results);
     void findConversionToolsByContainer(CellI& from, CellI& to, List& results);
     std::string printTool(CellI& tool);
