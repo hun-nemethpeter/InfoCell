@@ -49,27 +49,82 @@ static void printAsValue(CellI& cell, const std::string& label = "")
     std::cout << cell.printAsValue() << std::endl;
 }
 
-std::string ToolFinder::Node::print()
+std::string ToolFinder::Node::printAsGrapviz(World& w)
 {
-    std::deque<std::string> path;
-    Node* child = this;
-    Node* parent = m_parent;
-    while (parent) {
-        CellI* value = nullptr;
-        for (auto& pair : parent->m_children) {
-            if (pair.second == child) {
-                value = pair.first;
-                break;
-            }
-        }
-        path.push_front(value->label());
-        child  = parent;
-        parent = parent->m_parent;
-    }
     std::stringstream ss;
-    for (auto& item : path) {
-        ss << item << " ";
+    std::deque<std::string> path;
+    Node* startNode = this;
+
+    ss <<
+        R"(
+digraph structs {
+    node  [shape=plaintext]
+    graph [fontname = "Helvetica",
+           fontsize = 36
+          ];
+
+)";
+
+    struct Edge
+    {
+        Node* from;
+        Node* to;
+    };
+    std::deque<Edge> edges;
+    std::set<Node*> nodes;
+    std::map<Node*, CellI*> nodeToCell;
+    edges.push_back({ nullptr, startNode });
+    nodeToCell[startNode] = &w.id.first;
+
+    while (!edges.empty()) {
+        Edge edge = edges.front();
+        edges.pop_front();
+        if (edge.from) {
+            nodes.insert(edge.from);
+        }
+        nodes.insert(edge.to);
+        for (auto& child : edge.to->m_children) {
+            nodeToCell[child.second] = child.first;
+            edges.push_back({ edge.to, child.second });
+        }
     }
+
+    for (Node* nodePtr : nodes) {
+        Node& node = *nodePtr;
+        ss << fmt::format(
+            R"("node{}" [label=<
+              <TABLE BORDER="0" CELLBORDER="0">
+                  <TR>
+                      <TD COLSPAN="5" bgcolor="#a2d2ff">{}</TD>
+                  </TR>
+                  <TR>
+                      <TD COLSPAN="5" bgcolor="{}">{}</TD>
+                  </TR>
+)",
+            fmt::ptr(nodePtr), nodeToCell[nodePtr]->label(), node.m_isLeaf ? "#a7c957" : "wheat", node.m_isLeaf ? "value" : "empty");
+        ss << fmt::format(
+            R"(
+              </TABLE>
+         >];
+)");
+    }
+
+    edges.push_back({ nullptr, startNode });
+    while (!edges.empty()) {
+        Edge edge = edges.front();
+        edges.pop_front();
+        nodes.insert(edge.from);
+        nodes.insert(edge.to);
+
+        ss << fmt::format("\"node{}\" -> \"node{}\"\n", fmt::ptr(edge.from), fmt::ptr(edge.to));
+        for (auto& child : edge.to->m_children) {
+            edges.push_back({ edge.to, child.second });
+        }
+    }
+
+    ss << "}";
+
+    TRACE(toolFinderGraphviz, "{}", ss.str());
 
     return ss.str();
 }
@@ -447,24 +502,30 @@ void ToolFinder::addKeyWithParamValue(Node*& node, CellI& key, CellI& value, Par
         }
         paramValueKind = ParamValueKind::ConstVar;
     } else if (&value.__type__() == &std.ast.Self) {
-        if (value.has(id.value)) {
+        if (value.has(id.value) && value[id.value].has(id.value)) {
             addValue(node, id.op);
             addValue(node, id.value);
-            addValue(node, value[id.value]);
+            addValue(node, value[id.value][id.value]);
         } else {
             addValue(node, id.op);
             addValue(node, id.variable);
         }
         paramValueKind = ParamValueKind::Self;
     } else if (&value.__type__() == &std.ast.Return) {
-        addValue(node, id.op);
-        addValue(node, id.variable);
-        paramValueKind = ParamValueKind::Return;
-    } else if (&value.__type__() == &std.ast.Parameter) {
-        if (value.has(id.value)) {
+        if (value.has(id.value) && value[id.value].has(id.value)) {
             addValue(node, id.op);
             addValue(node, id.value);
-            addValue(node, value[id.value]);
+            addValue(node, value[id.value][id.value]);
+        } else {
+            addValue(node, id.op);
+            addValue(node, id.variable);
+        }
+        paramValueKind = ParamValueKind::Return;
+    } else if (&value.__type__() == &std.ast.Parameter) {
+        if (value.has(id.value) && value[id.value].has(id.value)) {
+            addValue(node, id.op);
+            addValue(node, id.value);
+            addValue(node, value[id.value][id.value]);
         } else {
             addValue(node, id.op);
             addValue(node, id.variable);
@@ -2442,7 +2503,21 @@ void ToolFinder::exploreSlotManipulations()
             booleanTool.set(id.lhs, w.op.const_(w.true_));
             booleanTool.set(id.rhs, w.op.unknown_(x));
             auto& opEqual = w.op.equal(booleanTool, w.op.const_(w.false_));
+            opEqual.label(fmt::format("{}({}, X) == {}", tool.label(), booleanTool[id.lhs].label(), opEqual[id.rhs].label()));
+            exploreSlotManipulationFor(opEqual);
+
+            booleanTool.set(id.lhs, w.op.unknown_(x));
+            booleanTool.set(id.rhs, w.op.const_(w.true_));
+            opEqual.label(fmt::format("{}(X, {}) == {}", tool.label(), booleanTool[id.rhs].label(), opEqual[id.rhs].label()));
+            exploreSlotManipulationFor(opEqual);
+
+            booleanTool.set(id.lhs, w.op.const_(w.false_));
+            booleanTool.set(id.rhs, w.op.unknown_(x));
+            opEqual.set(id.rhs, w.op.const_(w.true_));
             auto buildersPtr = findBuildersForDescription(opEqual, DescriptionKind::consequence);
+            exploreSlotManipulationFor(opEqual);
+            m_consequenceRootNode->printAsGrapviz(w);
+
             continue;
         }
         if (&returnType != &std.Number) {
@@ -2487,7 +2562,7 @@ void ToolFinder::exploreSlotManipulationFor(CellI& description)
         }
         std::list<BuilderWithTool> tools1;
         for (auto& builder : *buildersPtr) {
-            TRACE(toolFinder, "build with {}", builder.label());
+            TRACE(toolFinderExplore, "build with {}", builder.label());
             Object retVal(w, std.ast.ConstVar);
             buildTool({ retVal, w.ast.member(id.value), permutation, builder });
             auto& tool = retVal[id.value];
@@ -2496,11 +2571,11 @@ void ToolFinder::exploreSlotManipulationFor(CellI& description)
 
         for (auto& builderWithTool1 : tools1) {
             auto& tool1 = builderWithTool1.m_tool;
-            TRACE(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
+            DEBUG(toolFinderExplore, "  1. build: {}", tool1.printAsValue());
             auto tool1Permutations = recombine(rootNode, tool1);
             for (auto& tool1PermutationResult : tool1Permutations) {
                 CellI& tool1Permutation = tool1PermutationResult.m_recombinedTool;
-                TRACE(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
+                DEBUG(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
                 if (tool1PermutationResult.m_isConstantFoldingPossible && (&tool1Permutation[id.lhs].__type__() == &std.op.UnknownVar)) {
                     DEBUG(toolFinderExplore, "  1. result: {}", tool1Permutation.printAsValue());
                     std::list<BuilderChainNode> builderChain;

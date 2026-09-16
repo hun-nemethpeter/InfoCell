@@ -2455,10 +2455,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .descriptionBegin()
             .consequences(
 //                equal(not_(or_(not_(self()), not_(p_("other")))), return_()), // TODO: do we need this?!
-                equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
-                equal(and_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)),
-                equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.false_)),
-                equal(and_(self(std.Boolean.false_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)))
+                equal(and_(self(_(std.Boolean.true_)), p_("other", _(std.Boolean.true_))), return_(_(std.Boolean.true_))),
+                equal(and_(self(_(std.Boolean.true_)), p_("other", _(std.Boolean.false_))), return_(_(std.Boolean.false_))),
+                equal(and_(self(_(std.Boolean.false_)), p_("other", _(std.Boolean.true_))), return_(_(std.Boolean.false_))),
+                equal(and_(self(_(std.Boolean.false_)), p_("other", _(std.Boolean.false_))), return_(_(std.Boolean.false_))))
             .selfBuilders(
                 and_(self(), p_("other")),
                 and_(p_("other"), self()))
@@ -2470,9 +2470,9 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             kvPair(id.self, "input"))
         .descriptionBegin()
             .consequences(
-                equal(not_(self(std.Boolean.false_)), _(std.Boolean.true_)),
-                equal(not_(self(std.Boolean.true_)), _(std.Boolean.false_)))
-        .selfBuilders(
+                equal(not_(self(_(std.Boolean.false_))), return_(_(std.Boolean.true_))),
+                equal(not_(self(_(std.Boolean.true_))), return_(_(std.Boolean.false_))))
+            .selfBuilders(
                 not_(self()))
         .descriptionEnd()
         .returnType("Boolean");
@@ -2485,11 +2485,11 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("other", "Boolean"))
         .descriptionBegin()
             .consequences(
-                equal(or_(self(std.Boolean.true_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
-                equal(or_(self(std.Boolean.true_), p_("other", std.Boolean.false_)), _(std.Boolean.true_)),
-                equal(or_(self(std.Boolean.false_), p_("other", std.Boolean.true_)), _(std.Boolean.true_)),
-                equal(or_(self(std.Boolean.false_), p_("other", std.Boolean.false_)), _(std.Boolean.false_)))
-        .selfBuilders(
+                equal(or_(self(_(std.Boolean.true_)), p_("other", _(std.Boolean.true_))), return_(_(std.Boolean.true_))),
+                equal(or_(self(_(std.Boolean.true_)), p_("other", _(std.Boolean.false_))), return_(_(std.Boolean.true_))),
+                equal(or_(self(_(std.Boolean.false_)), p_("other", _(std.Boolean.true_))), return_(_(std.Boolean.true_))),
+                equal(or_(self(_(std.Boolean.false_)), p_("other", _(std.Boolean.false_))), return_(_(std.Boolean.false_))))
+            .selfBuilders(
                 or_(self(), p_("other")),
                 or_(p_("other"), self()))
         .descriptionEnd()

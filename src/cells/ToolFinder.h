@@ -28,7 +28,7 @@ class ToolFinder
     {
         ~Node();
 
-        std::string print();
+        std::string printAsGrapviz(World& w);
 
         bool m_isLeaf    = false;
         List* m_builders = nullptr;
