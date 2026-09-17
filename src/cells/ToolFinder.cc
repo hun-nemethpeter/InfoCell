@@ -819,7 +819,7 @@ std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description,
                             auto& child = solverNode.addChild(solverNode);
                             child.checkKey(memberName);
                             child.checkKeyValue(id.op, id.value);
-                            child.checkKey(*key);
+                            child.checkAndCaptureValue(*key, memberValue[id.value]);
                         }
                     }
                 }
@@ -854,7 +854,20 @@ std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description,
     solverState.m_popFn = [this](SolverStateNode& solverNode) {
         solverNode.checkKeyValue(id.op, id.pop);
     };
-    solverState.m_resultFn = [&ret](Node& node) {
+    solverState.m_resultFn = [this, &ret](SolverStateNode& solverNode) {
+        Node& node = *solverNode.m_nodePtr;
+        if (solverNode.m_capturedValue) {
+            List& builder = *new List(w, std.Cell, fmt::format("builder for unfify {} with {}", solverNode.m_capturedVar->label(), solverNode.m_capturedValue->label()));
+
+            builder.add(w.ast.member(id.__type__));
+            builder.add(w.ast.primitiveToolName(std.op.Equal[id.ast]));
+            builder.add(w.ast.member(id.self));
+            builder.add(*solverNode.m_capturedPath);
+            builder.add(w.ast.member(id.other));
+            builder.add(w.op.const_(*solverNode.m_capturedValue));
+            ret->add(builder);
+            return;
+        }
         for (auto& builder : *node.m_builders) {
             ret->add(builder);
         }
@@ -952,9 +965,14 @@ void ToolFinder::addSolver(CellI& description, std::list<BuilderChainNode>& solv
                 TRACE(toolFinderExplore, "addValue {}", memberName.label());
                 addValue(currentNode, memberName);
                 if (&memberValue.__type__() == &std.op.ConstVar) {
-                    addKeyWithConstValue(currentNode, id.op, id.push);
-                    addKeyWithConstValue(currentNode, id.__type__, std.op.ConstVar);
-                    addKeyWithConstValue(currentNode, id.op, id.pop);
+                    if (memberValue.has(id.value)) {
+                        addKeyWithConstValue(currentNode, id.op, id.value);
+                        addValue(currentNode, memberValue[id.value]);
+                    } else {
+                        addKeyWithConstValue(currentNode, id.op, id.push);
+                        addKeyWithConstValue(currentNode, id.__type__, std.op.ConstVar);
+                        addKeyWithConstValue(currentNode, id.op, id.pop);
+                    }
                 } else if (&memberValue.__type__() == &std.op.UnknownVar) {
                     addKeyWithConstValue(currentNode, id.op, id.push);
                     addKeyWithConstValue(currentNode, id.__type__, std.op.UnknownVar);
@@ -1241,7 +1259,7 @@ void ToolFinder::SolverState::run()
             printAsDot();
             if (lastSolverNode.m_matchStatus == SolverStateNode::MatchStatus::finished) {
                 TRACE(toolFinderExplore, "getSolvers solver found");
-                m_resultFn(*lastSolverNode.m_nodePtr);
+                m_resultFn(lastSolverNode);
                 continue;
             }
             if (lastSolverNode.m_matchStatus == SolverStateNode::MatchStatus::failed) {
@@ -1366,13 +1384,21 @@ ToolFinder::SolverStateNode::SolverStateNode(SolverState& state, SolverPointer s
     m_nodePtr(nodePtr),
     m_parent(parent),
     m_solverPointer(solverPointer),
-    m_matchStatus(MatchStatus::created)
+    m_matchStatus(MatchStatus::created),
+    m_capturedPath(nullptr),
+    m_capturedValue(nullptr),
+    m_capturedVar(nullptr)
 {
 }
 
 void ToolFinder::SolverStateNode::checkKey(CellI& key)
 {
     m_subCommands.emplace_back(SubCommand::Kind::checkKey, &key, nullptr);
+}
+
+void ToolFinder::SolverStateNode::checkAndCaptureValue(CellI& key, CellI& value)
+{
+    m_subCommands.emplace_back(SubCommand::Kind::checkAndCaptureValue, &key, &value);
 }
 
 void ToolFinder::SolverStateNode::checkKeyValue(CellI& key, CellI& value)
@@ -1403,9 +1429,41 @@ bool ToolFinder::SolverStateNode::evaluate()
         if (ret == false) {
             return ret;
         }
+        if (command.m_kind == SubCommand::Kind::checkAndCaptureValue) {
+            if (m_capturedValue || m_capturedVar) {
+                if (m_capturedValue != command.m_key1) {
+                    return false;
+                }
+                if (m_capturedVar != command.m_key2) {
+                    return false;
+                }
+            } else {
+                m_capturedValue = command.m_key1;
+                m_capturedVar   = command.m_key2;
+                m_capturedPath  = saveCurrentPath();
+            }
+        }
     }
 
     return ret;
+}
+
+CellI* ToolFinder::SolverStateNode::saveCurrentPath()
+{
+    auto& w   = m_state.m_toolFinder.w;
+    List& ret = *new List(w, w.std.Cell, fmt::format("path for {}", m_capturedVar->label()));
+    std::deque<SolverPointer*> stack;
+    SolverPointer* solverPointer = &m_solverPointer;
+    while (solverPointer) {
+        stack.push_front(solverPointer);
+        solverPointer = solverPointer->m_parent;
+    }
+    for (SolverPointer* solverPointerPtr : stack) {
+        CellI& key = (*solverPointerPtr->m_memberNodePtr)[w.id.value][w.id.key];
+        ret.add(w.ast.parameter(key));
+    }
+
+    return &ret;
 }
 
 bool ToolFinder::SolverStateNode::SubCommand::evaluate(ToolFinder& toolFinder, Node*& node)
@@ -1415,6 +1473,10 @@ bool ToolFinder::SolverStateNode::SubCommand::evaluate(ToolFinder& toolFinder, N
         return true;
     case Kind::checkKey:
         return toolFinder.checkConstValue(node, *m_key1);
+    case Kind::checkAndCaptureValue: {
+        bool ret = toolFinder.checkConstValue(node, *m_key1);
+        return ret;
+    }
     case Kind::checkKeyValue:
         return toolFinder.checkConstKeyValue(node, *m_key1, *m_key2);
     };
@@ -1441,8 +1503,11 @@ std::string ToolFinder::SolverStateNode::SubCommand::printKey2()
 ToolFinder::SolverStateNode& ToolFinder::SolverStateNode::addNext(SolverStateNode*& solverNodePtr)
 {
     m_children.push_back(std::make_unique<SolverStateNode>(m_state, solverNodePtr->m_solverPointer, solverNodePtr->m_nodePtr, this));
-    auto* ret     = m_children.back().get();
-    solverNodePtr = ret;
+    auto* ret            = m_children.back().get();
+    ret->m_capturedPath  = solverNodePtr->m_capturedPath;
+    ret->m_capturedValue = solverNodePtr->m_capturedValue;
+    ret->m_capturedVar   = solverNodePtr->m_capturedVar;
+    solverNodePtr        = ret;
 
     return *ret;
 }
@@ -1471,6 +1536,9 @@ ToolFinder::SolverStateNode* ToolFinder::SolverStateNode::step()
         SolverStateNode* firstChild = nullptr;
         for (auto& child : m_children) {
             child->m_nodePtr = m_nodePtr;
+            child->m_capturedPath  = m_capturedPath;
+            child->m_capturedValue = m_capturedValue;
+            child->m_capturedVar   = m_capturedVar;
             m_state.addNextState(*child);
         }
         return this;
@@ -1557,10 +1625,18 @@ std::list<std::list<ToolFinder::BuilderChainNode>*> ToolFinder::getSolvers(CellI
     });
     // 1
     commandFns.push_back([this](SolverStateNode& solverNode, CellI& memberName, CellI& memberValue) {
-        solverNode.checkKey(memberName);
-        solverNode.checkKeyValue(id.op, id.push);
-        solverNode.checkKeyValue(id.__type__, std.op.ConstVar);
-        solverNode.checkKeyValue(id.op, id.pop);
+        solverNode.or_();
+
+        auto& child1 = solverNode.addChild(solverNode);
+        child1.checkKey(memberName);
+        child1.checkKeyValue(id.op, id.value);
+        child1.checkKey(memberValue[id.value]);
+
+        auto& child2 = solverNode.addChild(solverNode);
+        child2.checkKey(memberName);
+        child2.checkKeyValue(id.op, id.push);
+        child2.checkKeyValue(id.__type__, std.op.ConstVar);
+        child2.checkKeyValue(id.op, id.pop);
     });
     // 2
     commandFns.push_back([this](SolverStateNode& solverNode, CellI& memberName, CellI& memberValue) {
@@ -1598,7 +1674,8 @@ std::list<std::list<ToolFinder::BuilderChainNode>*> ToolFinder::getSolvers(CellI
     solverState.m_popFn = [this](SolverStateNode& solverNode) {
         solverNode.checkKeyValue(id.op, id.pop);
     };
-    solverState.m_resultFn = [&results](Node& node) {
+    solverState.m_resultFn = [&results](SolverStateNode& solverNode) {
+        Node& node = *solverNode.m_nodePtr;
         results.push_back(&node.m_solver);
     };
 
@@ -2106,7 +2183,7 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
     toCreate.push_back(buildToolInfo);
 
     auto getValuePtrFromValueCell = [this, &ListOfCellStruct](CellI& matchedEffect, CellI& valueCell) -> CellI* {
-        if (&valueCell.__type__() == &std.ast.ConstVar) {
+        if (&valueCell.__type__() == &std.op.ConstVar) {
             return &valueCell;
         } else if (&valueCell.__type__() == &ListOfCellStruct) {
             CellI* valuePtr = &matchedEffect;
@@ -2415,8 +2492,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     }
 
     CellI& solvedMissingSlotEquation = (*solvedMissingSlotEquationPtr)[id.first][id.value];
-    List* missingSlotSolversPtr = &findToolsByDescription(solvedMissingSlotEquation, DescriptionKind::consequence);
-
+    List* missingSlotSolversPtr      = &findToolsByDescription(solvedMissingSlotEquation, DescriptionKind::consequence);
     if (!missingSlotSolversPtr) {
         return;
     }
@@ -2511,11 +2587,16 @@ void ToolFinder::exploreSlotManipulations()
             opEqual.label(fmt::format("{}(X, {}) == {}", tool.label(), booleanTool[id.rhs].label(), opEqual[id.rhs].label()));
             exploreSlotManipulationFor(opEqual);
 
+            opEqual.set(id.rhs, w.op.const_(w.true_));
+
             booleanTool.set(id.lhs, w.op.const_(w.false_));
             booleanTool.set(id.rhs, w.op.unknown_(x));
-            opEqual.set(id.rhs, w.op.const_(w.true_));
-            auto buildersPtr = findBuildersForDescription(opEqual, DescriptionKind::consequence);
             exploreSlotManipulationFor(opEqual);
+
+            booleanTool.set(id.lhs, w.op.unknown_(x));
+            booleanTool.set(id.rhs, w.op.const_(w.false_));
+            exploreSlotManipulationFor(opEqual);
+
             m_consequenceRootNode->printAsGrapviz(w);
 
             continue;
@@ -2525,15 +2606,23 @@ void ToolFinder::exploreSlotManipulations()
         }
 
         auto& numberTool = *new Object(w, tool);
-        numberTool.set(id.lhs, w.op.const_(2));
+        CellI& opConst2  = w.op.const_(2);
+        opConst2.erase(id.value);
+        opConst2.label("2");
+
+        CellI& opConst4 = w.op.const_(4);
+        opConst4.erase(id.value);
+        opConst4.label("4");
+
+        numberTool.set(id.lhs, opConst2);
         numberTool.set(id.rhs, w.op.unknown_(x));
 
-        auto& opEqual = w.op.equal(numberTool, w.op.const_(4));
+        auto& opEqual = w.op.equal(numberTool, opConst4);
         opEqual.label(fmt::format("{}(x, y) == z", tool.label()));
         exploreSlotManipulationFor(opEqual);
 
         numberTool.set(id.lhs, w.op.unknown_(x));
-        numberTool.set(id.rhs, w.op.const_(2));
+        numberTool.set(id.rhs, opConst2);
 
         opEqual.label(fmt::format("{}(y, x) == z", tool.label()));
         exploreSlotManipulationFor(opEqual);
@@ -2571,11 +2660,19 @@ void ToolFinder::exploreSlotManipulationFor(CellI& description)
 
         for (auto& builderWithTool1 : tools1) {
             auto& tool1 = builderWithTool1.m_tool;
-            DEBUG(toolFinderExplore, "  1. build: {}", tool1.printAsValue());
+            TRACE(toolFinderExplore, "  1. build: {}", tool1.printAsValue());
+            if (&tool1.__type__() == &std.op.Equal && (&tool1[id.lhs].__type__() == &std.op.UnknownVar) && (&tool1[id.rhs].__type__() == &std.op.ConstVar)) {
+                DEBUG(toolFinderExplore, "  1. result: {}", tool1.printAsValue());
+                std::list<BuilderChainNode> builderChain;
+                builderChain.push_back({ nullptr, permutationResult.m_builderForTool });
+                builderChain.push_back({ &builderWithTool1.m_builder, nullptr });
+                addSolver(description, builderChain);
+                return;
+            }
             auto tool1Permutations = recombine(rootNode, tool1);
             for (auto& tool1PermutationResult : tool1Permutations) {
                 CellI& tool1Permutation = tool1PermutationResult.m_recombinedTool;
-                DEBUG(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
+                TRACE(toolFinderExplore, "  1. permutation: {}", tool1Permutation.printAsValue());
                 if (tool1PermutationResult.m_isConstantFoldingPossible && (&tool1Permutation[id.lhs].__type__() == &std.op.UnknownVar)) {
                     DEBUG(toolFinderExplore, "  1. result: {}", tool1Permutation.printAsValue());
                     std::list<BuilderChainNode> builderChain;

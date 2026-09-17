@@ -965,6 +965,7 @@ public:
 
         toolFinder.findConversionTools(w._2_, w._4_);
         toolFinder.findConversionTools(w.false_, w.true_);
+        toolFinder.findConversionTools(w.true_, w.false_);
         toolFinder.findConversionTools(inputShapeField, outputShapeField);
         diffShapeFields(inputShapeField, outputShapeField);
 

@@ -296,6 +296,8 @@ void CellValuePrinter::printOpConstVar(CellI& cell)
     }
     if (cell.has(w.id.value)) {
         m_ss << cell[w.id.value].label();
+    } else if (!cell.label().empty()) {
+        m_ss << cell.label();
     } else {
         m_ss << "<empty>";
     }

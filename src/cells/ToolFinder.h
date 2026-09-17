@@ -97,7 +97,7 @@ public:
         std::vector<std::function<void(SolverStateNode& solverNode, CellI& memberName, CellI& memberValue)>> m_commandFns;
         std::function<bool(CellI& memberRole)> m_filterFn;
         std::function<void(SolverStateNode& solverNode)> m_popFn;
-        std::function<void(Node& node)> m_resultFn;
+        std::function<void(SolverStateNode& solverNode)> m_resultFn;
         ToolFinder& m_toolFinder;
         CellI& m_description;
         std::unique_ptr<SolverStateNode> m_startSolverNode;
@@ -146,7 +146,8 @@ public:
             {
                 nop,
                 checkKey,
-                checkKeyValue
+                checkKeyValue,
+                checkAndCaptureValue
             };
 
             bool evaluate(ToolFinder& toolFinder, Node*& node);
@@ -161,6 +162,7 @@ public:
         SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr, SolverStateNode* parent);
 
         void checkKey(CellI& key);
+        void checkAndCaptureValue(CellI& key, CellI& value);
         void checkKeyValue(CellI& key, CellI& value);
         void or_();
         void push();
@@ -171,6 +173,7 @@ public:
         void pointer(CellI& description);
         void pointer(SolverPointer& solverPointer);
         bool evaluate();
+        CellI* saveCurrentPath();
         bool empty();
 
         SolverState& m_state;
@@ -181,6 +184,9 @@ public:
         std::vector<std::unique_ptr<SolverStateNode>> m_children;
         SolverPointer m_solverPointer;
         MatchStatus m_matchStatus = MatchStatus::created;
+        CellI* m_capturedPath     = nullptr;
+        CellI* m_capturedValue    = nullptr;
+        CellI* m_capturedVar      = nullptr;
     };
 
 private:
