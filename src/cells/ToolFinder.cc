@@ -881,10 +881,10 @@ std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description,
 // ============================================================================
 List* ToolFinder::solve(CellI& equation)
 {
-    DEBUG(toolFinderExplore, "solving equation: {}", equation.printAsValue());
+    TRACE(toolFinderExplore, "solving equation: {}", equation.printAsValue());
     auto solvers = getSolvers(equation);
     if (solvers.empty()) {
-        DEBUG(toolFinderExplore, "No solver!");
+        DEBUG(toolFinderExplore, "No solver for {}", equation.printAsValue());
         return nullptr;
     }
 
@@ -1579,7 +1579,7 @@ void ToolFinder::SolverStateNode::pointer(SolverPointer& solverPointer)
 // ============================================================================
 std::list<std::list<ToolFinder::BuilderChainNode>*> ToolFinder::getSolvers(CellI& description)
 {
-    DEBUG(toolFinderExplore, "getSolvers {}", description.label());
+    TRACE(toolFinderExplore, "getSolvers {}", description.label());
 
     std::list<std::list<ToolFinder::BuilderChainNode>*> results;
     SolverState solverState(getRootNodeForDescriptionKind(DescriptionKind::solver), *this, description);
@@ -2459,6 +2459,49 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& blueprintTool = *blueprint.m_tool;
     CellI& blueprintKey  = *blueprint.m_slotId;
 
+    DEBUG(toolFinderExplore, "check conversion with tool: {}, from:{}, to: {}", blueprint.m_tool->label(), from.label(), to.label());
+
+    if (static_cast<Map&>(blueprintTool[id.parameters]).size() == 1) {
+        // nothing to solve here, just test
+        CellI* toolPtr = nullptr;
+        if (blueprintTool.has(w.id.primitiveTool)) {
+            Map& membersMapping = static_cast<Map&>(blueprintTool[w.id.ast][w.id.memberMapping]);
+            CellI& tool         = *new Object(w, blueprintTool);
+            toolPtr             = &tool;
+            tool.set(membersMapping.getValue(blueprintKey), w.op.const_(from));
+            tool.set(id.state, std.op.State.ready);
+        } else {
+            CellI& tool = *new Object(w, std.op.Call);
+            toolPtr     = &tool;
+            tool.set(id.method, *blueprint.m_tool);
+            Map& parameters = w.op.parameters(blueprintKey, w.op.const_(from));
+            tool.set(id.parameters, parameters);
+        }
+        CellI& tool = *toolPtr;
+        tool();
+        if (&tool[id.value] != &to) {
+            return;
+        }
+        std::string conversionToolName = fmt::format("conversionToolFor_{}", blueprintTool[id.name].label());
+        CellI* conversionToolAstPtr = nullptr;
+        if (blueprintTool.has(w.id.primitiveTool)) {
+            conversionToolAstPtr = &w.ast.call(w.ast.parameter(w.name("from")), w.ast.primitiveToolName(blueprintTool));
+        } else {
+            panic("TODO");
+        }
+        CellI& conversionToolAst = *conversionToolAstPtr;
+
+        Ast::Scope rootScope(w, "toolFinder");
+        Compiler compiler(w);
+        ConversionLib conversionLib(w, rootScope, conversionToolName, conversionToolAst, from.__type__(), to.__type__());
+        conversionLib.include(w.arcLib());
+        compiler.compile(conversionLib);
+        auto& conversionTool = conversionLib.getFunction(fmt::format("conversion::{}", conversionToolName));
+
+        DEBUG(toolFinderExplore, " generating fn {}(from:{}) -> {} ...\n{}", blueprint.m_tool->label(), from.label(), to.label(), conversionTool.printAsValue());
+        results.add(conversionTool);
+        return;
+    }
     CellI* missingSlotIdPtr = findMissingParameterKey(blueprint);
     if (!missingSlotIdPtr) {
         return; // TODO
@@ -2508,9 +2551,8 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         DEBUG(toolFinderExplore, " solved equation: {}  =>  {}  =>  {} = {}", solvedMissingSlotEquation.printAsValue(), missingSlotSolver.printAsValue(), unknownX.label(), solvedX.label());
         //        DEBUG(toolFinderExplore, "unknownX.value = {}", solvedX.label());
 
-        Ast::Scope rootScope2(w, "toolFinder");
-        Compiler compiler2(w);
-        DEBUG(toolFinderExplore, " generating fn {}(X:{}, from:{})", blueprint.m_tool->label(), solvedX.label(), from.label());
+        Ast::Scope rootScope(w, "toolFinder");
+        Compiler compiler(w);
 
         std::string conversionToolName = fmt::format("conversionToolFor_{}", blueprintTool[id.name].label());
         //        CellI& conversionToolAst       = w.ast.call(blueprintTool);
@@ -2522,12 +2564,12 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
             panic("TODO");
         }
         CellI& conversionToolAst = *conversionToolAstPtr;
-        ConversionLib conversionLib(w, rootScope2, conversionToolName, conversionToolAst, from.__type__(), to.__type__());
+        ConversionLib conversionLib(w, rootScope, conversionToolName, conversionToolAst, from.__type__(), to.__type__());
         conversionLib.include(w.arcLib());
-        compiler2.compile(conversionLib);
+        compiler.compile(conversionLib);
         auto& conversionTool = conversionLib.getFunction(fmt::format("conversion::{}", conversionToolName));
 
-        DEBUG(toolFinderExplore, " generated\n{}", conversionTool.printAsValue());
+        DEBUG(toolFinderExplore, " generating fn {}(X:{}, from:{}) -> {} ...\n{}", blueprint.m_tool->label(), solvedX.label(), from.label(), to.label(), conversionTool.printAsValue());
         results.add(conversionTool);
     }
 }
@@ -2561,9 +2603,6 @@ void ToolFinder::exploreSlotManipulations()
         CellI& returnType = tool[id.returnType];
         if (&returnType == &std.Boolean) {
             auto& parameters  = static_cast<Map&>(tool[id.parameters]);
-            if (parameters.size() != 2) {
-                continue;
-            }
             bool allInputParamIsBoolean = true;
             for (auto& parameter : parameters) {
                 CellI& parameterType = parameter[id.value][id.type];
@@ -2573,6 +2612,20 @@ void ToolFinder::exploreSlotManipulations()
                 }
             }
             if (!allInputParamIsBoolean) {
+                continue;
+            }
+            if (parameters.size() == 1) {
+                auto& booleanTool = *new Object(w, tool);
+                booleanTool.set(id.input, w.op.unknown_(x));
+                auto& opEqual = w.op.equal(booleanTool, w.op.const_(w.false_));
+                opEqual.label(fmt::format("{}(X) == {}", tool.label(), booleanTool[id.input].label(), opEqual[id.rhs].label()));
+                exploreSlotManipulationFor(opEqual);
+
+                opEqual.set(id.rhs, w.op.const_(w.true_));
+                opEqual.label(fmt::format("{}(X) == {}", tool.label(), booleanTool[id.input].label(), opEqual[id.rhs].label()));
+
+                exploreSlotManipulationFor(opEqual);
+
                 continue;
             }
             auto& booleanTool = *new Object(w, tool);
