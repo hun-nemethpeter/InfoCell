@@ -223,8 +223,6 @@ TEST_F(CellTest, StringSplitWithExtraChar)
 // Result:  set(pixel, green, 5)
 TEST_F(CellTest, ToolFinderTestForSet)
 {
-    spdlog::get("toolFinderLookup")->set_level(spdlog::level::trace);
-
     ToolFinder& toolFinder = *w.globalScope.m_toolFinder;
     Object& pixel          = *new Object(w, test.Color, "pixel");
 
@@ -505,6 +503,7 @@ TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
         }
         std::cout << resultId.label() << " ";
     }
+    std::cout << std::endl;
     List* simplifiedFormsPtr = toolFinder.solve(testRequestFn);
 
     EXPECT_NE(simplifiedFormsPtr, nullptr);
@@ -534,6 +533,46 @@ TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
     EXPECT_EQ(&resultTool[id.value][id.rhs].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.value][id.rhs][id.value], &_2_);
     resultTool();
+    std::cout << "";
+}
+
+// map<String, Number>.getValue("key1") == 111
+//
+// Given:   map: std::Map<String, Number> which is empty
+// Request: map.getValue("key1") == 111
+// Result:  map.add("key1", 111)
+TEST_F(CellTest, ToolFinderTestForMap)
+{
+    ToolFinder& toolFinder = w.arcLib().toolFinder();
+    CellI& mapObj          = *new Object(w, getStruct(w.templateId("std::Map", id.keyType, std.String, id.valueType, std.Number)), "mapObj");
+
+    struct RequestHelper : public AstHelper
+    {
+        RequestHelper(World& w, CellI& mapObj) : AstHelper(w)
+        {
+            astPtr = &equal(call(_(mapObj), "getValue")(id.key, _("key1")), _(111));
+        }
+
+        Base* astPtr = nullptr;
+
+    } testRequest(w, mapObj);
+
+    LibraryTester libraryTester(w, testLib);
+    auto& testRequestFn = libraryTester.compileAsPrompt(*testRequest.astPtr);
+    spdlog::get("toolFinder")->set_level(spdlog::level::trace);
+    spdlog::get("toolFinderLookup")->set_level(spdlog::level::trace);
+    spdlog::get("toolFinderExplore")->set_level(spdlog::level::trace);
+    spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::trace);
+
+    std::cout << toolFinder.printConsequenceNodesAsGrapviz() << std::endl;
+//    List& resultTools      = toolFinder.findToolsByDescription(testRequestFn, ToolFinder::DescriptionKind::consequence);
+//    List& serializedEffect = toolFinder.serializeEffect(testRequestFn); // TODO
+
+    spdlog::get("toolFinder")->set_level(spdlog::level::off);
+    spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
+    spdlog::get("toolFinderExplore")->set_level(spdlog::level::debug);
+    spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::off);
+    //EXPECT_EQ(resultTools.size(), 1);
     std::cout << "";
 }
 
@@ -2456,6 +2495,26 @@ TEST_F(CellTest, DISABLED_ArcTaskFromArcPrizeExamineAllTrainPair)
 
 int main(int argc, char** argv)
 {
+    CellTest::createWorld([]() {
+        World::Logger::createLogger("edge");
+        World::Logger::createLogger("shapeCorners");
+        World::Logger::createLogger("shapeRelations");
+        World::Logger::createLogger("shapeIdGrid");
+        World::Logger::createLogger("grid");
+
+        spdlog::get("cells")->set_level(spdlog::level::trace);
+        spdlog::get("compileStruct")->set_level(spdlog::level::off);
+        spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
+        spdlog::get("toolFinder")->set_level(spdlog::level::trace);
+        spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
+        spdlog::get("toolFinderExplore")->set_level(spdlog::level::debug);
+        spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::off);
+        spdlog::get("edge")->set_level(spdlog::level::off);
+        spdlog::get("shapeCorners")->set_level(spdlog::level::off);
+        spdlog::get("shapeIdGrid")->set_level(spdlog::level::off);
+        spdlog::get("grid")->set_level(spdlog::level::trace);
+        spdlog::get("shapeRelations")->set_level(spdlog::level::off);
+    });
     ::testing::InitGoogleTest(&argc, argv);
     int ret = RUN_ALL_TESTS();
     std::cout << "Constructed: " << CellI::s_constructed << ", destructed: " << CellI::s_destructed << ", live: " << CellI::s_constructed - CellI::s_destructed << std::endl;

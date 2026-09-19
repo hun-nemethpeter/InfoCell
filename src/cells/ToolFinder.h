@@ -76,10 +76,11 @@ public:
     bool empty();
     List& serializeEffect(CellI& effect);
     void add(CellI& tool);
-    void add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
+    List& add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
     List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
     List* solve(CellI& equation);
     CellI& findConversionTools(CellI& from, CellI& to);
+    std::string printConsequenceNodesAsGrapviz();
     void exploreSlotManipulations();
 
     struct SolverStateNode;

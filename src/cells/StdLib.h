@@ -566,7 +566,8 @@ public:
             public:
                 ERole(World& w, CellI& type, const std::string& label);
 
-                Object constant;
+                Object constValue;
+                Object constVarValue;
                 Object construct;
                 Object debug;
                 Object input;

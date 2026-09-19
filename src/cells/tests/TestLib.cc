@@ -36,12 +36,13 @@ TestLibAst::TestLibAst(World& w, Ast::Scope& scope) :
     testStruct.addMethod("testCreateNewListOfNumbers")
         .instructions(
             var_("result") = new_(__type__("std::Index")),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Number))),
-            var_("result") = new_(tt_("std::List", "valueType", _(std.Cell))),
-            var_("result") = new_(tt_("std::List", "valueType", _(arc.Pixel))),
-            var_("result") = new_(tt_("std::Set", "valueType", _(std.Number))),
-            var_("result") = new_(tt_("std::Map", "keyType", _(std.Number), "valueType", "Color")),
-            var_("result") = new_(tt_("std::TrieMap", "keyType", _(std.Number), "valueType", "Color")));
+            var_("result") = new_(tt_("std::List", "valueType", "std::Number")),
+            var_("result") = new_(tt_("std::List", "valueType", "std::Cell")),
+            var_("result") = new_(tt_("std::List", "valueType", "arc::Pixel")),
+            var_("result") = new_(tt_("std::Set", "valueType", "std::Number")),
+            var_("result") = new_(tt_("std::Map", "keyType", "std::String", "valueType", "std::Number")),
+            var_("result") = new_(tt_("std::Map", "keyType", "std::Number", "valueType", "Color")),
+            var_("result") = new_(tt_("std::TrieMap", "keyType", "std::Number", "valueType", "Color")));
 
     testStruct.addMethod("factorial")
         .parameters(

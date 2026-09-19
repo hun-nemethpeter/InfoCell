@@ -720,6 +720,15 @@ public:
         }
         return ret;
     }
+    template <typename... Args>
+    Member& member(const std::string& nameStr, CellI& type, Args&&... args)
+    {
+        auto& ret = member(name(nameStr), type);
+        if constexpr (sizeof...(Args) > 0) {
+            ret.addKV(ret, std::forward<Args>(args)...);
+        }
+        return ret;
+    }
 
     Call& missing(Base& cell, Base& key);
     Call& missing(Base& cell, const std::string& id);

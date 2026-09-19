@@ -63,6 +63,11 @@ CellTest::CellTest(std::function<void()> loggerLevelInit) :
 {
 }
 
+void CellTest::createWorld(std::function<void()> loggerLevelInit)
+{
+    m_world = std::make_unique<World>(loggerLevelInit);
+}
+
 void CellTest::freeWorld()
 {
     m_world.reset();

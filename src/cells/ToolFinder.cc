@@ -266,10 +266,13 @@ List& ToolFinder::serializeEffect(CellI& effect)
             serializeKeyWithConstValue(ret, key, current.__type__());
         } else {
             if (&key == &id.method) {
-                serializeKeyWithConstValue(ret, key, current[key]);
+                serializeKeyWithConstValue(ret, key, current[key][id.value]);
             } else if (&key == &id.parameters && current.has(key)) {
                 if (!paramItemPtr) {
                     paramItemPtr = &current[id.parameters][id.first];
+                    ret.add(id.parameters);
+                    ret.add(id.op);
+                    ret.add(id.push);
                 }
                 CellI& paramSlot = (*paramItemPtr)[id.value];
                 keyPtr           = &paramSlot[id.key];
@@ -294,6 +297,8 @@ List& ToolFinder::serializeEffect(CellI& effect)
                 if (paramItemPtr) {
                     continue;
                 } else {
+                    ret.add(id.op);
+                    ret.add(id.pop);
                     paramItemPtr = nullptr;
                 }
             }
@@ -392,9 +397,13 @@ void ToolFinder::add(CellI& tool)
     if (description.has(id.selfBuilders)) {
         bool firstBuilder = true;
         List& mappingList = *new List(w, std.Cell);
+        Object& selfBuilders = *new Object(w, std.op.SelfBuilders, "SelfBuilders");
+        tool.set(id.selfBuilders, selfBuilders);
 
         for (CellI& selfBuilder : description[id.selfBuilders]) {
-            add(tool, selfBuilder, DescriptionKind::selfBuilder);
+            List& builders = add(tool, selfBuilder, DescriptionKind::selfBuilder);
+            selfBuilders.set(id.builder, builders);
+
             if (firstBuilder) {
                 firstBuilder = false;
                 mappingList.add(id.emptyObject);
@@ -402,8 +411,6 @@ void ToolFinder::add(CellI& tool)
                 createParametersMappingForAlternativeParameterOrder(selfBuilder, mappingList);
             }
         }
-
-        CellI& selfBuilders = tool[id.selfBuilders];
         selfBuilders.set(id.memberMapping, mappingList);
     }
 }
@@ -541,14 +548,9 @@ void ToolFinder::addKeyWithParamValue(Node*& node, CellI& key, CellI& value, Par
 }
 
 // ============================================================================
-void ToolFinder::add(CellI& tool, CellI& description, DescriptionKind descriptionKind)
+List& ToolFinder::add(CellI& tool, CellI& description, DescriptionKind descriptionKind)
 {
     auto& builders = add(tool, description, getRootNodeForDescriptionKind(descriptionKind));
-    if (descriptionKind == DescriptionKind::selfBuilder && tool.missing(id.selfBuilders)) {
-        Object& selfBuilders = *new Object(w, std.op.SelfBuilders, "SelfBuilders");
-        selfBuilders.set(id.builder, builders);
-        tool.set(id.selfBuilders, selfBuilders);
-    }
 
     if (IS_LOG_ENABLED) {
         CellI& astAsList = serializeEffect(description);
@@ -562,6 +564,7 @@ void ToolFinder::add(CellI& tool, CellI& description, DescriptionKind descriptio
         }
         TRACE(toolFinder, "  {}: {}", descriptionKind, ss.str());
     }
+    return builders;
 }
 
 // ============================================================================
@@ -587,10 +590,13 @@ List& ToolFinder::add(CellI& tool, CellI& description, Node* rootNode)
             addKeyWithConstValue(currentNode, key, current.__type__());
         } else {
             if (&key == &id.method) {
-                addKeyWithConstValue(currentNode, key, current[key]);
+                addKeyWithConstValue(currentNode, key, current[key][id.value]);
             } else if (&key == &id.parameters && current.has(key)) {
                 if (!paramItemPtr) {
                     paramItemPtr = &current[id.parameters][id.first];
+                    addValue(currentNode, id.parameters);
+                    addValue(currentNode, id.op);
+                    addValue(currentNode, id.push);
                 }
                 CellI& paramSlot = (*paramItemPtr)[id.value];
                 keyPtr           = &paramSlot[id.key];
@@ -622,6 +628,8 @@ List& ToolFinder::add(CellI& tool, CellI& description, Node* rootNode)
                 if (paramItemPtr) {
                     continue;
                 } else {
+                    addValue(currentNode, id.op);
+                    addValue(currentNode, id.pop);
                     paramItemPtr = nullptr;
                 }
             }
@@ -752,8 +760,10 @@ std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description,
         CellI& memberValue    = currentCell[memberName];
 
         if (&memberRelation == &std.op.Member.Relation.external) {
-            if (&memberRole == &std.op.Member.Role.constant) {
+            if (&memberRole == &std.op.Member.Role.constValue) {
                 commandFns[0](solverNode, memberName, memberValue);
+            } else if (&memberRole == &std.op.Member.Role.constVarValue) {
+                commandFns[0](solverNode, memberName, memberValue[id.value]);
             } else if (&memberRole == &std.op.Member.Role.input) {
                 if (&memberValue.__type__() == &std.op.ConstVar) {
                     commandFns[1](solverNode, memberName, memberValue);
@@ -849,7 +859,7 @@ std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description,
         solverNode.push();
     });
     solverState.m_filterFn = [this](CellI& memberRole) -> bool {
-        return &memberRole == &std.op.Member.Role.constant || &memberRole == &std.op.Member.Role.input;
+        return &memberRole == &std.op.Member.Role.constValue || &memberRole == &std.op.Member.Role.constVarValue || &memberRole == &std.op.Member.Role.input;
     };
     solverState.m_popFn = [this](SolverStateNode& solverNode) {
         solverNode.checkKeyValue(id.op, id.pop);
@@ -958,8 +968,10 @@ void ToolFinder::addSolver(CellI& description, std::list<BuilderChainNode>& solv
         CellI& memberRole     = member[id.role];
 
         if (&memberRelation == &std.op.Member.Relation.external) {
-            if (&memberRole == &std.op.Member.Role.constant) {
+            if (&memberRole == &std.op.Member.Role.constValue) {
                 addKeyWithConstValue(currentNode, memberName, current[memberName]);
+            } else if (&memberRole == &std.op.Member.Role.constVarValue) {
+                addKeyWithConstValue(currentNode, memberName, current[memberName][id.value]);
             } else if (&memberRole == &std.op.Member.Role.input) {
                 CellI& memberValue = current[memberName];
                 TRACE(toolFinderExplore, "addValue {}", memberName.label());
@@ -1156,7 +1168,7 @@ void ToolFinder::SolverState::printAsDot()
             CellI& memberRole         = member[id.role];
             std::string memberNameStr = memberName.label();
 
-            if (!(&memberRole == &std.op.Member.Role.constant || &memberRole == &std.op.Member.Role.input)) {
+            if (!(&memberRole == &std.op.Member.Role.constValue || &memberRole == &std.op.Member.Role.constVarValue || &memberRole == &std.op.Member.Role.input)) {
                 continue;
             }
             std::string bgcolor;
@@ -1597,8 +1609,10 @@ std::list<std::list<ToolFinder::BuilderChainNode>*> ToolFinder::getSolvers(CellI
         CellI& memberValue    = currentCell[memberName];
 
         if (&memberRelation == &std.op.Member.Relation.external) {
-            if (&memberRole == &std.op.Member.Role.constant) {
+            if (&memberRole == &std.op.Member.Role.constValue) {
                 commandFns[0](solverNode, memberName, memberValue);
+            } else if (&memberRole == &std.op.Member.Role.constVarValue) {
+                commandFns[0](solverNode, memberName, memberValue[id.value]);
             } else if (&memberRole == &std.op.Member.Role.input) {
                 if (&memberValue.__type__() == &std.op.ConstVar) {
                     commandFns[1](solverNode, memberName, memberValue);
@@ -1669,7 +1683,7 @@ std::list<std::list<ToolFinder::BuilderChainNode>*> ToolFinder::getSolvers(CellI
         solverNode.push();
     });
     solverState.m_filterFn = [this](CellI& memberRole) -> bool {
-        return &memberRole == &std.op.Member.Role.constant || &memberRole == &std.op.Member.Role.input;
+        return &memberRole == &std.op.Member.Role.constValue || &memberRole == &std.op.Member.Role.constVarValue || &memberRole == &std.op.Member.Role.input;
     };
     solverState.m_popFn = [this](SolverStateNode& solverNode) {
         solverNode.checkKeyValue(id.op, id.pop);
@@ -1708,8 +1722,10 @@ void ToolFinder::addPermutation(Node* rootNode, CellI& description)
         CellI& memberRole     = member[id.role];
 
         if (&memberRelation == &std.op.Member.Relation.external) {
-            if (&memberRole == &std.op.Member.Role.constant) {
+            if (&memberRole == &std.op.Member.Role.constValue) {
                 addKeyWithConstValue(currentNode, memberName, current[memberName]);
+            } else if (&memberRole == &std.op.Member.Role.constValue) {
+                addKeyWithConstValue(currentNode, memberName, current[memberName][id.value]);
             } else if (&memberRole == &std.op.Member.Role.input) {
                 addValue(currentNode, memberName);
                 CellI& memberValue = current[memberName];
@@ -1822,9 +1838,14 @@ bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)
         CellI& memberRole     = member[id.role];
 
         if (&memberRelation == &std.op.Member.Relation.external) {
-            if (&memberRole == &std.op.Member.Role.constant) {
+            if (&memberRole == &std.op.Member.Role.constValue) {
                 CellI& memberValue = current[memberName];
                 if (!checkConstKeyValue(currentNode, memberName, memberValue)) {
+                    return false;
+                }
+            } else if (&memberRole == &std.op.Member.Role.constValue) {
+                CellI& memberValue = current[memberName];
+                if (!checkConstKeyValue(currentNode, memberName, memberValue[id.value])) {
                     return false;
                 }
             } else if (&memberRole == &std.op.Member.Role.input) {
@@ -2587,6 +2608,12 @@ CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
     std::cout << "";
 
     return results;
+}
+
+// ============================================================================
+std::string ToolFinder::printConsequenceNodesAsGrapviz()
+{
+    return m_consequenceRootNode->printAsGrapviz(w);
 }
 
 // ============================================================================

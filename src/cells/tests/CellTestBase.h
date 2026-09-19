@@ -111,6 +111,7 @@ class CellTest :
 public:
     static void freeWorld();
     static World& getWorld();
+    static void createWorld(std::function<void()> loggerLevelInit = []() { });
 
     class LibraryTester : public Library
     {
