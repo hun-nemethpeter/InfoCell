@@ -245,24 +245,49 @@ void OpActivator::activateOpCall()
         }
     } else if (m_currentState == &state.activateParameters) {
         CellI* paramNodePtr = nullptr;
-        if (self.missing(w.id.currentParam)) {
-            CellI& paramList = self[w.id.parameters][w.id.list];
-            paramNodePtr     = &paramList[w.id.first];
-        } else {
-            CellI& paramNode = self[w.id.currentParam];
-            if (paramNode.has(w.id.next)) {
-                paramNodePtr = &paramNode[w.id.next];
+        CellI& parametersType = self[w.id.parameters].__type__();
+        bool parametersIsAMap = parametersType.has(id.fullyQualifiedName);
+        if (parametersIsAMap) {
+            if (self.missing(w.id.currentParam)) {
+                CellI& paramList = self[w.id.parameters][w.id.list];
+                paramNodePtr     = &paramList[w.id.first];
             } else {
-                self.erase(w.id.currentParam);
+                CellI& paramNode = self[w.id.currentParam];
+                if (paramNode.has(w.id.next)) {
+                    paramNodePtr = &paramNode[w.id.next];
+                } else {
+                    self.erase(w.id.currentParam);
+                }
             }
-        }
-        if (paramNodePtr) {
-            CellI& param = (*paramNodePtr)[w.id.value][w.id.value];
-            self.set(w.id.currentParam, *paramNodePtr);
-            m_previousCell = m_currentCell;
-            m_currentCell  = &param;
+            if (paramNodePtr) {
+                CellI& param = (*paramNodePtr)[w.id.value][w.id.value];
+                self.set(w.id.currentParam, *paramNodePtr);
+                m_previousCell = m_currentCell;
+                m_currentCell  = &param;
+            } else {
+                self.set(w.id.state, state.stackPushAndCall);
+            }
         } else {
-            self.set(w.id.state, state.stackPushAndCall);
+            if (self.missing(w.id.currentParam)) {
+                CellI& paramList = self[w.id.parameters].__type__()[id.members][w.id.list];
+                paramNodePtr     = &paramList[w.id.first];
+            } else {
+                CellI& paramNode = self[w.id.currentParam];
+                if (paramNode.has(w.id.next)) {
+                    paramNodePtr = &paramNode[w.id.next];
+                } else {
+                    self.erase(w.id.currentParam);
+                }
+            }
+            if (paramNodePtr) {
+                CellI& paramKey = (*paramNodePtr)[w.id.value][w.id.key];
+                CellI& param    = self[id.parameters][paramKey];
+                self.set(w.id.currentParam, *paramNodePtr);
+                m_previousCell = m_currentCell;
+                m_currentCell  = &param;
+            } else {
+                self.set(w.id.state, state.stackPushAndCall);
+            }
         }
     } else if (m_currentState == &state.stackPushAndCall) {
         CellI& methodName = self[w.id.method][w.id.value];
@@ -287,10 +312,21 @@ void OpActivator::activateOpCall()
 
         CellI& inputIndex = *new Object(w, w.std.Index);
         if (self.has(w.id.parameters)) {
-            for (CellI& parameter : self[w.id.parameters]) {
-                inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
-                // printIndent();
-                // std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.value][w.id.value].label() << std::endl;
+            CellI& parametersType = self[w.id.parameters].__type__();
+            bool parametersIsAMap = parametersType.has(id.fullyQualifiedName);
+            if (parametersIsAMap) {
+                for (CellI& parameter : self[w.id.parameters]) {
+                    inputIndex.set(parameter[w.id.key], parameter[w.id.value][w.id.value]);
+                    // printIndent();
+                    // std::cout << parameter[w.id.key].label() << ":" << parameter[w.id.value][w.id.value].label() << std::endl;
+                }
+            } else {
+                for (auto& parameterKV : parametersType[id.members]) {
+                    auto& key = parameterKV[id.key];
+                    CellI& parameterObj = self[id.parameters];
+                    auto& parameter     = parameterObj[key];
+                    inputIndex.set(key, parameter[w.id.value]);
+                }
             }
         }
         stackFrame.set(w.id.input, inputIndex);

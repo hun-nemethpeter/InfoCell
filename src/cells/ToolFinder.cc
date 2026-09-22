@@ -1269,6 +1269,9 @@ ToolFinder::SolverPointer::SolverPointer() :
 // ============================================================================
 ToolFinder::SolverPointer::SolverPointer(CellI& description)
 {
+    if (description.label() == "mapObj") {
+        std::cout << "";
+    }
     auto& id        = description.w.id;
     m_cellPtr       = &description;
     m_memberNodePtr = &(description).__type__()[id.memberIds][id.first];
@@ -2311,10 +2314,7 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                     subEffects.push_back({ retPtr, &key, valuePtr });
                     TRACE(toolFinderLookup, "BUILD: param: '{}' is a sub effect", unwrappedKey.label());
                 } else {
-                    CellI& newParam = *new Object(w, std.op.Parameter);
-                    newParam.set(w.id.name, unwrappedKey);
-                    newParam.set(w.id.value, *valuePtr);
-                    parameters.set(unwrappedKey, newParam);
+                    parameters.set(unwrappedKey, *valuePtr);
                     TRACE(toolFinderLookup, "BUILD: param: '{}':{}", unwrappedKey.label(), (*valuePtr).label());
                 }
                 slotItemPtr = &nextSlotItem;

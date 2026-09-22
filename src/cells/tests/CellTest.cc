@@ -538,16 +538,16 @@ TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
 
 // map<String, Number>.getValue("key1") == 111
 //
-// Given:   map: std::Map<String, Number> which is empty
+// Given:   map: std::Map<String, Number> which is constructed and empty
 // Request: map.getValue("key1") == 111
 // Result:  map.add("key1", 111)
 TEST_F(CellTest, ToolFinderTestForMap)
 {
     ToolFinder& toolFinder = testLib.toolFinder();
     CellI& MapStruct       = getStruct(w.templateId("std::Map", id.keyType, std.String, id.valueType, std.Number));
-    CellI& mapObj          = *new Object(w, MapStruct, "mapObj");
+    Object& mapObj         = *new Object(w, MapStruct, w.name("constructor"), "mapObj");
     Map& methodsMap        = static_cast<Map&>(MapStruct[id.methods]);
-    CellI& addFn           = methodsMap.getValue(w.name("add"));
+    Object& addFn          = static_cast<Object&>(methodsMap.getValue(w.name("add")));
     CellI& addFnParameters = addFn[id.parametersType];
 
     struct RequestHelper : public AstHelper
@@ -592,11 +592,24 @@ TEST_F(CellTest, ToolFinderTestForMap)
     EXPECT_EQ(&resultTool[id.method].__type__(), &std.op.ConstVar);
     EXPECT_EQ(&resultTool[id.method][id.value], &addFn);
     EXPECT_TRUE(resultTool.has(id.parameters));
-    EXPECT_TRUE(resultTool[id.parameters].has(w.name("self")));
-    EXPECT_EQ(&resultTool[id.parameters]["self"].__type__(), &std.op.ConstVar);
-    EXPECT_EQ(&resultTool[id.parameters]["self"][id.value], &mapObj);
-    EXPECT_TRUE(resultTool[id.parameters].has(w.name("key")));
-    EXPECT_TRUE(resultTool[id.parameters].has(w.name("value")));
+    EXPECT_TRUE(resultTool[id.parameters].has(id.self));
+    EXPECT_EQ(&resultTool[id.parameters][id.self].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.parameters][id.self][id.value], &mapObj);
+    EXPECT_TRUE(resultTool[id.parameters].has(id.key));
+    EXPECT_EQ(&resultTool[id.parameters][id.key].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.parameters][id.key][id.value], &w.name("key1"));
+    EXPECT_TRUE(resultTool[id.parameters].has(id.value));
+    EXPECT_EQ(&resultTool[id.parameters][id.value].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.parameters][id.value][id.value], &w.pools.numbers.get(111));
+    addFn.createSelfStack();
+    resultTool.set(id.parentFunction, addFn); // TODO HACK
+
+    // actually use the generated tool
+    resultTool();
+
+    // test the tool usage effect
+    CellI& result = mapObj.method(w.name("getValue"), { id.key, w.name("key1") });
+    EXPECT_EQ(&result, &w.pools.numbers.get(111));
     std::cout << "";
 }
 
