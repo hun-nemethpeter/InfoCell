@@ -1842,3 +1842,107 @@ input: X - 2 == 4
         ...
      }
    ```
+
+2026-09-21
+==========
+
+What is a tool? A tool is a runnable code with a description segment. So we can actually know hot to use that code.
+The description segment can contain conclusions or selfBuilder. The selfBuilder is for symmetries when the
+input parameters can be swapped. For example `2 * 3` produce the result as `3 * 2`.
+
+What is a primitive tool? The primitive tool is the assembly instructions for InfoCells. We can compine primitive tools
+and we get an op.function. But an op.function must be called with a `Call` primitive tool.
+
+Complications:
+--------------
+
+- Function call vs. PrimitiveTool (asm instructions).
+
+  In the InfoCells world the only executable thing is an op (operation) cell. AST (source code) cells wich forms a language compiles to OP (ASM, machine code) cells. This is the same distinction as the source code vs compiled machine code. At source code level, there is no ASM instruction.
+
+  In the InfoCell source the only way to call a function is to use the `CALL` AST cell. The `CALL` requires a function/method. This is true also for descxription segment and also for regular instruction code. This come with some problems.
+
+  Some function, such as `ADD` or `GET` can be directly compiled to an OP cell. The `AST.ADD` is a function. The compiled `AST.ADD` is dedicated OP cell (a single ASM instruction). The problem is that the ToolFinder work with compiled OP cells. When we define a description segment for example for `ADD` it is member function (method) in the `Number` struct. So it directly operates on a `Nunmber` typed cell. So it has a `self` pointer (which is the same as C++ `this` pointer). Following this logic, it has one parameter the `other` Number. The compiled OP on the other hand is not a method, so it doesn't have a `self` parameter. It follows the ASM intruction argument logic. So it has left hand side (lhs) and right hand side (rhs) arguments. So the compiled OP cell is one single cells but the input parameter names are different, we have a map for it.
+
+  Regular methods doesn't have this problems, but the issue is that an op.Function has a dedicated `parameters` member where the parameters are. So a function call consist of multiple cells.
+
+  - primitve constructor
+
+    In the `SET` op instruction (or `Cell::set` method) we have three input parameter: `cell`, `key` and `value`. Before compilation these input parameters arre called `self`, `key` and `value`. The interesting thing in the first parameter `cell` is that it can be uninitialized, Doesn't have to contain a value. Actually this OP will initialized it.
+
+```
+    Number.addPrimitiveFunction(std.Number.Add, op.Add, "add")
+        .memberMapping(
+            kvPair(id.self, "lhs"),
+            kvPair("other", "rhs"))
+        .parameters(
+            parameter("other", "Number"))
+        .descriptionBegin()
+            .consequences(
+                equal(subtract(return_(), p_("other")), self()))
+    ...
+```
+
+Use cases:
+
+- `List& ToolFinder::serializeEffect`
+
+  I want to serialize a description segment. It can be a conclusion, a self builder or a prompt
+   - maybe should give back an object with a print method?
+
+- `void ToolFinder::add(CellI& tool)`
+
+  I want to add a tool with description segment to the ToolFinder. Description segment can contain
+  a conclusion and/or a self builder. It creates a receipt for the builder.
+
+- `List& ToolFinder::createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect)`
+
+  Creates a builder for a conclusion and/or a self builder. MemberIds are the input fields.
+
+- `List& ToolFinder::findToolsByDescription(CellI& effect, DescriptionKind descriptionKind)`
+
+  Find a conclusion and/or a self builder in the ToolFinder and actually builds the tools also.
+
+- `std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description, DescriptionKind descriptionKind)`
+
+  Find a conclusion and/or a self builder in the ToolFinder
+
+- `List* ToolFinder::solve(CellI& equation)`
+
+  Simplify a prompt by solvers found by `exploreSlotManipulations()`
+
+- `void ToolFinder::addSolver(CellI& description, std::list<BuilderChainNode>& solver)`
+
+  When a simplified case found we save it to the solver segment.
+
+- `std::list<std::list<ToolFinder::BuilderChainNode>*> ToolFinder::getSolvers(CellI& description)`
+
+  Retrieve simplified case builders for a prompt which contains unknowns.
+
+- `void ToolFinder::addPermutation(Node* rootNode, CellI& description)`
+
+  During `recombine()` we store a permutation
+
+- `bool ToolFinder::hasPermutation(Node* rootNode, CellI& description)`
+
+  During `recombine()` we check a permutation
+
+- `bool ToolFinder::isConstantFoldingPossible(CellI& description)`
+
+  During `recombine()` we check a permutation that its input parameters are only consist constant independent known values.
+
+- `CellI& ToolFinder::doConstantFolding(CellI& description)`
+
+  Actually do the constant folding.
+
+- `std::list<ToolFinder::RecombineResult> ToolFinder::recombine(Node* rootNode, CellI& description)`
+
+  When multiple selfBuilder is given we build all of them.
+
+- `void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)`
+
+  Builds a tool from a receipt.
+
+- `void ToolFinder::exploreSlotManipulations()`
+
+  Discover tool interactions for a simplified case.

@@ -248,73 +248,57 @@ void ToolFinder::serializeKeyWithParamValue(List& result, CellI& key, CellI& val
 // ============================================================================
 List& ToolFinder::serializeEffect(CellI& effect)
 {
-    std::deque<StackNode> stack;
-    List& ret           = *new List(w, std.Cell);
-    CellI* slotItemPtr  = &effect.__type__()["slotKeyList"][id.first];
-    CellI* paramItemPtr = nullptr;
-    CellI* currentPtr   = &effect;
+    List& ret = *new List(w, std.Cell);
+    SolverState solverState(nullptr, *this, effect);
 
-    while (slotItemPtr) {
-        CellI& slotItem               = *slotItemPtr;
-        CellI& current                = *currentPtr;
-        CellI& key                    = slotItem[id.value];
-        ParamValueKind paramValueKind = ParamValueKind::NonParamValue;
-        CellI* keyPtr                 = nullptr;
-        CellI* valuePtr               = nullptr;
+    solverState.m_processFn = [this, &ret](std::vector<std::function<void(SolverStateNode & solverNode, CellI & memberName, CellI & memberValue)>>& commandFns, SolverStateNode* solverNodePtr) {
+        SolverPointer pointer = solverNodePtr->pointer();
+        auto& solverNode      = *solverNodePtr;
+        CellI* currentCellPtr = pointer.m_cellPtr;
+        CellI& currentCell    = *currentCellPtr;
+        CellI& memberKV       = (*pointer.m_memberNodePtr)[id.value];
+        CellI& member         = memberKV[id.value];
+        CellI& memberName     = member[id.name];
+        CellI& memberRelation = member[id.relation];
+        CellI& memberRole     = member[id.role];
+        CellI& memberValue    = currentCell[memberName];
 
-        if (&key == &id.__type__) {
-            serializeKeyWithConstValue(ret, key, current.__type__());
-        } else {
-            if (&key == &id.method) {
-                serializeKeyWithConstValue(ret, key, current[key][id.value]);
-            } else if (&key == &id.parameters && current.has(key)) {
-                if (!paramItemPtr) {
-                    paramItemPtr = &current[id.parameters][id.first];
-                    ret.add(id.parameters);
-                    ret.add(id.op);
-                    ret.add(id.push);
+        if (&memberRelation == &std.op.Member.Relation.external) {
+            if (&memberRole == &std.op.Member.Role.constValue) {
+                serializeKeyWithConstValue(ret, memberName, memberValue);
+            } else if (&memberRole == &std.op.Member.Role.constVarValue) {
+                serializeKeyWithConstValue(ret, memberName, memberValue[id.value]);
+            } else if (&memberRole == &std.op.Member.Role.input) {
+                ParamValueKind paramValueKind = ParamValueKind::NonParamValue;
+                serializeKeyWithParamValue(ret, memberName, memberValue, paramValueKind);
+                if (paramValueKind == ParamValueKind::Call) {
+                    solverNode.push();
                 }
-                CellI& paramSlot = (*paramItemPtr)[id.value];
-                keyPtr           = &paramSlot[id.key];
-                valuePtr         = &paramSlot[id.value];
-                serializeKeyWithParamValue(ret, *keyPtr, *valuePtr, paramValueKind);
             } else {
-                keyPtr   = &key;
-                valuePtr = &current[key];
-                serializeKeyWithParamValue(ret, *keyPtr, *valuePtr, paramValueKind);
+                panic("Unprocessed member!");
             }
-            if (paramValueKind == ParamValueKind::Call) {
-                stack.push_back({ currentPtr, slotItemPtr, paramItemPtr });
-                currentPtr   = valuePtr;
-                slotItemPtr  = &(*valuePtr).__type__()["slotKeyList"][id.first];
-                paramItemPtr = nullptr;
-                continue;
-            }
-
-            if (&key == &id.parameters && paramItemPtr) {
-                CellI& paramItem = *paramItemPtr;
-                paramItemPtr     = paramItem.getNextOrNullptr();
-                if (paramItemPtr) {
-                    continue;
-                } else {
-                    ret.add(id.op);
-                    ret.add(id.pop);
-                    paramItemPtr = nullptr;
-                }
-            }
-        }
-
-        slotItemPtr = slotItem.getNextOrNullptr();
-        while (!slotItemPtr && !stack.empty()) {
-            currentPtr   = stack.back().effectPtr;
-            slotItemPtr  = stack.back().slotItemPtr;
-            paramItemPtr = stack.back().paramItemPtr;
-            stack.pop_back();
+        } else {
+            ret.add(memberName);
             ret.add(id.op);
-            ret.add(id.pop);
-            slotItemPtr = slotItemPtr->getNextOrNullptr();
+            ret.add(id.push);
+            solverNode.push();
         }
-    }
+    };
+    solverState.m_filterFn = [this](CellI& cell, CellI& member) -> bool {
+        if (cell.missing(member[id.name])) {
+            return false;
+        }
+        CellI& memberRole = member[id.role];
+        return &memberRole == &std.op.Member.Role.constValue || &memberRole == &std.op.Member.Role.constVarValue || &memberRole == &std.op.Member.Role.input;
+    };
+    solverState.m_popFn = [this, &ret](SolverStateNode&) {
+        ret.add(id.op);
+        ret.add(id.pop);
+    };
+    solverState.m_resultFn = [](SolverStateNode&) {
+    };
+
+    solverState.run();
 
     return ret;
 }
@@ -375,7 +359,7 @@ void ToolFinder::add(CellI& tool)
         // so this can be a conversion tool
         CellI& returnType = tool[id.returnType];
         if (tool.has(id.parameters)) {
-            for (CellI& parameterKV : tool[id.parameters]) {
+            for (CellI& parameterKV : tool[id.parameters].__type__()[id.members]) {
                 CellI& parameter = parameterKV[id.value];
                 CellI& inputType = parameter[id.type];
                 ConversionToolKey key(inputType, returnType);
@@ -408,7 +392,8 @@ void ToolFinder::add(CellI& tool)
                 firstBuilder = false;
                 mappingList.add(id.emptyObject);
             } else {
-                createParametersMappingForAlternativeParameterOrder(selfBuilder, mappingList);
+                Map& alternativeParameterMapping = generateAlternativeParameterMapping(selfBuilder);
+                mappingList.add(alternativeParameterMapping);
             }
         }
         selfBuilders.set(id.memberMapping, mappingList);
@@ -416,52 +401,29 @@ void ToolFinder::add(CellI& tool)
 }
 
 // ============================================================================
-void ToolFinder::createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList)
+Map& ToolFinder::generateAlternativeParameterMapping(CellI& selfBuilder)
 {
-    if (alternativeParameterOrder.__type__().has(id.primitiveTool)) {
-        auto& generatedMapping = *new Map(w, w.std.String, w.std.String);
-        auto& memberMapping = static_cast<Map&>(alternativeParameterOrder.__type__()[id.ast][id.memberMapping]);
-        for (auto& parameterKV : alternativeParameterOrder[id.ast][id.parameters]) {
-            auto& fromKey       = parameterKV[id.key];
-            auto& mappedFromKey = memberMapping.getValue(fromKey);
-            CellI* toKeyPtr     = nullptr;
-            auto& parameter     = parameterKV[id.value];
-            if (&parameter.__type__() == &std.ast.Parameter) {
-                toKeyPtr = &parameter[id.key];
-            } else if (&parameter.__type__() == &std.ast.Self) {
-                toKeyPtr = &id.self;
-            } else {
-                panic("Unknown parameter type!");
-            }
-            CellI& toKey      = *toKeyPtr;
-            auto& mappedToKey = memberMapping.getValue(toKey);
-            generatedMapping.add(mappedFromKey, mappedToKey);
-        }
-        mappingList.add(generatedMapping);
-    } else {
-        panic("TODO");
-    }
+    bool primitiveTool = selfBuilder.__type__().has(id.primitiveTool);
+    Map& generatedMapping = *new Map(w, w.std.String, w.std.String);
+    for (auto& parameterKV : selfBuilder.__type__()[id.parametersType][id.members]) {
+        auto& fromKey       = parameterKV[id.key];
 
-}
+        CellI& parameterObj = primitiveTool ? selfBuilder : selfBuilder[id.parameters];
+        auto& parameter     = parameterObj[fromKey];
 
-// ============================================================================
-void ToolFinder::saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack)
-{
-    auto getSlotForKey = [this](CellI& key) -> CellI& {
-        if (&key == &id.self) {
-            return w.ast.member(key);
+        CellI* toKeyPtr = nullptr;
+        if (&parameter.__type__() == &std.ast.Parameter) {
+            toKeyPtr = &parameter[id.key];
+        } else if (&parameter.__type__() == &std.ast.Self) {
+            toKeyPtr = &id.self;
         } else {
-            return w.ast.parameter(key);
+            panic("Unknown parameter type!");
         }
-    };
-    if (!memberIds.hasKey(memberKey)) {
-        List& path = *new List(w, std.Cell, fmt::format("path for {}", memberKey.label()));
-        for (auto& stackItem : stack) {
-            path.add(getSlotForKey((*stackItem.slotItemPtr)[id.value]));
-        }
-        path.add(getSlotForKey(key));
-        memberIds.add(memberKey, path);
+        CellI& toKey = *toKeyPtr;
+        generatedMapping.add(fromKey, toKey);
     }
+
+    return generatedMapping;
 }
 
 // ============================================================================
@@ -570,82 +532,85 @@ List& ToolFinder::add(CellI& tool, CellI& description, DescriptionKind descripti
 // ============================================================================
 List& ToolFinder::add(CellI& tool, CellI& description, Node* rootNode)
 {
-    std::deque<StackNode> stack;
-    Node* currentNode      = rootNode;
-    CellI* slotItemPtr     = &description.__type__()["slotKeyList"][id.first];
-    CellI* paramItemPtr    = nullptr;
-    CellI* currentPtr      = &description;
-    bool hasReturnInEffect = false;
     Map memberIds(w, std.Cell, std.Cell);
-
-    while (slotItemPtr) {
-        CellI& slotItem               = *slotItemPtr;
-        CellI& current                = *currentPtr;
-        CellI& key                    = slotItem[id.value];
-        ParamValueKind paramValueKind = ParamValueKind::NonParamValue;
-        CellI* keyPtr                 = nullptr;
-        CellI* valuePtr               = nullptr;
-
-        if (&key == &id.__type__) {
-            addKeyWithConstValue(currentNode, key, current.__type__());
-        } else {
-            if (&key == &id.method) {
-                addKeyWithConstValue(currentNode, key, current[key][id.value]);
-            } else if (&key == &id.parameters && current.has(key)) {
-                if (!paramItemPtr) {
-                    paramItemPtr = &current[id.parameters][id.first];
-                    addValue(currentNode, id.parameters);
-                    addValue(currentNode, id.op);
-                    addValue(currentNode, id.push);
-                }
-                CellI& paramSlot = (*paramItemPtr)[id.value];
-                keyPtr           = &paramSlot[id.key];
-                valuePtr         = &paramSlot[id.value];
-                addKeyWithParamValue(currentNode, *keyPtr, *valuePtr, paramValueKind);
+    bool hasReturnInEffect = false;
+    Node* currentNode      = rootNode;
+    auto saveCurrentPath   = [this, &memberIds](CellI& key, CellI& memberKey, SolverPointer& solverPointer) {
+        auto getSlotForKey = [this](CellI& key) -> CellI& {
+            if (&key == &id.self) {
+                return w.ast.member(key);
             } else {
-                keyPtr   = &key;
-                valuePtr = &current[key];
-                addKeyWithParamValue(currentNode, *keyPtr, *valuePtr, paramValueKind);
+                return w.ast.parameter(key);
             }
-            if (paramValueKind == ParamValueKind::Return) {
-                saveCurrentPath(*keyPtr, id.return_, memberIds, stack);
-                hasReturnInEffect = true;
-            } else if (paramValueKind == ParamValueKind::Self) {
-                saveCurrentPath(*keyPtr, id.self, memberIds, stack);
-            } else if (paramValueKind == ParamValueKind::Parameter) {
-                saveCurrentPath(*keyPtr, (*valuePtr)[id.key], memberIds, stack);
-            } else if (paramValueKind == ParamValueKind::Call) {
-                stack.push_back({ currentPtr, slotItemPtr, paramItemPtr });
-                currentPtr   = valuePtr;
-                slotItemPtr  = &(*valuePtr).__type__()["slotKeyList"][id.first];
-                paramItemPtr = nullptr;
-                continue;
+        };
+        if (!memberIds.hasKey(memberKey)) {
+            List& path = *new List(w, std.Cell, fmt::format("path for {}", memberKey.label()));
+            SolverPointer* solverPointerPtr = &solverPointer;
+            while (solverPointerPtr) {
+                path.addFront(getSlotForKey((*solverPointerPtr->m_memberNodePtr)[id.value][id.key]));
+                solverPointerPtr = solverPointerPtr->m_parent;
             }
+            memberIds.add(memberKey, path);
+        }
+    };
 
-            if (&key == &id.parameters && paramItemPtr) {
-                CellI& paramItem = *paramItemPtr;
-                paramItemPtr     = paramItem.getNextOrNullptr();
-                if (paramItemPtr) {
-                    continue;
-                } else {
-                    addValue(currentNode, id.op);
-                    addValue(currentNode, id.pop);
-                    paramItemPtr = nullptr;
+    SolverState solverState(rootNode, *this, description);
+
+    solverState.m_processFn = [this, &memberIds, &hasReturnInEffect, &saveCurrentPath](std::vector<std::function<void(SolverStateNode & solverNode, CellI & memberName, CellI & memberValue)>>& commandFns, SolverStateNode* solverNodePtr) {
+        SolverPointer pointer = solverNodePtr->pointer();
+        auto& solverNode      = *solverNodePtr;
+        CellI* currentCellPtr = pointer.m_cellPtr;
+        CellI& currentCell    = *currentCellPtr;
+        CellI& memberKV       = (*pointer.m_memberNodePtr)[id.value];
+        CellI& member         = memberKV[id.value];
+        CellI& memberName     = member[id.name];
+        CellI& memberRelation = member[id.relation];
+        CellI& memberRole     = member[id.role];
+        CellI& memberValue    = currentCell[memberName];
+
+        if (&memberRelation == &std.op.Member.Relation.external) {
+            if (&memberRole == &std.op.Member.Role.constValue) {
+                addKeyWithConstValue(solverNode.m_nodePtr, memberName, memberValue);
+            } else if (&memberRole == &std.op.Member.Role.constVarValue) {
+                addKeyWithConstValue(solverNode.m_nodePtr, memberName, memberValue[id.value]);
+            } else if (&memberRole == &std.op.Member.Role.input) {
+                ParamValueKind paramValueKind = ParamValueKind::NonParamValue;
+                addKeyWithParamValue(solverNode.m_nodePtr, memberName, memberValue, paramValueKind);
+                if (paramValueKind == ParamValueKind::Return) {
+                    saveCurrentPath(memberName, id.return_, solverNode.m_solverPointer);
+                    hasReturnInEffect = true;
+                } else if (paramValueKind == ParamValueKind::Self) {
+                    saveCurrentPath(memberName, id.self, solverNode.m_solverPointer);
+                } else if (paramValueKind == ParamValueKind::Parameter) {
+                    saveCurrentPath(memberName, memberValue[id.key], solverNode.m_solverPointer);
+                } else if (paramValueKind == ParamValueKind::Call) {
+                    solverNode.push();
                 }
+            } else {
+                panic("Unprocessed member!");
             }
+        } else {
+            addValue(solverNode.m_nodePtr, memberName);
+            addKeyWithConstValue(solverNode.m_nodePtr, id.op, id.push);
+            solverNode.push();
         }
+    };
+    solverState.m_filterFn = [this](CellI& cell, CellI& member) -> bool {
+        if (cell.missing(member[id.name])) {
+            return false;
+        }
+        CellI& memberRole = member[id.role];
+        return &memberRole == &std.op.Member.Role.constValue || &memberRole == &std.op.Member.Role.constVarValue || &memberRole == &std.op.Member.Role.input;
+    };
+    solverState.m_popFn = [this](SolverStateNode& solverNode) {
+        addValue(solverNode.m_nodePtr, id.op);
+        addValue(solverNode.m_nodePtr, id.pop);
+    };
+    solverState.m_resultFn = [&currentNode](SolverStateNode& solverNode) {
+        currentNode = solverNode.m_nodePtr;
+    };
 
-        slotItemPtr = slotItem.getNextOrNullptr();
-        while (!slotItemPtr && !stack.empty()) {
-            currentPtr   = stack.back().effectPtr;
-            slotItemPtr  = stack.back().slotItemPtr;
-            paramItemPtr = stack.back().paramItemPtr;
-            stack.pop_back();
-            addValue(currentNode, id.op);
-            addValue(currentNode, id.pop);
-            slotItemPtr = slotItemPtr->getNextOrNullptr();
-        }
-    }
+    solverState.run();
 
     currentNode->m_isLeaf = 1;
     if (currentNode->m_builders == nullptr) {
@@ -670,7 +635,7 @@ List& ToolFinder::createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEff
         builder.add(w.ast.member(id.__type__));
         builder.add(w.ast.primitiveToolName(std.op.Equal[id.ast]));
         builder.add(w.ast.member(id.lhs));
-        builder.add(w.id.push);
+        builder.add(id.push);
     }
     builder.add(w.ast.member(id.__type__));
     if (tool[id.ast].has(w.id.primitiveTool)) {
@@ -678,21 +643,17 @@ List& ToolFinder::createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEff
     } else {
         builder.add(w.ast._(std.op.Call));
         builder.add(w.ast.member(id.method));
-        builder.add(w.ast._(tool));
+        builder.add(w.op.const_(tool));
     }
 
-    for (CellI& parameterKV : tool[id.parameters]) {
+    for (CellI& parameterKV : tool[id.parameters].__type__()[id.members]) {
         CellI& key = parameterKV[id.key];
-        if (&key == &id.self) {
-            builder.add(w.ast.member(key));
-        } else {
-            builder.add(w.ast.parameter(key));
-        }
+        builder.add(w.ast.parameter(key));
         builder.add(memberIds.getValue(key));
     }
     if (hasReturnInEffect) {
-        builder.add(w.id.pop);
-        builder.add(w.ast.member(id.other));
+        builder.add(id.pop);
+        builder.add(w.ast.member(id.rhs));
         builder.add(memberIds.getValue(id.return_));
     }
 
@@ -714,7 +675,7 @@ List& ToolFinder::findToolsByDescription(CellI& effect, DescriptionKind descript
     }
     for (auto& builder : *buildersPtr) {
         TRACE(toolFinder, "build with {}", builder.label());
-        Object retVal(w, std.ast.ConstVar);
+        Object retVal(w, std.op.ConstVar);
         buildTool({ retVal, w.ast.member(id.value), effect, builder });
         auto& tool = retVal[id.value];
         DEBUG(toolFinderLookup, "result: {}", tool.printAsValue());
@@ -858,7 +819,11 @@ std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description,
         solverNode.checkKeyValue(id.op, id.push);
         solverNode.push();
     });
-    solverState.m_filterFn = [this](CellI& memberRole) -> bool {
+    solverState.m_filterFn = [this](CellI& cell, CellI& member) -> bool {
+        if (cell.missing(member[id.name])) {
+            return false;
+        }
+        CellI& memberRole = member[id.role];
         return &memberRole == &std.op.Member.Role.constValue || &memberRole == &std.op.Member.Role.constVarValue || &memberRole == &std.op.Member.Role.input;
     };
     solverState.m_popFn = [this](SolverStateNode& solverNode) {
@@ -871,9 +836,9 @@ std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description,
 
             builder.add(w.ast.member(id.__type__));
             builder.add(w.ast.primitiveToolName(std.op.Equal[id.ast]));
-            builder.add(w.ast.member(id.self));
+            builder.add(w.ast.member(id.lhs));
             builder.add(*solverNode.m_capturedPath);
-            builder.add(w.ast.member(id.other));
+            builder.add(w.ast.member(id.rhs));
             builder.add(w.op.const_(*solverNode.m_capturedValue));
             ret->add(builder);
             return;
@@ -1373,9 +1338,8 @@ ToolFinder::SolverPointer ToolFinder::SolverPointer::step(SolverStateNode& solve
 
         CellI& memberKV   = (*memberNodePtr)[id.value];
         CellI& member     = memberKV[id.value];
-        CellI& memberRole = member[id.role];
 
-        if (filterFn(memberRole)) {
+        if (filterFn(*cellPtr, member)) {
             return { parent, cellPtr, memberNodePtr };
         }
     }
@@ -1682,7 +1646,8 @@ std::list<std::list<ToolFinder::BuilderChainNode>*> ToolFinder::getSolvers(CellI
         solverNode.checkKeyValue(id.op, id.push);
         solverNode.push();
     });
-    solverState.m_filterFn = [this](CellI& memberRole) -> bool {
+    solverState.m_filterFn = [this](CellI& cell, CellI& member) -> bool {
+        CellI& memberRole = member[id.role];
         return &memberRole == &std.op.Member.Role.constValue || &memberRole == &std.op.Member.Role.constVarValue || &memberRole == &std.op.Member.Role.input;
     };
     solverState.m_popFn = [this](SolverStateNode& solverNode) {
@@ -2214,12 +2179,7 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                     valuePtr = &currentValue[pathItem[id.key]];
                 } else if (&pathItem.__type__() == &std.ast.Parameter) {
                     CellI& key = pathItem[id.key];
-                    if (currentValue.__type__().has(id.primitiveTool)) {
-                        valuePtr = &currentValue[pathItem[id.key]];
-                    } else {
-                        Map& parameters = static_cast<Map&>(currentValue[id.parameters]);
-                        valuePtr        = &parameters.getValue(key)[id.value];
-                    }
+                    valuePtr   = &currentValue[key];
                 } else {
                     panic("Unknown builder path item type!");
                 }
@@ -2302,7 +2262,6 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                 CellI& unwrappedKey  = key[id.key];
                 CellI& nextSlotItem  = (*slotItemPtr)[id.next];
                 slotItemPtr          = &nextSlotItem;
-                Map& membersMapping  = static_cast<Map&>((*primitiveToolPtr)[id.memberMapping]);
                 CellI& valueCell     = nextSlotItem[id.value];
                 if (&valueCell == &id.push) {
                     TRACE(toolFinderLookup, "BUILD: push to '{}'", unwrappedKey.label());
@@ -2314,14 +2273,13 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                     std::cout << "";
                     continue;
                 }
-                CellI& translatedKey = membersMapping.getValue(unwrappedKey);
                 CellI* valuePtr      = getValuePtrFromValueCell(matchedEffect, valueCell);
                 if (!(&(*valuePtr).__type__() == &std.op.UnknownVar || &(*valuePtr).__type__() == &std.op.ConstVar)) {
-                    subEffects.push_back({ retPtr, &w.ast.member(translatedKey), valuePtr });
+                    subEffects.push_back({ retPtr, &w.ast.member(unwrappedKey), valuePtr });
                     TRACE(toolFinderLookup, "BUILD: '{}' is a sub effect", unwrappedKey.label());
                 } else {
-                    ret.set(translatedKey, *valuePtr);
-                    TRACE(toolFinderLookup, "BUILD: '{}':{}", translatedKey.label(), (*valuePtr).label());
+                    ret.set(unwrappedKey, *valuePtr);
+                    TRACE(toolFinderLookup, "BUILD: '{}':{}", unwrappedKey.label(), (*valuePtr).label());
                 }
             } else if (&key.__type__() == &std.ast.Member) {
                 CellI& unwrappedKey = key[id.key];
@@ -2344,18 +2302,19 @@ void ToolFinder::buildTool(const BuildToolInfo& buildToolInfo)
                 CellI* valuePtr     = getValuePtrFromValueCell(matchedEffect, valueCell);
 
                 if (ret.missing(id.parameters)) {
-                    ret.set(id.parameters, *new Map(w, std.Cell, std.op.Parameter));
+                    CellI& ParameterType = ret[id.method][id.value][id.parametersType];
+                    ret.set(id.parameters, *new Object(w, ParameterType));
                     TRACE(toolFinderLookup, "BUILD: parameters");
                 }
-                auto& parameters = static_cast<Map&>(ret[id.parameters]);
+                CellI& parameters = ret[id.parameters];
                 if (!(&(*valuePtr).__type__() == &std.op.UnknownVar || &(*valuePtr).__type__() == &std.op.ConstVar)) {
                     subEffects.push_back({ retPtr, &key, valuePtr });
                     TRACE(toolFinderLookup, "BUILD: param: '{}' is a sub effect", unwrappedKey.label());
                 } else {
                     CellI& newParam = *new Object(w, std.op.Parameter);
-                    newParam.set(w.id.key, unwrappedKey);
+                    newParam.set(w.id.name, unwrappedKey);
                     newParam.set(w.id.value, *valuePtr);
-                    parameters.add(unwrappedKey, newParam);
+                    parameters.set(unwrappedKey, newParam);
                     TRACE(toolFinderLookup, "BUILD: param: '{}':{}", unwrappedKey.label(), (*valuePtr).label());
                 }
                 slotItemPtr = &nextSlotItem;
@@ -2405,8 +2364,9 @@ bool ToolFinder::checkUnknownsInTool(CellI& effect)
         return true;
     } else if (&effect.__type__() == &std.op.Call) {
         if (effect.has("parameters")) {
-            for (CellI& parameter : effect[id.parameters]) {
-                if (checkUnknownsInTool(parameter[w.id.value])) {
+            for (CellI& parameterKV : effect[id.parameters]) {
+                CellI& parameter = parameterKV[id.value];
+                if (checkUnknownsInTool(parameter[id.value])) {
                     return true;
                 }
             }
@@ -2436,7 +2396,7 @@ static CellI* findMissingParameterKey(ToolFinder::ConversionToolBlueprint& bluep
     CellI& tool       = *blueprint.m_tool;
     World& w          = tool.w;
     CellI& filledKey  = *blueprint.m_slotId;
-    for (CellI& parameter : tool[w.id.parameters]) {
+    for (CellI& parameter : tool[w.id.parameters].__type__()[w.id.members]) {
         CellI& key = parameter[w.id.key];
         if (&key != &filledKey) {
             return &key;
@@ -2480,16 +2440,15 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& blueprintTool = *blueprint.m_tool;
     CellI& blueprintKey  = *blueprint.m_slotId;
 
-    DEBUG(toolFinderExplore, "check conversion with tool: {}, from:{}, to: {}", blueprint.m_tool->label(), from.label(), to.label());
+    DEBUG(toolFinderExplore, "check conversion with tool `{}` from: {}, to: {}", blueprint.m_tool->label(), from.label(), to.label());
 
-    if (static_cast<Map&>(blueprintTool[id.parameters]).size() == 1) {
+    if (static_cast<Map&>(blueprintTool[id.parameters].__type__()[id.members]).size() == 1) {
         // nothing to solve here, just test
         CellI* toolPtr = nullptr;
         if (blueprintTool.has(w.id.primitiveTool)) {
-            Map& membersMapping = static_cast<Map&>(blueprintTool[w.id.ast][w.id.memberMapping]);
-            CellI& tool         = *new Object(w, blueprintTool);
-            toolPtr             = &tool;
-            tool.set(membersMapping.getValue(blueprintKey), w.op.const_(from));
+            CellI& tool = *new Object(w, blueprintTool);
+            toolPtr     = &tool;
+            tool.set(blueprintKey, w.op.const_(from));
             tool.set(id.state, std.op.State.ready);
         } else {
             CellI& tool = *new Object(w, std.op.Call);
@@ -2535,11 +2494,10 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     getValueFromX.set(id.state, std.op.State.missingInput);
     CellI* toolPtr = nullptr;
     if (blueprintTool.has(w.id.primitiveTool)) {
-        Map& membersMapping = static_cast<Map&>(blueprintTool[w.id.ast][w.id.memberMapping]);
-        CellI& tool         = *new Object(w, blueprintTool);
-        toolPtr             = &tool;
-        tool.set(membersMapping.getValue(blueprintKey), w.op.const_(from));
-        tool.set(membersMapping.getValue(missingSlotId), getValueFromX);
+        CellI& tool = *new Object(w, blueprintTool);
+        toolPtr     = &tool;
+        tool.set(blueprintKey, w.op.const_(from));
+        tool.set(missingSlotId, getValueFromX);
     } else {
         CellI& tool = *new Object(w, std.op.Call);
         toolPtr     = &tool;
@@ -2629,7 +2587,7 @@ void ToolFinder::exploreSlotManipulations()
         }
         CellI& returnType = tool[id.returnType];
         if (&returnType == &std.Boolean) {
-            auto& parameters  = static_cast<Map&>(tool[id.parameters]);
+            auto& parameters            = static_cast<Map&>(tool[id.parameters].__type__()[id.members]);
             bool allInputParamIsBoolean = true;
             for (auto& parameter : parameters) {
                 CellI& parameterType = parameter[id.value][id.type];

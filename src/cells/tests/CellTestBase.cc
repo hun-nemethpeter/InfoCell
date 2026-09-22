@@ -52,6 +52,7 @@ CellTestStaticData::CellTestStaticData(World& w) :
     m_testLib.include(w.stdLib());
     m_compiler->compile(m_testLib);
     m_testLib.mergeTo(w.stdLib());
+    w.stdLib().toolFinder().mergeTo(m_testLib.toolFinder()); // TODO copy seems slow solution
 }
 
 // ============================================================================

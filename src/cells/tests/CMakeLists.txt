@@ -34,3 +34,13 @@ PRIVATE
     config
     tuilib
 )
+
+add_executable(ToolFinderTest
+    ToolFinderTest.cc
+)
+
+target_link_libraries(ToolFinderTest
+PRIVATE
+    cellstestbase
+    tuilib
+)

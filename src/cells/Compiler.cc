@@ -1580,15 +1580,6 @@ void Compiler::compileInstructionsInStruct(Ast::Struct& astStruct)
 
     CellI& compiledStructName = getFullyQualifiedName(astStruct);
 
-    // TODO: this is a hack now, we have to put it to stdlib
-    if (&compiledStruct == &std.op.Call) {
-        List& callSlotKeyList = *new List(w, std.Cell);
-        callSlotKeyList.add(id.__type__);
-        callSlotKeyList.add(id.method);
-        callSlotKeyList.add(id.parameters);
-        compiledStruct.set(id.slotKeyList, callSlotKeyList);
-    }
-
     // compile sub types
     if (astStruct.has(id.typeAliases)) {
         Map& compiledTypeAliases = *new Map(w, std.Cell, std.Struct, "typeAliases Map<ConstVar, Type>(...)");
@@ -1750,13 +1741,6 @@ CellI& Compiler::compileInstructionsInFunction(Ast::Function& astFunction)
     if (isPrimitiveTool) {
         compiledFunctionPtr = &astFunction[id.primitiveTool];
         (*compiledFunctionPtr).set(id.primitiveTool, w.true_);
-        List& slotKeyList = *new List(w, std.Cell, "slotKeyList");
-        slotKeyList.add(id.__type__);
-        for (auto& mappingKV : astFunction[id.memberMapping]) {
-            slotKeyList.add(mappingKV[id.value]);
-        }
-        (*compiledFunctionPtr).set(id.slotKeyList, slotKeyList);
-        std::cout << "";
     } else {
         compiledFunctionPtr = new Object(w, std.op.Function);
     }
@@ -1785,7 +1769,6 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, CellI& compiled
     std::stringstream oss;
     std::string structTypeStr;
     if (astFunction.has(id.parameters)) {
-#if 0
         auto& ParametersType      = *new Object(w, std.Struct, "function parameters");
         Object& memberIds         = *new Object(w, std.List, "member id list");
         Object& memberIdsTypeNode = *new Object(w, std.ListNode, "member id listNode");
@@ -1795,11 +1778,20 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, CellI& compiled
         memberIds.set(id.first, memberIdsTypeNode);
         memberIdsTypeNode.set(id.value, std.kvPair(id.type, typeMember));
         Map& compiledMembers = *new Map(w, std.Cell, std.op.Member, "members Map<ConstVar, Slot>(...)");
+
+        Map* membersMappingPtr = nullptr;
+        if (astFunction.has(id.primitiveTool)) {
+            membersMappingPtr = &static_cast<Map&>(astFunction[id.memberMapping]);
+        }
         for (CellI& paramKV : astFunction.parameters()) {
             auto& param          = paramKV[id.value];
-            auto& key            = param[id.key];
+            auto* keyPtr         = &param[id.key];
             auto& type           = param[id.type];
             auto& compiledType   = getCompiledTypeFromResolvedType(type);
+            if (membersMappingPtr) {
+                keyPtr = &(*membersMappingPtr).getValue(*keyPtr);
+            }
+            auto& key            = *keyPtr;
             auto& compiledMember = w.op.member(key, compiledType);
             compiledMember.set(id.relation, std.op.Member.Relation.external);
             compiledMember.set(id.role, std.op.Member.Role.input);
@@ -1810,6 +1802,7 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, CellI& compiled
         memberIdsTypeNode.set(id.next, compiledMembers[id.list][id.first]);
         ParametersType.set(id.members, compiledMembers);
         ParametersType.set(id.memberIds, memberIds);
+        compiledFunction.set(id.parametersType, ParametersType);
 
         auto& parameters = *new Object(w, ParametersType, "prompt parameters");
         int i            = 0;
@@ -1818,9 +1811,14 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, CellI& compiled
                 iss << ", ";
             }
             auto& param        = paramKV[id.value];
-            auto& key          = param[id.key];
+            auto* keyPtr       = &param[id.key];
             auto& type         = param[id.type];
             auto& compiledType = getCompiledTypeFromResolvedType(type);
+            if (membersMappingPtr) {
+                keyPtr = &(*membersMappingPtr).getValue(*keyPtr);
+            }
+            auto& key = *keyPtr;
+
             parameters.set(key, w.op.parameter(key, compiledType));
             if (&key == &id.self) {
                 if (i != 1) {
@@ -1831,28 +1829,6 @@ void Compiler::compileFunctionParams(Ast::Function& astFunction, CellI& compiled
                 iss << "p_" << key.label() << ": " << compiledType.label();
             }
         }
-#else
-        Map& parameters = *new Map(w, std.Cell, std.op.Parameter);
-        int i        = 0;
-        for (CellI& paramKV : astFunction.parameters()) {
-            if (i++ > 1) {
-                iss << ", ";
-            }
-            auto& param        = paramKV[id.value];
-            auto& key          = param[id.key];
-            auto& type         = param[id.type];
-            auto& compiledType = getCompiledTypeFromResolvedType(type);
-            parameters.add(key, w.op.parameter(key, compiledType));
-            if (&key == &id.self) {
-                if (i != 1) {
-                    panic("The self parameter must be the first!");
-                }
-                structTypeStr = fmt::format("{}::", compiledType.label());
-            } else {
-                iss << "p_" << key.label() << ": " << compiledType.label();
-            }
-        }
-#endif
         compiledFunction.set(id.parameters, parameters);
     }
     if (astFunction.has(id.returnType)) {
@@ -2484,8 +2460,24 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
         constVar.set(id.value, ast[id.compiled]);
         return constVar;
     } else if (&ast.__type__() == &std.ast.Self) {
+        if (astFunction.has(id.primitiveTool)) {
+            Map& membersMapping = static_cast<Map&>(astFunction[id.memberMapping]);
+            CellI& translatedKey = membersMapping.getValue(id.self);
+            auto& ret            = w.ast.parameter(translatedKey);
+            ret.copyMemberFrom(ast, id.value);
+            return ret;
+        }
+
         return ast;
     } else if (&ast.__type__() == &std.ast.Parameter) {
+        if (astFunction.has(id.primitiveTool)) {
+            Map& membersMapping  = static_cast<Map&>(astFunction[id.memberMapping]);
+            CellI& key           = ast[id.key];
+            CellI& translatedKey = membersMapping.getValue(key);
+            auto& ret            = w.ast.parameter(translatedKey);
+            ret.copyMemberFrom(ast, id.value);
+            return ret;
+        }
         return ast;
     } else if (&ast.__type__() == &std.ast.Return) {
         return ast;
@@ -2494,9 +2486,8 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
         Object& retOp        = *new Object(w, primitiveTool);
         retOp.set(id.ast, ast);
 
-        Map& membersMapping = static_cast<Map&>(primitiveTool[id.ast][id.memberMapping]);
-
         if (ast.has(id.parameters)) {
+            Map& membersMapping = static_cast<Map&>(primitiveTool[id.ast][id.memberMapping]);
             for (CellI& slot : ast[id.parameters]) {
                 CellI& key   = slot[id.key];
                 CellI& value = slot[id.value];
@@ -2506,21 +2497,22 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
 
         return retOp;
     } else if (&ast.__type__() == &std.ast.Call) {
-        CellI& selfType   = ast[id.parameters][id.first][id.value];
-        CellI& astMethod  = ast[id.method];
-        auto& astMethodId = astMethod[id.value];
+        CellI& selfType       = ast[id.parameters][id.first][id.value][id.value][id.type];
+        Map& methodsMap       = static_cast<Map&>(selfType[id.methods]);
+        CellI& methodName     = ast[id.method][id.value];
+        CellI& methodStruct   = methodsMap.getValue(methodName);
+        CellI& ParametersType = methodStruct[id.parametersType];
 
         Object& retOp = *new Object(w, std.op.Call);
         retOp.set(id.ast, ast);
-        retOp.set(id.state, std.op.State.ready);
         retOp.set(id.method, compile(ast[id.method]));
         //        retOp.set(id.parentFunction, function); // TODO
         if (ast.has(id.parameters)) {
-            Map& parameters = *new Map(w, std.Cell, std.Cell);
+            auto& parameters = *new Object(w, ParametersType, "parameters");
             for (CellI& param : ast[id.parameters]) {
                 CellI& key   = param[id.key];
                 CellI& value = param[id.value];
-                parameters.add(key, compile(value));
+                parameters.set(key, compile(value));
             }
             retOp.set(id.parameters, parameters);
         }
@@ -2581,56 +2573,61 @@ CellI& Compiler::compilePromptInFunctionAst(CellI& ast)
         constVar.set(id.ast, ast);
         constVar.set(id.value, ast[id.compiled]);
         return constVar;
-    } else if ((&ast.__type__() == &std.ast.Call) && (&ast[id.method].__type__() == &std.ast.PrimitiveToolName)) {
-        CellI& primitiveTool = ast[id.method][id.name];
-        Object& retOp        = *new Object(w, primitiveTool);
-        retOp.set(id.ast, ast);
-
-        Map& membersMapping = static_cast<Map&>(primitiveTool[id.ast][id.memberMapping]);
-
-        if (ast.has(id.parameters)) {
-            bool hasMissingInput = false;
-            bool isConstructor   = ast.has("isConstructor");
-            for (CellI& slot : ast[id.parameters]) {
-                CellI& key   = slot[id.key];
-                CellI& value = slot[id.value];
-                CellI& compiledValue = compile(value);
-                retOp.set(membersMapping.getValue(key), compiledValue);
-                if (isConstructor) {
-                    isConstructor = false;
-                    continue;
-                }
-                if (&compiledValue[id.state] == &std.op.State.missingInput) {
-                    hasMissingInput = true;
-                }
-            }
-            CellI& calculatedState = hasMissingInput ? std.op.State.missingInput : std.op.State.ready;
-            retOp.set(id.state, calculatedState);
-        }
-
-        return retOp;
-    } else if (&ast.__type__() == &std.ast.Call) {
-        CellI& selfType   = ast[id.parameters][id.first][id.value];
-        CellI& astMethod  = ast[id.method];
-        auto& astMethodId = astMethod[id.value];
-
-        Object& retOp = *new Object(w, std.op.Call);
-        retOp.set(id.ast, ast);
-        retOp.set(id.state, std.op.State.ready);
-        retOp.set(id.method, compile(ast[id.method]));
-//        retOp.set(id.parentFunction, function); // TODO
-        if (ast.has(id.parameters)) {
-            Map& parameters = *new Map(w, std.Cell, std.Cell, "prompt parameterMap");
-            for (CellI& param : ast[id.parameters]) {
-                CellI& key   = param[id.key];
-                CellI& value = param[id.value];
-                parameters.add(key, compile(value));
-            }
-            retOp.set(id.parameters, parameters);
-        }
-
-        return retOp;
     }
+    else if (&ast.__type__() == &std.ast.Call) {
+        if (&ast[id.method].__type__() == &std.ast.PrimitiveToolName) {
+            CellI& primitiveTool = ast[id.method][id.name];
+            Object& retOp        = *new Object(w, primitiveTool);
+            retOp.set(id.ast, ast);
+
+            if (ast.has(id.parameters)) {
+                Map& membersMapping  = static_cast<Map&>(primitiveTool[id.ast][id.memberMapping]);
+                bool hasMissingInput = false;
+                bool isConstructor   = ast.has("isConstructor");
+                for (CellI& slot : ast[id.parameters]) {
+                    CellI& key           = slot[id.key];
+                    CellI& value         = slot[id.value];
+                    CellI& compiledValue = compile(value);
+                    retOp.set(membersMapping.getValue(key), compiledValue);
+                    if (isConstructor) {
+                        isConstructor = false;
+                        continue;
+                    }
+                    if (&compiledValue[id.state] == &std.op.State.missingInput) {
+                        hasMissingInput = true;
+                    }
+                }
+                CellI& calculatedState = hasMissingInput ? std.op.State.missingInput : std.op.State.ready;
+                retOp.set(id.state, calculatedState);
+            }
+
+            return retOp;
+        } else {
+            CellI& selfType       = ast[id.parameters][id.first][id.value][id.value][id.type];
+            Map& methodsMap       = static_cast<Map&>(selfType[id.methods]);
+            CellI& methodName     = ast[id.method][id.value];
+            CellI& methodStruct   = methodsMap.getValue(methodName);
+            CellI& ParametersType = methodStruct[id.parametersType];
+
+            Object& retOp = *new Object(w, std.op.Call);
+            retOp.set(id.ast, ast);
+            retOp.set(id.state, std.op.State.ready);
+            retOp.set(id.method, compile(ast[id.method]));
+            //        retOp.set(id.parentFunction, function); // TODO
+            if (ast.has(id.parameters)) {
+                auto& parameters = *new Object(w, ParametersType, "prompt parameterMap");
+                for (CellI& param : ast[id.parameters]) {
+                    CellI& key   = param[id.key];
+                    CellI& value = param[id.value];
+                    parameters.set(key, compile(value));
+                }
+                retOp.set(id.parameters, parameters);
+            }
+
+            return retOp;
+        }
+    }
+
     panic("Unknown function AST!");
 }
 

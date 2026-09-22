@@ -185,7 +185,11 @@ void CellValuePrinter::printOpCall(CellI& cell)
         m_ss << ast[w.id.method][w.id.value].label();
         m_ss << "(";
     } else {
-        m_ss << cell[w.id.method].label();
+        if (&cell[w.id.method].__type__() == &w.std.op.ConstVar) {
+            m_ss << cell[w.id.method][w.id.value].label();
+        } else {
+            m_ss << cell[w.id.method].label();
+        }
         m_ss << "(";
     }
     if (cell.has(w.id.parameters)) {

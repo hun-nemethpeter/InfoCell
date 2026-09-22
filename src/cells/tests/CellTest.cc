@@ -543,8 +543,12 @@ TEST_F(CellTest, ToolFinderTestForMathAddSymmetry)
 // Result:  map.add("key1", 111)
 TEST_F(CellTest, ToolFinderTestForMap)
 {
-    ToolFinder& toolFinder = w.arcLib().toolFinder();
-    CellI& mapObj          = *new Object(w, getStruct(w.templateId("std::Map", id.keyType, std.String, id.valueType, std.Number)), "mapObj");
+    ToolFinder& toolFinder = testLib.toolFinder();
+    CellI& MapStruct       = getStruct(w.templateId("std::Map", id.keyType, std.String, id.valueType, std.Number));
+    CellI& mapObj          = *new Object(w, MapStruct, "mapObj");
+    Map& methodsMap        = static_cast<Map&>(MapStruct[id.methods]);
+    CellI& addFn           = methodsMap.getValue(w.name("add"));
+    CellI& addFnParameters = addFn[id.parametersType];
 
     struct RequestHelper : public AstHelper
     {
@@ -559,20 +563,40 @@ TEST_F(CellTest, ToolFinderTestForMap)
 
     LibraryTester libraryTester(w, testLib);
     auto& testRequestFn = libraryTester.compileAsPrompt(*testRequest.astPtr);
+#if 0
     spdlog::get("toolFinder")->set_level(spdlog::level::trace);
     spdlog::get("toolFinderLookup")->set_level(spdlog::level::trace);
     spdlog::get("toolFinderExplore")->set_level(spdlog::level::trace);
     spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::trace);
-
     std::cout << toolFinder.printConsequenceNodesAsGrapviz() << std::endl;
-//    List& resultTools      = toolFinder.findToolsByDescription(testRequestFn, ToolFinder::DescriptionKind::consequence);
-//    List& serializedEffect = toolFinder.serializeEffect(testRequestFn); // TODO
+#endif
 
+    List& resultTools      = toolFinder.findToolsByDescription(testRequestFn, ToolFinder::DescriptionKind::consequence);
+    List& serializedEffect = toolFinder.serializeEffect(testRequestFn);
+    for (auto& resultId : serializedEffect) {
+        std::cout << resultId.label() << " ";
+    }
+    std::cout << std::endl;
+    CellI& resultTool = resultTools[id.first][id.value];
+    printAs.value(resultTool);
+
+#if 0
     spdlog::get("toolFinder")->set_level(spdlog::level::off);
     spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
     spdlog::get("toolFinderExplore")->set_level(spdlog::level::debug);
     spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::off);
-    //EXPECT_EQ(resultTools.size(), 1);
+#endif
+
+    EXPECT_EQ(resultTools.size(), 1);
+    EXPECT_EQ(&resultTool.__type__(), &std.op.Call);
+    EXPECT_EQ(&resultTool[id.method].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.method][id.value], &addFn);
+    EXPECT_TRUE(resultTool.has(id.parameters));
+    EXPECT_TRUE(resultTool[id.parameters].has(w.name("self")));
+    EXPECT_EQ(&resultTool[id.parameters]["self"].__type__(), &std.op.ConstVar);
+    EXPECT_EQ(&resultTool[id.parameters]["self"][id.value], &mapObj);
+    EXPECT_TRUE(resultTool[id.parameters].has(w.name("key")));
+    EXPECT_TRUE(resultTool[id.parameters].has(w.name("value")));
     std::cout << "";
 }
 
@@ -2505,7 +2529,7 @@ int main(int argc, char** argv)
         spdlog::get("cells")->set_level(spdlog::level::trace);
         spdlog::get("compileStruct")->set_level(spdlog::level::off);
         spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
-        spdlog::get("toolFinder")->set_level(spdlog::level::trace);
+        spdlog::get("toolFinder")->set_level(spdlog::level::debug);
         spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
         spdlog::get("toolFinderExplore")->set_level(spdlog::level::debug);
         spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::off);

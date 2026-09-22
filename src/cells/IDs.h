@@ -92,6 +92,7 @@ public:
     String& list;
     String& listType;
     String& localVars;
+    String& member;
     String& memberIds;
     String& memberMapping;
     String& memberOf;
@@ -99,6 +100,7 @@ public:
     String& method;
     String& methods;
     String& name;
+    String& new_;
     String& next;
     String& node;
     String& nodeType;
@@ -109,8 +111,10 @@ public:
     String& other;
     String& output;
     String& parameters;
+    String& parametersType;
     String& parent;
     String& parentFunction;
+    String& path;
     String& pixels;
     String& pixelsMap;
     String& pop;

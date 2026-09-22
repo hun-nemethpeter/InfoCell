@@ -96,7 +96,7 @@ public:
 
         std::function<void(std::vector<std::function<void(SolverStateNode& solverNode, CellI& memberName, CellI& memberValue)>>& commandFns, SolverStateNode* solverNodePtr)> m_processFn;
         std::vector<std::function<void(SolverStateNode& solverNode, CellI& memberName, CellI& memberValue)>> m_commandFns;
-        std::function<bool(CellI& memberRole)> m_filterFn;
+        std::function<bool(CellI& cell, CellI& member)> m_filterFn;
         std::function<void(SolverStateNode& solverNode)> m_popFn;
         std::function<void(SolverStateNode& solverNode)> m_resultFn;
         ToolFinder& m_toolFinder;
@@ -190,7 +190,7 @@ public:
         CellI* m_capturedVar      = nullptr;
     };
 
-private:
+protected:
     class BuildToolInfo
     {
     public:
@@ -229,19 +229,18 @@ private:
     List& add(CellI& tool, CellI& description, Node* rootNode);
     bool isConstantFoldingPossible(CellI& description);
     CellI& doConstantFolding(CellI& description);
-    void createParametersMappingForAlternativeParameterOrder(CellI& alternativeParameterOrder, List& mappingList);
+    Map& generateAlternativeParameterMapping(CellI& selfBuilder);
     bool checkUnknownsInTool(CellI& effect);
     std::unique_ptr<List> findBuildersForDescription(CellI& description, DescriptionKind descriptionKind);
-    void buildTool(const BuildToolInfo& buildToolInfo);
+    virtual void buildTool(const BuildToolInfo& buildToolInfo);
     void serializeKeyWithConstValue(List& result, CellI& key, CellI& value);
     void serializeKeyWithParamValue(List& result, CellI& key, CellI& value, ParamValueKind& paramValueKind);
     void addValue(Node*& node, CellI& value);
     void addKeyWithConstValue(Node*& node, CellI& key, CellI& value);
     void addKeyWithParamValue(Node*& node, CellI& key, CellI& value, ParamValueKind& paramValueKind);
-    void saveCurrentPath(CellI& key, CellI& memberKey, Map& memberIds, std::deque<StackNode>& stack);
     bool checkConstValue(Node*& node, CellI& value);
     bool checkConstKeyValue(Node*& node, CellI& key, CellI& value);
-    List& createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect);
+    virtual List& createBuilder(CellI& tool, Map& memberIds, bool hasReturnInEffect);
     void createConversionToolFromBlueprint(CellI& from, CellI& to, ConversionToolBlueprint& blueprint, List& results);
     void findConversionToolsByType(CellI& from, CellI& to, List& results);
     void findConversionToolsByContainer(CellI& from, CellI& to, List& results);

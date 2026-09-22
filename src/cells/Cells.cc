@@ -504,7 +504,7 @@ void Object::setSelf(CellI& method)
 void Object::setFnParam(CellI& fn, Param param)
 {
     if (fn.has(w.id.parameters)) {
-        CellI& inputsIndex = fn[w.id.parameters][w.id.index];
+        CellI& inputsIndex = fn[w.id.parameters].__type__()[w.id.members][w.id.index];
         if (inputsIndex.has(param.key)) {
             fn[w.id.stack][w.id.value][w.id.input].set(param.key, param.value);
         } else {

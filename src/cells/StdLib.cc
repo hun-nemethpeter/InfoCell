@@ -903,7 +903,8 @@ void StdLibAst::createOp()
             member("description", "std::Cell"),
             member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "Parameter")),
             member("localVars", "std::Index"),
-            member("returnType", "std::Cell"),
+            member("parametersType", "std::Struct"),
+            member("returnType", "std::Struct"),
             member("selfBuilders", tt_("std::List", "valueType", "Cell")),
             member("lastOp", tt_("std::List", "valueType", "Base")),
             member("op", tt_("std::List", "valueType", "Base")),
@@ -2002,7 +2003,6 @@ void StdLibAst::createStruct()
                   member("ast", "std::ast::Struct"),
                   member("methods", tt_("Map", "keyType", "Cell", "valueType", "op::Function")),
                   member("primitiveTool", _(std.Boolean)),
-                  member("slotKeyList", tt_("List", "valueType", "Char")),
                   member("description", "Cell"),
                   member("parameters", tt_("Map", "keyType", "Cell", "valueType", "op::Parameter")),
                   member("returnType", "Cell"));
