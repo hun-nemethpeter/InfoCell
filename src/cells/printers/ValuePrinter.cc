@@ -99,7 +99,37 @@ void CellValuePrinter::printOpFunction(CellI& cell)
 
     std::string label;
     if (cell.has(w.id.parameters)) {
-        int i = 0;
+        int i               = 0;
+        auto printParameter = [this, &iss, &label, &i](CellI& parameter) {
+            CellI& parameterName = parameter[w.id.name];
+            CellI& parameterType = parameter[w.id.type];
+            if (&parameterName == &w.id.self) {
+                label += parameter[w.id.type].label();
+                label += "::";
+            } else {
+                if (i++ > 0) {
+                    iss << ", ";
+                }
+                iss << "p_";
+                iss << parameterName.label() << ": " << parameterType.label();
+            }
+        };
+
+        CellI& parametersType = cell[w.id.parameters].__type__();
+        bool parametersIsAMap = parametersType.has(id.fullyQualifiedName);
+        if (parametersIsAMap) {
+            for (CellI& parameter : cell[w.id.parameters]) {
+                printParameter(parameter);
+            }
+        } else {
+            for (auto& parameterKV : parametersType[id.members]) {
+                auto& key           = parameterKV[id.key];
+                CellI& parameterObj = cell[id.parameters];
+                auto& parameter     = parameterObj[key];
+                printParameter(parameter);
+            }
+        }
+
         for (CellI& parameterKV : cell[w.id.parameters]) {
             CellI& parameter     = parameterKV[w.id.value];
             CellI& parameterName = parameter[w.id.name];

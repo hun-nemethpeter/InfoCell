@@ -2440,7 +2440,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& blueprintTool = *blueprint.m_tool;
     CellI& blueprintKey  = *blueprint.m_slotId;
 
-    DEBUG(toolFinderExplore, "check conversion with tool `{}` from: {}, to: {}", blueprint.m_tool->label(), from.label(), to.label());
+    DEBUG(toolFinderExplore, "check conversion with tool `{}` from: {}:{}, to: {}", blueprint.m_tool->label(), blueprintKey.label(), from.label(), to.label());
 
     if (static_cast<Map&>(blueprintTool[id.parameters].__type__()[id.members]).size() == 1) {
         // nothing to solve here, just test
@@ -2482,10 +2482,18 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         results.add(conversionTool);
         return;
     }
+    if (static_cast<Map&>(blueprintTool[id.parameters].__type__()[id.members]).size() != 2) {
+        return;
+    }
+
     CellI* missingSlotIdPtr = findMissingParameterKey(blueprint);
     if (!missingSlotIdPtr) {
         return; // TODO
     }
+
+    CellI& firstParam = blueprintTool[id.parameters].__type__()[id.members][id.list][id.first][id.value][id.value][id.name];
+    bool swappedParams = &firstParam != &blueprintKey;
+    DEBUG(toolFinderExplore, " swappedParams: {}", swappedParams);
 
     // this is the from in "tool(from, x) == to"
     Object unknownX(w, std.op.ConstVar, "unknownX");
@@ -2508,6 +2516,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& tool = *toolPtr;
     CellI& missingSlotEquation = w.op.equal(tool, w.op.const_(to));
     missingSlotEquation.label("tool(from, x) == to");
+    DEBUG(toolFinderExplore, " missingSlotEquation: {}", missingSlotEquation.printAsValue());
     CellI* solvedMissingSlotEquationPtr = solve(missingSlotEquation);
     if (!solvedMissingSlotEquationPtr) {
         return;
@@ -2527,6 +2536,14 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         missingSlotSolver();
 
         CellI& solvedX = unknownX[id.value];
+
+        // TODO we need to validate this value somewhere. In case of Division it can not be in the rhs
+        // HACK
+        if ((&solvedX == &w._0_) && (&blueprintTool == &w.std.op.Divide)) {
+            DEBUG(toolFinderExplore, " Division by zero, skipped");
+            continue;
+        }
+
         DEBUG(toolFinderExplore, " solved equation: {}  =>  {}  =>  {} = {}", solvedMissingSlotEquation.printAsValue(), missingSlotSolver.printAsValue(), unknownX.label(), solvedX.label());
         //        DEBUG(toolFinderExplore, "unknownX.value = {}", solvedX.label());
 
@@ -2534,11 +2551,15 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         Compiler compiler(w);
 
         std::string conversionToolName = fmt::format("conversionToolFor_{}", blueprintTool[id.name].label());
-        //        CellI& conversionToolAst       = w.ast.call(blueprintTool);
-
         CellI* conversionToolAstPtr = nullptr;
         if (blueprintTool.has(w.id.primitiveTool)) {
-            conversionToolAstPtr = &w.ast.call(w.ast._(solvedX), w.ast.primitiveToolName(blueprintTool))(id.other, w.ast.parameter(w.name("from")));
+            // TODO maybe we need a dedicated AST cell that accept parameter names also in compiled form
+            // so we know, that the op.LHS or op.RHS is the solvedX, but we currently can not express this with AST nodes as call expect an obj
+            if (swappedParams) {
+                conversionToolAstPtr = &w.ast.call(w.ast._(solvedX), w.ast.primitiveToolName(blueprintTool))(id.other, w.ast.parameter(w.name("from")));
+            } else {
+                conversionToolAstPtr = &w.ast.call(w.ast.parameter(w.name("from")), w.ast.primitiveToolName(blueprintTool))(id.other, w.ast._(solvedX));
+            }
         } else {
             panic("TODO");
         }

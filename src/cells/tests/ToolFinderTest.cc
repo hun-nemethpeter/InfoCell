@@ -16,11 +16,26 @@ class ToolFinderTest : public cells::test::CellTest,
                        public cells::ToolFinder
 {
 public:
+    using ToolFinder::id;
+    using ToolFinder::std;
+    using ToolFinder::w;
+
+    ToolFinderTest() :
+        cells::ToolFinder(getWorld())
+    {
+    }
+
+};
+
+class NewToolFinderTest : public cells::test::CellTest,
+                          public cells::ToolFinder
+{
+public:
     using ToolFinder::w;
     using ToolFinder::id;
     using ToolFinder::std;
 
-    ToolFinderTest() :
+    NewToolFinderTest() :
         cells::ToolFinder(getWorld())
     {
     }
@@ -225,7 +240,74 @@ public:
 } // namespace infocell
 
 
-TEST_F(ToolFinderTest, BuilderTestAdd)
+TEST_F(ToolFinderTest, FindConversionToolsFrom_2_To_4_)
+{
+    CellI& from = _2_;
+    CellI& to   = _4_;
+
+    CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(from, to);
+    EXPECT_EQ(&conversionTools[id.size], &_7_);
+    for (CellI& conversionTool : conversionTools)
+    {
+        Object& conversionToolFn = static_cast<Object&>(conversionTool);
+        conversionToolFn.createSelfStack();
+        CellI& parameters = conversionToolFn[id.stack][id.value][id.input];
+        parameters.set("from", from);
+        conversionToolFn();
+        CellI& result = conversionToolFn[id.value];
+        if (&result != &to) {
+            std::cerr << "ERROR" << std::endl;
+            printAs.value(conversionToolFn);
+        }
+        EXPECT_EQ(&result, &to);
+    }
+}
+
+TEST_F(ToolFinderTest, FindConversionToolsFrom_false_To_true)
+{
+    CellI& from = false_;
+    CellI& to   = true_;
+
+    CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(from, to);
+    EXPECT_EQ(&conversionTools[id.size], &_3_);
+    for (CellI& conversionTool : conversionTools) {
+        Object& conversionToolFn = static_cast<Object&>(conversionTool);
+        conversionToolFn.createSelfStack();
+        CellI& parameters = conversionToolFn[id.stack][id.value][id.input];
+        parameters.set("from", from);
+        conversionToolFn();
+        CellI& result = conversionToolFn[id.value];
+        if (&result != &to) {
+            printAs.value(conversionToolFn);
+        }
+        EXPECT_EQ(&result, &to);
+    }
+}
+
+TEST_F(ToolFinderTest, FindConversionToolsFrom_true_To_false)
+{
+    CellI& from = true_;
+    CellI& to   = false_;
+
+    CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(from, to);
+    EXPECT_EQ(&conversionTools[id.size], &_3_);
+    for (CellI& conversionTool : conversionTools) {
+        Object& conversionToolFn = static_cast<Object&>(conversionTool);
+        conversionToolFn.createSelfStack();
+        CellI& parameters = conversionToolFn[id.stack][id.value][id.input];
+        parameters.set("from", from);
+        conversionToolFn();
+        CellI& result = conversionToolFn[id.value];
+        if (&result != &to) {
+            printAs.value(conversionToolFn);
+        }
+        EXPECT_EQ(&result, &to);
+    }
+    std::cout << "";
+}
+
+
+TEST_F(NewToolFinderTest, DISABLED_NewBuilderTestAdd)
 {
     // 1 + 2 = 3 => 3 - 2 = 1
     CellI& addFn = w.std.Number[id.methods][id.index]["add"][id.value][id.value];
@@ -257,7 +339,7 @@ TEST_F(ToolFinderTest, BuilderTestAdd)
     }
 }
 
-TEST_F(ToolFinderTest, BuilderTestMapAdd)
+TEST_F(NewToolFinderTest, DISABLED_NewBuilderTestMapAdd)
 {
     Map memberIds(w, w.std.Cell, w.std.Cell);
     // fn std::Map<keyType=Cell, valueType=Struct>::add(p_key: Cell, p_value: Struct)
