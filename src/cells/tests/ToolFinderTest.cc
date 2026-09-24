@@ -250,9 +250,7 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_2_To_4_)
     for (CellI& conversionTool : conversionTools)
     {
         Object& conversionToolFn = static_cast<Object&>(conversionTool);
-        conversionToolFn.createSelfStack();
-        CellI& parameters = conversionToolFn[id.stack][id.value][id.input];
-        parameters.set("from", from);
+        conversionToolFn.createSelfStack({ "from", from });
         conversionToolFn();
         CellI& result = conversionToolFn[id.value];
         if (&result != &to) {
@@ -272,9 +270,7 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_false_To_true)
     EXPECT_EQ(&conversionTools[id.size], &_3_);
     for (CellI& conversionTool : conversionTools) {
         Object& conversionToolFn = static_cast<Object&>(conversionTool);
-        conversionToolFn.createSelfStack();
-        CellI& parameters = conversionToolFn[id.stack][id.value][id.input];
-        parameters.set("from", from);
+        conversionToolFn.createSelfStack({ "from", from });
         conversionToolFn();
         CellI& result = conversionToolFn[id.value];
         if (&result != &to) {
@@ -293,9 +289,7 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_true_To_false)
     EXPECT_EQ(&conversionTools[id.size], &_3_);
     for (CellI& conversionTool : conversionTools) {
         Object& conversionToolFn = static_cast<Object&>(conversionTool);
-        conversionToolFn.createSelfStack();
-        CellI& parameters = conversionToolFn[id.stack][id.value][id.input];
-        parameters.set("from", from);
+        conversionToolFn.createSelfStack({ "from", from });
         conversionToolFn();
         CellI& result = conversionToolFn[id.value];
         if (&result != &to) {
@@ -303,7 +297,6 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_true_To_false)
         }
         EXPECT_EQ(&result, &to);
     }
-    std::cout << "";
 }
 
 

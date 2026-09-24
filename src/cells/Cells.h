@@ -133,6 +133,7 @@ public:
     CellI& method(CellI& key, Param param1, Param param2, Param param3, Param param4);
 
     void createSelfStack();
+    void createSelfStack(Param param1);
     void runAsCall();
     static void clearStack(CellI& method);
 

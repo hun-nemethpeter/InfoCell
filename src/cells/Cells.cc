@@ -327,6 +327,12 @@ void Object::createSelfStack()
     initLocalVars(*this);
 }
 
+void Object::createSelfStack(Param param1)
+{
+    createSelfStack();
+    setFnParam(*this, param1);
+}
+
 void Object::runAsCall()
 {
     Object& method = static_cast<Object&>(get(w.id.method));
