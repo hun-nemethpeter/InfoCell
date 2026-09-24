@@ -1375,6 +1375,13 @@ void TrieMap::remove(CellI& key)
     --m_size;
 }
 
+void TrieMap::clear()
+{
+    for (CellI& kv : m_list) {
+        remove(kv[w.id.key]);
+    }
+}
+
 bool TrieMap::empty() const
 {
     return m_size == 0;

@@ -735,14 +735,14 @@ Ast::Description& Ast::FunctionBase::descriptionBegin()
 }
 
 Ast::Description::Description(World& w) :
-    Object(w, w.std.ast.Description, "ast.Description"),
+    Base(w, w.std.ast.Description, "ast.Description"),
     m_parent(nullptr)
 {
 }
 
 
 Ast::Description::Description(FunctionBase& parent) :
-    Object(parent.w, parent.w.std.ast.Description, "ast.Description"),
+    Base(parent.w, parent.w.std.ast.Description, "ast.Description"),
     m_parent(&parent)
 {
 }

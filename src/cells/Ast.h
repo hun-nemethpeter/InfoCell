@@ -388,7 +388,7 @@ public:
     };
 
     class FunctionBase;
-    class Description : public Object
+    class Description : public Base
     {
     public:
         Description(World& w);

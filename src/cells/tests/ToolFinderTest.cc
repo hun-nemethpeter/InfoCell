@@ -25,6 +25,52 @@ public:
     {
     }
 
+    void testPatternContinuation(std::vector<CellI*> items)
+    {
+        auto& toolFinder = w.stdLib().toolFinder();
+        TrieMap origResults1(w, w.std.Cell, w.std.Cell);
+        TrieMap origResults2(w, w.std.Cell, w.std.Cell);
+
+        TrieMap* results1Ptr = &origResults1;
+        TrieMap* results2Ptr = &origResults2;
+
+        for (int i = 0; i < items.size() - 1; ++i) {
+            CellI& conversionTools = toolFinder.findConversionTools(*items[i], *items[i + 1]);
+            TrieMap& results1      = *results1Ptr;
+            TrieMap& results2      = *results2Ptr;
+            for (CellI& conversionToolKV : conversionTools) {
+                CellI& serializedConversionTool = conversionToolKV[id.key];
+                if (i == 0) {
+                    results2.add(serializedConversionTool, conversionToolKV[id.value]);
+                } else {
+                    if (results1.hasKey(serializedConversionTool)) {
+                        results2.add(serializedConversionTool, conversionToolKV[id.value]);
+                    }
+                }
+            }
+            results1.clear();
+            results1Ptr = results2Ptr;
+            results2Ptr = &results1;
+        }
+        for (CellI& conversionToolKV : origResults1[id.list]) {
+            auto& conversionToolFn = static_cast<Object&>(conversionToolKV[id.value]);
+//            printAs.value(conversionToolFn);
+            conversionToolFn.createSelfStack({ "from", *items[items.size() - 1] });
+            conversionToolFn();
+            CellI& result = conversionToolFn[id.value];
+            std::cout << "Pattern: ";
+            for (auto* cell : items) {
+                std::cout << cell->label() << " ";
+            }
+            std::cout << " ... ";
+            std::cout << result.label() << " with tool ";
+            for (auto& resultId : conversionToolKV[id.key]) {
+                std::cout << resultId.label() << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+
 };
 
 class NewToolFinderTest : public cells::test::CellTest,
@@ -247,9 +293,9 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_2_To_4_)
 
     CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(from, to);
     EXPECT_EQ(&conversionTools[id.size], &_7_);
-    for (CellI& conversionTool : conversionTools)
+    for (CellI& conversionToolKV : conversionTools)
     {
-        Object& conversionToolFn = static_cast<Object&>(conversionTool);
+        Object& conversionToolFn = static_cast<Object&>(conversionToolKV[id.value]);
         conversionToolFn.createSelfStack({ "from", from });
         conversionToolFn();
         CellI& result = conversionToolFn[id.value];
@@ -268,8 +314,8 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_false_To_true)
 
     CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(from, to);
     EXPECT_EQ(&conversionTools[id.size], &_3_);
-    for (CellI& conversionTool : conversionTools) {
-        Object& conversionToolFn = static_cast<Object&>(conversionTool);
+    for (CellI& conversionToolKV : conversionTools) {
+        Object& conversionToolFn = static_cast<Object&>(conversionToolKV[id.value]);
         conversionToolFn.createSelfStack({ "from", from });
         conversionToolFn();
         CellI& result = conversionToolFn[id.value];
@@ -287,8 +333,8 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_true_To_false)
 
     CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(from, to);
     EXPECT_EQ(&conversionTools[id.size], &_3_);
-    for (CellI& conversionTool : conversionTools) {
-        Object& conversionToolFn = static_cast<Object&>(conversionTool);
+    for (CellI& conversionToolKV : conversionTools) {
+        Object& conversionToolFn = static_cast<Object&>(conversionToolKV[id.value]);
         conversionToolFn.createSelfStack({ "from", from });
         conversionToolFn();
         CellI& result = conversionToolFn[id.value];
@@ -297,6 +343,23 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_true_To_false)
         }
         EXPECT_EQ(&result, &to);
     }
+}
+
+TEST_F(ToolFinderTest, FindPatternContinuations)
+{
+    spdlog::get("toolFinder")->set_level(spdlog::level::off);
+    spdlog::get("toolFinderConversion")->set_level(spdlog::level::off);
+    spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
+    spdlog::get("toolFinderExplore")->set_level(spdlog::level::off);
+    spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::off);
+
+    testPatternContinuation({ &_1_, &_2_, &_3_ });
+    testPatternContinuation({ &_1_, &_2_, &_4_ });
+    testPatternContinuation({ &_8_, &_4_, &_2_ });
+    testPatternContinuation({ &_1_, &_3_, &_9_ });
+    testPatternContinuation({ &_1_, &_3_, &_5_ });
+    testPatternContinuation({ &_4_, &_4_, &_4_ });
+    std::cout << "";
 }
 
 
@@ -316,6 +379,7 @@ TEST_F(NewToolFinderTest, DISABLED_NewBuilderTestAdd)
 
     auto& opEqual = w.op.equal(tool, op.const_(4));
     spdlog::get("toolFinder")->set_level(spdlog::level::trace);
+    spdlog::get("toolFinderConversion")->set_level(spdlog::level::trace);
     spdlog::get("toolFinderLookup")->set_level(spdlog::level::trace);
     spdlog::get("toolFinderExplore")->set_level(spdlog::level::trace);
     spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::trace);
@@ -364,6 +428,7 @@ int main(int argc, char** argv)
         spdlog::get("compileStruct")->set_level(spdlog::level::off);
         spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
         spdlog::get("toolFinder")->set_level(spdlog::level::off);
+        spdlog::get("toolFinderConversion")->set_level(spdlog::level::debug);
         spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
         spdlog::get("toolFinderExplore")->set_level(spdlog::level::debug);
         spdlog::get("toolFinderGraphviz")->set_level(spdlog::level::off);

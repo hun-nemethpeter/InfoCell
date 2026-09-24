@@ -15,7 +15,8 @@ public:
     Compiler(World& w);
 
     void compile(Library& library);
-    Object& compileAsPrompt(Ast::Description& prompt);
+    Object& compileAsDescription(Ast::Base& description, Ast::Function& astFunction);
+    Object& compileAsPrompt(Ast::Base& prompt);
 
     CellI& reigisterStructBeforeCompilation(CellI& id);
     void registerBuiltInStruct(const std::string& fullName, CellI& compiledStruct, Ast::Scope* parentScope = nullptr);

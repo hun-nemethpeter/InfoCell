@@ -39,16 +39,6 @@ struct fmt::formatter<infocell::cells::ToolFinder::SolverStateNode::SubCommand::
 namespace infocell {
 namespace cells {
 
-// ============================================================================
-static void printAsValue(CellI& cell, const std::string& label = "")
-{
-    if (!label.empty()) {
-        std::cout << label << ": ";
-    }
-
-    std::cout << cell.printAsValue() << std::endl;
-}
-
 std::string ToolFinder::Node::printAsGrapviz(World& w)
 {
     std::stringstream ss;
@@ -2410,6 +2400,7 @@ class ConversionLib : public Library
 {
 public:
     ConversionLib(World& w, Ast::Scope& parentScope, const std::string& conversionToolName, CellI& conversionToolAst, CellI& inputType, CellI& returnType);
+    Ast::Scope& m_conversionScope;
 };
 class ConversionLibAst : public AstHelper
 {
@@ -2429,9 +2420,10 @@ ConversionLibAst::ConversionLibAst(World& w, Ast::Scope& parentScope, const std:
 }
 
 ConversionLib::ConversionLib(World& w, Ast::Scope& parentScope, const std::string& conversionToolName, CellI& conversionToolAst, CellI& inputType, CellI& returnType) :
-    Library(w, parentScope, "conversion")
+    Library(w, parentScope, "conversion"),
+    m_conversionScope(parentScope.add<Ast::Scope>("conversion"))
 {
-    ConversionLibAst solverLibAst(w, parentScope.add<Ast::Scope>("conversion"), conversionToolName, conversionToolAst, inputType, returnType);
+    ConversionLibAst solverLibAst(w, m_conversionScope, conversionToolName, conversionToolAst, inputType, returnType);
 }
 
 // ============================================================================
@@ -2440,7 +2432,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& blueprintTool = *blueprint.m_tool;
     CellI& blueprintKey  = *blueprint.m_slotId;
 
-    DEBUG(toolFinderExplore, "check conversion with tool `{}` from: {}:{}, to: {}", blueprint.m_tool->label(), blueprintKey.label(), from.label(), to.label());
+    DEBUG(toolFinderConversion, "check conversion with tool `{}` from: {}:{}, to: {}", blueprint.m_tool->label(), blueprintKey.label(), from.label(), to.label());
 
     if (static_cast<Map&>(blueprintTool[id.parameters].__type__()[id.members]).size() == 1) {
         // nothing to solve here, just test
@@ -2463,23 +2455,26 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
             return;
         }
         std::string conversionToolName = fmt::format("conversionToolFor_{}", blueprintTool[id.name].label());
-        CellI* conversionToolAstPtr = nullptr;
+        Ast::Base* conversionToolAstPtr = nullptr;
         if (blueprintTool.has(w.id.primitiveTool)) {
             conversionToolAstPtr = &w.ast.call(w.ast.parameter(w.name("from")), w.ast.primitiveToolName(blueprintTool));
         } else {
             panic("TODO");
         }
-        CellI& conversionToolAst = *conversionToolAstPtr;
+        Ast::Base& conversionToolAst = *conversionToolAstPtr;
 
         Ast::Scope rootScope(w, "toolFinder");
         Compiler compiler(w);
         ConversionLib conversionLib(w, rootScope, conversionToolName, conversionToolAst, from.__type__(), to.__type__());
         conversionLib.include(w.arcLib());
         compiler.compile(conversionLib);
-        auto& conversionTool = conversionLib.getFunction(fmt::format("conversion::{}", conversionToolName));
+        auto& conversionTool        = conversionLib.getFunction(fmt::format("conversion::{}", conversionToolName));
+        auto& astFunction           = conversionLib.m_conversionScope.getItem<Ast::Function>(conversionToolName);
+        auto& compiledDescription   = compiler.compileAsDescription(conversionToolAst, astFunction);
+        auto& serializedDescription = serializeEffect(compiledDescription);
 
-        DEBUG(toolFinderExplore, " generating fn {}(from:{}) -> {} ...\n{}", blueprint.m_tool->label(), from.label(), to.label(), conversionTool.printAsValue());
-        results.add(conversionTool);
+        DEBUG(toolFinderConversion, " generating fn {}(from:{}) -> {} ...\n{}", blueprint.m_tool->label(), from.label(), to.label(), conversionTool.printAsValue());
+        results.add(w.ast.kvPair(serializedDescription, conversionTool));
         return;
     }
     if (static_cast<Map&>(blueprintTool[id.parameters].__type__()[id.members]).size() != 2) {
@@ -2493,7 +2488,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
 
     CellI& firstParam = blueprintTool[id.parameters].__type__()[id.members][id.list][id.first][id.value][id.value][id.name];
     bool swappedParams = &firstParam != &blueprintKey;
-    DEBUG(toolFinderExplore, " swappedParams: {}", swappedParams);
+    TRACE(toolFinderConversion, " swappedParams: {}", swappedParams);
 
     // this is the from in "tool(from, x) == to"
     Object unknownX(w, std.op.ConstVar, "unknownX");
@@ -2516,7 +2511,7 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
     CellI& tool = *toolPtr;
     CellI& missingSlotEquation = w.op.equal(tool, w.op.const_(to));
     missingSlotEquation.label("tool(from, x) == to");
-    DEBUG(toolFinderExplore, " missingSlotEquation: {}", missingSlotEquation.printAsValue());
+    DEBUG(toolFinderConversion, " missingSlotEquation: {}", missingSlotEquation.printAsValue());
     CellI* solvedMissingSlotEquationPtr = solve(missingSlotEquation);
     if (!solvedMissingSlotEquationPtr) {
         return;
@@ -2540,18 +2535,18 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         // TODO we need to validate this value somewhere. In case of Division it can not be in the rhs
         // HACK
         if ((&solvedX == &w._0_) && (&blueprintTool == &w.std.op.Divide)) {
-            DEBUG(toolFinderExplore, " Division by zero, skipped");
+            DEBUG(toolFinderConversion, " Division by zero, skipped");
             continue;
         }
 
-        DEBUG(toolFinderExplore, " solved equation: {}  =>  {}  =>  {} = {}", solvedMissingSlotEquation.printAsValue(), missingSlotSolver.printAsValue(), unknownX.label(), solvedX.label());
-        //        DEBUG(toolFinderExplore, "unknownX.value = {}", solvedX.label());
+        DEBUG(toolFinderConversion, " solved equation: {}  =>  {}  =>  {} = {}", solvedMissingSlotEquation.printAsValue(), missingSlotSolver.printAsValue(), unknownX.label(), solvedX.label());
+        TRACE(toolFinderConversion, "unknownX.value = {}", solvedX.label());
 
         Ast::Scope rootScope(w, "toolFinder");
         Compiler compiler(w);
 
         std::string conversionToolName = fmt::format("conversionToolFor_{}", blueprintTool[id.name].label());
-        CellI* conversionToolAstPtr = nullptr;
+        Ast::Base* conversionToolAstPtr = nullptr;
         if (blueprintTool.has(w.id.primitiveTool)) {
             // TODO maybe we need a dedicated AST cell that accept parameter names also in compiled form
             // so we know, that the op.LHS or op.RHS is the solvedX, but we currently can not express this with AST nodes as call expect an obj
@@ -2563,22 +2558,26 @@ void ToolFinder::createConversionToolFromBlueprint(CellI& from, CellI& to, ToolF
         } else {
             panic("TODO");
         }
-        CellI& conversionToolAst = *conversionToolAstPtr;
+        Ast::Base& conversionToolAst = *conversionToolAstPtr;
         ConversionLib conversionLib(w, rootScope, conversionToolName, conversionToolAst, from.__type__(), to.__type__());
         conversionLib.include(w.arcLib());
         compiler.compile(conversionLib);
-        auto& conversionTool = conversionLib.getFunction(fmt::format("conversion::{}", conversionToolName));
+        auto& conversionTool        = conversionLib.getFunction(fmt::format("conversion::{}", conversionToolName));
+        auto& astFunction           = conversionLib.m_conversionScope.getItem<Ast::Function>(conversionToolName);
+        auto& compiledDescription   = compiler.compileAsDescription(conversionToolAst, astFunction);
+        auto& serializedDescription = serializeEffect(compiledDescription);
 
-        DEBUG(toolFinderExplore, " generating fn {}(X:{}, from:{}) -> {} ...\n{}", blueprint.m_tool->label(), solvedX.label(), from.label(), to.label(), conversionTool.printAsValue());
-        results.add(conversionTool);
+        DEBUG(toolFinderConversion, " generating fn {}(X:{}, from:{}) -> {} ...\n{}", blueprint.m_tool->label(), solvedX.label(), from.label(), to.label(), conversionTool.printAsValue());
+        results.add(w.ast.kvPair(serializedDescription, conversionTool));
     }
 }
 
 // ============================================================================
 CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
 {
-    printAsValue(from, "from");
-    printAsValue(to, "to");
+    DEBUG(toolFinderConversion, "");
+    DEBUG(toolFinderConversion, "findConversionTools from: {}, to: {}", from.printAsValue(), to.printAsValue());
+    DEBUG(toolFinderConversion, "");
 
     List& results = *new List(w, std.List);
     findConversionToolsByType(from, to, results);
@@ -2587,6 +2586,31 @@ CellI& ToolFinder::findConversionTools(CellI& from, CellI& to)
     std::cout << "";
 
     return results;
+}
+
+// ============================================================================
+void ToolFinder::findConversionToolsByType(CellI& from, CellI& to, List& results)
+{
+    CellI& inputType  = from.__type__();
+    CellI& outputType = to.__type__();
+
+    ConversionToolKey conversionToolKey(inputType, outputType);
+
+    auto tools = m_conversionTools.equal_range(conversionToolKey);
+    if (tools.first != m_conversionTools.end()) {
+        DEBUG(toolFinderConversion, "conversionToolKey:{}", conversionToolKey);
+    }
+    for (auto it = tools.first; it != tools.second; ++it) {
+        ConversionToolBlueprint blueprint = it->second;
+        //        std::cout << "  " << blueprint << '\n';
+        // ConversionToolKey [from: Number, to: Number]: ConversionToolBlueprint [tool: Add, input: lhs]
+        createConversionToolFromBlueprint(from, to, blueprint, results);
+    }
+}
+
+// ============================================================================
+void ToolFinder::findConversionToolsByContainer(CellI& from, CellI& to, List& results)
+{
 }
 
 // ============================================================================
@@ -2601,7 +2625,7 @@ void ToolFinder::exploreSlotManipulations()
     Object& x = *new Object(w, std.Number, "X");
 
     for (CellI& tool : m_tools) {
-        TRACE(toolFinder, "explore: {}", tool.label());
+        TRACE(toolFinderExplore, "explore: {}", tool.label());
 
         if (tool.missing(id.returnType)) {
             continue;
@@ -2777,32 +2801,6 @@ void ToolFinder::exploreSlotManipulationFor(CellI& description)
             }
         }
     }
-}
-
-// ============================================================================
-void ToolFinder::findConversionToolsByType(CellI& from, CellI& to, List& results)
-{
-    CellI& inputType  = from.__type__();
-    CellI& outputType = to.__type__();
-
-    ConversionToolKey conversionToolKey(inputType, outputType);
-
-    auto tools = m_conversionTools.equal_range(conversionToolKey);
-    if (tools.first != m_conversionTools.end()) {
-        std::cout << conversionToolKey << '\n';
-    }
-    for (auto it = tools.first; it != tools.second; ++it) {
-        ConversionToolBlueprint blueprint = it->second;
-        //        std::cout << "  " << blueprint << '\n';
-        // ConversionToolKey [from: Number, to: Number]: ConversionToolBlueprint [tool: Add, input: lhs]
-        createConversionToolFromBlueprint(from, to, blueprint, results);
-    }
-}
-
-// ============================================================================
-void ToolFinder::findConversionToolsByContainer(CellI& from, CellI& to, List& results)
-{
-
 }
 
 } // namespace cells

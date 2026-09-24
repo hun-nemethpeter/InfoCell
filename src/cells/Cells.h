@@ -411,6 +411,7 @@ public:
         add(std::forward<Args>(args)...);
     }
     void remove(CellI& key);
+    void clear();
     bool empty() const;
     int size();
 

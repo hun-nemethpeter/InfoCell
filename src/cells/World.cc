@@ -299,6 +299,7 @@ World::Logger::Logger(std::function<void()> loggerLevelInit)
     registerLogger("symbolResolver");
     registerLogger("compiledSymbols");
     registerLogger("toolFinder");
+    registerLogger("toolFinderConversion");
     registerLogger("toolFinderLookup");
     registerLogger("toolFinderExplore");
     registerLogger("toolFinderGraphviz");

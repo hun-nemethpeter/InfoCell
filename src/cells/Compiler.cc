@@ -66,7 +66,16 @@ Library& Compiler::compile(Ast::Scope& scope)
     return *m_libraryPtr;
 }
 
-Object& Compiler::compileAsPrompt(Ast::Description& prompt)
+Object& Compiler::compileAsDescription(Ast::Base& description, Ast::Function& astFunction)
+{
+    auto& resolvedPrompt = resolveDescriptionTypesInFunctionCode(description, &astFunction, nullptr);
+
+    instantiateTemplateInstances();
+
+    return static_cast<Object&>(compileDescriptionInFunctionAst(resolvedPrompt, astFunction));
+}
+
+Object& Compiler::compileAsPrompt(Ast::Base& prompt)
 {
     auto& resolvedPrompt = resolveDescriptionTypesInFunctionCode(prompt, nullptr, nullptr);
 
@@ -74,7 +83,6 @@ Object& Compiler::compileAsPrompt(Ast::Description& prompt)
 
     return static_cast<Object&>(compilePromptInFunctionAst(resolvedPrompt));
 }
-
 
 CellI& Compiler::reigisterStructBeforeCompilation(CellI& structAst)
 {
@@ -1513,7 +1521,7 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
             }
             ret.set(id.selfBuilders, resolvedSelfBuilders);
         }
-        return reinterpret_cast<Ast::Base&>(ret);
+        return ret;
     }
 
     panic("Unknown AST to instantiate!");

@@ -899,20 +899,20 @@ void StdLibAst::createOp()
     opScope.add<Struct>("Function")
         .members(
             member("ast", "ast::Base", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.debug),
-            member("name", "std::Cell"),
-            member("description", "std::Cell"),
-            member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "Parameter")),
-            member("localVars", "std::Index"),
-            member("parametersType", "std::Struct"),
-            member("returnType", "std::Struct"),
-            member("selfBuilders", tt_("std::List", "valueType", "Cell")),
-            member("lastOp", tt_("std::List", "valueType", "Base")),
-            member("op", tt_("std::List", "valueType", "Base")),
-            member("previous", "std::Cell"),
-            member("stack", "Stack"),
-            member("state", "std::Cell"),
-            member("static", "std::Boolean"),
-            member("value", "std::Cell"));
+            member("name", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.constValue),
+            member("description", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("parameters", tt_("std::Map", "keyType", "std::Cell", "valueType", "Parameter"), id.relation, std.op.Member.Relation.internal, id.role, std.op.Member.Role.constValue),
+            member("localVars", "std::Index", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("parametersType", "std::Struct", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("returnType", "std::Struct", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.constValue),
+            member("selfBuilders", tt_("std::List", "valueType", "Cell"), id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("lastOp", tt_("std::List", "valueType", "Base"), id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("op", tt_("std::List", "valueType", "Base"), id.relation, std.op.Member.Relation.internal, id.role, std.op.Member.Role.constValue),
+            member("previous", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("stack", "Stack", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("state", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("static", "std::Boolean", id.relation, std.op.Member.Relation.internal, id.role, std.op.Member.Role.state),
+            member("value", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state));
 
     opScope.add<Struct>("Get")
         .members(
@@ -980,10 +980,10 @@ void StdLibAst::createOp()
 
     opScope.add<Struct>("Member")
         .members(
-            member("name", "std::Cell"),
-            member("type", "std::Cell"),
-            member("relation", "MemberRelation"),
-            member("role", "MemberRole"));
+            member("name", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.constValue),
+            member("type", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.constValue),
+            member("relation", "MemberRelation", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("role", "MemberRole", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state));
 
     opScope.add<Enum>("MemberRelation")
         .values(
@@ -1064,10 +1064,10 @@ void StdLibAst::createOp()
     opScope.add<Struct>("Parameter")
         .members(
             member("ast", "ast::Base", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.debug),
-            member("name", "std::Cell"),
-            member("state", "State"),
-            member("type", "std::Struct"),
-            member("value", "std::Cell"));
+            member("name", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.constValue),
+            member("state", "State", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("type", "std::Struct", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.constValue),
+            member("value", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.constValue));
 
     opScope.add<Struct>("Return")
         .members(
