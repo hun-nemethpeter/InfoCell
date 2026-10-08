@@ -391,6 +391,63 @@ void ToolFinder::add(CellI& tool)
 }
 
 // ============================================================================
+void ToolFinder::addPrompt(CellI& prompt)
+{
+    Node* currentNode = getRootNodeForDescriptionKind(DescriptionKind::consequence);
+    SolverState solverState(currentNode, *this, prompt);
+
+    solverState.m_processFn = [this](std::vector<std::function<void(SolverStateNode& solverNode, CellI& memberName, CellI& memberValue)>>& commandFns, SolverStateNode* solverNodePtr) {
+        SolverPointer pointer = solverNodePtr->pointer();
+        auto& solverNode      = *solverNodePtr;
+        CellI* currentCellPtr = pointer.m_cellPtr;
+        CellI& currentCell    = *currentCellPtr;
+        CellI& memberKV       = (*pointer.m_memberNodePtr)[id.value];
+        CellI& member         = memberKV[id.value];
+        CellI& memberName     = member[id.name];
+        CellI& memberRelation = member[id.relation];
+        CellI& memberRole     = member[id.role];
+        CellI& memberValue    = currentCell[memberName];
+
+        if (&memberRelation == &std.op.Member.Relation.external) {
+            if (&memberRole == &std.op.Member.Role.constValue) {
+                addKeyWithConstValue(solverNode.m_nodePtr, memberName, memberValue);
+            } else if (&memberRole == &std.op.Member.Role.constVarValue) {
+                addKeyWithConstValue(solverNode.m_nodePtr, memberName, memberValue[id.value]);
+            } else if (&memberRole == &std.op.Member.Role.input) {
+                ParamValueKind paramValueKind = ParamValueKind::NonParamValue;
+                addKeyWithParamValue(solverNode.m_nodePtr, memberName, memberValue, paramValueKind);
+                if (paramValueKind == ParamValueKind::Call) {
+                    solverNode.push();
+                }
+            } else {
+                panic("Unprocessed member!");
+            }
+        } else {
+            addValue(solverNode.m_nodePtr, memberName);
+            addKeyWithConstValue(solverNode.m_nodePtr, id.op, id.push);
+            solverNode.push();
+        }
+    };
+    solverState.m_filterFn = [this](CellI& cell, CellI& member) -> bool {
+        if (cell.missing(member[id.name])) {
+            return false;
+        }
+        CellI& memberRole = member[id.role];
+        return &memberRole == &std.op.Member.Role.constValue || &memberRole == &std.op.Member.Role.constVarValue || &memberRole == &std.op.Member.Role.input;
+    };
+    solverState.m_popFn = [this](SolverStateNode& solverNode) {
+        addValue(solverNode.m_nodePtr, id.op);
+        addValue(solverNode.m_nodePtr, id.pop);
+    };
+    solverState.m_resultFn = [&currentNode](SolverStateNode& solverNode) {
+        currentNode = solverNode.m_nodePtr;
+        currentNode->m_isLeaf = 1;
+    };
+
+    solverState.run();
+}
+
+// ============================================================================
 Map& ToolFinder::generateAlternativeParameterMapping(CellI& selfBuilder)
 {
     bool primitiveTool = selfBuilder.__type__().has(id.primitiveTool);

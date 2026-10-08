@@ -779,13 +779,14 @@ StdLibAst::Traits::Traits(World& w, Ast::Scope& stdScope) :
     */
     Iterator.
         associatedTypes(
+                parameter("NodeType", _(std.Struct)),
                 parameter("ValueType", _(std.Struct)));
 
     Iterator.addMethod("isContainerEmpty").returnType(_(std.Boolean));
-    Iterator.addMethod("goToFirstNode");
+    Iterator.addMethod("goToFirstNode").returnType(_(Iterator));
     Iterator.addMethod("getCurrentNodeValue").returnType(at_("ValueType"));
     Iterator.addMethod("hasNextNode").returnType(_(std.Boolean));
-    Iterator.addMethod("goToNextNode");
+    Iterator.addMethod("goToNextNode").returnType(_(Iterator));
 }
 
 // ============================================================================
@@ -1930,6 +1931,12 @@ void StdLibAst::createSet()
     setStructT.addMethod("add")
         .parameters(
             parameter("value", tp_("valueType")))
+        .descriptionBegin()
+            .consequences(
+                equal(self()("contains")(id.value, p_("value")), true_()))
+            .selfBuilders(
+                self()("add")(id.value, p_("value")))
+        .descriptionEnd()
         .instructions(
             if_(has(m_("index"), p_("value")))
                 .then_(return_()),
@@ -1940,12 +1947,22 @@ void StdLibAst::createSet()
         .parameters(
             parameter("value", tp_("valueType")))
         .returnType(_(std.Boolean))
+        .descriptionBegin()
+            .selfBuilders(
+                self()("contains")(id.value, p_("value")))
+        .descriptionEnd()
         .instructions(
             return_(has(m_("index"), p_("value"))));
 
     setStructT.addMethod("remove")
         .parameters(
             parameter("value", tp_("valueType")))
+        .descriptionBegin()
+            .consequences(
+                equal(self()("contains")(id.value, p_("value")), false_()))
+            .selfBuilders(
+                self()("remove")(id.value, p_("value")))
+            .descriptionEnd()
         .instructions(
             if_(missing(m_("index"), p_("value")))
                 .then_(return_()),
@@ -2464,10 +2481,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
         .descriptionBegin()
             .consequences(
 //                equal(not_(or_(not_(self()), not_(p_("other")))), return_()), // TODO: do we need this?!
-                equal(and_(self(_(std.Boolean.true_)), p_("other", _(std.Boolean.true_))), return_(_(std.Boolean.true_))),
-                equal(and_(self(_(std.Boolean.true_)), p_("other", _(std.Boolean.false_))), return_(_(std.Boolean.false_))),
-                equal(and_(self(_(std.Boolean.false_)), p_("other", _(std.Boolean.true_))), return_(_(std.Boolean.false_))),
-                equal(and_(self(_(std.Boolean.false_)), p_("other", _(std.Boolean.false_))), return_(_(std.Boolean.false_))))
+                equal(and_(self(true_()), p_("other", true_())), return_(true_())),
+                equal(and_(self(true_()), p_("other", false_())), return_(false_())),
+                equal(and_(self(false_()), p_("other", true_())), return_(false_())),
+                equal(and_(self(false_()), p_("other", false_())), return_(false_())))
             .selfBuilders(
                 and_(self(), p_("other")),
                 and_(p_("other"), self()))
@@ -2479,8 +2496,8 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             kvPair(id.self, "input"))
         .descriptionBegin()
             .consequences(
-                equal(not_(self(_(std.Boolean.false_))), return_(_(std.Boolean.true_))),
-                equal(not_(self(_(std.Boolean.true_))), return_(_(std.Boolean.false_))))
+                equal(not_(self(false_())), return_(true_())),
+                equal(not_(self(true_())), return_(false_())))
             .selfBuilders(
                 not_(self()))
         .descriptionEnd()
@@ -2494,10 +2511,10 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             parameter("other", "Boolean"))
         .descriptionBegin()
             .consequences(
-                equal(or_(self(_(std.Boolean.true_)), p_("other", _(std.Boolean.true_))), return_(_(std.Boolean.true_))),
-                equal(or_(self(_(std.Boolean.true_)), p_("other", _(std.Boolean.false_))), return_(_(std.Boolean.true_))),
-                equal(or_(self(_(std.Boolean.false_)), p_("other", _(std.Boolean.true_))), return_(_(std.Boolean.true_))),
-                equal(or_(self(_(std.Boolean.false_)), p_("other", _(std.Boolean.false_))), return_(_(std.Boolean.false_))))
+                equal(or_(self(true_()), p_("other", true_())), return_(true_())),
+                equal(or_(self(true_()), p_("other", false_())), return_(true_())),
+                equal(or_(self(false_()), p_("other", true_())), return_(true_())),
+                equal(or_(self(false_()), p_("other", false_())), return_(false_())))
             .selfBuilders(
                 or_(self(), p_("other")),
                 or_(p_("other"), self()))

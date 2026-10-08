@@ -76,6 +76,7 @@ public:
     bool empty();
     List& serializeEffect(CellI& effect);
     void add(CellI& tool);
+    void addPrompt(CellI& prompt);
     List& add(CellI& tool, CellI& description, DescriptionKind descriptionKind);
     List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
     List* solve(CellI& equation);

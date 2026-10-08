@@ -52,7 +52,14 @@ public:
             results1Ptr = results2Ptr;
             results2Ptr = &results1;
         }
-        for (CellI& conversionToolKV : origResults1[id.list]) {
+        if (origResults1.empty()) {
+            std::cout << "Pattern: ";
+            for (auto* cell : items) {
+                std::cout << cell->label() << " ";
+            }
+            std::cout << " ... no result";
+        }
+        for (CellI& conversionToolKV : origResults1) {
             auto& conversionToolFn = static_cast<Object&>(conversionToolKV[id.value]);
 //            printAs.value(conversionToolFn);
             conversionToolFn.createSelfStack({ "from", *items[items.size() - 1] });
@@ -285,6 +292,118 @@ public:
 
 } // namespace infocell
 
+TEST_F(ToolFinderTest, FindConversionToolsFrom_set_To_set)
+{
+    Set& from1 = *new Set(w, w.std.Number, "fromSet");
+    from1.add(_1_);
+    from1.add(_2_);
+    from1.add(_3_);
+
+    Set& to1 = *new Set(w, w.std.Number, "toSet");
+    to1.add(_2_);
+    to1.add(_3_);
+    to1.add(_4_);
+
+    Set& from2 = *new Set(w, w.std.Number, "fromSet2");
+    from2.add(_1_);
+    from2.add(_3_);
+    from2.add(_6_);
+    from2.add(_7_);
+
+    Set& to2 = *new Set(w, w.std.Number, "toSet2");
+    to2.add(_2_);
+    to2.add(_4_);
+    to2.add(_7_);
+    to2.add(_8_);
+
+    Set& from3 = *new Set(w, w.std.Number, "fromSet3");
+    from3.add(_0_);
+    from3.add(_4_);
+    from3.add(_1_);
+    from3.add(_8_);
+
+    Set& to3 = *new Set(w, w.std.Number, "toSet3");
+    to3.add(_1_);
+    to3.add(_5_);
+    to3.add(_2_);
+    to3.add(_9_);
+
+    std::map<Set*, Set*> pairs;
+    pairs[&from1] = &to1;
+    pairs[&from2] = &to2;
+    pairs[&from3] = &to3;
+
+    struct RequestHelper : public AstHelper
+    {
+        RequestHelper(World& w, std::map<cells::Set*, cells::Set*> pairs) :
+            AstHelper(w),
+            m_pairs(pairs),
+            m_fromContext(w),
+            m_toContext(w)
+        {
+            int i = 0;
+            for (auto& pair : m_pairs) {
+                CellI& from = *pair.first;
+                for (auto& itemKV : from) {
+                    auto& key = itemKV[id.key];
+                    addValue(m_fromAsts, from, key, i++);
+                }
+
+                CellI& to = *pair.second;
+                for (auto& itemKV : to) {
+                    auto& key = itemKV[id.key];
+                    addValue(m_toAsts, to, key, i++);
+                }
+            }
+            compile(m_fromContext, m_fromAsts);
+            compile(m_toContext, m_toAsts);
+        }
+
+        void addValue(std::vector<Base*>& asts, CellI& set, CellI& value, int pos)
+        {
+            asts.push_back(&equal(call(_(set), "contains")(id.value, _(value)), true_()));
+#if 0 // TODO goToFirstNode is a setter
+            CellI& astIterator = call(_(set), "iterator");
+            CellI& astFirstNode = call(astIterator, "goToFirstNode");
+            CellI* astNextNode  = &astFirstNode;
+            for (int i = 0; i < pos; ++i) {
+                astNextNode = &call(*astNextNode, "goToNextNode");
+            }
+            asts.push_back(&equal(call(*astNextNode, "getCurrentNodeValue"), _(value)));
+#endif
+        }
+
+        void compile(ToolFinder& context, std::vector<Base*>& asts)
+        {
+            Compiler compiler(w);
+            for (auto& ast : asts) {
+                auto& prompt = compiler.compileAsPrompt(*ast);
+                context.addPrompt(prompt);
+            }
+        }
+
+        std::map<cells::Set*, cells::Set*> m_pairs;
+        ToolFinder m_fromContext;
+        ToolFinder m_toContext;
+        std::vector<Base*> m_fromAsts;
+        std::vector<Base*> m_toAsts;
+    };
+    RequestHelper requestHelper(w, pairs);
+
+    CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(from1, to1);
+    EXPECT_EQ(&conversionTools[id.size], &_1_);
+    for (CellI& conversionToolKV : conversionTools) {
+        Object& conversionToolFn = static_cast<Object&>(conversionToolKV[id.value]);
+        conversionToolFn.createSelfStack({ "from1", from1 });
+        conversionToolFn();
+        CellI& result = conversionToolFn[id.value];
+        if (&result != &to1) {
+            printAs.value(conversionToolFn);
+        }
+        EXPECT_EQ(&result, &to1);
+    }
+    std::cout << "";
+}
 
 TEST_F(ToolFinderTest, FindConversionToolsFrom_2_To_4_)
 {
@@ -359,9 +478,9 @@ TEST_F(ToolFinderTest, FindPatternContinuations)
     testPatternContinuation({ &_1_, &_3_, &_9_ });
     testPatternContinuation({ &_1_, &_3_, &_5_ });
     testPatternContinuation({ &_4_, &_4_, &_4_ });
+    testPatternContinuation({ &_1_, &_2_, &_1_, &_2_ });
     std::cout << "";
 }
-
 
 TEST_F(NewToolFinderTest, DISABLED_NewBuilderTestAdd)
 {

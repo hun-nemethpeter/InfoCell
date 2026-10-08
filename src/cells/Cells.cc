@@ -1409,6 +1409,14 @@ bool Set::has(CellI& key)
     if (&key == &w.id.index) {
         return true;
     }
+    if (&key == &w.id.first) {
+        CellI& membersList = m_index.__type__()[w.id.members][w.id.list];
+        return membersList.has(key);
+    }
+    if (&key == &w.id.last) {
+        CellI& membersList = m_index.__type__()[w.id.members][w.id.list];
+        return membersList.has(key);
+    }
 
     return false;
 }
@@ -1444,7 +1452,14 @@ CellI& Set::operator[](CellI& key)
 
         return w.pools.numbers.get(size);
     }
-
+    if (&key == &w.id.first) {
+        CellI& node = m_index.__type__()[w.id.members][w.id.list][key];
+        return node;
+    }
+    if (&key == &w.id.last) {
+        CellI& node = m_index.__type__()[w.id.members][w.id.list][key];
+        return node;
+    }
     throw "No such key!";
 }
 
