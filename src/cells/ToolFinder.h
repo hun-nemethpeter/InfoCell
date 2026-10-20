@@ -44,7 +44,8 @@ public:
     {
         consequence,
         selfBuilder,
-        solver
+        solver,
+        knowledge
     };
 
     class ConversionToolKey
@@ -73,7 +74,6 @@ public:
     ToolFinder(World& w);
 
     void mergeTo(ToolFinder& target);
-    bool empty();
     List& serializeEffect(CellI& effect);
     void add(CellI& tool);
     void addPrompt(CellI& prompt);
@@ -81,8 +81,16 @@ public:
     List& findToolsByDescription(CellI& description, DescriptionKind descriptionKind);
     List* solve(CellI& equation);
     CellI& findConversionTools(CellI& from, CellI& to);
+    void findConversionToolsByContainer2(ToolFinder& localContext, CellI& examples, List& result);
     std::string printConsequenceNodesAsGrapviz();
     void exploreSlotManipulations();
+
+    struct CaptureResult
+    {
+        CellI* m_capturedPath  = nullptr;
+        CellI* m_capturedValue = nullptr;
+        CellI* m_capturedVar   = nullptr;
+    };
 
     struct SolverStateNode;
     struct SolverState
@@ -105,6 +113,8 @@ public:
         std::unique_ptr<SolverStateNode> m_startSolverNode;
         std::deque<SolverStateNode*> m_nextStates;
         std::list<std::list<ToolFinder::BuilderChainNode>*> m_results;
+        SolverStateNode* m_forLoop = nullptr;
+        std::set<SolverStateNode*> m_forLoopResults;
     };
 
     struct SolverPointer
@@ -139,6 +149,7 @@ public:
         {
             and_,
             or_,
+            for_,
             push
         };
 
@@ -169,7 +180,9 @@ public:
         void or_();
         void push();
         SolverStateNode& addNext(SolverStateNode*& solverNodePtr);
-        SolverStateNode& addChild(SolverStateNode& solverNode);
+        SolverStateNode& addChild();
+        SolverStateNode& addForLoop();
+        SolverStateNode& addForLoopBody();
         SolverStateNode* step();
         SolverPointer& pointer();
         void pointer(CellI& description);
@@ -254,6 +267,7 @@ protected:
     std::unique_ptr<Node> m_consequenceRootNode;
     std::unique_ptr<Node> m_selfBuilderRootNode;
     std::unique_ptr<Node> m_solverRootNode;
+    std::unique_ptr<Node> m_knowledgeRootNode;
     List m_tools;
     std::multimap<ConversionToolKey, ConversionToolBlueprint> m_conversionTools;
 };

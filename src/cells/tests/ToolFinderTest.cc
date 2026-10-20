@@ -294,75 +294,98 @@ public:
 
 TEST_F(ToolFinderTest, FindConversionToolsFrom_set_To_set)
 {
-    Set& from1 = *new Set(w, w.std.Number, "fromSet");
-    from1.add(_1_);
-    from1.add(_2_);
-    from1.add(_3_);
+    Set& exampleFrom1 = *new Set(w, w.std.Number, "exampleFrom1");
+    exampleFrom1.add(_1_);
+    exampleFrom1.add(_2_);
+    exampleFrom1.add(_3_);
 
-    Set& to1 = *new Set(w, w.std.Number, "toSet");
-    to1.add(_2_);
-    to1.add(_3_);
-    to1.add(_4_);
+    Set& exampleTo1 = *new Set(w, w.std.Number, "exampleTo1");
+    exampleTo1.add(_2_);
+    exampleTo1.add(_3_);
+    exampleTo1.add(_4_);
 
-    Set& from2 = *new Set(w, w.std.Number, "fromSet2");
-    from2.add(_1_);
-    from2.add(_3_);
-    from2.add(_6_);
-    from2.add(_7_);
+    Set& exampleFrom2 = *new Set(w, w.std.Number, "exampleFrom2");
+    exampleFrom2.add(_1_);
+    exampleFrom2.add(_3_);
+    exampleFrom2.add(_6_);
+    exampleFrom2.add(_7_);
 
-    Set& to2 = *new Set(w, w.std.Number, "toSet2");
-    to2.add(_2_);
-    to2.add(_4_);
-    to2.add(_7_);
-    to2.add(_8_);
+    Set& exampleTo2 = *new Set(w, w.std.Number, "exampleTo2");
+    exampleTo2.add(_2_);
+    exampleTo2.add(_4_);
+    exampleTo2.add(_7_);
+    exampleTo2.add(_8_);
 
-    Set& from3 = *new Set(w, w.std.Number, "fromSet3");
-    from3.add(_0_);
-    from3.add(_4_);
-    from3.add(_1_);
-    from3.add(_8_);
+    Set& exampleFrom3 = *new Set(w, w.std.Number, "exampleFrom3");
+    exampleFrom3.add(_0_);
+    exampleFrom3.add(_4_);
+    exampleFrom3.add(_1_);
+    exampleFrom3.add(_8_);
 
-    Set& to3 = *new Set(w, w.std.Number, "toSet3");
-    to3.add(_1_);
-    to3.add(_5_);
-    to3.add(_2_);
-    to3.add(_9_);
+    Set& exampleTo3 = *new Set(w, w.std.Number, "exampleTo3");
+    exampleTo3.add(_1_);
+    exampleTo3.add(_5_);
+    exampleTo3.add(_2_);
+    exampleTo3.add(_9_);
 
-    std::map<Set*, Set*> pairs;
-    pairs[&from1] = &to1;
-    pairs[&from2] = &to2;
-    pairs[&from3] = &to3;
+    Map& examplePairs = *new Map(w, w.std.Cell, w.std.Cell, "examplePairs");
+    examplePairs.add(exampleFrom1, exampleTo1);
+    examplePairs.add(exampleFrom2, exampleTo2);
+    examplePairs.add(exampleFrom3, exampleTo3);
+
+    Set& testFrom1 = *new Set(w, w.std.Number, "testFrom1");
+    testFrom1.add(_0_);
+    testFrom1.add(_2_);
+    testFrom1.add(_4_);
+    testFrom1.add(_6_);
+
+    Set& testTo1 = *new Set(w, w.std.Number, "testTo1");
+    testTo1.add(_1_);
+    testTo1.add(_3_);
+    testTo1.add(_5_);
+    testTo1.add(_7_);
+
+    Map& testPairs = *new Map(w, w.std.Cell, w.std.Cell, "testPairs");
+    testPairs.add(exampleFrom1, exampleTo1);
 
     struct RequestHelper : public AstHelper
     {
-        RequestHelper(World& w, std::map<cells::Set*, cells::Set*> pairs) :
+        RequestHelper(World& w, Map& examplePairs, Map& testPairs) :
             AstHelper(w),
-            m_pairs(pairs),
-            m_fromContext(w),
-            m_toContext(w)
+            m_examplePairs(examplePairs),
+            m_testPairs(testPairs),
+            m_localContext(w)
         {
             int i = 0;
-            for (auto& pair : m_pairs) {
-                CellI& from = *pair.first;
+            for (auto& pairKV : examplePairs) {
+                CellI& from = pairKV[id.key];
                 for (auto& itemKV : from) {
                     auto& key = itemKV[id.key];
                     addValue(m_fromAsts, from, key, i++);
                 }
 
-                CellI& to = *pair.second;
+                CellI& to = pairKV[id.value];
                 for (auto& itemKV : to) {
                     auto& key = itemKV[id.key];
                     addValue(m_toAsts, to, key, i++);
                 }
             }
-            compile(m_fromContext, m_fromAsts);
-            compile(m_toContext, m_toAsts);
+            for (auto& pairKV : testPairs) {
+                // only the input is known in case of test pairs
+                CellI& from = pairKV[id.key];
+                for (auto& itemKV : from) {
+                    auto& key = itemKV[id.key];
+                    addValue(m_fromAsts, from, key, i++);
+                }
+            }
+            compile(m_fromAsts);
+            compile(m_toAsts);
         }
 
         void addValue(std::vector<Base*>& asts, CellI& set, CellI& value, int pos)
         {
-            asts.push_back(&equal(call(_(set), "contains")(id.value, _(value)), true_()));
-#if 0 // TODO goToFirstNode is a setter
+            Base& astContains = equal(call(_(set), "contains")(id.value, _(value)), true_());
+            asts.push_back(&astContains);
             CellI& astIterator = call(_(set), "iterator");
             CellI& astFirstNode = call(astIterator, "goToFirstNode");
             CellI* astNextNode  = &astFirstNode;
@@ -370,37 +393,38 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_set_To_set)
                 astNextNode = &call(*astNextNode, "goToNextNode");
             }
             asts.push_back(&equal(call(*astNextNode, "getCurrentNodeValue"), _(value)));
-#endif
         }
 
-        void compile(ToolFinder& context, std::vector<Base*>& asts)
+        void compile(std::vector<Base*>& asts)
         {
             Compiler compiler(w);
             for (auto& ast : asts) {
                 auto& prompt = compiler.compileAsPrompt(*ast);
-                context.addPrompt(prompt);
+                m_localContext.addPrompt(prompt);
             }
         }
 
-        std::map<cells::Set*, cells::Set*> m_pairs;
-        ToolFinder m_fromContext;
-        ToolFinder m_toContext;
+        Map& m_examplePairs;
+        Map& m_testPairs;
+        ToolFinder m_localContext;
         std::vector<Base*> m_fromAsts;
         std::vector<Base*> m_toAsts;
     };
-    RequestHelper requestHelper(w, pairs);
+    RequestHelper requestHelper(w, examplePairs, testPairs);
+    List result(w, w.std.Cell);
+    w.stdLib().toolFinder().findConversionToolsByContainer2(requestHelper.m_localContext, requestHelper.m_examplePairs, result);
 
-    CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(from1, to1);
+    CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(exampleFrom1, exampleTo1);
     EXPECT_EQ(&conversionTools[id.size], &_1_);
     for (CellI& conversionToolKV : conversionTools) {
         Object& conversionToolFn = static_cast<Object&>(conversionToolKV[id.value]);
-        conversionToolFn.createSelfStack({ "from1", from1 });
+        conversionToolFn.createSelfStack({ "exampleFrom1", exampleFrom1 });
         conversionToolFn();
         CellI& result = conversionToolFn[id.value];
-        if (&result != &to1) {
+        if (&result != &exampleTo1) {
             printAs.value(conversionToolFn);
         }
-        EXPECT_EQ(&result, &to1);
+        EXPECT_EQ(&result, &exampleTo1);
     }
     std::cout << "";
 }
@@ -546,7 +570,7 @@ int main(int argc, char** argv)
         spdlog::get("cells")->set_level(spdlog::level::trace);
         spdlog::get("compileStruct")->set_level(spdlog::level::off);
         spdlog::get("compiledSymbols")->set_level(spdlog::level::off);
-        spdlog::get("toolFinder")->set_level(spdlog::level::off);
+        spdlog::get("toolFinder")->set_level(spdlog::level::trace);
         spdlog::get("toolFinderConversion")->set_level(spdlog::level::debug);
         spdlog::get("toolFinderLookup")->set_level(spdlog::level::off);
         spdlog::get("toolFinderExplore")->set_level(spdlog::level::debug);

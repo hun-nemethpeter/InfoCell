@@ -782,10 +782,10 @@ StdLibAst::Traits::Traits(World& w, Ast::Scope& stdScope) :
                 parameter("NodeType", _(std.Struct)),
                 parameter("ValueType", _(std.Struct)));
 
-    Iterator.addMethod("isContainerEmpty").returnType(_(std.Boolean));
+    Iterator.addMethod("isContainerEmpty").returnType("std::Boolean");
     Iterator.addMethod("goToFirstNode").returnType(_(Iterator));
     Iterator.addMethod("getCurrentNodeValue").returnType(at_("ValueType"));
-    Iterator.addMethod("hasNextNode").returnType(_(std.Boolean));
+    Iterator.addMethod("hasNextNode").returnType("std::Boolean");
     Iterator.addMethod("goToNextNode").returnType(_(Iterator));
 }
 
@@ -1168,6 +1168,7 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("Call")
         .members(
+            member("type", "Base"),
             member("method", "Base"),
             member("parameters", ListOf(std.ast.Parameter)));
 
@@ -1921,11 +1922,11 @@ void StdLibAst::createSet()
               .memberOf(_(std.Container))
               .members(
                   member("index", __type__("Index")),
-                  member("size", _(std.Number)));
+                  member("size", "Number"));
 
     setStructT.addMethod("constructor")
         .instructions(
-            m_("size")  = _(_0_),
+            m_("size")  = _(0),
             m_("index") = new_(__type__("Index"), "constructor"));
 
     setStructT.addMethod("add")
@@ -1933,9 +1934,9 @@ void StdLibAst::createSet()
             parameter("value", tp_("valueType")))
         .descriptionBegin()
             .consequences(
-                equal(self()("contains")(id.value, p_("value")), true_()))
+                equal(self()("contains")("value", p_("value")), true_()))
             .selfBuilders(
-                self()("add")(id.value, p_("value")))
+                self()("add")("value", p_("value")))
         .descriptionEnd()
         .instructions(
             if_(has(m_("index"), p_("value")))
@@ -1946,10 +1947,10 @@ void StdLibAst::createSet()
     setStructT.addMethod("contains")
         .parameters(
             parameter("value", tp_("valueType")))
-        .returnType(_(std.Boolean))
+        .returnType("Boolean")
         .descriptionBegin()
             .selfBuilders(
-                self()("contains")(id.value, p_("value")))
+                self()("contains")("value", p_("value")))
         .descriptionEnd()
         .instructions(
             return_(has(m_("index"), p_("value"))));
@@ -1959,9 +1960,9 @@ void StdLibAst::createSet()
             parameter("value", tp_("valueType")))
         .descriptionBegin()
             .consequences(
-                equal(self()("contains")(id.value, p_("value")), false_()))
+                equal(self()("contains")("value", p_("value")), false_()))
             .selfBuilders(
-                self()("remove")(id.value, p_("value")))
+                self()("remove")("value", p_("value")))
             .descriptionEnd()
         .instructions(
             if_(missing(m_("index"), p_("value")))
@@ -1990,13 +1991,69 @@ void StdLibAst::createSet()
             return_(m_("index") / "__type__" / "members" / "list" / "last"));
 
     setStructT.addMethod("size")
-        .returnType(_(std.Number))
+        .returnType("Number")
         .instructions(
             return_(m_("size")));
 
     setStructT.addMethod("empty")
-        .returnType(_(std.Boolean))
-        .instructions(return_(equal(m_("size"), _(_0_))));
+        .returnType("Boolean")
+        .instructions(return_(equal(m_("size"), _(0))));
+
+    auto& setIteratorStructT
+        = stdScope.add<StructT>("SetIterator")
+              .templateParams(
+                  parameter("valueType", _(std.Struct)))
+              .members(
+                  member("set", tt_("Set", "valueType", tp_("valueType"))),
+                  member("node", tp_("valueType")));
+
+    setIteratorStructT.addMethod("constructor")
+        .parameters(
+            parameter("set", tt_("Set", "valueType", tp_("valueType"))))
+        .instructions(
+            m_("set") = p_("set"));
+
+    auto& implIterableTraitForSetT
+        = setStructT.addTraitImpl("Iterable")
+              .associatedTypes(
+                  parameter("Iterator", tt_("SetIterator", "valueType", tp_("valueType"))));
+
+    implIterableTraitForSetT.addMethod("iterator")
+        .returnType(at_("Iterator"))
+        .instructions(
+            return_(new_(at_("Iterator"), "constructor")("set", self())));
+
+    auto& implIteratorTraitForSetT
+        = setIteratorStructT.addTraitImpl("Iterator")
+              .associatedTypes(
+                  parameter("ValueType", tp_("valueType")));
+
+    implIteratorTraitForSetT.addMethod("isContainerEmpty")
+        .returnType("Boolean")
+        .instructions(
+            return_(equal(m_("set") / "size", _(0))));
+
+    implIteratorTraitForSetT.addMethod("goToFirstNode")
+        .returnType(tt_("SetIterator", "valueType", tp_("valueType")))
+        .instructions(
+            set(self(), "node", m_("set") / "first"),
+            return_(self()));
+
+    implIteratorTraitForSetT.addMethod("getCurrentNodeValue")
+        .returnType(at_("ValueType"))
+        .instructions(
+            return_(m_("node") / "value"));
+
+    implIteratorTraitForSetT.addMethod("hasNextNode")
+        .returnType("Boolean")
+        .instructions(
+            return_(has(m_("node"), "next")));
+
+    implIteratorTraitForSetT.addMethod("goToNextNode")
+        .returnType(tt_("SetIterator", "valueType", tp_("valueType")))
+        .instructions(
+            m_("node") = m_("node") / "next",
+            return_(self()));
 #pragma endregion
 }
 
@@ -2881,6 +2938,11 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
 
     createOp();
     createAst();
+    auto& testStruct = scope.add<Struct>("TestStruct");
+
+    testStruct.addMethod("explicitInstantiation")
+        .instructions(
+            var_("result") = new_(tt_("std::Set", "valueType", "std::Number")));
 }
 
 StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :

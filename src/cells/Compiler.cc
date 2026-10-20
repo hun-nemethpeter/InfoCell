@@ -2385,17 +2385,10 @@ CellI& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function
             return w.ast.return_(resolve(ast[id.value]));
         }
         return w.ast.return_();
+    } else if (&ast.__type__() == &std.ast.For) {
+        return w.ast.for_(resolve(ast[id.variable])).in(resolve(ast[id.container]))(resolve(ast[id.statement]));
     } else if (&ast.__type__() == &std.ast.Call) {
         Ast::Base* retPtr = nullptr;
-#if 0
-        Ast::StructBase& astStruct = *astStructPtr;
-        CellI& compiledStruct      = astStruct[id.compiledStruct];
-        if (&compiledStruct == &std.Index) {
-        } else {
-            CellI& resolvedSelf = resolve(ast[id.self]);
-            // CellI& selfType     = resolvedSelf[id.type];
-        }
-#endif
         auto& ret = w.ast.call(resolve(ast[id.method]));
         if (ast.has(id.parameters)) {
             auto& newParameters = *new List(w, std.ast.Parameter);
@@ -2403,6 +2396,27 @@ CellI& Compiler::resolveDescriptionTypesInFunctionCode(CellI& ast, Ast::Function
                 newParameters.add(w.ast.parameterInit(parameter[id.key], resolve(parameter[id.value])));
             }
             ret.set(id.parameters, newParameters);
+            if (&ast[id.method].__type__() == &std.ast.PrimitiveToolName) {
+                if (ast[id.method][id.name].has(id.incomplete)) {
+                    return ret;
+                }
+                CellI& methodStruct = ast[id.method][id.name];
+                if (methodStruct.has(id.returnType)) {
+                    ret.set(id.type, methodStruct[id.returnType]);
+                }
+                return ret;
+            }
+            CellI& selfTypeVar = ret[id.parameters][id.first][id.value][id.value];
+            if (&selfTypeVar.__type__() == &std.ast.ConstVar || &selfTypeVar.__type__() == &std.ast.Call) {
+                CellI& selfType     = selfTypeVar[id.type];
+                Map& methodsMap     = static_cast<Map&>(selfType[id.methods]);
+                CellI& methodName   = ast[id.method][id.value];
+                CellI& methodStruct = methodsMap.getValue(methodName);
+                if (methodStruct.has(id.returnType)) {
+                    ret.set(id.type, methodStruct[id.returnType]);
+                }
+                std::cout << "";
+            }
         }
         return ret;
     }
@@ -2581,8 +2595,9 @@ CellI& Compiler::compilePromptInFunctionAst(CellI& ast)
         constVar.set(id.ast, ast);
         constVar.set(id.value, ast[id.compiled]);
         return constVar;
-    }
-    else if (&ast.__type__() == &std.ast.Call) {
+    } else if (&ast.__type__() == &std.ast.For) {
+        return w.ast.for_(compile(ast[id.variable])).in(compile(ast[id.container]))(compile(ast[id.statement]));
+    } else if (&ast.__type__() == &std.ast.Call) {
         if (&ast[id.method].__type__() == &std.ast.PrimitiveToolName) {
             CellI& primitiveTool = ast[id.method][id.name];
             Object& retOp        = *new Object(w, primitiveTool);

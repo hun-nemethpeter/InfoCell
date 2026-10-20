@@ -911,19 +911,19 @@ Ast::While& Ast::While::do_(Base& statement)
     return *this;
 }
 
-Ast::For::For(World& w, Base& var) :
+Ast::For::For(World& w, CellI& var) :
     BaseT<For>(w, w.std.ast.For, "ast.For")
 {
     set(w.id.variable, var);
 }
 
-Ast::For& Ast::For::in(Base& container)
+Ast::For& Ast::For::in(CellI& container)
 {
     set(w.id.container, container);
     return *this;
 }
 
-Ast::For& Ast::For::operator()(Base& statement)
+Ast::For& Ast::For::operator()(CellI& statement)
 {
     set(w.id.statement, statement);
     return *this;
@@ -1332,7 +1332,7 @@ Ast::While& Ast::while_(Base& condition)
     return While::New(w, condition);
 }
 
-Ast::For& Ast::for_(Base& var)
+Ast::For& Ast::for_(CellI& var)
 {
     return For::New(w, var);
 }

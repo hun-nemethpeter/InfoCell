@@ -117,9 +117,9 @@ public:
     class For : public BaseT<For>
     {
     public:
-        For(World& w, Base& var);
-        For& in(Base& container);
-        For& operator()(Base& statement);
+        For(World& w, CellI& var);
+        For& in(CellI& container);
+        For& operator()(CellI& statement);
     };
 
     class If : public BaseT<If>
@@ -691,7 +691,7 @@ public:
     Call& equal(CellI& lhs, Base& rhs);
     Call& erase(Base& cell, Base& key);
     Call& erase(Base& cell, const std::string& key);
-    For& for_(Base& var);
+    For& for_(CellI& var);
     For& for_(const std::string& varName);
     Call& get(Base& cell, Base& key);
     Call& get(Base& cell, const std::string& key);
