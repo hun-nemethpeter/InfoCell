@@ -1212,9 +1212,9 @@ void StdLibAst::createAst()
 
     astScope.add<Struct>("For")
         .members(
-            member("variable", "std::Cell"),
-            member("container", "Base"),
-            member("statement", "Base"));
+            member("variable", "std::Cell", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.state),
+            member("container", "Base", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.input),
+            member("statement", "Base", id.relation, std.op.Member.Relation.external, id.role, std.op.Member.Role.input));
 
     astScope.add<Struct>("Function")
         .members(
@@ -2020,6 +2020,12 @@ void StdLibAst::createSet()
 
     implIterableTraitForSetT.addMethod("iterator")
         .returnType(at_("Iterator"))
+        .descriptionBegin()
+            .consequences(
+                for_(unknown_(var_("value"))).in(equal(self()("contains")("value", unknown_(w.id.value)), true_()))(self()))
+            .selfBuilders(
+                for_(unknown_(var_("value"))).in(self()("iterator"))(self()))
+            .descriptionEnd()
         .instructions(
             return_(new_(at_("Iterator"), "constructor")("set", self())));
 
@@ -2070,6 +2076,7 @@ void StdLibAst::createStruct()
                   member("memberIds", tt_("List", "valueType", "Cell")),
                   member("selfBuilders", tt_("List", "valueType", "Cell")),
                   member("enum", "Boolean"),
+                  member("for", "ast::For"),
                   member("incomplete", "Boolean"),
                   member("sharedObject", "op::Member"),
                   member("typeAliases", tt_("Map", "keyType", "Cell", "valueType", "Struct")),

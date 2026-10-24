@@ -69,6 +69,7 @@ public:
     String& enums;
     String& enumType;
     String& first;
+    String& for_;
     String& fullyQualifiedName;
     String& functions;
     String& globalScope;
@@ -110,6 +111,7 @@ public:
     String& originalKey;
     String& other;
     String& output;
+    String& parameter;
     String& parameters;
     String& parametersType;
     String& parent;

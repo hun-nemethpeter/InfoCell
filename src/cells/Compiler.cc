@@ -1443,6 +1443,8 @@ Ast::Base& Compiler::instantiateAst(CellI& ast, CellI& selfType, Map& inputParam
         return w.ast.const_(ast[id.value]);
     } else if (&ast.__type__() == &std.ast.Var) {
         return w.ast.var_(ast[id.name]);
+    } else if (&ast.__type__() == &std.ast.UnknownVar) {
+        return w.ast.unknown_(ast[id.value]);
     } else if (&ast.__type__() == &std.ast.Continue) {
         return w.ast.continue_();
     } else if (&ast.__type__() == &std.ast.Break) {
@@ -2503,6 +2505,8 @@ CellI& Compiler::compileDescriptionInFunctionAst(CellI& ast, Ast::Function& astF
         return ast;
     } else if (&ast.__type__() == &std.ast.Return) {
         return ast;
+    } else if (&ast.__type__() == &std.ast.For) {
+        return w.ast.for_(compile(ast[id.variable])).in(compile(ast[id.container]))(compile(ast[id.statement]));
     } else if ((&ast.__type__() == &std.ast.Call) && (&ast[id.method].__type__() == &std.ast.PrimitiveToolName)) {
         CellI& primitiveTool = ast[id.method][id.name];
         Object& retOp        = *new Object(w, primitiveTool);

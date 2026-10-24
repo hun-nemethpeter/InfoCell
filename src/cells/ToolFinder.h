@@ -113,8 +113,6 @@ public:
         std::unique_ptr<SolverStateNode> m_startSolverNode;
         std::deque<SolverStateNode*> m_nextStates;
         std::list<std::list<ToolFinder::BuilderChainNode>*> m_results;
-        SolverStateNode* m_forLoop = nullptr;
-        std::set<SolverStateNode*> m_forLoopResults;
     };
 
     struct SolverPointer
@@ -172,17 +170,19 @@ public:
             CellI* m_key2 = nullptr;
         };
 
-        SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr, SolverStateNode* parent);
+        SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr);
+        SolverStateNode(SolverState& state, SolverPointer solverPointer, Node* nodePtr, SolverStateNode& parent);
 
         void checkKey(CellI& key);
         void checkAndCaptureValue(CellI& key, CellI& value);
         void checkKeyValue(CellI& key, CellI& value);
         void or_();
         void push();
+        void syncMatchState(const SolverStateNode& other);
         SolverStateNode& addNext(SolverStateNode*& solverNodePtr);
         SolverStateNode& addChild();
-        SolverStateNode& addForLoop();
-        SolverStateNode& addForLoopBody();
+        void addForLoopContainer();
+        void addForLoopBody(SolverStateNode& forLoop);
         SolverStateNode* step();
         SolverPointer& pointer();
         void pointer(CellI& description);
@@ -199,9 +199,11 @@ public:
         std::vector<std::unique_ptr<SolverStateNode>> m_children;
         SolverPointer m_solverPointer;
         MatchStatus m_matchStatus = MatchStatus::created;
-        CellI* m_capturedPath     = nullptr;
-        CellI* m_capturedValue    = nullptr;
-        CellI* m_capturedVar      = nullptr;
+        CellI* m_capturedPath      = nullptr;
+        CellI* m_capturedValue     = nullptr;
+        CellI* m_capturedVar       = nullptr;
+        CellI* m_expectedValue     = nullptr;
+        SolverStateNode* m_forLoop = nullptr;
     };
 
 protected:
