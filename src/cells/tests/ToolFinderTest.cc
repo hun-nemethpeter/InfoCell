@@ -412,7 +412,7 @@ TEST_F(ToolFinderTest, FindConversionToolsFrom_set_To_set_equal)
 
     SetPairsHelper setPairsHelper(w, examplePairs, testPairs);
     List result(w, w.std.Cell);
-    spdlog::get("toolFinderConversion")->set_level(spdlog::level::trace);
+//    spdlog::get("toolFinderConversion")->set_level(spdlog::level::trace);
     w.stdLib().toolFinder().findConversionToolsByContainer2(setPairsHelper.m_localContext, setPairsHelper.m_examplePairs, result);
 
     CellI& conversionTools = w.stdLib().toolFinder().findConversionTools(exampleFrom1, exampleTo1);

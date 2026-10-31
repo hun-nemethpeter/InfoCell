@@ -2952,7 +2952,7 @@ StdLibAst::StdLibAst(World& w, Ast::Scope& scope) :
             var_("result") = new_(tt_("std::Set", "valueType", "std::Number")));
 }
 
-StdLib::StdLib(World& w, Ast::Scope & parentScope, Compiler& compiler) :
+StdLib::StdLib(World& w, Ast::Scope& parentScope, Compiler& compiler) :
     Library(w, parentScope, "std")
 {
     Std& std = w.std;

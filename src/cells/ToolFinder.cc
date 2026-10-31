@@ -212,14 +212,23 @@ void ToolFinder::serializeKeyWithParamValue(List& result, CellI& key, CellI& val
     } else if (&value.__type__() == &std.ast.Self) {
         result.add(id.op);
         result.add(id.variable);
+        if (value.has(id.value)) {
+            result.add(value[id.value][id.value]);
+        }
         paramValueKind = ParamValueKind::Self;
     } else if (&value.__type__() == &std.ast.Return) {
         result.add(id.op);
         result.add(id.variable);
+        if (value.has(id.value)) {
+            result.add(value[id.value][id.value]);
+        }
         paramValueKind = ParamValueKind::Return;
     } else if (&value.__type__() == &std.ast.Parameter) {
         result.add(id.op);
         result.add(id.variable);
+        if (value.has(id.value)) {
+            result.add(value[id.value][id.value]);
+        }
         paramValueKind = ParamValueKind::Parameter;
     } else if (&value.__type__() == &std.op.Call || value.__type__().has(id.primitiveTool)) {
         result.add(id.op);
