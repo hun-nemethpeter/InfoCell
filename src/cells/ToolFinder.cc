@@ -793,9 +793,11 @@ std::unique_ptr<List> ToolFinder::findBuildersForDescription(CellI& description,
             if (&memberName == &id.__type__) {
                 solverNode.or_();
 
+                // ast.For as a search expression
                 auto& child1 = solverNode.addChild();
                 child1.addForLoopContainer();
 
+                // ast.For as a value
                 auto& child2 = solverNode.addChild();
                 child2.checkKeyValue(memberName, memberValue);
             } else if (&memberName == &id.container) {

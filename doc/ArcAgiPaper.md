@@ -30,6 +30,10 @@ Here is an example of a source code encoded AST nodes. It is very similar to a b
 ```
 Here `var_("name")` is a variable, `p_("name")` is a function parameter, `m_("name")` is a member, `_()` is a const value, `ta_` type alias, `tp_()` i stemplate parameter, and so on. Similarly other common instruction keywords can be used in this way. We have `if(...).then(...).else(...)`, `return_()`, `do_(...).while()`, `new_(...)`. The methodes are in actual classes. For more examples see `src\cells\StdLib.cc` or `src\arc\ArcLib.cc`.
 
+### The description segment
+
+The idea of this project is a new component, the `ToolFinder` and the description segment for AST nodes (which compiles to OP descriptions). The description segment provides a declerative way to express what is happening between two program state. We express what is the next state according to the current one. We can store this segment in extended truth tables.
+
 ### The individual information cell (InfoCell)
 
 The fundamental unit of the InfoCell programming language is the information cell (infocells), which is the only primitive type in the language. As in LISP, code and data share a unified representation. Unlike LISP, however, the core structure here is an object composed of key–value pairs, where both keys and values are object references.
@@ -58,23 +62,27 @@ Number::divide(other: Number) =>  return * other" == self
 Number::multiply(other: Number) =>  return / self == other
 Number::subtract(other: Number) =>  return + other == self
 ```
-Where `self` is refering to the current object (same as in Python, in C++ it is called this pointer). The `return` keyword here is the value from an equation, for example the equation `1 + 2 == 3`, the `1` is the self, `2` is the other, `3` is the return. This conclusion tells us how the expression behaves in an equation. We can rebuild our equation to an other one. From `1 + 2 == 3` we can build a `3 - 2 == 1` requation. The interesting thing, is we can use unknown values here also. For
+Where `self` is refering to the current object (same as in Python, in C++ it is called this pointer). The `return` keyword here is the value from an equation, for example the equation `1 + 2 == 3`, the `1` is the self, `2` is the other, `3` is the return. This conclusion tells us how the expression behaves in an equation. We can rebuild our equation to an other one. From `1 + 2 == 3` we can build a `3 - 2 == 1` equation. The interesting thing, is we can use unknown values here also. For
 example we can change the value `2` with an uninitialized variable, called `X`.
 
 We can generate conversion tools for the numbers with the help of the `consequences` subsegment. The actual code is in `ToolFinder::exploreSlotManipulations()`.
-The algorithm calculates how the consequences behaves when an unknown variable is given. We rebuild the equation with the help self builders. Self builder tells the algorithm that `2 + X` is the same as `X + 2` then get consequences of it. If we got back the original function we can check that how the input and return valuas are changing. We store these changes in the solver subsegment. Basically we just pattern match for function + const/unknown input params, then just reapply the tarsformation steps, just like solving the Rubik's cube: pattern match for color combination and apply rotations.
+The algorithm calculates how the consequences behaves when an unknown variable is given. We rebuild the equation with the help self builders. Self builder tells the algorithm that `2 + X` is the same as `X + 2`. So this is the experimenting phase for the tools, here we can remember how an uninitialized variable (the unknown X) interacts with the tool's consequeences. Here we can store which const/unknown combination leads to a simpler case (in code: `ToolFinder::isConstantFoldingPossible`), where a consequence tools all input's will be const variable. So we can transform an equation from one form to a simpler one.
 
-Basically something like this:
+We store these changes in the solver subsegment. Basically we just pattern match for function + const/unknown input params, then just reapply the tarsformation steps, just like solving the Rubik's cube: pattern match for color combination and apply rotations.
+
+Basically something like this, actual code:
 ```
   equation: 2 + X == 4
-recombined: X + 2 == 4
+recombined: X + 2 == 4 // see ToolFinder::recombine
 recombined: 4 == 2 + X
-recombined: 4 == X + 2 *
+recombined: 4 == X + 2 * // this path leads to a simpler case, we save this builder
   1. result: 4 - X == 2
   1. result: 4 - 2 == X
   1. result: 2 == 4 - X
-  1. result: X == 4 - 2 *
+  1. result: X == 4 - 2 * // we found a simpler case, we save this builder also
 ```
+
+Current known limitiation is that we don't handle proconditions, for example to expressing the fact, that dividing with `0` is not possible. The planned solution is to introduce a new subsegment, maybe we can call it `preCondition` and save the condition next to the builders. So when we find the builder, we have to check the precondition.
 
 #### Booleans
 
@@ -89,7 +97,7 @@ Boolean::or(self: Boolean, other: Boolean)
 ```
 
 Solving boolean equation basically defined as a search operation on this truth table. We can use the `X` value as a captured variable in regex. So `false or X = true` meaning search for equations that looks like this:
-`or(self=true, other=X) == return(true)` where the X value comes from the stored values. For details see `SolverStateNode::checkAndCaptureValue` method and usage in the code.
+`or(self=false, other=X) == return(true)` where the X value comes from the stored values. For details see `SolverStateNode::checkAndCaptureValue` method and usage in the code.
 
 #### ARC-AGI example
 
@@ -155,10 +163,17 @@ Here is the actual truth table for a setter:
 
 (set, maps, lists ...) containing objects or other containers
 
-For containers we introduce a new mathematical trick. If we want express the fact that one container values can be found an other one but now vice-versa. We need to express asymmetric connection between sets.
+For simplicity we can treat every container as a mathemtaical set, so we allow lost the ordering inside the containers. We can deal with the order in a later phase.
+
+If we want express the fact that every element of the source set is also contained in the destination set, which may contain additional elements, we need to express asymmetric connection between sets.
+
 We can invent a for loop like thing for equation where the unknown X filled in the for loop "header" () and used in the for loop "body". 
 
-Actual code in `ToolFinder::findConversionToolsByContainer2`
+Actual code in `ToolFinder::findConversionToolsByContainer2(ToolFinder& localContext, CellI& examples, List& result)`
+where `localContext` contains the truth table for `fromX`.
+
+We can use the `for` keyword as a search expression inside the truth table. This alters the search process in a way that the unknown value in the first expression captured and the search continues with the child expression. At the same time we also searching for a `for` as a value in the truth table, actually both happening at the same time. See below.
+
 ```
 w.ast.for_(w.ast.unknown_(fromX)).in(w.ast.equal(w.ast.call(w.ast._(otherFrom), "contains")(id.value, w.ast.unknown_(fromX)), w.ast.true_()))(
     w.ast.equal(w.ast.call(w.ast._(otherTo), "contains")(id.value, w.ast.unknown_(fromX)), w.ast.true_()));
@@ -184,6 +199,8 @@ for (X in set1) {
 The trick is we can register the connection between an iterator and a getter. Here we express the fact that if we iterate over a set the following expression is true:
 `set.contains(x)`. As we registered an unknown value here this can be used a search expression.
 
+As mentianed above, the `for` keyword can be used as value in the truth table. This is needed to find the consequences of a for loop. In case we actually matching with a for loop we can find tools that actually realize that.
+
 Actual code in `src\cells\StdLib.cc`. 
 ```
     implIterableTraitForSetT.addMethod("iterator")
@@ -197,17 +214,20 @@ Actual code in `src\cells\StdLib.cc`.
         .instructions(
             return_(new_(at_("Iterator"), "constructor")("set", self())));
 ```
+Here the Set class implements the Iterator trait (the trait concept come from Rust). `at_` is associated type here.
 
-For actual ARC-AGI task we can use a `ShapeField` class which has a `width` and `height` integer values and contains a shape map, so we can write
-ShapeField iterator where the correspoind getter is two parameter, something like:
+An other important aspect of dealing with containers is that we try all possible way to convert a value from SetFrom to SetTo, creating a hypotesis equation from it and immediately test it on other examples.
 
+For actual ARC-AGI task we can use a `ShapeField` class which has a `width` and `height` integer values and contains a shape map. There is a complete edge detection code written in C++ and also in InfoCell in the source (see `EdgeDetector::detect(const std::string& jsonStr)` and `EdgeDetector::frameProcess()`. Actually there is no point using the InfoCell code as the C++ variant much faster. Both variant generates a `ShapeField` InfoCell class.
+
+We can write a `ShapeField` iterator where the correspoind getter is two parameter, something like:
 ```
-for (POS, SHAPE in shapeFieldFrom.contains(POS) == SHAPE) {
+for (POS, SHAPE in shapeFieldFrom.getValue(POS) == SHAPE) {
    shapeFieldInsert.cotains(POS) == SHAPE;
 }
 ```
 
-
+Where `ShapeField` declared as follows:
 ```
     auto& shapeFieldStruct
         = scope.add<Struct>("ShapeField")
@@ -217,24 +237,35 @@ for (POS, SHAPE in shapeFieldFrom.contains(POS) == SHAPE) {
                   member("shapesMap", tt_("std::TrieMap", "keyType", "Vector", "valueType", "Shape")));
 ```
 
+And `std::TrieMap<keyType, valueType>::getValue(key: keyType) -> valueType` declared as follows:
+```
+    trieMapStructT.addMethod("getValue")
+        .parameters(
+            parameter("key", tp_("KeyType")))
+        .returnType(tp_("ValueType"))
+```
+
 ### Searching repeating pattern
 
 There is a demonstration of pattern continuation in the tests `TEST_F(ToolFinderTest, FindPatternContinuations)`.
 
 `testPatternContinuation({ &_8_, &_4_, &_2_ });`
 
+Some results:
 ```
 Pattern: 1 2 3  ... 4 with tool op type op::Add lhs op variable rhs 1
+Pattern: 1 2 3  ... 4 with tool op type op::Subtract lhs op variable rhs -1
 Pattern: 1 2 4  ... 8 with tool op type op::Multiply lhs op variable rhs 2
 Pattern: 8 4 2  ... 1 with tool op type op::Divide lhs op variable rhs 2
+Pattern: 8 4 2  ... 0 with tool op type op::Multiply lhs op variable rhs 0
 Pattern: 1 3 9  ... 27 with tool op type op::Multiply lhs op variable rhs 3
 Pattern: 1 3 5  ... 7 with tool op type op::Add lhs op variable rhs 2
 Pattern: 4 4 4  ... 4 with tool op type op::Add lhs op variable rhs 0
 ```
 
-As we can see 
+There are some issues here currently. We treat the `X + 2` and `X - (-2)` as separate case, we need find a way to filter these things out. Also currently we using integers for numbers and `0.5` is just treated as `0` (we generated a `X * 0`, instead of `X * 0.5`). We have to extend the Number class with at least the Rational numbers.
 
-### Description segment
+### Description segment in detail
 
 We can express a mathematical truth tables with the description segment. Here the mathematical `OR` operation is described within the `consequences` subsegment. The `OR` operation is symmetric so we can build it two way, as `OR(LHS, RHS) == OR(RHS, LHS)`. As the mathematical `OR` is happens to be an ASM like OP primitive we
 
@@ -263,8 +294,9 @@ As the `OR` is also a OP node we just put the compilation instructions here. As 
 As this function is a method, the lhs parameter is the `this pointer`.
 
 We can put the `consequences` subsegment to a lookup trie map (a lookup table made from trie). The key is the serialized form of the expression, the value will be the builders.
-In this case the builders will build back the original equation. So if you look up the input expression `true or false = true` you got back a builder that builds back the input from the input.
-So you got back the original input `true or false = true`. This make more sense when we look up with `false or X = true` where `X` is unknown. In this case we give back `X = true` and `X = false`.
+
+In this case the builders will build back the original equation. So if you look up the input expression `false or true = true` we got back a builder that builds back the input from the input. So we got back the original input `false or true = true`. This make more sense when we look up with `false or X = true` where `X` is unknown. In this case we give back `X = true`.
+
 We can use this concept for sets later. For ARC-AGI perspective this is a crucial concept as we want find a transition between two values. If want to find a transition from `false` to `true` we can find those by looking it in the `consequences` segment. For the record we use an additinal lookup table caled `conversionTools` to map input types to output types.
 
 We put the `selfBuilders` segment to a different lookup table. This segment discribes the fact that the `OR` operation is symmetric. This will be useful to write mathematical equation solvers.
@@ -297,38 +329,8 @@ op::Or =>
                 equal(get(self(), p_("key")), p_("value")))
         .descriptionEnd();
 ```
-Here the `get(cell, key) == value` can be "solved to" set(cell, key, value)
+Here the `get(cell, key) == value` can be "solved to" set(cell, key, value).
 
-```
-    Number.addPrimitiveFunction(std.Number.Add, op.Add, "add")
-        .memberMapping(
-            kvPair(id.self, "lhs"),
-            kvPair("other", "rhs"))
-        .parameters(
-            parameter("other", "Number"))
-        .descriptionBegin()
-            .consequences(
-                equal(subtract(return_(), p_("other")), self()))
-            .selfBuilders(
-                add(self(), p_("other")),
-                add(p_("other"), self()))
-        .descriptionEnd()
-        .returnType("Number");
-```
+## Conclusion
 
-```
-    setStructT.addMethod("add")
-        .parameters(
-            parameter("value", tp_("valueType")))
-        .descriptionBegin()
-            .consequences(
-                equal(self()("contains")("value", p_("value")), true_()))
-            .selfBuilders(
-                self()("add")("value", p_("value")))
-        .descriptionEnd()
-        .instructions(
-            if_(has(m_("index"), p_("value")))
-                .then_(return_()),
-            m_("index")("insert")("key", p_("value"))("value", p_("value")),
-            m_("size") = add(m_("size"), _(_1_)));
-```
+Although this solution is nowhere near complete, I think it clearly shows a different approach to solve ARC-AGI tasks. It currently doesn't solve any realy ARC-AGI test, but I think I quite close to it. It can solve simpler than ARC-AGI tasks although. The program doesn't use GPU and the memory consumption tops at 6.7Gb after 33 seconds runtime for the biggest unit test. (CMake target: `arctest`). For the record I submitted an empty solution to ARC-AGI-2 that scores 0 and does nothing, the submission name is `Solving ARC-AGI with InfoCells`.
