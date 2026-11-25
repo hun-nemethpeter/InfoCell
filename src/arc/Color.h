@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <tuple>
+#include <cstdint>
 
 namespace infocell {
 namespace arc {

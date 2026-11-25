@@ -4,7 +4,7 @@
 #include "App.h"
 #include "arc/EdgeDetector.h"
 #include "arc/Task.h"
-#include "config.h"
+#include "Config.h"
 #include "util/Log.h"
 
 using namespace infocell::cells;

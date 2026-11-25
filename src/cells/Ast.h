@@ -41,13 +41,6 @@ public:
             Base(w, classCell, label)
         {
         }
-
-    public:
-        Equal& operator==(Base& rhs) const
-        {
-            return Equal::New(w, const_cast<BaseT<T>&>(*this), rhs);
-        }
-        Equal& operator!=(Base& rhs) const;
     };
 
 // ============================================================================

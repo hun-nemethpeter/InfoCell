@@ -40,6 +40,7 @@ target_compile_definitions(cells-lib
 target_link_libraries(cells-lib
     PUBLIC
         fmt::fmt
+        arc-lib
         spdlog::spdlog
         utf8cpp
         cells-printers

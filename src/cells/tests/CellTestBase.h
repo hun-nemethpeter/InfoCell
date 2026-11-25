@@ -145,7 +145,7 @@ protected:
     }
 
     template <typename... Args>
-    Map& addParameter(Map& map, CellI& key, CellI& value, Args&&... args)
+    void addParameter(Map& map, CellI& key, CellI& value, Args&&... args)
     {
         map.add(key, value.w.ast.parameterInit(key, value));
         if constexpr (sizeof...(Args) > 0) {
